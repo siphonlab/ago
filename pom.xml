@@ -14,84 +14,97 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>22</maven.compiler.source>
+        <maven.compiler.target>22</maven.compiler.target>
     </properties>
 
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.antlr/antlr4 -->
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4</artifactId>
+            <version>4.13.1</version>
+        </dependency>
         <dependency>
             <groupId>io.activej</groupId>
             <artifactId>activej</artifactId>
             <version>5.1.1</version>
             <type>pom</type>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.cojen/cojen-maker -->
+        <dependency>
+            <groupId>org.cojen</groupId>
+            <artifactId>cojen-maker</artifactId>
+            <version>2.5.7</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/io.activej/activej-promise -->
         <dependency>
             <groupId>io.activej</groupId>
             <artifactId>activej-promise</artifactId>
-            <version>5.1.1</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/io.activej/activej-inject -->
-        <dependency>
-            <groupId>io.activej</groupId>
-            <artifactId>activej-inject</artifactId>
-            <version>5.1.1</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/io.activej/activej-bytebuf -->
-        <dependency>
-            <groupId>io.activej</groupId>
-            <artifactId>activej-bytebuf</artifactId>
-            <version>5.1.1</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/io.activej/activej-codegen -->
-        <dependency>
-            <groupId>io.activej</groupId>
-            <artifactId>activej-codegen</artifactId>
-            <version>5.1.1</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/io.activej/activej-serializer -->
-        <dependency>
-            <groupId>io.activej</groupId>
-            <artifactId>activej-serializer</artifactId>
-            <version>5.1.1</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/io.activej/activej-net -->
-        <dependency>
-            <groupId>io.activej</groupId>
-            <artifactId>activej-net</artifactId>
-            <version>5.1.1</version>
+            <version>6.0-beta2</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/io.activej/activej-eventloop -->
         <dependency>
             <groupId>io.activej</groupId>
             <artifactId>activej-eventloop</artifactId>
-            <version>5.1.1</version>
+            <version>6.0-beta2</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.activej/activej-csp -->
+        <dependency>
+            <groupId>io.activej</groupId>
+            <artifactId>activej-csp</artifactId>
+            <version>6.0-beta2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.14.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.3.1-jre</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.mina</groupId>
+            <artifactId>mina-core</artifactId>
+            <version>2.2.4</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.agrona/agrona -->
+        <dependency>
+            <groupId>org.agrona</groupId>
+            <artifactId>agrona</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.14.0</version>
         </dependency>
 
-
+        <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.6</version>
+            <version>1.5.18</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.7</version>
         </dependency>
 
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
+            <version>4.13.1</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.4</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-collections</groupId>
-            <artifactId>commons-collections</artifactId>
-            <version>3.2.2</version>
         </dependency>
 
         <dependency>
@@ -124,16 +137,24 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.8.0</version>
+                    <version>3.13.0</version>
                     <configuration>
-                        <source>11</source>
-                        <target>11</target>
+                        <source>21</source>
+                        <target>21</target>
                     </configuration>
                 </plugin>
-                <plugin>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.22.1</version>
-                </plugin>
+
+                <!--                <plugin>-->
+                <!--                    <groupId>org.codehaus.groovy</groupId>-->
+                <!--                    <artifactId>groovy-eclipse-compiler</artifactId>-->
+                <!--                    <version>3.9.0</version>-->
+                <!--                    <extensions>true</extensions>-->
+                <!--                </plugin>-->
+
+                <!--                <plugin>-->
+                <!--                    <artifactId>maven-surefire-plugin</artifactId>-->
+                <!--                    <version>2.22.1</version>-->
+                <!--                </plugin>-->
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.0.2</version>
@@ -142,20 +163,32 @@
                     <artifactId>maven-install-plugin</artifactId>
                     <version>2.5.2</version>
                 </plugin>
-                <plugin>
-                    <artifactId>maven-deploy-plugin</artifactId>
-                    <version>2.8.2</version>
-                </plugin>
-                <!-- site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle -->
-                <plugin>
-                    <artifactId>maven-site-plugin</artifactId>
-                    <version>3.7.1</version>
-                </plugin>
-                <plugin>
-                    <artifactId>maven-project-info-reports-plugin</artifactId>
-                    <version>3.0.0</version>
-                </plugin>
+                <!--                <plugin>-->
+                <!--                    <artifactId>maven-deploy-plugin</artifactId>-->
+                <!--                    <version>2.8.2</version>-->
+                <!--                </plugin>-->
+                <!--                &lt;!&ndash; site lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#site_Lifecycle &ndash;&gt;-->
+                <!--                <plugin>-->
+                <!--                    <artifactId>maven-site-plugin</artifactId>-->
+                <!--                    <version>3.7.1</version>-->
+                <!--                </plugin>-->
+                <!--                <plugin>-->
+                <!--                    <artifactId>maven-project-info-reports-plugin</artifactId>-->
+                <!--                    <version>3.0.0</version>-->
+                <!--                </plugin>-->
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>22</source>
+                    <target>22</target>
+                    <compilerArgs>--enable-preview</compilerArgs>
+                </configuration>
+            </plugin>
+
+        </plugins>
     </build>
 </project>
