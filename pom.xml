@@ -110,6 +110,13 @@
             <version>2.0.7</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.linecorp.armeria/armeria -->
+        <dependency>
+            <groupId>com.linecorp.armeria</groupId>
+            <artifactId>armeria</artifactId>
+            <version>1.32.5</version>
+        </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -231,6 +238,13 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
             <version>1.13</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.helidon.webserver/helidon-webserver -->
+        <dependency>
+            <groupId>io.helidon.webserver</groupId>
+            <artifactId>helidon-webserver</artifactId>
+            <version>4.2.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
