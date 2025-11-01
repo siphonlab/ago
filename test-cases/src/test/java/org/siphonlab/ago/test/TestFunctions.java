@@ -1,0 +1,112 @@
+package org.siphonlab.ago.test;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.rabbitmq.client.*;
+import groovy.json.JsonBuilder;
+import groovy.json.JsonSlurper;
+import org.apache.commons.dbcp2.Utils;
+import org.siphonlab.ago.AgoClass;
+import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.runtime.rdb.ObjectRef;
+import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
+import org.siphonlab.ago.runtime.rdb.semischema.lazy.JsonAgoEngine;
+import org.siphonlab.ago.runtime.rdb.semischema.lazy.PGJsonAdapter;
+import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
+
+public class TestFunctions {
+
+    public static Logger logger = LoggerFactory.getLogger(TestFunctions.class);
+
+    public static void add(NativeFrame frame, int a, int b){
+        System.err.println("let's think a long while");
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        System.err.println("output result");
+        frame.finishInt(a + b);
+    }
+
+    public static void sendMessage(NativeFrame nativeFrame, Instance<?> destination, Instance<?> message){
+        VertxRunSpaceHost vertxRunSpaceHost = (VertxRunSpaceHost) nativeFrame.getRunSpace().getRunSpaceHost();
+//        vertxRunSpaceHost.getVertx().eventBus().send(ObjectRefOwner.extractObjectRef(destination).toString(), ObjectRefOwner.extractObjectRef(message));
+        try {
+            vertxRunSpaceHost.getVertx().eventBus().send(String.valueOf(destination.hashCode()), nativeFrame.getRunSpace().getAgoEngine().jsonStringify(message, true));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        nativeFrame.finishVoid();
+    }
+
+    public static void receiveMessage(NativeFrame nativeFrame, Instance<?> source) {
+        VertxRunSpaceHost vertxRunSpaceHost = (VertxRunSpaceHost) nativeFrame.getRunSpace().getRunSpaceHost();
+        AgoClass resultClass = nativeFrame.getAgoClass().getResultClass();
+        nativeFrame.beginAsync();
+        vertxRunSpaceHost.getVertx().eventBus().consumer(String.valueOf(source.hashCode()), event -> {
+            String json = (String) event.body();
+            try {
+                var instance = nativeFrame.getRunSpace().getAgoEngine().jsonDeserialize(resultClass, nativeFrame, new StringReader(json), true);
+                nativeFrame.finishObjectAsync(instance);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public static void sendMessageMQ(NativeFrame nativeFrame, Instance<?> destination, Instance<?> message) throws IOException, TimeoutException {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("localhost");
+        try (var connection = factory.newConnection();
+            var channel = connection.createChannel()) {
+            ObjectRef objectRef = ObjectRefOwner.extractObjectRef(destination);
+
+            channel.exchangeDeclare(objectRef.className(), BuiltinExchangeType.DIRECT.getType());
+//            channel.queueDeclare(objectRef.toString(), true,false,false,null);
+//            channel.queueBind(objectRef.toString(), objectRef.className(), objectRef.toString());
+
+            ObjectRef messageRef = ObjectRefOwner.extractObjectRef(message);
+            String json = new JsonBuilder(messageRef).toString();
+            channel.basicPublish(objectRef.className(), objectRef.toString(), null, json.getBytes(StandardCharsets.UTF_8));
+
+            nativeFrame.finishVoid();
+        }
+    }
+
+    public static void receiveMessageMQ(NativeFrame nativeFrame, Instance<?> source) throws IOException, TimeoutException {
+        ObjectRef objectRef = ObjectRefOwner.extractObjectRef(source);
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("localhost");
+        JsonAgoEngine engine = (JsonAgoEngine) nativeFrame.getRunSpace().getAgoEngine();
+        PGJsonAdapter adapter = (PGJsonAdapter) engine.getRdbAdapter();
+
+        var connection = factory.newConnection();
+        var channel = connection.createChannel();
+        channel.exchangeDeclare(objectRef.className(), BuiltinExchangeType.DIRECT.getType());
+        String queueName = channel.queueDeclare().getQueue();
+
+        channel.queueBind(queueName, objectRef.className(), objectRef.toString());
+
+        channel.basicConsume(queueName, true, new DeliverCallback(){
+            @Override
+            public void handle(String consumerTag, Delivery message) throws IOException {
+                Map<String,Object> o = (Map<String, Object>) new JsonSlurper().parse(message.getBody());
+                ObjectRef messageRef = new ObjectRef((String) o.get("className"), (Long) o.get("id"));
+                var instance = adapter.restoreInstance(messageRef, nativeFrame);
+                Utils.closeQuietly(channel);
+                Utils.closeQuietly(connection);
+                nativeFrame.finishObject(instance);
+            }
+        }, consumerTag -> {});
+    }
+
+}
