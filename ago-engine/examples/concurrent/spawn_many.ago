@@ -1,0 +1,21 @@
+
+fun main() {
+    fun f1(){
+        Trace.print("f1")
+        sleep(3000)
+        Trace.print("open the door")
+    }
+    fun f2(){
+        Trace.print("f2")
+        sleep(1000)
+        Trace.print("put the elephant in")
+    }
+    fun f3(){
+        Trace.print("f3")
+        sleep(2000)
+        Trace.print("close the door")
+    }
+
+    runspace.spawnMany(new f1(), new f2(), new f3())
+    sleep(3100)
+}

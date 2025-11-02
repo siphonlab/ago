@@ -1,0 +1,37 @@
+class CustomException from Exception {
+    fun new(message as string) {
+        super(message);
+    }
+}
+
+class AnotherException from Exception {
+    fun new(message as string) {
+        super(message);
+    }
+}
+
+fun main() throws Exception{
+    try{
+        try {
+//            return
+            checkValue(150);
+        } catch (e as CustomException) {
+            Trace.print("捕获到自定义异常：" + e.message);
+            // throw new CustomException("a new exception");
+            throw e;
+        } finally {
+            Trace.print("finally 块：总是会执行");
+            Trace.print("finally output line 24");
+        }
+    } finally{
+        Trace.print("yet another finally block");
+        Trace.print("outer finally output line 28");
+    }
+}
+
+fun checkValue(value as int) throws CustomException{
+    if (value > 100) {
+        throw new CustomException("值 " + value + " 超过允许的最大值 100");
+    }
+    Trace.print("值 " + value + " 正常");
+}

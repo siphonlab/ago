@@ -1,0 +1,24 @@
+class KeyValuePair<Key, Value>{
+    public key as Key {get;}
+    public value as Value {get;}
+}
+
+interface ReadWriteMap<Key,Value> with Collection<KeyValuePair<Key, Value>{
+    fun get#key(index as Key) as Value;
+    fun put#key(index as Key, value as Value);
+    fun keys#get() as ReadOnlyCollection<Key>;
+    fun values#get() as ReadOnlyCollection<Value>;
+    fun containsKey(key as Key) as boolean;
+    fun remove(key as Key) as boolean;
+}
+
+interface ReadOnlyMap<Key,Value> with Collection<KeyValuePair<Key, Value>{
+    fun get#key(index as Key) as Value;
+    fun keys#get() as ReadOnlyCollection<Key>;
+    fun values#get() as ReadOnlyCollection<Value>;
+    fun containsKey(key as Key) as boolean;
+}
+
+abstract Map<Key, Value> from ReadWriteMap<T>, ReadOnlyMap<T>{
+
+}

@@ -1,0 +1,42 @@
+package my.test;
+
+public class A {
+    public a_v as int
+    public static a_vs as int
+
+    public static class A1 {
+        public fun a1_m(){
+            a_vs = 100;
+            print(a_vs)
+        }
+
+        public fun a1_m2(){
+            return new A11();
+        }
+
+        public fun a1_m2(){
+            return A11;
+        }
+
+        public class A11 {
+            public fun a11_m(){
+                a_vs = 1000;
+                print(a_vs);
+            }
+        }
+    }
+
+    public class A2{
+
+    }
+}
+
+public class B{
+    public static fun main(args as string[]) {
+        var a1 = new A.A1();        // create static class or top class is valid
+        a1.a1_m()
+
+        var a11 = new a1.A11();
+        a11.a11_m()
+    }
+}

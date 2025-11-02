@@ -1,0 +1,10 @@
+def add(a: int, b: int):
+    return a + b
+
+def test():
+    var a = any(readline(), {wait(5); throw TimeoutError();})
+    var b = any(readline(), {wait(5); throw TimeoutError();})
+    var c = add(a, b)
+    print(c)
+
+test()

@@ -1,0 +1,20 @@
+package my.test;
+
+public class A {
+    public static a_v_s as int;
+    public a_v as int
+
+    public fun a_m() {
+        a_v_s = a_v_s + 1;
+        this.a_v = class.this.a_v + 1;
+    }
+}
+
+public class B{
+    public static fun main(args as string[]) {
+        var a = new A();
+        a.a_m();
+        print(A.a_v_s);
+        print(a.a_v);
+    }
+}

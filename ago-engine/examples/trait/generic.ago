@@ -1,0 +1,62 @@
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Bird from Animal{
+    override bark(){
+        Trace.print("tweet")
+    }
+}
+
+class Samoyed from Dog{
+    override bark(){
+        Trace.print("Samoyed")
+    }
+}
+
+trait Container<+T as [Animal to _]> {
+
+    item as T
+
+    fun setItem(item as T) {
+        Trace.print('setItem')
+        this.item = item
+    }
+
+    fun getItem() as T {
+        return item
+    }
+
+    fun printItemInfo() {
+        Trace.print("printItemInfo")
+        item.bark()
+    }
+}
+
+class AnimalBox<+U as [Dog to _]> with Container<U> {
+    fun test(){
+        Trace.print("test")
+        this.printItemInfo()
+    }
+}
+
+fun main(){
+    var ab = new AnimalBox<Samoyed>();
+    ab.setItem(new Samoyed())
+    ab.printItemInfo()
+    ab.test()
+
+    var t as Container<Dog> = ab
+    t.printItemInfo()
+}

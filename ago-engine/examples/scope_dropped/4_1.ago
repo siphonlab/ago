@@ -1,0 +1,29 @@
+package my.test;
+
+public class A {
+    public a_v as int
+    public static a_vs as int
+
+    public class A1 {
+        public fun a1_m(){
+            a_v = 1000;
+            print(a_v);
+        }
+    }
+
+    public fun a1_m(){
+        return new A1();
+    }
+
+    public fun a_m1(){
+        return A1;
+    }
+
+}
+
+public class B{
+    public static fun main(args as string[]) {
+        var a1 = new A.A1();        // illegal
+        a1.a1_m();
+    }
+}

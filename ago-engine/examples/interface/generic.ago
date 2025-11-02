@@ -1,0 +1,53 @@
+class Animal{
+    metaclass{
+        fun foo(){
+            Trace.print("Animal.foo")
+        }
+    }
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    metaclass{
+        override foo(){
+            Trace.print("Cat.foo")
+        }
+    }
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+interface Producer<+T as [Animal to _]> {       // PECS
+    fun produce() as T;
+}
+
+interface Consumer<-T as [Animal to _]> {
+    fun consume(a as T);
+}
+
+class CatProducer with Producer<Cat>{
+    override produce() as Cat{
+        return new Cat()
+    }
+}
+
+class AnimalConsumer with Consumer<Animal>{
+    override consume(a as Animal){
+        a.bark()
+    }
+}
+
+fun main(){
+    var p as Producer<Animal> = new CatProducer();
+    var c as Consumer<Cat> = new AnimalConsumer();
+    var a as Animal = p.produce()
+    a.bark()        // meow
+
+    c.consume(new Cat())
+}

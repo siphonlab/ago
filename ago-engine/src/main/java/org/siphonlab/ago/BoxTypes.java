@@ -1,0 +1,125 @@
+package org.siphonlab.ago;
+
+import org.siphonlab.ago.classloader.AgoClassLoader;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static org.siphonlab.ago.TypeCode.*;
+import static org.siphonlab.ago.TypeCode.BOOLEAN;
+import static org.siphonlab.ago.TypeCode.BYTE;
+import static org.siphonlab.ago.TypeCode.CHAR;
+import static org.siphonlab.ago.TypeCode.DOUBLE;
+import static org.siphonlab.ago.TypeCode.FLOAT;
+import static org.siphonlab.ago.TypeCode.INT;
+import static org.siphonlab.ago.TypeCode.LONG;
+import static org.siphonlab.ago.TypeCode.SHORT;
+import static org.siphonlab.ago.TypeCode.STRING;
+
+public class BoxTypes {
+
+    private final Map<TypeCode, AgoClass> mapTypeCodeToClass;
+
+    Map<AgoClass, TypeCode> boxTypes = new HashMap<>();
+    Map<AgoClass, TypeCode> boxTypesInterfaces = new HashMap<>();
+    Map<AgoClass, TypeCode> cache = new HashMap<>();
+
+    public BoxTypes(AgoClassLoader agoClassLoader){
+        Map<String, AgoClass> classByName = agoClassLoader.getClassByName();
+        AgoClass t;
+        t = classByName.get("lang.Integer");
+        if(t != null) boxTypes.put(t, INT);
+        t = classByName.get("lang.String");
+        if(t != null) boxTypes.put(t, STRING);
+        t = classByName.get("lang.Long");
+        if(t != null) boxTypes.put(t, LONG);
+        t = classByName.get("lang.Boolean");
+        if(t != null) boxTypes.put(t, BOOLEAN);
+        t = classByName.get("lang.Float");
+        if(t != null) boxTypes.put(t, FLOAT);
+        t = classByName.get("lang.Double");
+        if(t != null) boxTypes.put(t, DOUBLE);
+        t = classByName.get("lang.Character");
+        if(t != null) boxTypes.put(t, CHAR);
+        t = classByName.get("lang.Byte");
+        if(t != null) boxTypes.put(t, BYTE);
+        t = classByName.get("lang.Short");
+        if(t != null) boxTypes.put(t, SHORT);
+
+        this.mapTypeCodeToClass = boxTypes.entrySet().stream().collect(Collectors.toMap(e -> e.getValue(), e-> e.getKey()));
+
+        t = classByName.get("lang.Boxer<int>");
+        if(t != null) boxTypesInterfaces.put(t, INT);
+        t = classByName.get("lang.Boxer<string>");
+        if(t != null) boxTypesInterfaces.put(t, STRING);
+        t = classByName.get("lang.Boxer<long>");
+        if(t != null) boxTypesInterfaces.put(t, LONG);
+        t = classByName.get("lang.Boxer<float>");
+        if(t != null) boxTypesInterfaces.put(t, FLOAT);
+        t = classByName.get("lang.Boxer<double>");
+        if(t != null) boxTypesInterfaces.put(t, DOUBLE);
+        t = classByName.get("lang.Boxer<boolean>");
+        if(t != null) boxTypesInterfaces.put(t, BOOLEAN);
+        t = classByName.get("lang.Boxer<char>");
+        if(t != null) boxTypesInterfaces.put(t, CHAR);
+        t = classByName.get("lang.Boxer<byte>");
+        if(t != null) boxTypesInterfaces.put(t, BYTE);
+        t = classByName.get("lang.Boxer<short>");
+        if(t != null) boxTypesInterfaces.put(t, SHORT);
+
+    }
+
+    public boolean isBoxType(AgoClass agoClass) {
+        TypeCode unboxType = getUnboxType(agoClass);
+        return unboxType != null && unboxType != VOID;
+    }
+
+    public boolean isBoxTypeOrWithin(AgoClass agoClass){
+        var r = this.isBoxType(agoClass);
+        if(r) return true;
+
+        if(agoClass.getParent() != null) return isBoxType(agoClass.getParent());
+
+        return false;
+    }
+
+    public TypeCode getUnboxType(AgoClass agoClass) {
+        TypeCode typeCode = cache.get(agoClass);
+        if (typeCode != null) {
+            if(typeCode == VOID) return null;
+            return typeCode;
+        }
+
+        var t = (boxTypes.get(agoClass));
+        if (t != null) {
+            cache.put(agoClass, t);
+            return t;
+        }
+        t = boxTypesInterfaces.get(agoClass);
+        if (t != null)
+            return t;
+        if(agoClass.getInterfaces() != null) {
+            for (AgoClass anInterface : agoClass.getInterfaces()) {
+                t = getUnboxType(anInterface);
+                if (t != null) {
+                    cache.put(agoClass, t);
+                    return t;
+                }
+            }
+        }
+        if (agoClass.getSuperClass() != null && agoClass.getSuperClass() != agoClass) {
+            t = getUnboxType(agoClass.getSuperClass());
+            if (t != null) {
+                cache.put(agoClass, t);
+                return t;
+            }
+        }
+        cache.put(agoClass, VOID);
+        return null;
+    }
+
+    public AgoClass getBoxType(TypeCode typeCode) {
+        return mapTypeCodeToClass.get(typeCode);
+    }
+}

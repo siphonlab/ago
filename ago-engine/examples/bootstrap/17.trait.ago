@@ -1,0 +1,40 @@
+trait Logger {
+    logLevel as string = "INFO"
+
+    fun setLogLevel(level as string) {
+        Trace.print("set log level " + level)
+        this.logLevel = level
+    }
+
+    fun log(message as string) {
+       Trace.print(logLevel + ": " + message)
+    }
+
+    fun debug(message as string) {
+        //if (logLevel == "DEBUG") {
+        Trace.print("DEBUG");
+            log(message)
+        //}
+    }
+}
+
+class UserService with Logger {
+    fun createUser(username as string) {
+        log("Creating user: " + username)
+        debug("Detailed user creation process for " + username)
+    }
+}
+
+
+fun main(){
+    var userService = new UserService()
+    userService.log("I can log too")
+
+    userService.setLogLevel("INFO")
+    userService.createUser("Alice")
+
+    userService.setLogLevel("DEBUG")
+    userService.createUser("Bob")
+
+}
+

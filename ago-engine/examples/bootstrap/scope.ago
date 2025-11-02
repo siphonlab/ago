@@ -1,0 +1,21 @@
+class A{
+    metaclass{
+        public i as int = 2
+        public fun inc(){
+            i = i + 1
+        }
+    }
+
+    class B{
+        fun f(){
+            inc()
+        }
+    }
+}
+
+fun main(){
+   var a = new A()
+   new a.B.f()
+
+   Trace.print(A.i)
+}

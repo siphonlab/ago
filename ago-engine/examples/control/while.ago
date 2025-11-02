@@ -1,0 +1,13 @@
+fun main(){
+    var i = 1
+    var sum = 0
+    test: while(i <= 100){
+        sum += i
+        i ++
+    }
+    Trace.print("sum: " + sum)
+
+    while(var j = 0){
+        Trace.print("I can't see me");
+    }
+}

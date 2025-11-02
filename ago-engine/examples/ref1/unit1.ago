@@ -1,0 +1,16 @@
+package a;
+
+import b.*
+import b.C2.C4
+import b.C2.C4.C5
+
+class C1{
+}
+
+class C3.C2{
+
+}
+
+class C5.C6{
+
+}

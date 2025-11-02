@@ -1,0 +1,73 @@
+fun add<T as [PrimitiveNumber to _]>(a as T, b as T) as T{
+    return a + b
+}
+
+fun subtract<T as [PrimitiveNumber to _]>(a as T, b as T) as T{
+    return a - b
+}
+
+fun multi<T as [PrimitiveNumber to _]>(a as T, b as T) as T{
+    return a * b
+}
+
+fun div<T as [PrimitiveNumber to _]>(a as T, b as T) as T{
+    return a / b
+}
+
+fun mod<T as [PrimitiveNumber to _]>(a as T, b as T) as T{
+    return a % b
+}
+
+fun neg<T as [PrimitiveNumber to _]>(a as T) as T{
+    return -a
+}
+
+fun eq<T as [PrimitiveNumber to _]>(a as T, b as T) as boolean{
+    return a == b
+}
+
+fun not_equals<T as [PrimitiveNumber to _]>(a as T, b as T) as boolean{
+    return a != b
+}
+
+fun gt<T as [PrimitiveNumber to _]>(a as T, b as T) as boolean{
+    return a > b
+}
+
+fun lt<T as [PrimitiveNumber to _]>(a as T, b as T) as boolean{
+    return a < b
+}
+
+fun ge<T as [PrimitiveNumber to _]>(a as T, b as T) as boolean{
+    return a >= b
+}
+
+fun le<T as [PrimitiveNumber to _]>(a as T, b as T) as boolean{
+    return a <= b
+}
+
+fun main(){
+    Trace.print(add(1, 2))
+
+    Trace.print(subtract(20.2, 10.1))
+
+    Trace.print(multi(3.14, 2.0))
+
+    Trace.print(div(100, 24))
+
+    Trace.print(mod(22, 7))
+
+    Trace.print(neg(8))
+
+    for(var i=0; i< 2; i++){
+        Trace.print("now i is " + i);
+
+        Trace.print("eq " + eq(i, 1))
+        Trace.print("neq " + not_equals(i, 1))
+        Trace.print("gt " + gt(i, 1))
+        Trace.print("ge " + ge(i, 1))
+        Trace.print("lt " + lt(i, 1))
+        Trace.print("le " + le(i, 1))
+    }
+
+}

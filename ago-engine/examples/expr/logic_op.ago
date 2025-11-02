@@ -1,0 +1,136 @@
+class Animal{
+    fun bark(){
+        Trace.print("bark");
+    }
+}
+
+fun foo() as Animal{
+    Trace.print("foo got null")
+    return null;
+}
+
+fun bar() as Animal{
+    Trace.print("bar got animal")
+    return new Animal();
+}
+
+
+fun testOrObject(){
+    var r = foo() or bar();     // invoke foo and bar
+    r.bark()
+
+    var r2 = bar() or foo();        // only invoke bar
+    r2.bark()
+
+    var r3 = foo()
+    r3 or= bar()
+    r3.bark()
+}
+
+fun testAndObject(){
+    var r = foo() and bar();     // invoke foo only
+    Trace.print(r)
+
+    var r2 = bar() and foo();        // both invoke
+    Trace.print(r2);
+
+    var r3 = foo()
+    r3 and= bar()
+    Trace.print(r3);
+}
+
+fun testAndLiteral(){
+    var b = true and true       // const_B_vc
+    Trace.print(b)
+
+    b = true and false       // const_B_vc
+    Trace.print(b)
+
+    b = false and true       // const_B_vc
+    Trace.print(b)
+
+    b = false and false       // const_B_vc
+    Trace.print(b)
+}
+
+fun testOrLiteral(){
+    var b = true or true       // const_B_vc
+    Trace.print(b)
+
+    b = true or false       // const_B_vc
+    Trace.print(b)
+
+    b = false or true       // const_B_vc
+    Trace.print(b)
+
+    b = false or false       // const_B_vc
+    Trace.print(b)
+}
+
+fun andFun(){
+    var b = f() and true    // invoke f
+    Trace.print(b)
+    b = t() and false       // direct return false
+    Trace.print(b)
+
+    b = f() and t()     // invoke f, skip t
+    Trace.print(b)
+
+    b = t() and f()     // invoke t, invoke f
+    Trace.print(b)
+}
+
+fun f() as boolean{
+    Trace.print('invoke f')
+    return false;
+}
+fun t() as boolean{
+    Trace.print('invoke t')
+    return true;
+}
+
+class Staff{
+    b1 as boolean;
+    b2 as boolean {get; set;}
+    b as boolean[]
+    fun new(){
+        b = [boolean[]| true, false, true]
+    }
+}
+
+fun testComposite(){
+    var s = new Staff()
+    s.b1 = t()
+    s.b1 and= f()
+    Trace.print(s.b1)
+    s.b1 or= t()
+    Trace.print(s.b1)
+
+
+    s.b2 = t()
+    s.b2 and= f()
+    Trace.print(s.b2)
+    s.b2 or= t()
+    Trace.print(s.b2)
+
+    s.b[0] and= f()
+    Trace.print(s.b[0])
+    s.b[0] or= t()
+    Trace.print(s.b[0])
+
+    s.b[1] and= f()
+    Trace.print(s.b[1])
+    s.b[1] or= t()
+    Trace.print(s.b[1])
+}
+
+fun main(){
+    testOrObject();
+    testAndObject();
+
+    testAndLiteral();
+    testOrLiteral();
+
+    andFun()
+    testComposite();
+}

@@ -1,0 +1,31 @@
+class Contact{
+    address as string
+
+    fun new(field name as string,
+            field phone as string {get; set;},
+            field address as string){
+    }
+
+    fun report(foo as string){
+        Trace.print("Contact name: " + this.name)
+        Trace.print("Contact phone: " + this.phone)
+        Trace.print("Contact address: " + this.address)
+
+        Trace.print("Foo: " + foo);
+
+        foo = "not bar now";
+    }
+}
+
+fun main(){
+    var c = new Contact("John", "12822223333", "street freedom")
+    Trace.print(c.name)
+    Trace.print(c.phone)
+    Trace.print(c.address)
+
+    var t = new c.report("bar")
+    Trace.print(t.foo)
+
+    t();
+    Trace.print(t.foo)
+}

@@ -1,0 +1,16 @@
+class A{
+    class I{
+        fun test(){
+            Trace.print("test")
+        }
+    }
+}
+
+class B from A{
+}
+
+fun main(){
+    var b = new B()
+    var i = new b.I()
+    i.test()
+}

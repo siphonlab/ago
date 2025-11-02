@@ -1,0 +1,36 @@
+class A{
+    metaclass{
+        fun af(){}
+    }
+    private a as int = 1;
+    fun new(a as int){
+        this.a = a;
+    }
+
+    class B{
+        private b as int = 2;
+
+        fun new(b as int){
+            this.b = b;
+        }
+
+        fun sum() as int{
+            return a + b
+        }
+    }
+
+    //fun getB(){
+    //    return B;
+    //}
+}
+
+fun main(args as string){
+    var a = new A(10);
+    Trace.print(a.getClass());                // class A
+    Trace.print(a.getClass().getClass());     // meta of A
+    Trace.print(a.getClass().getClass().getClass());  // meta of meta
+    Trace.print(a.getClass().getClass().getClass().getClass());   // always be itself
+
+    //var B as [B] = A.getB()
+    //print(new B().sum())
+}

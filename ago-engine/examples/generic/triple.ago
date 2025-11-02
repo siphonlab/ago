@@ -1,0 +1,92 @@
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Bird from Animal{
+    override bark(){
+        Trace.print("tweet")
+    }
+}
+
+class Triple<T1, T2, T3>{
+    public left as T1
+    public middle as T2
+    public right as T3
+    fun new(t1 as T1, t2 as T2, t3 as T3){
+        this.left = t1
+        this.middle = t2
+        this.right = t3
+    }
+}
+
+class DogXX<D1, D2> from Triple<Dog, D1, D2>{
+    fun new(d1 as D1, d2 as D2){
+        super(new Dog(), d1, d2)
+    }
+}
+
+class XDogX<D1, D2> from Triple<D1, Dog, D2>{
+    fun new(d1 as D1, d2 as D2){
+        super(d1, new Dog(), d2)
+    }
+}
+
+class XXDog<D1, D2> from Triple<D1, D2, Dog>{
+    fun new(d1 as D1, d2 as D2){
+        super(d1, d2, new Dog())
+    }
+}
+
+class CatXDog<X> from XXDog<Cat, X>{
+    fun new(x as X){
+        super(new Cat(), x)
+    }
+}
+
+class CatBirdDog from CatXDog<Bird>{
+    fun new(){
+        super(new Bird())
+    }
+}
+
+fun main(){
+    var dog = new Dog()
+    var cat = new Cat()
+    var bird = new Bird()
+
+    Trace.print("Triple")
+    var t1 = new Triple<Dog, Cat, Bird>(dog, cat, bird)
+    t1.left.bark(); t1.middle.bark(); t1.right.bark();
+
+    Trace.print("DogXX")
+    var t2 = new DogXX<Cat, Bird>(cat, bird)
+    t2.left.bark(); t2.middle.bark(); t2.right.bark();
+
+    Trace.print("XDogX")
+    var t3 = new XDogX<Cat, Bird>(cat, bird)
+    t3.left.bark(); t3.middle.bark(); t3.right.bark();
+
+    Trace.print("XXDog")
+    var t4 = new XXDog<Cat, Bird>(cat, bird)
+    t4.left.bark(); t4.middle.bark(); t4.right.bark();
+
+    Trace.print("CatXDog")
+    var t5 = new CatXDog<Bird>(bird)
+    t5.left.bark(); t5.middle.bark(); t5.right.bark();
+
+    Trace.print("CatBirdDog")
+    var t6 = new CatBirdDog()
+    t6.left.bark(); t6.middle.bark(); t6.right.bark();
+
+}

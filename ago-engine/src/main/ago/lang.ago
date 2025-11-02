@@ -1,0 +1,310 @@
+package lang;
+
+class Object{
+
+    fun new() {}
+
+    final fun getClass() as Class
+        native "org.siphonlab.ago.lang.Lang.Object_getClass";
+
+    fun toString() as string{
+        return this.getClass().getName() + "@" + Integer.toHexString(this.hashCode());
+    }
+
+    fun equals(obj as Object) as boolean{
+        return (this == obj);
+    }
+
+    fun hashCode() as int
+        native "org.siphonlab.ago.lang.Lang.Object_hashCode";
+}
+
+// a mark class for ClassInterval
+final class Any{}
+
+// box type for classref
+class ClassRef{
+    protected final value as classref;
+    protected final boxedClass as Class;       // an AgoClass instance
+
+    fun new(value as classref) {
+        this.value = value;
+    }
+
+    final fun getBoxedClass() as Class {
+        return boxedClass;
+    }
+}
+
+class ClassInterval from ClassRef{
+    metaclass{
+        public final lBound as classref
+        public final uBound as classref
+        fun new(lBound as classref, uBound as classref){
+            this.lBound = lBound
+            this.uBound = uBound
+        }
+    }
+
+    fun new(value as classref){
+        this.value = value;
+    }
+}
+
+// mostly use this, the sugar code is `var T as [Animal to Cat]`
+class ScopedClassInterval from ClassInterval{
+    metaclass{
+        fun new(lBound as classref, uBound as classref){
+            super(lBound, uBound)
+        }
+    }
+    public final scope as Object   // assigned by opcode
+}
+
+// for G<T>, i.e. G<+T as [Animal to _], -T2 as [_ to Cat]>
+class GenericTypeParameter from ClassInterval{
+    metaclass{
+        public final variance as byte
+        fun new(lBound as classref, uBound as classref, variance as byte){
+            super(lBound, uBound)
+            this.variance = variance
+        }
+    }
+}
+
+// class information
+class Class {
+    override toString() as string{
+        //var kind = isInterface() ? "interface " : isPrimitive() ? "" : "class ";
+        //return kind.concat(getName());
+        return "class " + this.getName();
+    }
+
+    fun getName() as string
+        native "org.siphonlab.ago.lang.Lang.Class_getName";
+}
+
+class Throwable {
+    cause as Throwable = this;
+    message as string {get; }
+    stackTraceElements as StackTraceElement[]
+
+    fun new#message(field message as string) {
+        fillStackTrace();
+    }
+    fun new#message_cause(field message as string, field cause as Throwable) {
+        fillStackTrace();
+    }
+    fun fillStackTrace()
+            native "org.siphonlab.ago.lang.Lang.Throwable_fillStackTrace"
+}
+
+class StackTraceElement{
+
+    fun new(field functionName as string, field fileName as string, field lineNumber as int, field column as int, field length as int){
+    }
+}
+
+class Exception from Throwable{
+
+}
+
+class RuntimeException from Exception {
+
+}
+
+class ClassCastException from RuntimeException{
+
+}
+
+class NullPointerException from RuntimeException{
+
+}
+
+
+class Function<+R>{
+    fun runspace#get() as RunSpace native "org.siphonlab.ago.lang.RunSpaceAware.getRunSpace";
+
+    fun notify() native "org.siphonlab.ago.lang.Lang.Function_notify";      // wakeup current function paused by `await`, there is no Function<R>.wait() or pause(), for it must put in the function body itself
+}
+
+interface NativeFunction for Function<_>{
+}
+
+interface Function0<+R> for Function<R>{}
+interface Function1<+R, -P1> for Function<R>{}
+interface Function2<+R, -P1, -P2> for Function<R>{}
+interface Function3<+R, -P1, -P2, -P3> for Function<R>{}
+interface Function4<+R, -P1, -P2, -P3, -P4> for Function<R>{}
+interface Function5<+R, -P1, -P2, -P3, -P4, -P5> for Function<R>{}
+
+interface Primitive;            // a placeholder type for primitive
+interface PrimitiveNumber from Primitive;         // a placeholder type for primitive numbers
+
+public abstract class Number<N as [PrimitiveNumber]> from Boxer<N>{
+
+    public abstract fun intValue() as int;
+
+    public abstract fun longValue() as long;
+
+    public abstract fun floatValue() as float;
+
+    public abstract fun doubleValue() as double;
+
+    public abstract fun byteValue() as byte;
+
+    public abstract fun shortValue() as short;
+}
+
+class Boxer<T as [Primitive]>{
+    fun new(field value as T){
+
+    }
+    override fun toString() as string{
+        return (value | Object).toString()
+    }
+}
+
+interface ViaObject{
+    fun enter(f as Function<_>);
+    fun exit(f as Function<_>);
+}
+
+public class Integer from Number<int>{
+    metaclass{
+        fun toHexString(v as int) as string
+            native "org.siphonlab.ago.lang.Lang.Integer_toHexString";
+    }
+
+    public override intValue() as int    { return value; }
+
+    public override longValue() as long  { return value; }
+
+    public override floatValue() as float    { return value; }
+
+    public override doubleValue() as double  { return value; }
+
+    public override byteValue() as byte      { return value|byte; }
+
+    public override shortValue() as short    { return value|short; }
+
+    public override toString() as string native "org.siphonlab.ago.lang.Lang.Integer_toString"
+}
+
+public class Long from Number<long>{
+    metaclass{
+        fun toHexString(v as long) as string
+            native "org.siphonlab.ago.lang.Lang.Long_toHexString";
+    }
+
+    public override intValue() as int    { return value; }
+
+    public override longValue() as long  { return value; }
+
+    public override floatValue() as float    { return value; }
+
+    public override doubleValue() as double  { return value; }
+
+    public override byteValue() as byte      { return value|byte; }
+
+    public override shortValue() as short    { return value|short; }
+
+    public override toString() as string native "org.siphonlab.ago.lang.Lang.Long_toString"
+}
+
+
+public class String from Boxer<string>{
+
+    override hashCode() as int{
+        return stringHashCode(value);
+    }
+
+    fun stringHashCode(s as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_hashCode";
+
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof String aString) and value == aString.value;
+    }
+
+    override toString() as string{
+        return value;
+    }
+
+}
+
+// array creator will get ArrayInstance insteadof
+class Array<T> with Iterable<T>{
+    public final length as int;
+
+    override iterator() as Iterator<T>{
+        return new ArrayIterator<T>(this)
+    }
+}
+
+class ArrayIterator<T> with Iterator<T>{
+    i as int
+    fun new(field array as Array<T>){}
+
+    override hasNext() as boolean{
+        return i < array.length
+    }
+    override next() as T{
+        return array[i++];
+    }
+}
+
+abstract class Enum<T>{
+    metaclass{
+        abstract fun valueOf(t as T) as Enum<T>;
+
+        abstract fun parse(s as string) as Enum<T>;
+    }
+
+    fun new(field value as T,field name as string){}
+
+    override toString() as string{
+        return this.name;
+    }
+}
+
+abstract class IntEnum from Enum<int>{}
+
+abstract class ByteEnum from Enum<byte>{}
+
+abstract class ShortEnum from Enum<short>{}
+
+abstract class LongEnum from Enum<long>{}
+
+
+interface Iterator<+E>{
+    fun hasNext() as boolean;
+    fun next() as E;
+}
+
+interface Iterable<+T> {
+    fun iterator() as Iterator<T>;
+}
+
+class Trace{
+    metaclass{
+        final fun print#int(number as int) native "org.siphonlab.ago.lang.Trace.print_int";
+
+        final fun print#str(text as string) native "org.siphonlab.ago.lang.Trace.print_str";
+
+        final fun print#long(number as long) native "org.siphonlab.ago.lang.Trace.print_long";
+
+        final fun print#double(number as double) native "org.siphonlab.ago.lang.Trace.print_double";
+
+        final fun print#obj(obj as Object){
+            if(obj == null)
+                print#str("null")
+            else
+                print#str(obj.toString())
+        }
+
+        final fun print#b(v as boolean){
+            print#str("true" if v else "false")
+        }
+    }
+}

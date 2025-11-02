@@ -1,0 +1,36 @@
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Bird from Animal{
+    override bark(){
+        Trace.print("tweet")
+    }
+}
+
+class Samoyed from Dog{
+    override bark(){
+        Trace.print("Samoyed")
+    }
+}
+
+fun test<+T as [Animal to _]>(a as T, b as T, c as int){
+    Trace.print(c)
+    a.bark()
+    b.bark()
+}
+
+fun main(){
+    test(new Dog(), new Samoyed(), 1)
+}

@@ -1,0 +1,14 @@
+package b;
+class C3{
+
+}
+
+class C2.C4{
+
+}
+
+class C2.C4.C5{
+
+}
+
+

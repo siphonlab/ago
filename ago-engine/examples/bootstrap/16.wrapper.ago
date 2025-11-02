@@ -1,0 +1,42 @@
+interface Logger {
+    fun setLogLevel(level as string);
+
+    fun log(message as string);
+
+    fun debug(message as string);
+}
+
+class LoggerImpl with Logger {
+    logLevel as string = "INFO"
+
+    override setLogLevel(level as string) {
+        this.logLevel = level
+    }
+
+    override log(message as string) {
+       Trace.print(logLevel + ": " + message)
+    }
+
+    override debug(message as string) {
+        //if (logLevel == "DEBUG") {
+        Trace.print("DEBUG");
+            log(message)
+        //}
+    }
+}
+
+class UserService with (logger as Logger) {
+    logger as Logger = new LoggerImpl()
+
+    fun createUser(username as string) {
+        log("Creating user: " + username)
+        debug("Detailed user creation process for " + username)
+    }
+
+}
+
+fun main(){
+    var userService = new UserService()
+    userService.log("hehe")
+}
+

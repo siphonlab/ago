@@ -1,0 +1,36 @@
+public enum DaysOfWeek
+{
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday
+}
+
+fun main(){
+    var today = DaysOfWeek.Friday;
+
+    switch (today)
+    {
+        case DaysOfWeek.Monday:
+            Trace.print("星期一：新的一周开始，加油工作！");
+            break;
+        case DaysOfWeek.Tuesday:
+        case DaysOfWeek.Wednesday:
+        case DaysOfWeek.Thursday:
+            Trace.print(today + "：工作日，继续努力！");
+            break;
+        case DaysOfWeek.Friday:
+            Trace.print("星期五：周末快到了，放松一下！");
+            break;
+        case DaysOfWeek.Saturday:
+        case DaysOfWeek.Sunday:
+            Trace.print(today + "：周末，享受休闲时光！");
+            break;
+        default:
+            Trace.print("未知的星期值");
+            break;
+    }
+}

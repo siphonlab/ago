@@ -1,0 +1,14 @@
+trait RestService<R> for Function0<R>{
+    metaclass{
+        fun new(field path as string){
+        }
+    }
+}
+
+fun greeting() as string with RestService<string>::('/greeting'){
+    return "hello world";
+}
+
+fun iterate() as int[] with RestService<string>::('/it'){
+    return [int[]|1,2,3,4,5,6]
+}

@@ -1,0 +1,17 @@
+fun main(){
+    f(2)
+
+    f(2.0)
+
+    f("abcd")
+
+    f("")
+}
+
+fun f<T>(t as T){
+    if(t){
+        Trace.print("true")
+    } else {
+        Trace.print("false")
+    }
+}

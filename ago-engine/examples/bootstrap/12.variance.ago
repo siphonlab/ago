@@ -1,0 +1,40 @@
+class Animal{
+    metaclass{
+        fun foo(){
+            Trace.print("Animal.foo")
+        }
+    }
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    metaclass{
+        override foo(){
+            Trace.print("Cat.foo")
+        }
+    }
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Producer<+T as [Animal to _]> {       // PECS
+
+}
+
+class Consumer<-T as [Animal to _]> {
+
+}
+
+
+fun main(){
+    var p as Producer<Animal> = new Producer<Cat>();
+    var c as Consumer<Cat> = new Consumer<Animal>();
+
+//    var p2 as Producer<Cat> = new Producer<Animal>();       // cannot cast Producer<Animal>' to 'Producer<Cat>'
+}

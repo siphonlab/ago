@@ -1,0 +1,35 @@
+fun processShape(shape as Object) {
+    if (shape instanceof Circle circle) {
+        Trace.print("圆的面积: " + circle.getCircleArea());
+    } else if (shape instanceof Rectangle rectangle) {
+        Trace.print("矩形的面积: " + rectangle.getRectArea());
+    } else {
+        Trace.print("未知形状");
+    }
+}
+
+fun main() {
+    var circle as Object = new Circle(5.0);
+    var rectangle as Object = new Rectangle(4.0, 6.0);
+
+    processShape(circle);
+    processShape(rectangle);
+    processShape("Not a shape");
+}
+
+class Circle {
+    fun new(field radius as double){}
+
+    fun getCircleArea() as double {
+        return 3.1415926 * radius * radius;
+    }
+}
+
+class Rectangle {
+    fun new(field width as double,field height as double){}
+
+    fun getRectArea() as double {
+        return width * height;
+    }
+}
+

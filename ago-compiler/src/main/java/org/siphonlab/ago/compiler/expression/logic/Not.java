@@ -1,0 +1,67 @@
+package org.siphonlab.ago.compiler.expression.logic;
+
+import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.PrimitiveClassDef;
+import org.siphonlab.ago.compiler.exception.CompilationError;
+
+import org.siphonlab.ago.compiler.expression.*;
+
+import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
+
+import java.util.Objects;
+
+public class Not extends UnaryExpression {
+
+    public Not(Expression value) throws CompilationError {
+        super(value);
+    }
+
+    public Expression getValue(){
+        return value;
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        var v = new Cast(this.value, PrimitiveClassDef.BOOLEAN).transform();
+        if(v instanceof Literal<?> literal){
+            return new BooleanLiteral(!BooleanLiteral.isTrue(literal)).setParent(this.getParent()).setSourceLocation(this.getSourceLocation());
+        }
+        if(v != this.value) {
+            return new Not(v).setParent(this.getParent()).setSourceLocation(this.sourceLocation);
+        }
+        return this;
+    }
+
+    @Override
+    public ClassDef inferType() throws CompilationError {
+        return PrimitiveClassDef.BOOLEAN;
+    }
+
+    @Override
+    public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+        try {
+            blockCompiler.enter(this);
+
+            CodeBuffer code = blockCompiler.getCode();
+            var v = new Cast(this.value, PrimitiveClassDef.BOOLEAN).transform().visit(blockCompiler);
+            if (v instanceof Literal<?> literal) {
+                code.assignLiteral(localVar.getVariableSlot(), BooleanLiteral.isFalse(literal) ? new BooleanLiteral(true) : new BooleanLiteral(false));
+            } else {
+                code.not(localVar.getVariableSlot(), ((Var.LocalVar) v).getVariableSlot());
+                // not_vov not implemented
+            }
+        } catch (CompilationError e) {
+            throw e;
+        } finally {
+            blockCompiler.leave(this);
+        }
+
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof Not n && Objects.equals(n.value, this.value);
+    }
+}

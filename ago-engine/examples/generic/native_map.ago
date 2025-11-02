@@ -1,0 +1,48 @@
+native class Map<Key, Value>{
+    fun new(){
+        init()
+    }
+
+    fun init() native "org.siphonlab.ago.lang.Map.Map_create";
+
+    fun put(k as Key, v as Value){
+        var obj = boxKey(k);
+        putNative(obj, boxValue(v));
+    }
+
+    fun get(k as Key) as Value {
+        var obj = boxKey(k);
+        return getNative(obj) | Value
+    }
+
+    fun boxKey(k as Key) as Object{
+        if(k instanceof int i){
+            return i
+        } else if(k instanceof string s){
+            return s
+        } else {
+            return k;
+        }
+    }
+
+    fun boxValue(k as Value) as Object{
+        if(k instanceof int i){
+            return i
+        } else if(k instanceof string s){
+            return s
+        } else {
+            return k;
+        }
+    }
+
+    fun putNative(k as Object, v as Object) native "org.siphonlab.ago.lang.Map.Map_put";
+
+    fun getNative(k as Object) as Object native "org.siphonlab.ago.lang.Map.Map_get";
+}
+
+fun main(){
+    var m = new Map<string, string>();
+    m.put("name", "Tom")
+    var s = m.get("name")
+    Trace.print(s)
+}

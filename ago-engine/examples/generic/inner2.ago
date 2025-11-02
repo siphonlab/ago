@@ -1,0 +1,94 @@
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Bird from Animal{
+    override bark(){
+        Trace.print("tweet")
+    }
+}
+
+class A<TA as [Animal to _]>{
+    public a as TA
+
+    fun new(a as TA){
+        this.a = a
+    }
+
+    class B{
+        public b as TA
+        fun new(b as TA){
+            this.b = b
+        }
+
+        class BC<TBC as [Animal to _]>{
+            public a as TA
+            public bc as TBC
+
+            fun new(a as TA, c as TBC){
+                this.a = a;
+                this.bc = c;
+            }
+        }
+    }
+
+    class C<TC as [Animal to _]>{
+        public a as TA
+        public c as TC
+
+        fun new(a as TA, c as TC){
+            this.a = a;
+            this.c = c;
+        }
+
+        class CC<TCC as [Animal to _]>{
+            public a as TA
+            public cc as TCC
+
+            fun new(a as TA, cc as TCC){
+                this.a = a;
+                this.cc = c;
+            }
+        }
+    }
+
+    fun test(){
+        var b = new B(this.a)
+        var bc = new b.BC<Bird>(this.a, new Bird());
+        bc.a.bark()
+        bc.bc.bark()
+
+        var c = new C<Bird>(this.a, new Bird());
+        var cc = new c.CC<Bird>(this.a, new Bird());
+        cc.a.bark()         // meow
+        cc.cc.bark()        // tweet
+    }
+}
+
+fun main(){
+    var a = new A<Cat>(new Cat());  // in A.test#, the apply order is `A.C => A.C<Bird> => A<Cat>.C<Bird>`
+    a.test();       // this test need create A<Cat>.B<Bird>.C<Bird> in the class loader, which cannot resolved in the compile time
+
+/*
+    ENABLE BELOW WILL MAKE A<Cat>.B<Bird>.C<Bird> FOUND IN COMPILE TIME
+
+    var b = new a.B(new Cat())
+    var bc = new b.BC<Bird>(a.a, new Bird())
+    bc.bc.bark()      // tweet
+
+    var c = new a.C<Bird>(a.a, new Bird());
+    c.a.bark()      // meow
+    c.c.bark()      // tweet
+*/
+}

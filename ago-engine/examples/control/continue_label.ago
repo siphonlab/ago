@@ -1,0 +1,47 @@
+fun main(){
+    Trace.print("test 1")
+    var i = 0
+    while(i < 10){
+        i++
+        if(i % 2 == 0) continue
+        Trace.print(i)
+    }
+
+    for(; i< 20; i++){
+        if(i % 2 == 1) continue
+        Trace.print(i)
+    }
+
+    Trace.print("test 2")
+/*
+0, 0
+0, 1
+0, 2
+1, 0
+2, 0
+2, 1
+2, 2
+*/
+    outerLoop: for (i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+            if (i == 1 and j == 1) {
+                continue outerLoop
+            }
+            Trace.print(i + ", " + j);
+        }
+    }
+
+
+// dead loop
+//    outer: while (true) {
+//        Trace.print("Step 1");
+//        var condition = 1;
+//        if (condition == 1) {
+//            continue outer;
+//        }
+//        Trace.print("Step 2"); // 不会执行
+//    }
+
+
+
+}

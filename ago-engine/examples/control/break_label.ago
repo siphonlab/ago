@@ -1,0 +1,16 @@
+fun main(){
+    var s = "hello"
+    Trace.print(s and "world")
+
+    s = ""
+    Trace.print(s and "world")
+
+    outerLoop: for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+            if (i == 1 and j == 1) {
+                break outerLoop
+            }
+            Trace.print(i + ", " + j);
+        }
+    }
+}

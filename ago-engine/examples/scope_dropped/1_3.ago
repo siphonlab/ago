@@ -1,0 +1,17 @@
+package my.test;
+
+public class A {
+    public static a_v_s as int;
+    public a_v as int
+
+    public static fun a_ms() {
+        a_v_s = a_v_s + 1;
+    }
+}
+
+public class B{
+    public static fun main(args as string[]) {
+        var a = new A();
+        a.a_ms()        // should throw compile error
+    }
+}

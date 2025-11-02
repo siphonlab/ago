@@ -1,0 +1,49 @@
+interface I{
+    metaclass{
+        timeout as int
+        fun new(timeout as int){
+            this.timeout = timeout
+        }
+    }
+}
+
+class C with I::(100){
+    fun test(){
+        Trace.print("timeout: " + timeout)
+        Trace.print("timeout: " + I.timeout)
+    }
+}
+
+interface I2<T>{
+    metaclass{
+        timeout as int
+        fun new(timeout as int){
+            this.timeout = timeout
+        }
+    }
+}
+
+class Animal{
+    metaclass{
+        fun foo(){
+            Trace.print("Animal.foo")
+        }
+    }
+    fun bark(){
+    }
+}
+
+class C2 with I::(100), I2<Animal>::(200){
+    fun test(){
+        Trace.print("timeout: " + timeout)
+        Trace.print("timeout: " + I2<Animal>.timeout)
+        Trace.print("timeout: " + I.timeout)
+    }
+}
+fun main(){
+    var c = new C();
+    c.test()
+    Trace.print(c.timeout)
+
+    new C2().test()
+}

@@ -1,0 +1,24 @@
+fun send(channel as Function<_>, message as Object) native "org.siphonlab.ago.TestFunctions.sendMessageMQ";
+
+fun receive<T>(channel as Function<_>) as T native "org.siphonlab.ago.TestFunctions.receiveMessageMQ";
+
+class Numbers{
+    fun new(field a as int, field b as int){}
+}
+
+fun main(){
+    var f = new work(fun.this);
+    spawn f()
+    sleep(100)      // let receive install listener at first
+
+    Trace.print("start send")
+    send(f, new Numbers(2, 3))
+    fun.this.pause()
+}
+
+fun work(caller as Function<_>){
+    Trace.print("start recv")
+    var n = receive<Numbers>(fun.this)
+    Trace.print(n.a + n.b)
+    caller.resume()
+}

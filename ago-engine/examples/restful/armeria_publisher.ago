@@ -1,0 +1,46 @@
+trait RestService<R> for Function0<R>{
+    metaclass{
+        fun new(field path as string){
+        }
+    }
+}
+
+native class SimplePublisher{
+    fun new(publish like PublisherProvider.publish){
+        init(publish)
+    }
+
+    fun init(publish like PublisherProvider.publish) native "org.siphonlab.ago.web.SimplePublisher.create";
+
+    fun onNext(obj as Object) native "org.siphonlab.ago.web.SimplePublisher.onNext";
+
+    fun onComplete() native "org.siphonlab.ago.web.SimplePublisher.onComplete";
+
+    fun onError(obj as Exception) native "org.siphonlab.ago.web.SimplePublisher.onError";
+}
+
+abstract class PublisherProvider{
+    public publisher as SimplePublisher = new SimplePublisher(this.publish);
+
+    abstract fun publish();
+}
+
+class IterablePublisher<T> from PublisherProvider{
+
+    fun new(field iterable as Iterable<T>){}
+
+    override publish(){
+        for(var el in iterable){
+            publisher.onNext(el);
+        }
+        publisher.onComplete();
+    }
+}
+
+fun greeting() as string with RestService<string>::('/greeting'){
+    return "hello world";
+}
+
+fun iterate() as PublisherProvider with RestService<string>::('/it'){
+    return new IterablePublisher<int>([int[]|1,2,3,4,5,6])
+}

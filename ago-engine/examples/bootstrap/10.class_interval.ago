@@ -1,0 +1,43 @@
+class Animal{
+    metaclass{
+        fun foo(){
+            Trace.print("Animal.foo")
+        }
+    }
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    metaclass{
+        override foo(){
+            Trace.print("Cat.foo")
+        }
+    }
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+fun main(){
+    var T as [Animal to _]
+    T = Cat     // T got ScopedClassInterval::(Animal, _)(value=Cat, scope=assign Scope)
+    T.foo()     // Invoke(ClassUnder.Instance(Cast(LocalVar(T), Meta@Animal), "foo#")
+
+    var U like Animal
+    U = Dog
+    U.foo()
+
+//    var c = new T()     // exception, lBound != uBound
+//    c.bark()
+    var T2 as [Cat to Cat] = Cat
+    var c = new T2()
+    c.bark()
+
+    Trace.print(T == Cat)
+    Trace.print(Dog != T)
+}

@@ -1,0 +1,15 @@
+package lang;
+
+native class AtomicBoolean{
+    fun new#0(){
+        create(false);
+    }
+
+    fun new#init(value as boolean){
+        create(value)
+    }
+
+    fun create(value as boolean) native "org.siphonlab.ago.lang.Atomic.AtomicBoolean_create"
+
+    fun compareAndSet(expectedValue as boolean, newValue as boolean) as boolean native "org.siphonlab.ago.lang.Atomic.AtomicBoolean_compareAndSet";
+}

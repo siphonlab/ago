@@ -1,0 +1,33 @@
+class VarChar{
+    metaclass{
+        public final length as int;
+        fun new(length as int){
+            this.length = length
+        }
+    }
+
+    private value as string;
+
+    fun new(value as string){
+        this.value = value;
+    }
+
+    fun getValue() as string{
+        return value;
+    }
+}
+
+fun extractString(v as VarChar) as string{
+    return v.getValue();
+}
+
+fun main(){
+    var i = VarChar::(200).length;
+    Trace.print(VarChar::(200).length)
+
+    var address = new VarChar::(200)("广东省广州市天河区体育西路101号")
+    var phone = new VarChar::(20)("13812345678")
+
+    Trace.print(extractString(address));
+    Trace.print(extractString(phone));
+}

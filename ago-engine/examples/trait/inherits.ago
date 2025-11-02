@@ -1,0 +1,31 @@
+trait A{
+    s as string = "I'm a"
+
+    fun f(){
+        Trace.print("A:" + s)
+    }
+}
+
+trait B from A{
+
+    fun f2(){
+        super.s = "I'm b"
+        this.f()
+    }
+}
+
+class C with B{
+
+    fun fc(){
+        B.this.f()
+        this.f2()
+    }
+}
+
+fun main(){
+    var c = new C();
+    c.fc()
+
+    var b as B = c;     // works like Interface
+    b.f2()
+}

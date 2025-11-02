@@ -1,0 +1,73 @@
+package lang;
+
+fun sleep(milliseconds as int) native "org.siphonlab.ago.lang.RunSpaceAware.sleep";
+
+native class RunSpace {
+
+    fun pause() native "org.siphonlab.ago.lang.RunSpaceAware.pause";
+
+    fun resume() native "org.siphonlab.ago.lang.RunSpaceAware.resume";
+
+    fun interrupt() native "org.siphonlab.ago.lang.RunSpaceAware.interrupt";
+
+    fun create() as RunSpace native "org.siphonlab.ago.lang.RunSpaceAware.createRunSpace";
+
+    fun run<R>(function as Function<R>) as R native "org.siphonlab.ago.lang.RunSpaceAware.run";
+
+    fun runAsync(function as Function<_>) native "org.siphonlab.ago.lang.RunSpaceAware.runAsync";
+
+    fun race<R>(functions as Function<R>...) as R{
+        var result as R;
+        var b = new AtomicBoolean()
+        var self = fun.this;
+
+        fun wrap(f as Function<R>){
+            var r = f();
+            if(b.compareAndSet(false, true)){
+                result = r;
+
+                for(var other in functions){
+                    if(other != f)
+                    other.runspace.interrupt()
+                }
+                self.notify();
+            }
+        }
+        for(var f in functions){
+            fork wrap(f)
+        }
+        await;
+        return result
+    }
+
+    fun spawnMany(functions as Function<_>...){
+        for(var f in functions){
+            spawn f
+        }
+    }
+
+    fun awaitMany(functions as Function<_>...) as Object[]{
+        var results = new Object[functions.length]
+        var self = fun.this;
+        var cnt = 0
+        fun wrap(index as int, f as Function<_>){
+            var r = f();
+            results[index] = r;
+            cnt++;
+            if(cnt == functions.length){
+                self.notify();
+            }
+        }
+        for(var i=0; i<functions.length; i++){
+            fork wrap(i, functions[i])
+        }
+        await;
+        return results;
+    }
+
+    fun forkMany(functions as Function<_> ...){
+        for(var f in functions){
+            fork f
+        }
+    }
+}

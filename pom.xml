@@ -20,9 +20,8 @@
     </properties>
 
     <modules>
-        <module>runtime</module>
-        <module>compiler</module>
         <module>ago-engine</module>
+        <module>ago-compiler</module>
         <module>test-cases</module>
     </modules>
 

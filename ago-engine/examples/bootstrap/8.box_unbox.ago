@@ -1,0 +1,21 @@
+class Animal{
+}
+class Cat from Animal{
+}
+class Dog from Animal{
+}
+
+fun main(){
+    var i = 10
+    var j as Integer = i + 10
+    var o as Object = j + 10
+    Trace.print(o)     // 30, depends on Integer.toString
+    Trace.print(j + 20)    // 40
+
+    var T as classref = Cat
+    var T2 = T
+    var T3 as classref = Dog
+
+    var obj as Object = T3
+    Trace.print(obj)
+}

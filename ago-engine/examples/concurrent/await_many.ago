@@ -1,0 +1,22 @@
+fun main(){
+    fun f1() as int{
+        Trace.print("f1")
+        sleep(3000)
+        return 1;
+    }
+    fun f2() as int{
+        Trace.print("f2")
+        sleep(1000)
+        return 2;
+    }
+    fun f3() as int{
+        Trace.print("f3")
+        sleep(2000)
+        return 3;
+    }
+
+    var values = runspace.awaitMany(new f1(), new f2(), new f3())
+    for(var v in values)
+        Trace.print(v)
+
+}

@@ -1,0 +1,36 @@
+public class StaticExample {
+
+    metaclass{
+        public classVariable as int = 2024;
+
+        public fun classMethod() {
+            Trace.print("这是一个类方法");
+            Trace.print("类变量的值是: " + classVariable);
+        }
+
+        public class StaticInnerClass {
+            public fun display() {
+                Trace.print("这是静态内部类的方法");
+                Trace.print("静态变量的值是: " + classVariable);
+            }
+        }
+    }
+
+    public fun main(args as string) {
+        // 访问类变量
+        StaticExample.classVariable = 10;
+
+        StaticExample.classMethod();
+
+        classVariable = 20
+        StaticExample.classMethod();
+
+        // 创建静态内部类的实例
+        var innerObj = new StaticExample.StaticInnerClass();
+        innerObj.display();
+    }
+}
+
+fun main(){
+    new StaticExample().main("foo")
+}

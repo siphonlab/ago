@@ -1,0 +1,35 @@
+public enum DaysOfWeek
+{
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday
+}
+
+public enum Status from byte
+{
+    Active = 1,
+    Inactive = 0
+}
+
+fun main(){
+    var today = DaysOfWeek.Wednesday;
+
+    Trace.print("Today is " + today)
+
+    var dayValue = DaysOfWeek.Wednesday | int;
+    Trace.print("Wednesday's value is " + dayValue)
+
+    var someDay = DaysOfWeek.valueOf(3)
+    Trace.print(someDay)
+
+    var someDay = 4 as DaysOfWeek;
+    Trace.print("Day 4 is " + someDay)
+
+    var status = Status.Active
+    Trace.print("Status " + status)
+    Trace.print("Status value is " + status|byte)
+}

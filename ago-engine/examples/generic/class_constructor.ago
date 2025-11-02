@@ -1,0 +1,48 @@
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Samoyed from Dog{
+    override bark(){
+        Trace.print("Samoyed")
+    }
+}
+
+class GClass<+T as [Animal to _]>{
+    t as T
+    fun new(t as T){
+        this.t = t
+    }
+    fun getT() as T{
+        return t
+    }
+}
+
+class SClass<+U as [Dog to _]> from GClass<U>{
+    fun new(t as U){
+        super(t)
+    }
+}
+
+fun main(){
+    var d = new Samoyed();
+    var g as GClass<Dog> = new GClass<>(d);
+    g.getT().bark()
+
+    var g2 = new GClass<>(d);
+    g2.getT().bark()
+
+    var s = new SClass<>(d);
+    s.getT().bark()
+}

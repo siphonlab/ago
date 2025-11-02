@@ -1,0 +1,25 @@
+fun main(){
+    fun f1(){
+        Trace.print("open the door")
+    }
+    fun f2(){
+        Trace.print("put the elephant in")
+    }
+    fun f3(){
+        Trace.print("close the door")
+    }
+
+    fork f1()
+    spawn f2()
+    spawn f3()
+
+    var a = 1;
+    if(a){
+        fun f4(){
+            Trace.print("test");
+        }
+        f4();
+    }
+
+    sleep(100);
+}

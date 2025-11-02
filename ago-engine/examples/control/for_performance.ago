@@ -1,0 +1,13 @@
+fun main(){
+    // pure java: 35806800  35ms
+    // slots: 70736100      70ms
+    // interpreter: 40s spent, 571 times than above, 1000 times than pure java
+    Trace.print("start")
+    var sum = 0;
+    var times = 100000000;
+    for (var i = 0; i < times; i++) {
+        sum += i;
+    }
+    Trace.print("end at ")
+    Trace.print(sum)
+}

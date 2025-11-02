@@ -1,0 +1,30 @@
+class AnIterator with Iterator<int>{
+    i as int = 0
+    override hasNext() as boolean{
+        return i < 10
+    }
+    override next() as int{
+        return i++;
+    }
+}
+
+class AnIterable with Iterable<int>{
+    override iterator() as AnIterator{
+        return new AnIterator();
+    }
+}
+
+fun main(){
+    var iterable = new AnIterable();
+
+    for(var i in iterable){
+        if(i % 2 == 0) continue
+        Trace.print(i)
+    }
+
+    var it = new AnIterator();
+    for(var i in it){
+        if(i % 2 != 0) continue
+        Trace.print(i)
+    }
+}

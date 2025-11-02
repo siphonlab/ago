@@ -1,0 +1,39 @@
+class A{
+
+    metaclass{
+        fun f(){
+            Trace.print("A")
+        }
+    }
+
+    class AA{
+
+        metaclass{
+            fun f(){
+                Trace.print("AA")
+            }
+        }
+
+        class AAA{
+
+            metaclass{
+                fun f(){
+                    Trace.print("AAA")
+                }
+            }
+
+            fun foo(){
+                A.AA.f();
+                class.this.f();
+            }
+        }
+    }
+
+}
+
+fun main(){
+    var a = new A();
+    var aa = new a.AA();
+    var aaa as A.AA.AAA = new aa.AAA();
+    aaa.foo();
+}

@@ -1,0 +1,54 @@
+class T{
+    metaclass{
+        public final Value as int = 20;
+    }
+}
+
+class DaysOfWeek{
+    metaclass{
+        public final Monday as int = 0
+        public final Tuesday as int = 1
+        public final Wednesday as int = 2
+        public final Thursday as int = 3
+        public final Friday as int = 4
+        public final Saturday as int = 5
+        public final Sunday as int = 6
+    }
+}
+
+fun main(){
+//    var v =  T.Value;
+//    Trace.print(v);
+
+    var b as Integer = T.Value
+    Trace.print(b)
+
+    var l = T.Value|long
+    Trace.print(l)
+
+
+    var today = DaysOfWeek.Friday;
+
+    switch (today)
+    {
+        case DaysOfWeek.Monday:
+            Trace.print("星期一：新的一周开始，加油工作！");
+            break;
+        case DaysOfWeek.Tuesday:
+        case DaysOfWeek.Wednesday:
+        case DaysOfWeek.Thursday:
+            Trace.print(today + "：工作日，继续努力！");
+            break;
+        case DaysOfWeek.Friday:
+            Trace.print("星期五：周末快到了，放松一下！");
+            break;
+        case DaysOfWeek.Saturday:
+        case DaysOfWeek.Sunday:
+            Trace.print(today + "：周末，享受休闲时光！");
+            break;
+        default:
+            Trace.print("未知的星期值");
+            break;
+    }
+
+}
