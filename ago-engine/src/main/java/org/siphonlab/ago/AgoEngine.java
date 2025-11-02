@@ -10,7 +10,7 @@ import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.json.AgoJsonParserFactory;
-import org.siphonlab.ago.runtime.rdb.AgoJsonFactory;
+import org.siphonlab.ago.runtime.json.AgoJsonFactory;
 import org.siphonlab.ago.runtime.*;
 import org.siphonlab.ago.runtime.json.InstanceJsonDeserializer;
 import org.siphonlab.ago.runtime.json.InstanceJsonSerializer;

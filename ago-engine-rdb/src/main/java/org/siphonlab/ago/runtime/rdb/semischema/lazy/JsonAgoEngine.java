@@ -8,7 +8,7 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
 import org.siphonlab.ago.runtime.rdb.lazy.ReferenceableInstance;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
-import org.siphonlab.ago.runtime.rdb.reactive.RunningState;
+import org.siphonlab.ago.runtime.stateful.RunningState;
 import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame;
 
 import java.util.function.Consumer;

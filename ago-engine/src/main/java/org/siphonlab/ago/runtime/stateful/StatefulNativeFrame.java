@@ -3,7 +3,6 @@ package org.siphonlab.ago.runtime.stateful;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeFrame;
-import org.siphonlab.ago.runtime.rdb.reactive.RunningState;
 
 public class StatefulNativeFrame extends NativeFrame implements StatefulCallFrame {
 

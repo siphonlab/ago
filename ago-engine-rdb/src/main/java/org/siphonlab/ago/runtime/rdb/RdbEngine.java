@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
+import org.siphonlab.ago.runtime.json.AgoJsonFactory;
 import org.siphonlab.ago.runtime.json.InstanceJsonDeserializer;
 import org.siphonlab.ago.runtime.json.InstanceJsonSerializer;
 import org.slf4j.Logger;

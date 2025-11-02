@@ -1,7 +1,5 @@
 package org.siphonlab.ago.runtime.stateful;
 
-import org.siphonlab.ago.runtime.rdb.reactive.RunningState;
-
 public abstract class RunningStateStore {
     private RunningState runningState = RunningState.PENDING;
 

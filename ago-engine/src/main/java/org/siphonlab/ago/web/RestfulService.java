@@ -9,7 +9,6 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
-import org.siphonlab.ago.runtime.rdb.ResultSetMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

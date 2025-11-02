@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.reactive;
+package org.siphonlab.ago.runtime.stateful;
 
 public enum RunningState {
     PENDING(0),

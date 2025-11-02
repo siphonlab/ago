@@ -17,7 +17,7 @@ import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
 import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
-import org.siphonlab.ago.runtime.rdb.reactive.RunningState
+import org.siphonlab.ago.runtime.stateful.RunningState
 import org.siphonlab.ago.runtime.rdb.reactive.semischema.SemiSchemaCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.semischema.SemiSchemaEngine
 import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame

@@ -1,7 +1,6 @@
 package org.siphonlab.ago.runtime.stateful;
 
 import org.siphonlab.ago.*;
-import org.siphonlab.ago.runtime.rdb.reactive.RunningState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
