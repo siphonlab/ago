@@ -12,11 +12,11 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.runtime.rdb.RdbDDLGenerator;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
-import org.siphonlab.ago.runtime.rdb.semischema.SemiSchemaPGDDLGenerator;
-import org.siphonlab.ago.runtime.rdb.semischema.lazy.JsonAgoClassLoader;
-import org.siphonlab.ago.runtime.rdb.semischema.lazy.JsonAgoEngine;
-import org.siphonlab.ago.runtime.rdb.semischema.lazy.PGJsonAdapter;
-import org.siphonlab.ago.runtime.rdb.semischema.lazy.PGJsonSlotsCreatorFactory;
+import org.siphonlab.ago.runtime.rdb.json.PGJsonDDLGenerator;
+import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
+import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
+import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
+import org.siphonlab.ago.runtime.rdb.json.lazy.PGJsonSlotsCreatorFactory;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 import org.siphonlab.ago.test.Util;
 
@@ -71,12 +71,12 @@ public class AsRuleSeverLazyInstance {
 //        var agoClassLoader = new JsonAgoClassLoader(new MetaClass(), slotsCreatorFactory);
 //        agoClassLoader.loadClasses(ds, applicationId);      // load classes from db
 
-        var rdbAdapter = new PGJsonAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
+        var rdbAdapter = new LazyJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
 
         slotsCreatorFactory.setAdapter(rdbAdapter);
         rdbAdapter.setDataSource(ds);
 
-        PersistentRdbEngine rdbEngine = new JsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
         rdbEngine.load(agoClassLoader);
         rdbEngine.run("main#");
 
@@ -101,13 +101,13 @@ public class AsRuleSeverLazyInstance {
         ds.setMaxTotal(20);
 
         int applicationId = 1;
-        var rdbAdapter = new PGJsonAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
+        var rdbAdapter = new LazyJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
         slotsCreatorFactory.setAdapter(rdbAdapter);
         rdbAdapter.setDataSource(ds);
         // for first run
 //        rdbAdapter.executeDDL(FileUtils.readFileToString(outputSqlFile, "utf-8"));
 
-        PersistentRdbEngine rdbEngine = new JsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
         rdbEngine.load(agoClassLoader);
         rdbEngine.run("main#");
     }
@@ -122,8 +122,8 @@ public class AsRuleSeverLazyInstance {
         FileOutputStream fileOutputStream = new FileOutputStream(outputSqlFile);
 
         int applicationId = 1;
-        PGJsonAdapter rdbAdapter = new PGJsonAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
-        RdbDDLGenerator rdbDDLGenerator = new SemiSchemaPGDDLGenerator(agoClassLoader, rdbAdapter, platform);
+        LazyJsonPGAdapter rdbAdapter = new LazyJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
+        RdbDDLGenerator rdbDDLGenerator = new PGJsonDDLGenerator(agoClassLoader, rdbAdapter, platform);
         rdbDDLGenerator.generate(fileOutputStream);
     }
 
@@ -143,12 +143,12 @@ public class AsRuleSeverLazyInstance {
         var agoClassLoader = new JsonAgoClassLoader(slotsCreatorFactory);
         agoClassLoader.loadClasses(ds, applicationId);      // load classes from db
 
-        var rdbAdapter = new PGJsonAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
+        var rdbAdapter = new LazyJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
 
         slotsCreatorFactory.setAdapter(rdbAdapter);
         rdbAdapter.setDataSource(ds);
 
-        PersistentRdbEngine rdbEngine = new JsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
         rdbEngine.load(agoClassLoader);
         rdbEngine.resume();
 
@@ -171,12 +171,12 @@ public class AsRuleSeverLazyInstance {
         var agoClassLoader = new JsonAgoClassLoader(slotsCreatorFactory);
         agoClassLoader.loadClasses(ds, applicationId);      // load classes from db
 
-        var rdbAdapter = new PGJsonAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
+        var rdbAdapter = new LazyJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
 
         slotsCreatorFactory.setAdapter(rdbAdapter);
         rdbAdapter.setDataSource(ds);
 
-        PersistentRdbEngine rdbEngine = new JsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
         rdbEngine.load(agoClassLoader);
         rdbEngine.resume();
 

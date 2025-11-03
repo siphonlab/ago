@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema
+package org.siphonlab.ago.runtime.rdb.json
 
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
@@ -18,8 +18,8 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.stateful.RunningState
-import org.siphonlab.ago.runtime.rdb.reactive.semischema.SemiSchemaCallFrame
-import org.siphonlab.ago.runtime.rdb.reactive.semischema.SemiSchemaEngine
+import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonCallFrame
+import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
 import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame
 import org.siphonlab.ago.runtime.stateful.StatefulCallFrame
 import org.siphonlab.ago.runtime.stateful.StatefulNativeFrame
@@ -30,12 +30,12 @@ import java.sql.SQLException
 import java.sql.Types
 
 @CompileStatic
-public class SemiSchemaPGAdapter extends RdbAdapter {
+public abstract class JsonPGAdapter extends RdbAdapter {
 
     protected Sql sql
     protected int applicationId
 
-    public SemiSchemaPGAdapter(BoxTypes boxTypes, ClassManager classManager, int applicationId, IdGenerator idGenerator) {
+    public JsonPGAdapter(BoxTypes boxTypes, ClassManager classManager, int applicationId, IdGenerator idGenerator) {
         super(boxTypes, classManager, idGenerator);
         this.applicationId = applicationId;
     }
@@ -95,7 +95,7 @@ public class SemiSchemaPGAdapter extends RdbAdapter {
         } else if(agoClass instanceof AgoFunction){
             def runSpace = callFrame.getRunSpace()
             // TODO new NativeFrame...
-            var frame = new SemiSchemaCallFrame(restoreSlots(objectRef, row, agoClass), agoClass as AgoFunction, runSpace.getAgoEngine() as SemiSchemaEngine)
+            var frame = new ReactiveJsonCallFrame(restoreSlots(objectRef, row, agoClass), agoClass as AgoFunction, runSpace.getAgoEngine() as ReactiveJsonAgoEngine)
             frame.parentScope = parentScope
             frame.pc = row['pc'] as int
             frame.runningState = RunningState.fromCode((Integer)row["state"])
@@ -108,29 +108,30 @@ public class SemiSchemaPGAdapter extends RdbAdapter {
         }
     }
 
-    Slots restoreSlots(ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass) {
-        return null;        //TODO restoreInstance need this, however, JsonRefSlots need SlotsAdapter
-//        return new JsonRefSlots(dbRef, this.getSlotsAdapter(), agoClass.getSlotDefs());       // don't restore value, only a ref
-//        for(var slotDef : agoClass.getSlotDefs()){
-//            var v = map[slots.getFieldName(slotDef.index)]
-//            switch (slotDef.typeCode.value){
-//                case TypeCode.INT_VALUE -> slots.setInt(slotDef.index, v as int)
-//                case TypeCode.LONG_VALUE -> slots.setLong(slotDef.index, v as long)
-//                case TypeCode.SHORT_VALUE -> slots.setShort(slotDef.index, v as short)
-//                case TypeCode.BYTE_VALUE -> slots.setByte(slotDef.index, v as byte)
-//                case TypeCode.FLOAT_VALUE -> slots.setFloat(slotDef.index, v as float)
-//                case TypeCode.DOUBLE_VALUE -> slots.setDouble(slotDef.index, v as double)
-//                case TypeCode.BOOLEAN_VALUE -> slots.setBoolean(slotDef.index, v as boolean)
-//                case TypeCode.STRING_VALUE -> slots.setString(slotDef.index, v as String)
-//                case TypeCode.CHAR_VALUE -> slots.setChar(slotDef.index, v as char)
-//                case TypeCode.CLASS_REF_VALUE -> slots.setClassRef(slotDef.index, this.getClassByName(v as String).classId)
-//                case TypeCode.OBJECT_VALUE -> restoreInstance()
-//            }
-//        }
-    }
+    abstract Slots restoreSlots(ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass);
+//    {
+//        return null;        //TODO restoreInstance need this, however, JsonRefSlots need SlotsAdapter
+////        return new JsonRefSlots(dbRef, this.getSlotsAdapter(), agoClass.getSlotDefs());       // don't restore value, only a ref
+////        for(var slotDef : agoClass.getSlotDefs()){
+////            var v = map[slots.getFieldName(slotDef.index)]
+////            switch (slotDef.typeCode.value){
+////                case TypeCode.INT_VALUE -> slots.setInt(slotDef.index, v as int)
+////                case TypeCode.LONG_VALUE -> slots.setLong(slotDef.index, v as long)
+////                case TypeCode.SHORT_VALUE -> slots.setShort(slotDef.index, v as short)
+////                case TypeCode.BYTE_VALUE -> slots.setByte(slotDef.index, v as byte)
+////                case TypeCode.FLOAT_VALUE -> slots.setFloat(slotDef.index, v as float)
+////                case TypeCode.DOUBLE_VALUE -> slots.setDouble(slotDef.index, v as double)
+////                case TypeCode.BOOLEAN_VALUE -> slots.setBoolean(slotDef.index, v as boolean)
+////                case TypeCode.STRING_VALUE -> slots.setString(slotDef.index, v as String)
+////                case TypeCode.CHAR_VALUE -> slots.setChar(slotDef.index, v as char)
+////                case TypeCode.CLASS_REF_VALUE -> slots.setClassRef(slotDef.index, this.getClassByName(v as String).classId)
+////                case TypeCode.OBJECT_VALUE -> restoreInstance()
+////            }
+////        }
+//    }
 
     void saveAgoFrame(StatefulAgoFrame agoFrame) {
-        var slots = agoFrame.slots as SemiSchemaJsonRefSlots;
+        var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.caller);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.creator);
@@ -151,7 +152,7 @@ public class SemiSchemaPGAdapter extends RdbAdapter {
     }
 
     void saveNativeFrame(StatefulNativeFrame agoFrame) {
-        var slots = agoFrame.slots as SemiSchemaJsonRefSlots;
+        var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.caller);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.creator);
@@ -176,13 +177,13 @@ public class SemiSchemaPGAdapter extends RdbAdapter {
         if(statefulCallFrame instanceof StatefulAgoFrame) {
             String sql = """UPDATE ago_frame SET pc = ?, state = ? WHERE id = ?"""
 
-            SemiSchemaJsonRefSlots slots = statefulCallFrame.slots as SemiSchemaJsonRefSlots
+            JsonRefSlots slots = statefulCallFrame.slots as JsonRefSlots
 
             this.sql.execute(sql, [statefulCallFrame.pc as Object, statefulCallFrame.getRunningState().code, slots.objectRef.id()])
         } else if(statefulCallFrame instanceof NativeFrame){
             String sql = """UPDATE ago_frame SET state = ? WHERE id = ?"""
 
-            SemiSchemaJsonRefSlots slots = statefulCallFrame.slots as SemiSchemaJsonRefSlots
+            JsonRefSlots slots = statefulCallFrame.slots as JsonRefSlots
 
             this.sql.execute(sql, [statefulCallFrame.getRunningState().code as Object, slots.objectRef.id()])
         } else {
@@ -191,7 +192,7 @@ public class SemiSchemaPGAdapter extends RdbAdapter {
     }
 
     void saveAgoClass(AgoClass agoClass) {
-        var slots = agoClass.slots as SemiSchemaJsonRefSlots;
+        var slots = agoClass.slots as JsonRefSlots;
         System.err.println("INSERT CLASS " + slots.objectRef.id())
 
         sql.executeInsert("INSERT INTO ago_class (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots, fullname, modifiers, super_class, " +
@@ -298,7 +299,7 @@ public class SemiSchemaPGAdapter extends RdbAdapter {
     }
 
     void saveAgoFunction(AgoFunction agoFunction) {
-        var slots = agoFunction.slots as SemiSchemaJsonRefSlots;
+        var slots = agoFunction.slots as JsonRefSlots;
         System.err.println("INSERT Function " + slots.objectRef.id())
 
         var m = toMap(agoFunction, applicationId);
@@ -325,9 +326,9 @@ public class SemiSchemaPGAdapter extends RdbAdapter {
     }
 
     static Map<String, Object> toMap(AgoClass agoClass, int applicationId){
-        var slots = agoClass.slots as SemiSchemaJsonRefSlots;
-        var parentScope = agoClass.parentScope?.slots as SemiSchemaJsonRefSlots;
-        var creator = agoClass.creator?.slots as SemiSchemaJsonRefSlots;
+        var slots = agoClass.slots as JsonRefSlots;
+        var parentScope = agoClass.parentScope?.slots as JsonRefSlots;
+        var creator = agoClass.creator?.slots as JsonRefSlots;
 
         var defaultSlots = defaultSlots(agoClass.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
@@ -401,9 +402,9 @@ public class SemiSchemaPGAdapter extends RdbAdapter {
     }
 
     void saveAgoInstance(Instance instance) {
-        var slots = instance.slots as SemiSchemaJsonRefSlots;
-        var parentScope = instance.parentScope?.slots as SemiSchemaJsonRefSlots;
-        var creator = instance.creator?.slots as SemiSchemaJsonRefSlots;
+        var slots = instance.slots as JsonRefSlots;
+        var parentScope = instance.parentScope?.slots as JsonRefSlots;
+        var creator = instance.creator?.slots as JsonRefSlots;
 
         var defaultSlots = defaultSlots(instance.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 

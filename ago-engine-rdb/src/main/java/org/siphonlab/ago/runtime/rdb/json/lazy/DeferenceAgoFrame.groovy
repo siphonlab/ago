@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema.lazy
+package org.siphonlab.ago.runtime.rdb.json.lazy
 
 import groovy.transform.CompileStatic;
 import org.siphonlab.ago.*
@@ -14,7 +14,7 @@ import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import static org.siphonlab.ago.runtime.rdb.semischema.lazy.JsonAgoEngine.toObjectRefCallFrame;
+import static LazyJsonAgoEngine.toObjectRefCallFrame;
 
 @CompileStatic
 public class DeferenceAgoFrame extends StatefulAgoFrame implements ReferenceableInstance, ObjectRefOwner{
@@ -23,7 +23,7 @@ public class DeferenceAgoFrame extends StatefulAgoFrame implements Referenceable
 
     private final RdbAdapter adapter;
 
-    public DeferenceAgoFrame(JsonRefSlots slots, AgoFunction agoFunction, RdbEngine engine) {
+    public DeferenceAgoFrame(LazyJsonRefSlots slots, AgoFunction agoFunction, RdbEngine engine) {
         super(slots, agoFunction, engine, new RunningStateStoreViaAdapter(engine.getRdbAdapter()));
 
         slots.setOwner(this);
@@ -52,12 +52,12 @@ public class DeferenceAgoFrame extends StatefulAgoFrame implements Referenceable
     }
 
     ObjectRef getObjectRef(){
-        return ((JsonRefSlots) this.slots).objectRef
+        return ((LazyJsonRefSlots) this.slots).objectRef
     }
 
     @Override
     ObjectRefInstanceTrait toObjectRefInstance() {
-        if(logger.isDebugEnabled()) logger.debug("%s convert to objectref instance %s".formatted(this, ((JsonRefSlots) this.slots).objectRef))
+        if(logger.isDebugEnabled()) logger.debug("%s convert to objectref instance %s".formatted(this, ((LazyJsonRefSlots) this.slots).objectRef))
         return new ObjectRefCallFrame<AgoFunction>(this.agoClass, this.getObjectRef(), (DereferenceAdapter) this.adapter)
     }
 

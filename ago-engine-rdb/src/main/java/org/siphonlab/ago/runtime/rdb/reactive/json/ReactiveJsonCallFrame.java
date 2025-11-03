@@ -1,10 +1,10 @@
-package org.siphonlab.ago.runtime.rdb.reactive.semischema;
+package org.siphonlab.ago.runtime.rdb.reactive.json;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.opcode.Move;
 import org.siphonlab.ago.opcode.arithmetic.Add;
 import org.siphonlab.ago.runtime.rdb.reactive.CallFrameBoundSlots;
-import org.siphonlab.ago.runtime.rdb.semischema.lazy.RunningStateStoreViaAdapter;
+import org.siphonlab.ago.runtime.rdb.json.lazy.RunningStateStoreViaAdapter;
 import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,36 +16,39 @@ import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.opcode.OpCode.DTYPE_MASK;
 import static org.siphonlab.ago.opcode.OpCode.DTYPE_MASK_NEG;
 
-public class SemiSchemaCallFrame extends StatefulAgoFrame {
+/**
+ * this call frame dispatch some commands to adapter, and adapter translate them to sql, i.e. update xx set slot1 = slot2 + slot3
+ */
+public class ReactiveJsonCallFrame extends StatefulAgoFrame {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(SemiSchemaCallFrame.class);
-    private final SemiSchemaPGAdapter adapter;
+    private final static Logger LOGGER = LoggerFactory.getLogger(ReactiveJsonCallFrame.class);
+    private final ReactiveJsonPGAdapter adapter;
 
-    public SemiSchemaCallFrame(Slots slots, AgoFunction agoFunction, SemiSchemaEngine engine) {
+    public ReactiveJsonCallFrame(Slots slots, AgoFunction agoFunction, ReactiveJsonAgoEngine engine) {
         super(slots, agoFunction, engine, new RunningStateStoreViaAdapter(engine.getRdbAdapter()));
         this.slots = wrapSlots(slots,engine, this);
-        this.adapter = (SemiSchemaPGAdapter) engine.getRdbAdapter();
+        this.adapter = (ReactiveJsonPGAdapter) engine.getRdbAdapter();
     }
 
-    static CallFrameBoundSlots<JsonRefSlots> wrapSlots(Slots slots, SemiSchemaEngine engine, SemiSchemaCallFrame callFrame){
-        if(slots instanceof CallFrameBoundSlots<?>) return (CallFrameBoundSlots<JsonRefSlots>) slots;
-        JsonRefSlots jsonRefSlots = (JsonRefSlots) slots;
-        var jcf = new JsonRefSlotsWithCallFrame(jsonRefSlots.getObjectRef(), (PGJsonSlotsAdapter) ((SemiSchemaPGAdapter)engine.getRdbAdapter()).getSlotsAdapter(), jsonRefSlots.getSlotDefs(), callFrame);
-        jcf.setSaved(jsonRefSlots.isSaved());
+    static CallFrameBoundSlots<ReactiveJsonRefSlots> wrapSlots(Slots slots, ReactiveJsonAgoEngine engine, ReactiveJsonCallFrame callFrame){
+        if(slots instanceof CallFrameBoundSlots<?>) return (CallFrameBoundSlots<ReactiveJsonRefSlots>) slots;
+        ReactiveJsonRefSlots reactiveJsonRefSlots = (ReactiveJsonRefSlots) slots;
+        var jcf = new ReactiveJsonRefSlotsWithCallFrame(reactiveJsonRefSlots.getObjectRef(), (ReactivePGJsonSlotsAdapter) ((ReactiveJsonPGAdapter)engine.getRdbAdapter()).getSlotsAdapter(), reactiveJsonRefSlots.getSlotDefs(), callFrame);
+        jcf.setSaved(reactiveJsonRefSlots.isSaved());
         return jcf;
     }
 
-    CallFrameBoundSlots<JsonRefSlots> wrapSlots(Slots slots) {
-        if (slots instanceof CallFrameBoundSlots<?>) return (CallFrameBoundSlots<JsonRefSlots>) slots;
-        JsonRefSlots jsonRefSlots = (JsonRefSlots) slots;
-        SemiSchemaEngine engine = (SemiSchemaEngine) this.engine;
-        return new JsonRefSlotsWithCallFrame(jsonRefSlots.getObjectRef(), (PGJsonSlotsAdapter) (adapter.getSlotsAdapter()), jsonRefSlots.getSlotDefs(), this);
+    CallFrameBoundSlots<ReactiveJsonRefSlots> wrapSlots(Slots slots) {
+        if (slots instanceof CallFrameBoundSlots<?>) return (CallFrameBoundSlots<ReactiveJsonRefSlots>) slots;
+        ReactiveJsonRefSlots reactiveJsonRefSlots = (ReactiveJsonRefSlots) slots;
+        ReactiveJsonAgoEngine engine = (ReactiveJsonAgoEngine) this.engine;
+        return new ReactiveJsonRefSlotsWithCallFrame(reactiveJsonRefSlots.getObjectRef(), (ReactivePGJsonSlotsAdapter) (adapter.getSlotsAdapter()), reactiveJsonRefSlots.getSlotDefs(), this);
     }
 
     protected int evaluateMove(Slots slots, int pc, int instruction) {
         if(instruction == Move.move_copy_ooC){
-            JsonRefSlots dest = (JsonRefSlots) slots.getObject(code[pc++]).getSlots();
-            JsonRefSlots src = (JsonRefSlots) slots.getObject(code[pc++]).getSlots();
+            ReactiveJsonRefSlots dest = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
+            ReactiveJsonRefSlots src = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
             AgoClass byClass = engine.getClass(code[pc++]);
             List<String> fields = new ArrayList<>();
             for (AgoSlotDef slotDef : byClass.getSlotDefs()) {
@@ -53,19 +56,19 @@ public class SemiSchemaCallFrame extends StatefulAgoFrame {
             }
             adapter.copyAssign(dest.getObjectRef(), src.getObjectRef(), fields);
         } else {
-            JsonRefSlots jsonRefSlots = (JsonRefSlots) slots;
+            ReactiveJsonRefSlots reactiveJsonRefSlots = (ReactiveJsonRefSlots) slots;
             switch ((instruction & DTYPE_MASK_NEG)){
                 case Move.move_vv:
-                    adapter.move(jsonRefSlots.getObjectRef(), jsonRefSlots.getFieldName(code[pc++]), jsonRefSlots.getFieldName(code[pc++])); break;
+                    adapter.move(reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(code[pc++]), reactiveJsonRefSlots.getFieldName(code[pc++])); break;
                 case Move.move_fld_ovv: {
-                    JsonRefSlots obj = (JsonRefSlots) slots.getObject(code[pc++]).getSlots();
-                    adapter.move(obj.getObjectRef(), obj.getFieldName(code[pc++]), jsonRefSlots.getObjectRef(), jsonRefSlots.getFieldName(code[pc++]));
+                    ReactiveJsonRefSlots obj = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
+                    adapter.move(obj.getObjectRef(), obj.getFieldName(code[pc++]), reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(code[pc++]));
                 }
                 break;
                 case Move.move_fld_vov: {
                     var slot = code[pc++];
-                    JsonRefSlots obj = (JsonRefSlots) slots.getObject(code[pc++]).getSlots();
-                    adapter.move(jsonRefSlots.getObjectRef(), jsonRefSlots.getFieldName(slot), obj.getObjectRef(), obj.getFieldName(code[pc++]));
+                    ReactiveJsonRefSlots obj = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
+                    adapter.move(reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(slot), obj.getObjectRef(), obj.getFieldName(code[pc++]));
                 }
                 break;
             }
@@ -76,45 +79,45 @@ public class SemiSchemaCallFrame extends StatefulAgoFrame {
 
     @Override
     protected int evaluateAdd(Slots slots, int pc, int instruction) {
-        return evaluateMathOp((JsonRefSlots) slots,pc, instruction,"+");
+        return evaluateMathOp((ReactiveJsonRefSlots) slots,pc, instruction,"+");
     }
 
     @Override
     protected int evaluateSub(Slots slots, int pc, int instruction) {
-        return evaluateMathOp((JsonRefSlots) slots, pc, instruction, "-");
+        return evaluateMathOp((ReactiveJsonRefSlots) slots, pc, instruction, "-");
     }
 
     @Override
     protected int evaluateMultiply(Slots slots, int pc, int instruction) {
-        return evaluateMathOp((JsonRefSlots) slots, pc, instruction, "*");
+        return evaluateMathOp((ReactiveJsonRefSlots) slots, pc, instruction, "*");
     }
 
     @Override
     protected int evaluateDiv(Slots slots, int pc, int instruction) {
-        return evaluateMathOp((JsonRefSlots) slots, pc, instruction, "/");
+        return evaluateMathOp((ReactiveJsonRefSlots) slots, pc, instruction, "/");
     }
 
     @Override
     protected int evaluateMod(Slots slots, int pc, int instruction) {
-        return evaluateMathOp((JsonRefSlots) slots, pc, instruction, "%");
+        return evaluateMathOp((ReactiveJsonRefSlots) slots, pc, instruction, "%");
     }
 
     @Override
     protected int evaluateAnd(Slots slots, int pc, int instruction) {
-        return evaluateMathOp((JsonRefSlots) slots, pc, instruction, "and");
+        return evaluateMathOp((ReactiveJsonRefSlots) slots, pc, instruction, "and");
     }
 
     @Override
     protected int evaluateOr(Slots slots, int pc, int instruction) {
-        return evaluateMathOp((JsonRefSlots) slots, pc, instruction, "or");
+        return evaluateMathOp((ReactiveJsonRefSlots) slots, pc, instruction, "or");
     }
 
     @Override
     protected int evaluateConcat(Slots slots, int pc, int instruction) {
-        return evaluateMathOp((JsonRefSlots) slots, pc, instruction, "||");
+        return evaluateMathOp((ReactiveJsonRefSlots) slots, pc, instruction, "||");
     }
 
-    protected int evaluateMathOp(JsonRefSlots slots, int pc, int instruction, String op) {
+    protected int evaluateMathOp(ReactiveJsonRefSlots slots, int pc, int instruction, String op) {
         int type = (instruction & DTYPE_MASK) >> 16;
         var typeCode = TypeCode.of(type);
         var rdbType = adapter.mapType(TypeCode.INT, null);

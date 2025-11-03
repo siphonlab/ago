@@ -6,11 +6,11 @@ import org.siphonlab.ago.Slots;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.RdbType;
-import org.siphonlab.ago.runtime.rdb.reactive.semischema.SemiSchemaPGAdapter;
+import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonPGAdapter;
 
 /**
  * the persistent(save immediately) Slots don't store data in memory, it maps  getInt/setInt to SlotsAdapter.getInt/setInt,
- * and the adapter of this kind engine even support OP_CODE, see {@link SemiSchemaPGAdapter#binaryOp(String, RdbType, ObjectRef, String, String, String)}
+ * and the adapter of this kind engine even support OP_CODE, see {@link ReactiveJsonPGAdapter#binaryOp(String, RdbType, ObjectRef, String, String, String)}
  * @param <T>
  */
 public interface SlotsAdapter<T extends Slots> {

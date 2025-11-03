@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema;
+package org.siphonlab.ago.runtime.rdb.json;
 
 import io.ebean.config.dbplatform.DatabasePlatform;
 import io.ebeaninternal.dbmigration.ddlgeneration.DdlWrite;
@@ -12,9 +12,9 @@ import org.siphonlab.ago.runtime.rdb.RdbType;
 
 import java.util.List;
 
-public class SemiSchemaPGDDLGenerator extends RdbDDLGenerator {
+public class PGJsonDDLGenerator extends RdbDDLGenerator {
 
-    public SemiSchemaPGDDLGenerator(AgoClassLoader classLoader, RdbAdapter rdbAdapter, DatabasePlatform databasePlatform) {
+    public PGJsonDDLGenerator(AgoClassLoader classLoader, RdbAdapter rdbAdapter, DatabasePlatform databasePlatform) {
         super(classLoader, rdbAdapter, databasePlatform);
     }
 

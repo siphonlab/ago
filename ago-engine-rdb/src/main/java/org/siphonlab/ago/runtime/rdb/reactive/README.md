@@ -10,7 +10,7 @@ update ago_object set slot1 = slot2 + slot3 where ...
 但在实现上本模式目前并不实用，这是因为目前仅将 ObjectRef 附着于 Slots，slots 的数据是影子，但 Instance 自身仍是真实的。
 
 ```java
-org.siphonlab.ago.runtime.rdb.reactive.semischema.PGJsonSlotsAdapter.getSlotValue(){
+org.siphonlab.ago.runtime.rdb.reactive.json.ReactivePGJsonSlotsAdapter.getSlotValue(){
     case TypeCode.OBJECT_VALUE -> {
         PGobject obj = (PGobject) resultSet.getObject(1);
         if (obj == null) yield null;

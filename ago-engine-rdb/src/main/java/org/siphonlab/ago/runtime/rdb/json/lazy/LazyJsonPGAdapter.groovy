@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema.lazy;
+package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
@@ -15,8 +15,8 @@ import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstance
 import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots
 import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame
-import org.siphonlab.ago.runtime.rdb.semischema.SemiSchemaJsonRefSlots;
-import org.siphonlab.ago.runtime.rdb.semischema.SemiSchemaPGAdapter
+import org.siphonlab.ago.runtime.rdb.json.JsonRefSlots;
+import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter
 import org.siphonlab.ago.runtime.stateful.StatefulCallFrame
 import org.siphonlab.ago.runtime.stateful.StatefulNativeFrame
 import org.slf4j.Logger
@@ -25,11 +25,11 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 
 @CompileStatic
-public class PGJsonAdapter extends SemiSchemaPGAdapter implements DereferenceAdapter{
+public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapter{
 
-    private final static Logger logger = LoggerFactory.getLogger(PGJsonAdapter)
+    private final static Logger logger = LoggerFactory.getLogger(LazyJsonPGAdapter)
 
-    public PGJsonAdapter(BoxTypes boxTypes, ClassManager classManager, int applicationId, IdGenerator idGenerator) {
+    public LazyJsonPGAdapter(BoxTypes boxTypes, ClassManager classManager, int applicationId, IdGenerator idGenerator) {
         super(boxTypes, classManager, applicationId, idGenerator);
     }
 
@@ -52,7 +52,7 @@ public class PGJsonAdapter extends SemiSchemaPGAdapter implements DereferenceAda
 
     @Override
     Slots restoreSlots(ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass) {
-        throw new UnsupportedOperationException("result is ObjectRefInstance, no slots provided");
+        throw new UnsupportedOperationException("result is ObjectRefInstance, no DbRefSlots provided");
     }
 
     @Override
@@ -131,9 +131,9 @@ public class PGJsonAdapter extends SemiSchemaPGAdapter implements DereferenceAda
                     caller = null
                 }
                 def runSpace = callFrame.getRunSpace()
-                JsonAgoEngine engine = runSpace.getAgoEngine() as JsonAgoEngine;
+                LazyJsonAgoEngine engine = runSpace.getAgoEngine() as LazyJsonAgoEngine;
                 var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, caller, creator, slots -> {
-                    dereferenceSlots(slots as JsonRefSlots, objectRef, row, agoClass, callFrame)
+                    dereferenceSlots(slots as LazyJsonRefSlots, objectRef, row, agoClass, callFrame)
                 })
                 if (frame instanceof DeferenceAgoFrame) {
                     frame.pc = row['pc'] as int
@@ -142,9 +142,9 @@ public class PGJsonAdapter extends SemiSchemaPGAdapter implements DereferenceAda
                 return frame
             } else {
                 def runSpace = callFrame.getRunSpace()
-                JsonAgoEngine engine = runSpace.getAgoEngine() as JsonAgoEngine;
+                LazyJsonAgoEngine engine = runSpace.getAgoEngine() as LazyJsonAgoEngine;
                 var inst = engine.createInstance(parentScope, agoClass, creator, runSpace, slots -> {
-                    dereferenceSlots(slots as JsonRefSlots, objectRef, row, agoClass, callFrame)
+                    dereferenceSlots(slots as LazyJsonRefSlots, objectRef, row, agoClass, callFrame)
                 })
                 if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, inst))
                 return inst
@@ -152,7 +152,7 @@ public class PGJsonAdapter extends SemiSchemaPGAdapter implements DereferenceAda
         }
     }
 
-    void dereferenceSlots(JsonRefSlots jsonRefSlots, ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass, CallFrame callFrame) {
+    void dereferenceSlots(LazyJsonRefSlots jsonRefSlots, ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass, CallFrame callFrame) {
         Map<String, Object> map = loadPgJsonAsMap((PGobject)dbRow["slots"]);
         jsonRefSlots.setId(objectRef.id())
         jsonRefSlots.setRowState(RowState.Unchanged)
@@ -186,7 +186,7 @@ public class PGJsonAdapter extends SemiSchemaPGAdapter implements DereferenceAda
         }
     }
 
-    Map<String, Object> toMap(SemiSchemaJsonRefSlots slots, AgoClass agoClass) {
+    Map<String, Object> toMap(JsonRefSlots slots, AgoClass agoClass) {
         Map<String, Object> map = [:]
         for (var slotDef : agoClass.getSlotDefs()) {
             int slot = slotDef.index
@@ -212,7 +212,7 @@ public class PGJsonAdapter extends SemiSchemaPGAdapter implements DereferenceAda
                     if (v instanceof Instance) {
                         var t = mapObjectType(v.agoClass)
                         if(t.additional != null){
-                            var r = v instanceof ObjectRefInstance ? v.objectRef:  (v.slots as SemiSchemaJsonRefSlots).objectRef
+                            var r = v instanceof ObjectRefInstance ? v.objectRef:  (v.slots as JsonRefSlots).objectRef
                             yield ["@type" : r.className(), "@id": r.id()]
                         } else {
                             //TODO boxType != slotDef.class

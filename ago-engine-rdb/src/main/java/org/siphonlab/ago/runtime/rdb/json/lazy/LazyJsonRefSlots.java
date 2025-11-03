@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema.lazy;
+package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.Instance;
@@ -7,16 +7,16 @@ import org.siphonlab.ago.runtime.rdb.JsonSlotMapper;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots;
 import org.siphonlab.ago.runtime.rdb.lazy.ReferenceInstanceTrait;
-import org.siphonlab.ago.runtime.rdb.semischema.SemiSchemaJsonRefSlots;
+import org.siphonlab.ago.runtime.rdb.json.JsonRefSlots;
 
-public class JsonRefSlots extends RdbRefSlots implements SemiSchemaJsonRefSlots {
+public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
 
     private final JsonSlotMapper jsonSlotMapper;
     private Instance<?> owner;
     private CallFrame callFrame;
     private boolean saved;
 
-    public JsonRefSlots(Slots baseSlots, ObjectRef objectRef, JsonSlotMapper jsonSlotMapper) {
+    public LazyJsonRefSlots(Slots baseSlots, ObjectRef objectRef, JsonSlotMapper jsonSlotMapper) {
         super(baseSlots, objectRef);
         this.jsonSlotMapper = jsonSlotMapper;
     }

@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema.lazy;
+package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import groovy.sql.GroovyRowResult;
 import groovy.sql.Sql;
@@ -17,7 +17,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static org.siphonlab.ago.AgoClass.NATIVE;
-import static org.siphonlab.ago.runtime.rdb.semischema.SemiSchemaPGAdapter.*;
+import static org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter.*;
 
 public class JsonAgoClassLoader extends AgoClassLoader {
 

@@ -6,6 +6,9 @@ import org.siphonlab.ago.Slots;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 
+/**
+ * this Slots transfer get/set functions to slotsAdapter.get/set, it needs an objectRef to identity who is it
+ */
 public class RdbRefSlots implements Slots, ObjectRefOwner {
 
     protected final ObjectRef objectRef;

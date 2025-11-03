@@ -16,6 +16,7 @@ import java.sql.SQLException;
 
 import static org.apache.commons.dbcp2.Utils.closeQuietly;
 
+// a SlotsAdapter for static schema mode
 public class DbRefSlotsAdapter implements SlotsAdapter<RdbRefSlots> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SlotsAdapter.class);

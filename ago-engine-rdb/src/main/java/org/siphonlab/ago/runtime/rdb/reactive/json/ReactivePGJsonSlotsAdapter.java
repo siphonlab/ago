@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.reactive.semischema;
+package org.siphonlab.ago.runtime.rdb.reactive.json;
 
 import groovy.json.JsonOutput;
 import groovy.json.JsonSlurper;
@@ -20,13 +20,13 @@ import static org.apache.commons.dbcp2.Utils.closeQuietly;
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
 
-public class PGJsonSlotsAdapter implements SlotsAdapter<JsonRefSlotsWithCallFrame> {
+public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefSlotsWithCallFrame> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PGJsonSlotsAdapter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ReactivePGJsonSlotsAdapter.class);
 
-    final SemiSchemaPGAdapter adapter;
+    final ReactiveJsonPGAdapter adapter;
 
-    public PGJsonSlotsAdapter(SemiSchemaPGAdapter adapter) {
+    public ReactivePGJsonSlotsAdapter(ReactiveJsonPGAdapter adapter) {
         this.adapter = adapter;
     }
 
@@ -191,7 +191,7 @@ public class PGJsonSlotsAdapter implements SlotsAdapter<JsonRefSlotsWithCallFram
                 ps.setNull(1, Types.NULL);
             } else {
                 Instance<?> instance = (Instance<?>) value;
-                JsonRefSlots slots = (JsonRefSlots) instance.getSlots();
+                ReactiveJsonRefSlots slots = (ReactiveJsonRefSlots) instance.getSlots();
                 PGobject obj = new PGobject();
                 obj.setType("jsonb");
                 obj.setValue(JsonOutput.toJson(Map.of("@id", slots.getObjectRef().id(), "@type", slots.getObjectRef().className())));
@@ -238,24 +238,24 @@ public class PGJsonSlotsAdapter implements SlotsAdapter<JsonRefSlotsWithCallFram
     }
 
     @Override
-    public int getInt(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public int getInt(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return (Integer) getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.INT);
     }
 
     @Override
-    public void setInt(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, int value) {
+    public void setInt(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, int value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.INT, value);
     }
 
     @Override
-    public int getClassRef(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public int getClassRef(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         var classRef = (Integer) getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.CLASS_REF);
         if(classRef == null) return -1;
         return classRef;
     }
 
     @Override
-    public void setClassRef(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, int value) {
+    public void setClassRef(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, int value) {
         if(value != -1){
             updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.CLASS_REF, adapter.getClassById(value).getFullname());
         } else {
@@ -264,123 +264,123 @@ public class PGJsonSlotsAdapter implements SlotsAdapter<JsonRefSlotsWithCallFram
     }
 
     @Override
-    public long getLong(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public long getLong(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return (Long)getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.LONG);
     }
 
     @Override
-    public void setLong(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, long value) {
+    public void setLong(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, long value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.LONG, value);
     }
 
     @Override
-    public float getFloat(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public float getFloat(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return (Float) getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.FLOAT);
     }
 
     @Override
-    public void setFloat(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, float value) {
+    public void setFloat(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, float value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.FLOAT, value);
     }
 
     @Override
-    public double getDouble(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public double getDouble(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return (Double) getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.DOUBLE);
     }
 
     @Override
-    public void setDouble(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, double value) {
+    public void setDouble(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, double value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.DOUBLE, value);
     }
 
     @Override
-    public byte getByte(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public byte getByte(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         Object slotValue = getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, BYTE);
         return (Byte) slotValue;
     }
 
     @Override
-    public void setByte(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, byte value) {
+    public void setByte(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, byte value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.BYTE, value);
     }
 
     @Override
-    public short getShort(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public short getShort(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return (Short)getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.SHORT);
     }
 
     @Override
-    public void setShort(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, short value) {
+    public void setShort(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, short value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.SHORT, value);
     }
 
     @Override
-    public char getChar(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public char getChar(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return (Character) getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.CHAR);
     }
 
     @Override
-    public void setChar(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, char value) {
+    public void setChar(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, char value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.CHAR, value);
     }
 
     @Override
-    public boolean getBoolean(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public boolean getBoolean(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return (Boolean) getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.BOOLEAN);
     }
 
     @Override
-    public void setBoolean(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, boolean value) {
+    public void setBoolean(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, boolean value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.BOOLEAN, value);
     }
 
     @Override
-    public String getString(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public String getString(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return (String)getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.STRING);
     }
 
     @Override
-    public void setString(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, String value) {
+    public void setString(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, String value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.STRING, value);
     }
 
     @Override
-    public Instance<?> getObject(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+    public Instance<?> getObject(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
         return getObjectSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, slots.getSlotDef(slot));
     }
 
     @Override
-    public void setObject(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, Instance<?> value) {
+    public void setObject(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, Instance<?> value) {
         updateObjectSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, slots.getSlotDef(slot), value);
     }
 
     @Override
-    public void incInt(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, int value) {
+    public void incInt(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, int value) {
         incSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.INT, value);
     }
 
     @Override
-    public void incFloat(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, float value) {
+    public void incFloat(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, float value) {
         incSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.FLOAT, value);
     }
 
     @Override
-    public void incDouble(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, double value) {
+    public void incDouble(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, double value) {
         incSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.DOUBLE, value);
     }
 
     @Override
-    public void incByte(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, byte value) {
+    public void incByte(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, byte value) {
         incSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.BYTE, value);
     }
 
     @Override
-    public void incShort(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, short value) {
+    public void incShort(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, short value) {
         incSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.SHORT, value);
     }
 
     @Override
-    public void incLong(JsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, long value) {
+    public void incLong(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, long value) {
         incSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.LONG, value);
     }
 

@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema.lazy;
+package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.JsonSlotMapper;
@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 
 public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
 
-    private PGJsonAdapter adapter;
+    private LazyJsonPGAdapter adapter;
 
     private final DefaultSlotsCreatorFactory baseSlotFactory;
 
@@ -22,7 +22,7 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
         return new JsonRefSlotsCreator(creator, agoClass, () -> adapter);
     }
 
-    public void setAdapter(PGJsonAdapter adapter) {
+    public void setAdapter(LazyJsonPGAdapter adapter) {
         this.adapter = adapter;
     }
 
@@ -30,9 +30,9 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
     public static class JsonRefSlotsCreator implements SlotsCreator {
         private final SlotsCreator creator;
         private final AgoClass agoClass;
-        private final Supplier<PGJsonAdapter> adapterSupplier;
+        private final Supplier<LazyJsonPGAdapter> adapterSupplier;
 
-        public JsonRefSlotsCreator(SlotsCreator creator, AgoClass agoClass, Supplier<PGJsonAdapter> adapterSupplier) {
+        public JsonRefSlotsCreator(SlotsCreator creator, AgoClass agoClass, Supplier<LazyJsonPGAdapter> adapterSupplier) {
             this.creator = creator;
             this.agoClass = agoClass;
             this.adapterSupplier = adapterSupplier;
@@ -47,7 +47,7 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
 
         public Slots create(ObjectRef objectRef) {
             Slots baseSlots = creator == null ? new AgoClass.TraceOwnerSlots(agoClass) : creator.create();
-            var r = new JsonRefSlots(baseSlots, objectRef, new JsonSlotMapper(agoClass.getSlotDefs()) {
+            var r = new LazyJsonRefSlots(baseSlots, objectRef, new JsonSlotMapper(agoClass.getSlotDefs()) {
                 @Override
                 public String mapType(TypeCode typeCode, AgoClass agoClass) {
                     return adapterSupplier.get().mapType(typeCode, agoClass).getTypeName();

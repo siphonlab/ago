@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.reactive.semischema
+package org.siphonlab.ago.runtime.rdb.reactive.json
 
 
 import groovy.transform.CompileStatic
@@ -7,17 +7,18 @@ import org.siphonlab.ago.*
 import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.reactive.SlotsAdapter
+import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter
 import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame
 
 @CompileStatic
-public class SemiSchemaPGAdapter extends org.siphonlab.ago.runtime.rdb.semischema.SemiSchemaPGAdapter {
+public class ReactiveJsonPGAdapter extends JsonPGAdapter {
 
     SlotsAdapter slotsAdapter
 
-    public SemiSchemaPGAdapter(BoxTypes boxTypes, ClassManager classManager, int applicationId, IdGenerator idGenerator) {
+    public ReactiveJsonPGAdapter(BoxTypes boxTypes, ClassManager classManager, int applicationId, IdGenerator idGenerator) {
         super(boxTypes, classManager, applicationId, idGenerator);
         this.applicationId = applicationId;
-        this.slotsAdapter = new PGJsonSlotsAdapter(this)
+        this.slotsAdapter = new ReactivePGJsonSlotsAdapter(this)
     }
 
     @Override
@@ -27,7 +28,7 @@ public class SemiSchemaPGAdapter extends org.siphonlab.ago.runtime.rdb.semischem
 
     @Override
     public void saveInstance(Instance<?> instance) {
-        JsonRefSlots jsonRefSlots = instance.slots as JsonRefSlots;
+        ReactiveJsonRefSlots jsonRefSlots = instance.slots as ReactiveJsonRefSlots;
 
         if (jsonRefSlots.isSaved())
             return
@@ -46,7 +47,7 @@ public class SemiSchemaPGAdapter extends org.siphonlab.ago.runtime.rdb.semischem
     }
 
     Slots restoreSlots(ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass) {
-        return new JsonRefSlots(objectRef, this.getSlotsAdapter(), agoClass.getSlotDefs());       // don't restore value, only a ref
+        return new ReactiveJsonRefSlots(objectRef, this.getSlotsAdapter(), agoClass.getSlotDefs());       // don't restore value, only a ref
     }
 
     void move(ObjectRef dbRef, String destField, String srcField) {

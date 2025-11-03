@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema.lazy;
+package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.stateful.RunningStateStore;

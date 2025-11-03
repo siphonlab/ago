@@ -1,15 +1,15 @@
-package org.siphonlab.ago.runtime.rdb.reactive.semischema;
+package org.siphonlab.ago.runtime.rdb.reactive.json;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 
-public class SemiSchemaEngine extends PersistentRdbEngine {
+public class ReactiveJsonAgoEngine extends PersistentRdbEngine {
 
-    public SemiSchemaEngine(SemiSchemaPGAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
+    public ReactiveJsonAgoEngine(ReactiveJsonPGAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
         super(rdbAdapter, runSpaceHost);
     }
 
-    public SemiSchemaEngine(SemiSchemaPGAdapter rdbAdapter) {
+    public ReactiveJsonAgoEngine(ReactiveJsonPGAdapter rdbAdapter) {
         super(rdbAdapter);
     }
 
@@ -19,7 +19,7 @@ public class SemiSchemaEngine extends PersistentRdbEngine {
     }
 
     public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator, AgoRunSpace runSpace) {
-        var inst = new SemiSchemaCallFrame(agoFunction.createSlots(), agoFunction,this);
+        var inst = new ReactiveJsonCallFrame(agoFunction.createSlots(), agoFunction,this);
         if(parentScope != null) inst.setParentScope(parentScope);
         inst.setCaller(caller);
         inst.setCreator(creator);

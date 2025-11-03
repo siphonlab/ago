@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema.lazy;
+package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.siphonlab.ago.*;
@@ -13,9 +13,13 @@ import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame;
 
 import java.util.function.Consumer;
 
-public class JsonAgoEngine extends PersistentRdbEngine {
+/**
+ * an AgoEngine create ObjectRefInstance, which allocate no slots in default,
+ * and deference slots when requested
+ */
+public class LazyJsonAgoEngine extends PersistentRdbEngine {
 
-    public JsonAgoEngine(RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
+    public LazyJsonAgoEngine(RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
         super(rdbAdapter, runSpaceHost);
         rdbAdapter.setClassManager(this);
     }
@@ -35,7 +39,7 @@ public class JsonAgoEngine extends PersistentRdbEngine {
     }
 
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, CallFrame<?> caller, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {
-        JsonRefSlots slots = (JsonRefSlots) agoFunction.createSlots();
+        LazyJsonRefSlots slots = (LazyJsonRefSlots) agoFunction.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);
         CallFrame<?> inst;
         if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
@@ -46,7 +50,7 @@ public class JsonAgoEngine extends PersistentRdbEngine {
         if (parentScope != null)
             inst.setParentScope(parentScope);  // not sure parentScope need restore to ObjectRefInstance too
         // restore DeferenceInstance to ObjectRefInstance
-        // it cut caller chain so that only running CallFrame living in the memory
+        // it cut off caller chain so that only running CallFrame living in the memory
         inst.setCaller(toObjectRefCallFrame(caller,inst));
         inst.setCreator(toObjectRefCallFrame(creator, inst));
         saveInstance(inst);
@@ -74,8 +78,8 @@ public class JsonAgoEngine extends PersistentRdbEngine {
 
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator, AgoRunSpace runSpace, Consumer<Slots> slotsInitializer) {
         var inst = super.createInstance(parentScope,agoClass, creator, runSpace);
-        if(inst.getSlots() instanceof JsonRefSlots jsonRefSlots && slotsInitializer != null){
-            slotsInitializer.accept(jsonRefSlots);
+        if(inst.getSlots() instanceof LazyJsonRefSlots lazyJsonRefSlots && slotsInitializer != null){
+            slotsInitializer.accept(lazyJsonRefSlots);
         }
         return inst;
     }

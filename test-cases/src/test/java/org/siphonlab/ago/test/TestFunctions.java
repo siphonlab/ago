@@ -10,8 +10,8 @@ import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
-import org.siphonlab.ago.runtime.rdb.semischema.lazy.JsonAgoEngine;
-import org.siphonlab.ago.runtime.rdb.semischema.lazy.PGJsonAdapter;
+import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
+import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,8 +86,8 @@ public class TestFunctions {
         ObjectRef objectRef = ObjectRefOwner.extractObjectRef(source);
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
-        JsonAgoEngine engine = (JsonAgoEngine) nativeFrame.getRunSpace().getAgoEngine();
-        PGJsonAdapter adapter = (PGJsonAdapter) engine.getRdbAdapter();
+        LazyJsonAgoEngine engine = (LazyJsonAgoEngine) nativeFrame.getRunSpace().getAgoEngine();
+        LazyJsonPGAdapter adapter = (LazyJsonPGAdapter) engine.getRdbAdapter();
 
         var connection = factory.newConnection();
         var channel = connection.createChannel();

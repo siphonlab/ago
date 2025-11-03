@@ -1,4 +1,4 @@
-package org.siphonlab.ago.runtime.rdb.semischema.lazy;
+package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
-import static org.siphonlab.ago.runtime.rdb.semischema.lazy.JsonAgoEngine.toObjectRefCallFrame;
+import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
 
 public class DeferenceNativeFrame extends StatefulNativeFrame implements ReferenceableInstance, ObjectRefOwner {
 
@@ -24,15 +24,15 @@ public class DeferenceNativeFrame extends StatefulNativeFrame implements Referen
 
     private final RdbAdapter adapter;
 
-    public DeferenceNativeFrame(JsonRefSlots slots, AgoNativeFunction agoFunction, RdbEngine engine) {
+    public DeferenceNativeFrame(LazyJsonRefSlots slots, AgoNativeFunction agoFunction, RdbEngine engine) {
         super(engine, slots, agoFunction, new RunningStateStoreViaAdapter(engine.getRdbAdapter()));
         this.adapter = engine.getRdbAdapter();
     }
 
     @Override
     public ObjectRefInstanceTrait toObjectRefInstance() {
-        if (logger.isDebugEnabled()) logger.debug("%s convert to objectref instance %s".formatted(this, ((JsonRefSlots) this.slots).getObjectRef()));
-        return new ObjectRefCallFrame<AgoNativeFunction>(this.agoClass, ((JsonRefSlots) this.slots).getObjectRef(), (DereferenceAdapter) this.adapter);
+        if (logger.isDebugEnabled()) logger.debug("%s convert to objectref instance %s".formatted(this, ((LazyJsonRefSlots) this.slots).getObjectRef()));
+        return new ObjectRefCallFrame<AgoNativeFunction>(this.agoClass, ((LazyJsonRefSlots) this.slots).getObjectRef(), (DereferenceAdapter) this.adapter);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class DeferenceNativeFrame extends StatefulNativeFrame implements Referen
     }
 
     public ObjectRef getObjectRef() {
-        return ((JsonRefSlots) this.slots).getObjectRef();
+        return ((LazyJsonRefSlots) this.slots).getObjectRef();
     }
 
     @Override

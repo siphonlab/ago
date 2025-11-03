@@ -11,10 +11,10 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
-import org.siphonlab.ago.runtime.rdb.reactive.semischema.PGJsonSlotsCreatorFactory;
-import org.siphonlab.ago.runtime.rdb.reactive.semischema.SemiSchemaEngine;
-import org.siphonlab.ago.runtime.rdb.reactive.semischema.SemiSchemaPGAdapter;
-import org.siphonlab.ago.runtime.rdb.semischema.SemiSchemaPGDDLGenerator;
+import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonSlotsCreatorFactory;
+import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine;
+import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonPGAdapter;
+import org.siphonlab.ago.runtime.rdb.json.PGJsonDDLGenerator;
 import org.siphonlab.ago.test.Util;
 
 import java.io.File;
@@ -37,7 +37,7 @@ public class AsRuleSever {
     }
 
     public void runWithPG(String output) throws IOException {
-        PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory(null);
+        ReactiveJsonSlotsCreatorFactory slotsCreatorFactory = new ReactiveJsonSlotsCreatorFactory(null);
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
         agoClassLoader.loadClasses("output/rt");
         agoClassLoader.loadClasses(output);
@@ -53,13 +53,13 @@ public class AsRuleSever {
         ds.setDefaultAutoCommit(true);
 
         int applicationId = 1;
-        var rdbAdapter = new SemiSchemaPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
+        var rdbAdapter = new ReactiveJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
         slotsCreatorFactory.setAdapter(rdbAdapter);
         rdbAdapter.setDataSource(ds);
         // for first run
 //        rdbAdapter.executeDDL(FileUtils.readFileToString(outputSqlFile, "utf-8"));
 
-        PersistentRdbEngine rdbEngine = new SemiSchemaEngine(rdbAdapter);
+        PersistentRdbEngine rdbEngine = new ReactiveJsonAgoEngine(rdbAdapter);
         rdbEngine.load(agoClassLoader);
         rdbEngine.run("main#");
     }
@@ -74,8 +74,8 @@ public class AsRuleSever {
         FileOutputStream fileOutputStream = new FileOutputStream(outputSqlFile);
 
         int applicationId = 1;
-        SemiSchemaPGAdapter rdbAdapter = new SemiSchemaPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
-        RdbDDLGenerator rdbDDLGenerator = new SemiSchemaPGDDLGenerator(agoClassLoader, rdbAdapter, platform);
+        ReactiveJsonPGAdapter rdbAdapter = new ReactiveJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
+        RdbDDLGenerator rdbDDLGenerator = new PGJsonDDLGenerator(agoClassLoader, rdbAdapter, platform);
         rdbDDLGenerator.generate(fileOutputStream);
     }
 }

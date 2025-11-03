@@ -1,14 +1,13 @@
-package org.siphonlab.ago.runtime.rdb.reactive.semischema;
+package org.siphonlab.ago.runtime.rdb.reactive.json;
 
-import org.agrona.concurrent.SnowflakeIdGenerator;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 
-public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
+public class ReactiveJsonSlotsCreatorFactory implements SlotsCreatorFactory {
 
-    private SemiSchemaPGAdapter adapter;
+    private ReactiveJsonPGAdapter adapter;
 
-    public PGJsonSlotsCreatorFactory(SemiSchemaPGAdapter adapter) {
+    public ReactiveJsonSlotsCreatorFactory(ReactiveJsonPGAdapter adapter) {
         this.adapter = adapter;
     }
 
@@ -19,7 +18,7 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
             public Slots create() {
                 long id = adapter.nextId();
                 ObjectRef objectRef = new ObjectRef(agoClass.getFullname(), id);
-                var r = new JsonRefSlots(objectRef, adapter.getSlotsAdapter(), agoClass.getSlotDefs());
+                var r = new ReactiveJsonRefSlots(objectRef, adapter.getSlotsAdapter(), agoClass.getSlotDefs());
                 r.setSaved(false);
                 return r;
             }
@@ -31,7 +30,7 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
         };
     }
 
-    public void setAdapter(SemiSchemaPGAdapter adapter) {
+    public void setAdapter(ReactiveJsonPGAdapter adapter) {
         this.adapter = adapter;
     }
 }

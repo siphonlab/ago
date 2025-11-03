@@ -1,8 +1,6 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
-import org.siphonlab.ago.runtime.rdb.semischema.SemiSchemaJsonRefSlots;
 
 public interface ObjectRefOwner {
     ObjectRef getObjectRef();

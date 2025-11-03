@@ -4,7 +4,7 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
-import org.siphonlab.ago.runtime.rdb.semischema.lazy.JsonAgoClassLoader;
+import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
 
 
 /**
