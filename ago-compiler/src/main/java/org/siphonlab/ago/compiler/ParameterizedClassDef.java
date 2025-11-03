@@ -57,6 +57,12 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
         }
     }
 
+    public static class RefViaFunctionResult extends RefViaClass {
+        public RefViaFunctionResult(FunctionDef classDef) {
+            super(classDef);
+        }
+    }
+
     public static class RefViaVariable extends ReferencingObject {
         private final Variable variable;
 
@@ -197,6 +203,8 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                     } else if(referencingObject instanceof RefViaVariable refViaVariable){
                         refViaVariable.variable.setType(pc);
                         refViaVariable.variable.ownerClass.registerConcreteType(pc);
+                    } else if(referencingObject instanceof RefViaFunctionResult refViaFunctionResult){
+                        ((FunctionDef)refViaFunctionResult.classDef).setResultType(pc);
                     }
                 }
 

@@ -5,7 +5,7 @@ import org.siphonlab.ago.AgoSlotDef;
 import org.siphonlab.ago.TypeCode;
 
 /**
- * using a uno json to store slots
+ * using an uno json to store slots
  */
 public abstract class JsonSlotMapper {
     private final String[] jsonFiledNames;

@@ -243,11 +243,15 @@ public class FunctionDef extends ClassDef {
     public void setResultType(ClassDef resultType) {
         Objects.requireNonNull(resultType);
         this.resultType = resultType;
-        if(resultType instanceof ConcreteType c){
-            this.registerConcreteType(c);
+        if(resultType instanceof ParameterizedClassDef.PlaceHolder placeHolder){
+            placeHolder.registerReference(new ParameterizedClassDef.RefViaFunctionResult(this));
         } else {
-            if(!resultType.isPrimitive())
-                this.idOfClass(resultType);
+            if (resultType instanceof ConcreteType c) {
+                this.registerConcreteType(c);
+            } else {
+                if (!resultType.isPrimitive())
+                    this.idOfClass(resultType);
+            }
         }
     }
 
