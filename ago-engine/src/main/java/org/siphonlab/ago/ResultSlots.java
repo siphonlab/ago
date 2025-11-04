@@ -179,4 +179,69 @@ public class ResultSlots {
         }
     }
 
+    public Object getResultAsObject() {
+        switch (this.getDataType()) {
+            case VOID_VALUE:
+            case NULL_VALUE:
+                return null;
+            case OBJECT_VALUE:
+                return this.getObjectValue();
+            case INT_VALUE:
+                return this.getIntValue();
+            case BYTE_VALUE:
+                return (this.getByteValue());
+            case SHORT_VALUE:
+                return (this.getShortValue());
+            case LONG_VALUE:
+                return (this.getLongValue());
+            case FLOAT_VALUE:
+                return (this.getFloatValue());
+            case DOUBLE_VALUE:
+                return (this.getDoubleValue());
+            case BOOLEAN_VALUE:
+                return (this.getBooleanValue());
+            case CHAR_VALUE:
+                return (this.getCharValue());
+            case STRING_VALUE:
+                return (this.getStringValue());
+            case CLASS_REF_VALUE:
+                return this.getClassRefValue();
+            default:
+                throw new UnsupportedOperationException("unexpected data type " + this.getDataType());
+        }
+    }
+
+    public Object getResultAsObject(BoxTypes boxTypes, ClassManager classManager) {
+        switch (this.getDataType()) {
+            case VOID_VALUE:
+            case NULL_VALUE:
+                return null;
+            case OBJECT_VALUE: {
+                var object = this.getObjectValue();
+                return boxTypes.unbox(classManager, object);
+            }
+            case INT_VALUE:
+                return this.getIntValue();
+            case BYTE_VALUE:
+                return (this.getByteValue());
+            case SHORT_VALUE:
+                return (this.getShortValue());
+            case LONG_VALUE:
+                return (this.getLongValue());
+            case FLOAT_VALUE:
+                return (this.getFloatValue());
+            case DOUBLE_VALUE:
+                return (this.getDoubleValue());
+            case BOOLEAN_VALUE:
+                return (this.getBooleanValue());
+            case CHAR_VALUE:
+                return (this.getCharValue());
+            case STRING_VALUE:
+                return (this.getStringValue());
+            case CLASS_REF_VALUE:
+                return this.getClassRefValue();
+            default:
+                throw new UnsupportedOperationException("unexpected data type " + this.getDataType());
+        }
+    }
 }

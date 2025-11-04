@@ -30,7 +30,7 @@ public class HttpServerTest {
 
         AgoEngine engine = new AgoEngine();
         AgoClassLoader agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("output/rt", "output/%s".formatted(filename));
+        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/", "output/%s".formatted(filename));
 
         engine.load(agoClassLoader);
 

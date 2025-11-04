@@ -12,18 +12,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static org.siphonlab.ago.TypeCode.*;
-import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
-import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
-import static org.siphonlab.ago.TypeCode.CHAR_VALUE;
-import static org.siphonlab.ago.TypeCode.CLASS_REF_VALUE;
-import static org.siphonlab.ago.TypeCode.DOUBLE_VALUE;
-import static org.siphonlab.ago.TypeCode.FLOAT_VALUE;
-import static org.siphonlab.ago.TypeCode.INT_VALUE;
-import static org.siphonlab.ago.TypeCode.LONG_VALUE;
-import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
-import static org.siphonlab.ago.TypeCode.STRING_VALUE;
-
 public class AgoRunSpace implements Runnable{
 
     public static class RunningState{
@@ -96,13 +84,17 @@ public class AgoRunSpace implements Runnable{
 
         if(this.parent != null){
             this.addCompleteListener(()->{
-                parent.forkedSpaces.remove(this);
+                parent.removeForkedSpace(this);
                 parent.tryComplete();
             });
         }
 
         this.setCurrCallFrame(frame);
         runSpaceHost.execute(this);    // see this.run()
+    }
+
+    protected void removeForkedSpace(AgoRunSpace forkedRunSpace){
+        this.forkedSpaces.remove(forkedRunSpace);
     }
 
     CompletableFuture<?> runningFuture;
@@ -127,19 +119,19 @@ public class AgoRunSpace implements Runnable{
             if (logger.isDebugEnabled()) logger.debug(this + " run callframe " + this.currCallFrame);
         }
 
-        this.runningState = RunningState.RUNNING;
-        while (this.currCallFrame != null && ((this.runningState & RunningState.PAUSE_OR_WAIT_RESULT) == 0)) {
+        this.setRunningState(RunningState.RUNNING);
+        while (this.currCallFrame != null && ((this.getRunningState() & RunningState.PAUSE_OR_WAIT_RESULT) == 0)) {
             this.currCallFrame.run();
         }
         tryComplete();
     }
 
-    private void tryComplete() {
-        if(this.runningState == RunningState.RUNNING && this.forkedSpaces.isEmpty()){    // wait children complete
+    protected void tryComplete() {
+        if(this.getRunningState() == RunningState.RUNNING && this.forkedSpaces.isEmpty()){    // wait children complete
             if(this.unhandledException != null)
-                this.runningState = RunningState.ERROR;
+                this.setRunningState(RunningState.ERROR);
             else
-                this.runningState = RunningState.DONE;
+                this.setRunningState(RunningState.DONE);
 
             for (CompleteListener completeListener : this.completeListeners) {
                 completeListener.handle();
@@ -148,10 +140,10 @@ public class AgoRunSpace implements Runnable{
     }
 
     public void waitResult() {
-        if(this.runningState == RunningState.PAUSE) {
-            this.runningState |= RunningState.WAITING_RESULT;
+        if(this.getRunningState() == RunningState.PAUSE) {
+            this.setRunningState((byte) (this.getRunningState() | RunningState.WAITING_RESULT));
         } else {
-            this.runningState = RunningState.WAITING_RESULT;
+            this.setRunningState(RunningState.WAITING_RESULT);
         }
     }
 
@@ -162,18 +154,26 @@ public class AgoRunSpace implements Runnable{
     protected void pauseByParent(AgoRunSpace parent) {
         logger.info("pause " + this);
         synchronized (this.pausingParents) {
-            if (this.runningState == RunningState.WAITING_RESULT) {
-                this.runningState |= RunningState.PAUSE;
-            } else if(this.runningState == RunningState.RUNNING || this.runningState == RunningState.PENDING){
-                this.runningState = RunningState.PAUSE;
+            if (this.getRunningState() == RunningState.WAITING_RESULT) {
+                this.setRunningState((byte) (this.getRunningState() | RunningState.PAUSE));
+            } else if(this.getRunningState() == RunningState.RUNNING || this.getRunningState() == RunningState.PENDING){
+                this.setRunningState(RunningState.PAUSE);
                 if(this.currCallFrame != null) this.currCallFrame.setSuspended(true);
             }
-            if(parent != null) pausingParents.add(parent);
+            if(parent != null) addPausingParent(parent);
 
             for (AgoRunSpace childSpace : this.forkedSpaces) {
                 childSpace.pauseByParent(parent == null ? this : parent);
             }
         }
+    }
+
+    protected void addPausingParent(AgoRunSpace parent) {
+        pausingParents.add(parent);
+    }
+
+    protected boolean removePausingParent(AgoRunSpace parent) {
+        return pausingParents.remove(parent);
     }
 
     public void interrupt() {
@@ -182,7 +182,7 @@ public class AgoRunSpace implements Runnable{
                 agoFrame.interrupt();
             }   //TODO cannot stop native frame
         }
-        this.runningState = RunningState.INTERRUPTED;
+        this.setRunningState(RunningState.INTERRUPTED);
         for (AgoRunSpace forkedSpace : this.forkedSpaces) {
             forkedSpace.interrupt();
         }
@@ -192,16 +192,16 @@ public class AgoRunSpace implements Runnable{
     }
 
     public void resumeByParentResume(AgoRunSpace parent){
-        if (parent != null && !this.pausingParents.remove(parent)) return;
+        if (parent != null && !this.removePausingParent(parent)) return;
 
-        if((this.runningState & RunningState.PAUSE) == RunningState.PAUSE){
+        if((this.getRunningState() & RunningState.PAUSE) == RunningState.PAUSE){
             synchronized (this.pausingParents) {
                 if (this.pausingParents.isEmpty()) {
-                    if (this.runningState == RunningState.PAUSE) {  // only pause
-                        this.runningState = RunningState.RUNNING;
+                    if (this.getRunningState() == RunningState.PAUSE) {  // only pause
+                        this.setRunningState(RunningState.RUNNING);
                         runSpaceHost.execute(this);
                     } else {
-                        this.runningState &= (byte) 0b1111_1011;    // remove pause
+                        this.setRunningState((byte) (this.getRunningState() & (byte) 0b1111_1011));    // remove pause
                     }
                 }
                 for (AgoRunSpace childSpace : this.forkedSpaces) {
@@ -212,12 +212,12 @@ public class AgoRunSpace implements Runnable{
     }
 
     public void resumeByAcceptResult(){
-        if ((this.runningState & RunningState.WAITING_RESULT) == RunningState.WAITING_RESULT) {
-            if(this.runningState == RunningState.WAITING_RESULT){
-                this.runningState = RunningState.RUNNING;   //TODO concurrent
+        if ((this.getRunningState() & RunningState.WAITING_RESULT) == RunningState.WAITING_RESULT) {
+            if(this.getRunningState() == RunningState.WAITING_RESULT){
+                this.setRunningState(RunningState.RUNNING);   //TODO concurrent
                 runSpaceHost.execute(this);     // resume
             } else {
-                this.runningState &= (byte) 0b1111_0111;    // only remove waiting result
+                this.setRunningState((byte) (this.getRunningState() & (byte) 0b1111_0111));    // only remove waiting result
             }
         }
     }
@@ -239,39 +239,7 @@ public class AgoRunSpace implements Runnable{
         } else if(unhandledException != null){
             throw new RuntimeException(unhandledException);
         }
-        return space.getResultAsObject();
-    }
-
-    private Object getResultAsObject() {
-        switch (resultSlots.getDataType()){
-            case VOID_VALUE:
-            case NULL_VALUE:
-                return null;
-            case OBJECT_VALUE:
-                return resultSlots.getObjectValue();
-            case INT_VALUE:
-                return resultSlots.getIntValue();
-            case BYTE_VALUE:
-                return (resultSlots.getByteValue());
-            case SHORT_VALUE:
-                return (resultSlots.getShortValue());
-            case LONG_VALUE:
-                return (resultSlots.getLongValue());
-            case FLOAT_VALUE:
-                return (resultSlots.getFloatValue());
-            case DOUBLE_VALUE:
-                return (resultSlots.getDoubleValue());
-            case BOOLEAN_VALUE:
-                return (resultSlots.getBooleanValue());
-            case CHAR_VALUE:
-                return (resultSlots.getCharValue());
-            case STRING_VALUE:
-                return (resultSlots.getStringValue());
-            case CLASS_REF_VALUE:
-                return resultSlots.getClassRefValue();
-            default:
-                throw new UnsupportedOperationException("unexpected data type " + resultSlots.getDataType());
-        }
+        return space.getResultSlots().getResultAsObject();
     }
 
     public void fork(CallFrame<?> frame) {
@@ -291,7 +259,7 @@ public class AgoRunSpace implements Runnable{
     public void spawn(CallFrame<?> frame) {
         var space = agoEngine.createRunSpace(runSpaceHost);
         frame.setRunSpace(space);
-        space.start(new EntranceCallFrame<>(frame));
+        space.start(new EntranceCallFrame<>(frame));        // for spawn runspace don't set parent
         logger.info(this + " spawn " + space);
     }
 
@@ -441,11 +409,11 @@ public class AgoRunSpace implements Runnable{
     }
 
     public void acceptException(Instance<?> exception) {
-        this.exception = exception;
+        this.setException(exception);
     }
 
     public void acceptException(Instance<?> exception, CallFrame<?> caller) {
-        this.exception = exception;
+        this.setException(exception);
         if(caller == null)
             throw new UnhandledException(getAgoEngine(), exception);
 
@@ -457,7 +425,7 @@ public class AgoRunSpace implements Runnable{
     }
 
     public void acceptExceptionByAsync(Instance<?> exception) {
-        this.exception = exception;
+        this.setException(exception);
         var caller = this.currCallFrame;
         if (caller.handleException(exception)) {
             start(caller);
@@ -466,6 +434,9 @@ public class AgoRunSpace implements Runnable{
         throw new UnhandledException(getAgoEngine(), exception);
     }
 
+    protected void setException(Instance<?> exception) {
+        this.exception = exception;
+    }
 
     public ResultSlots getResultSlots() {
         return resultSlots;
@@ -476,6 +447,16 @@ public class AgoRunSpace implements Runnable{
     }
 
     public void cleanException() {
-        exception = null;
+        setException(null);
     }
+
+    public byte getRunningState() {
+        return runningState;
+    }
+
+    public void setRunningState(byte runningState) {
+        this.runningState = runningState;
+    }
+
+
 }

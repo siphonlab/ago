@@ -28,11 +28,11 @@ public class CompilerTest {
     public void langCompile() throws CompilationError, IOException {
         Compiler compiler = new Compiler();
         Unit[] units = compiler.compile(new File[]{
-                new File("src/main/ago/lang.ago"),
-                new File("src/main/ago/runspace.ago"),
-                new File("src/main/ago/atomic.ago")
+                new File("../ago-sdk/src/lang/lang.ago"),
+                new File("../ago-sdk/src/lang/runspace.ago"),
+                new File("../ago-sdk/src/lang/atomic.ago")
         });
-        ClassFile.saveToDirectory(units, "output/rt/");
+        ClassFile.saveToDirectory(units, "../ago-sdk/src/compiled/lang/");
     }
 
 

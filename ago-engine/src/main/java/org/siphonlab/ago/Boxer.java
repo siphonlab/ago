@@ -11,6 +11,8 @@ import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
 import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 
 public class Boxer {
+    private final BoxTypes boxTypes;
+
     private final AgoClass INTEGER;
     private final AgoClass LONG;
     private final AgoClass BYTE;
@@ -24,8 +26,9 @@ public class Boxer {
 
     private AgoEngine engine;
 
-    public Boxer(AgoClass INTEGER, AgoClass LONG, AgoClass BYTE, AgoClass CHAR, AgoClass SHORT,
+    public Boxer(BoxTypes boxTypes, AgoClass INTEGER, AgoClass LONG, AgoClass BYTE, AgoClass CHAR, AgoClass SHORT,
                  AgoClass CLASS_REF, AgoClass STRING, AgoClass BOOLEAN, AgoClass FLOAT, AgoClass DOUBLE) {
+        this.boxTypes = boxTypes;
         this.INTEGER = INTEGER;
         this.LONG = LONG;
         this.BYTE = BYTE;
@@ -304,4 +307,7 @@ public class Boxer {
         return instance;
     }
 
+    public Object unbox(Instance<?> instance){
+        return boxTypes.unbox(engine,instance);
+    }
 }

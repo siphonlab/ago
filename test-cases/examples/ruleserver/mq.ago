@@ -1,6 +1,6 @@
-fun send(channel as Function<_>, message as Object) native "org.siphonlab.ago.TestFunctions.sendMessageMQ";
+fun send(channel as Function<_>, message as Object) native "org.siphonlab.ago.test.TestFunctions.sendMessageMQ";
 
-fun receive<T>(channel as Function<_>) as T native "org.siphonlab.ago.TestFunctions.receiveMessageMQ";
+fun receive<T>(channel as Function<_>) as T native "org.siphonlab.ago.test.TestFunctions.receiveMessageMQ";
 
 class Numbers{
     fun new(field a as int, field b as int){}

@@ -15,6 +15,7 @@ import org.siphonlab.ago.native_.AgoNativeFunction
 import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
 import org.siphonlab.ago.runtime.rdb.RdbAdapter
+import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.stateful.RunningState
@@ -25,6 +26,7 @@ import org.siphonlab.ago.runtime.stateful.StatefulCallFrame
 import org.siphonlab.ago.runtime.stateful.StatefulNativeFrame
 
 import javax.sql.DataSource
+import java.sql.Array
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Types
@@ -195,11 +197,14 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var slots = agoClass.slots as JsonRefSlots;
         System.err.println("INSERT CLASS " + slots.objectRef.id())
 
-        sql.executeInsert("INSERT INTO ago_class (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots, fullname, modifiers, super_class, " +
-                                'interfaces, children, methods, parent, permit_class, parameterized_base_class, "name", fields, slotdefs, concrete_type_info, source_location, has_slots_creator) ' +
-                            "VALUES(:id, :application, :class_id, :class_type, :ago_class, :parent_scope_id, :parent_scope_class, :creator_id, :creator_class, :slots, :fullname, :modifiers, :super_class, " +
-                                ":interfaces, :children, :methods, :parent, :permit_class, :parameterized_base_class, :name, :fields, :slotdefs, :concrete_type_info, :source_location, :has_slots_creator)",
-                toMap(agoClass, applicationId)
+        sql.executeInsert(toMap(agoClass, applicationId),
+            """INSERT INTO ago_class (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, 
+                        creator_id, creator_class, slots, fullname, modifiers, super_class, interfaces, children, methods, parent,
+                         permit_class, parameterized_base_class, \"name\", fields, slotdefs, concrete_type_info, source_location,
+                          has_slots_creator, ) 
+                    VALUES(:id, :application, :class_id, :class_type, :ago_class, :parent_scope_id, :parent_scope_class, :creator_id, 
+                            :creator_class, :slots, :fullname, :modifiers, :super_class, :interfaces, :children, :methods, :parent, :permit_class,
+                            :parameterized_base_class, :name, :fields, :slotdefs, :concrete_type_info, :source_location, :has_slots_creator)"""
         )
     }
 
@@ -418,6 +423,83 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                  toJsonb(defaultSlots)]
         )
     }
+
+    void saveRunSpace(RdbAgoRunSpace runSpace){
+        sql.executeInsert(toMap(runSpace),
+            """insert into ago_runspace (
+                    id, native_host_class, curr_frame_table, curr_frame_id, result_slots, running_state, exception_id, pausing_parents, forked_runspaces, parent_runspace
+                )
+                values (
+                    :id,:native_host_class,:curr_frame_table,:curr_frame_id,:result_slots,:running_state,:exception_id,:pausing_parents,:forked_runspaces,:parent_runspace
+                )
+                """);
+    }
+
+    void updateRunSpace(RdbAgoRunSpace runSpace){
+        sql.executeUpdate(toUpdateMap(runSpace),
+            """UPDATE ago_runspace
+                SET
+                    curr_frame_table = :curr_frame_table,
+                    curr_frame_id = :curr_frame_id,
+                    result_slots = :result_slots,
+                    running_state = :running_state,
+                    exception_id = :exception_id,
+                    pausing_parents = :pausing_parents,
+                    forked_runspaces = :forked_runspaces
+                WHERE id = :id""")
+    }
+
+    Map<String, Object> toMap(RdbAgoRunSpace runSpace){
+        ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
+        return [
+                "id"               : (Object) 1,
+                "native_host_class": runSpace.getRunSpaceHost().getClass().getName(),
+                "curr_frame_table" : currFrameRef?.className(),
+                "curr_frame_id"    : currFrameRef?.id(),
+                "result_slots"     : toJsonb(toMap(runSpace.resultSlots)),
+                "running_state"    : runSpace.runningState,
+                "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
+                "pausing_parents"  : toBigIntArray(runSpace.getPausingParents().collect { ((RdbAgoRunSpace) it).id }),
+                "forked_runspaces" : toBigIntArray(runSpace.getForkedSpaces().collect { ((RdbAgoRunSpace) it).id }),
+                "parent"           : ((RdbAgoRunSpace) runSpace.getParent())?.id
+        ];      // UnhandledException
+    }
+
+    Map<String, Object> toMap(ResultSlots resultSlots){
+        def object = resultSlots.getResultAsObject(this.getBoxTypes(), this.classManager)
+        if(object == null){
+            return ["type": (Object)resultSlots.getDataType(), "value": null];
+        } else if(object instanceof Instance){
+            return ["type": (Object) resultSlots.getDataType(), "value": toMap(object)];
+        } else {
+            return ["type": (Object)resultSlots.getDataType(), "value": object]
+        }
+    }
+
+    Array toBigIntArray(List<Long> array){
+        if (array == null) return null;
+        return sql.connection.createArrayOf("bigint", array.toArray());
+    }
+
+    Map<String, Object> toUpdateMap(RdbAgoRunSpace runSpace) {
+        ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
+        return [
+                "id"               : (Object) 1,
+                "curr_frame_table" : currFrameRef?.className(),
+                "curr_frame_id"    : currFrameRef?.id(),
+                "result_slots"     : toJsonb(toMap(runSpace.resultSlots)),
+                "running_state"    : runSpace.runningState,
+                "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
+                "pausing_parents"  : toBigIntArray(runSpace.getPausingParents().collect { ((RdbAgoRunSpace) it).id }),
+                "forked_runspaces" : toBigIntArray(runSpace.getForkedSpaces().collect { ((RdbAgoRunSpace) it).id }),
+        ];
+    }
+
+    Map<String, Object> toMap(Instance<?> instance){
+        var ref = ObjectRefOwner.extractObjectRef(instance)
+        return ["@type": (Object)ref.className(), "@id": ref.id()]
+    }
+
 
     @Override
     String tableName(AgoClass agoClass) {

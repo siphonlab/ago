@@ -33,8 +33,8 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         var sql = new Sql(dataSource);
         Map<String, GroovyRowResult> rowsByClassName = new LinkedHashMap<>();
 
-        List<GroovyRowResult> classRows = sql.rows("SELECT * FROM ago_class WHERE application=? ORDER BY class_id", List.of(applicationId));
-        List<GroovyRowResult> functionRows = sql.rows("SELECT * FROM ago_function WHERE application=? ORDER BY class_id", List.of(applicationId));
+        List<GroovyRowResult> classRows = sql.rows("SELECT * FROM ago_class WHERE application=? AND parent_scope_id IS NULL ORDER BY class_id", List.of(applicationId));
+        List<GroovyRowResult> functionRows = sql.rows("SELECT * FROM ago_function WHERE application=? AND parent_scope_id IS NULL ORDER BY class_id", List.of(applicationId));
         List<GroovyRowResult> allRows = ListUtils.union(classRows, functionRows).stream().sorted(Comparator.comparingInt(o -> (Integer) o.get("class_id"))).toList();
         // blobs, strings
         var strings = sql.rows("SELECT index, value FROM ago_string WHERE application=? ORDER BY index", List.of(applicationId));

@@ -122,4 +122,41 @@ public class BoxTypes {
     public AgoClass getBoxType(TypeCode typeCode) {
         return mapTypeCodeToClass.get(typeCode);
     }
+
+    public Object unbox(ClassManager classManager, Instance<?> instance) {
+        if (instance == null) return null;
+        var unboxType = getUnboxType(instance.getAgoClass());
+        if (unboxType == null) return instance;
+
+        Slots slots = instance.getSlots();
+        switch (unboxType.getValue()) {
+            case VOID_VALUE:
+            case NULL_VALUE:
+                return null;
+            case OBJECT_VALUE:
+                return slots.getObject(0);
+            case INT_VALUE:
+                return slots.getInt(0);
+            case BYTE_VALUE:
+                return slots.getByte(0);
+            case SHORT_VALUE:
+                return slots.getShort(0);
+            case LONG_VALUE:
+                return slots.getLong(0);
+            case FLOAT_VALUE:
+                return slots.getFloat(0);
+            case DOUBLE_VALUE:
+                return slots.getDouble(0);
+            case BOOLEAN_VALUE:
+                return slots.getBoolean(0);
+            case CHAR_VALUE:
+                return slots.getChar(0);
+            case STRING_VALUE:
+                return slots.getString(0);
+            case CLASS_REF_VALUE:
+                return classManager.getClass(slots.getClassRef(0));
+            default:
+                throw new UnsupportedOperationException("unexpected data type " + unboxType);
+        }
+    }
 }

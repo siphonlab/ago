@@ -3,7 +3,7 @@ fun add(a as int, b as int) as int{
 }
 
 // sleep 10s inside, for stop/resume
-fun addNative(a as int, b as int) as int native "org.siphonlab.ago.TestFunctions.add";
+fun addNative(a as int, b as int) as int native "org.siphonlab.ago.test.TestFunctions.add";
 
 fun main(){
     var c = addNative(2, 3)

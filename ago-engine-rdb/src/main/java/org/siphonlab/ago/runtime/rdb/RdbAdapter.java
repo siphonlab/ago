@@ -5,6 +5,7 @@ import io.ebeaninternal.dbmigration.migration.CreateTable;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.IdGenerator;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.siphonlab.ago.*;
@@ -331,6 +332,14 @@ public abstract class RdbAdapter {
                 }
             }
         }
+    }
+
+    public void saveRunSpace(RdbAgoRunSpace runSpace) {
+        throw new NotImplementedException("not implemented yet");
+    }
+
+    public void updateRunSpace(RdbAgoRunSpace runSpace) {
+        throw new NotImplementedException("not implemented yet");
     }
 
     public void saveCallFrameState(StatefulCallFrame statefulCallFrame) {

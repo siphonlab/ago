@@ -30,9 +30,9 @@ public class AsRuleSeverLazyInstance {
 
     @Test
     public void test_generate_sql() throws IOException, CompilationError {
-        Util.compile("org/siphonlab/ago/ruleserver/test/1");
+        Util.compile("ruleserver/1.ago");
 
-        String output = "output/ruleserver/1";
+        String output = "output/ruleserver/1.ago";
         generateDDL(output);
     }
 
@@ -65,7 +65,7 @@ public class AsRuleSeverLazyInstance {
 
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
-        agoClassLoader.loadClasses("output/rt");
+        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
         agoClassLoader.loadClasses("output/ruleserver/mq");
 
 //        var agoClassLoader = new JsonAgoClassLoader(new MetaClass(), slotsCreatorFactory);
@@ -86,7 +86,7 @@ public class AsRuleSeverLazyInstance {
     public void runWithPG(String output) throws IOException {
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
-        agoClassLoader.loadClasses("output/rt");
+        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
         agoClassLoader.loadClasses(output);
 
         PostgresPlatform platform = new PostgresPlatform();
@@ -114,7 +114,7 @@ public class AsRuleSeverLazyInstance {
 
     private void generateDDL(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("output/rt");
+        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
         agoClassLoader.loadClasses(output);
 
         PostgresPlatform platform = new PostgresPlatform();

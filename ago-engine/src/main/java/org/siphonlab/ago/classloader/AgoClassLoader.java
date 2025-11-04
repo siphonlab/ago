@@ -985,7 +985,7 @@ public class AgoClassLoader implements ClassManager{
     }
 
     public Boxer createBoxer(AgoEngine engine) {
-        var boxer = new Boxer(classByName.get("lang.Integer"),classByName.get("lang.Long"), classByName.get("lang.Byte"),
+        var boxer = new Boxer(getBoxTypes(), classByName.get("lang.Integer"),classByName.get("lang.Long"), classByName.get("lang.Byte"),
                 classByName.get("lang.Char"), classByName.get("lang.Short"), classByName.get("lang.ClassRef"),
                 classByName.get("lang.String"), classByName.get("lang.Boolean"), classByName.get("lang.Float"),
                 classByName.get("lang.Double"));

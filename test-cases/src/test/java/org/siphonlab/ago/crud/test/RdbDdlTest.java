@@ -37,7 +37,7 @@ public class RdbDdlTest {
 
     public void runWithH2Db(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader(new RdbSlotsCreatorFactory(null));
-        agoClassLoader.loadClasses("output/rt");
+        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
         agoClassLoader.loadClasses(output);
 
         H2Platform platform = new H2Platform();
@@ -67,7 +67,7 @@ public class RdbDdlTest {
 
     private void generateDDL(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("output/rt");
+        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
         agoClassLoader.loadClasses(output);
 
         H2Platform platform = new H2Platform();

@@ -25,7 +25,7 @@ public class AsRuleSever {
 
     @Test
     public void test_generate_sql() throws IOException, CompilationError {
-        Util.compile("org/siphonlab/ago/ruleserver/test/1");
+        Util.compile("examples/bootstrap/0.add.ago");
 
         String output = "output/ruleserver/1";
         generateDDL(output);
@@ -39,7 +39,7 @@ public class AsRuleSever {
     public void runWithPG(String output) throws IOException {
         ReactiveJsonSlotsCreatorFactory slotsCreatorFactory = new ReactiveJsonSlotsCreatorFactory(null);
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
-        agoClassLoader.loadClasses("output/rt");
+        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
         agoClassLoader.loadClasses(output);
 
         PostgresPlatform platform = new PostgresPlatform();
@@ -66,7 +66,7 @@ public class AsRuleSever {
 
     private void generateDDL(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("output/rt");
+        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
         agoClassLoader.loadClasses(output);
 
         PostgresPlatform platform = new PostgresPlatform();

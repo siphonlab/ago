@@ -61,6 +61,7 @@ public class RunSpaceAware {
     }
 
     // fun run<R>(function as Function<R>) as R
+    // TODO must implement resume
     public static void run(NativeFrame frame, Instance<?> runnerFrame) throws InterruptedException {
         var runSpace = getAgoRunSpace(frame);   // the RunSpace within scope of run<R>
         CallFrame<?> runner = (CallFrame<?>) runnerFrame;
