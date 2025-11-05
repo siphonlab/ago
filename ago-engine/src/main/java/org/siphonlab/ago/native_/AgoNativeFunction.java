@@ -29,11 +29,6 @@ public class AgoNativeFunction extends AgoFunction {
         return resultSlot;
     }
 
-    @Override
-    public CallFrame<?> createCallFrame(AgoEngine engine, AgoRunSpace runSpace) {
-        return new NativeFrame(engine, this.createSlots(), this);
-    }
-
     public String getNativeEntrance() {
         return nativeEntrance;
     }

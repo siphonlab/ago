@@ -48,10 +48,6 @@ public class AgoFunction extends AgoClass{
         return parameters;
     }
 
-    public CallFrame<?> createCallFrame(AgoEngine engine, AgoRunSpace runSpace){
-        return new AgoFrame(this.createSlots(), this, engine);
-    }
-
     public AgoClass getResultClass() {
         return resultClass;
     }

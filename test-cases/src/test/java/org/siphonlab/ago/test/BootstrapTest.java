@@ -190,5 +190,4 @@ public class BootstrapTest {
         assertTrue(Trace.outputted("1", "3", "5", "7", "9", "0", "2", "4", "6", "8"));
     }
 
-
 }

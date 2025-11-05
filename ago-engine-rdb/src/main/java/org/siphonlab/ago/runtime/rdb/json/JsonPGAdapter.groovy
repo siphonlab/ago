@@ -1,5 +1,6 @@
 package org.siphonlab.ago.runtime.rdb.json
 
+import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.sql.Sql
@@ -227,9 +228,10 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var map = [
                 "id"       : slots.objectRef.id() as Object,
                 "suspended": callFrame.suspended,
-                "state"    : state,
                 "runspace" : (callFrame.runSpace as RdbAgoRunSpace)?.id
         ]
+        if(state != (byte)-1) map["state"] = state
+
         if(callFrame instanceof AsyncEntranceCallFrame){
             map["is_async_entrance"] = true
             callFrame = callFrame.inner
@@ -241,7 +243,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         if(callFrame instanceof AgoFrame) {
             map["pc"] = callFrame.pc
         } else if(callFrame instanceof NativeFrame){
-            //
+            map["payload"] = callFrame.payload ? toJsonb(callFrame.payload) : null;
         } else {
             throw new UnsupportedOperationException("unsupported frame type " + callFrame)
         }

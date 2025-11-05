@@ -107,7 +107,9 @@ public class Util {
         engine.run(entrance);
     }
 
-    public static void runWithPGJsonLazy(String filename, String entrance) throws IOException {
+    public static void runWithPGJsonLazy(String filename, String entrance) throws IOException, CompilationError {
+        compile(filename);
+
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
         agoClassLoader.loadClasses("../ago-sdk/compiled/lang/");

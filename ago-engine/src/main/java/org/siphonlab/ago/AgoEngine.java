@@ -8,6 +8,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.json.AgoJsonParserFactory;
 import org.siphonlab.ago.runtime.json.AgoJsonFactory;
@@ -238,11 +239,10 @@ public class AgoEngine implements ClassManager{
     public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator, AgoRunSpace runSpace){
         if(LOGGER.isDebugEnabled()) LOGGER.debug("create instance of " + agoFunction);
         CallFrame<?> result;
-        if (!(agoFunction instanceof AgoNativeFunction agoNativeFunction)) {
-            result = new AgoFrame(agoFunction.createSlots(), agoFunction, this);
+        if (agoFunction instanceof AgoNativeFunction agoNativeFunction) {
+            result = new NativeFrame(this, agoNativeFunction.createSlots(), agoNativeFunction);
         } else {
-//            result = new NativeFrame(this, runSpace, agoFunction.createSlots(), agoNativeFunction);
-            result = agoFunction.createCallFrame(this, runSpace);
+            result = new AgoFrame(agoFunction.createSlots(), agoFunction, this);
         }
         if(parentScope != null) result.setParentScope(parentScope);
         result.setCaller(caller);

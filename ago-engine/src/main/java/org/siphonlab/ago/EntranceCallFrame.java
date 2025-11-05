@@ -139,4 +139,5 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     public CallFrame<T> getInner() {
         return inner;
     }
+
 }

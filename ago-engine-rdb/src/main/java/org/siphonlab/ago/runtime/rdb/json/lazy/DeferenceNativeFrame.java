@@ -59,4 +59,10 @@ public class DeferenceNativeFrame extends NativeFrame implements ReferenceableIn
             return false;
         }
     }
+
+    @Override
+    public void setPayload(Object payload) {
+        super.setPayload(payload);
+        ((RdbEngine)this.engine).getRdbAdapter().saveCallFrameRunningState(this, (byte)-1);
+    }
 }

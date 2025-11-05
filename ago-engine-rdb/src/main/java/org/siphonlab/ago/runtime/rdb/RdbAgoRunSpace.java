@@ -43,8 +43,10 @@ public class RdbAgoRunSpace extends AgoRunSpace {
             } else {        // whenever this.currCallFrame == cf or this.currCallFrame != cf, only save cf, for currCallFrame will save at LN39
                 if(cf != currCallFrame){
                     assert !cf.isSuspended();
-                    rdbAdapter.saveCallFrameRunningState(cf, this.exception == null? RunningState.DONE : RunningState.ERROR);
+                    // cf is calling currCallFrame
+                    rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
                 } else {
+                    // it's suspended
                     rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
                 }
             }

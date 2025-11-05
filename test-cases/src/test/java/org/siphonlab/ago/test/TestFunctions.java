@@ -37,6 +37,17 @@ public class TestFunctions {
         frame.finishInt(a + b);
     }
 
+    public static void mustTryAgain(NativeFrame frame){
+        if(frame.getPayload() == null){
+            System.err.println("failed this time, please try again");
+            frame.setPayload("you will success this time");
+            System.exit(0);
+        } else {
+            System.err.println("now success!");
+            frame.finishVoid();
+        }
+    }
+
     public static void sendMessage(NativeFrame nativeFrame, Instance<?> destination, Instance<?> message){
         VertxRunSpaceHost vertxRunSpaceHost = (VertxRunSpaceHost) nativeFrame.getRunSpace().getRunSpaceHost();
 //        vertxRunSpaceHost.getVertx().eventBus().send(ObjectRefOwner.extractObjectRef(destination).toString(), ObjectRefOwner.extractObjectRef(message));
