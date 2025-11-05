@@ -2,7 +2,6 @@ package org.siphonlab.ago.runtime.rdb;
 
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.concurrent.IdGenerator;
-import org.apache.commons.lang3.NotImplementedException;
 import org.siphonlab.ago.*;
 
 import java.sql.Types;
@@ -52,8 +51,4 @@ public class H2Adapter extends RdbAdapter{
         //TODO
     }
 
-    @Override
-    public CallFrame[] loadResumableCallFrames(CallFrame<?> resumeFrame) {
-        throw new NotImplementedException("not implemented yet");
-    }
 }

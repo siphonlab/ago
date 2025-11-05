@@ -29,7 +29,8 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     private AgoRunSpace resumeCallerRunSpace() {
         var caller = this.getCaller();
         AgoRunSpace callerRunSpace = caller.getRunSpace();
-        if(callerRunSpace == this.getRunSpace()) callerRunSpace.setCurrCallFrame(caller);
+        if(callerRunSpace == this.getRunSpace())
+            callerRunSpace.setCurrCallFrame(caller);
         return callerRunSpace;
     }
 
@@ -145,7 +146,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     @Override
-    protected void setSuspended(boolean suspended) {
+    public void setSuspended(boolean suspended) {
         //TODO native frame not support yet
     }
 

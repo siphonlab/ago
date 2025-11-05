@@ -1870,4 +1870,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     public void interrupt() {
         this.setPc(this.code.length);
     }
+
+    public int getPc() {
+        return pc;
+    }
 }

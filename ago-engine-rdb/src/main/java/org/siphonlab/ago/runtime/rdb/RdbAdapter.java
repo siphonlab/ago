@@ -10,8 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeInstance;
-import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame;
-import org.siphonlab.ago.runtime.stateful.StatefulCallFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -342,8 +340,8 @@ public abstract class RdbAdapter {
         throw new NotImplementedException("not implemented yet");
     }
 
-    public void saveCallFrameState(StatefulCallFrame statefulCallFrame) {
-
+    public void saveCallFrameRunningState(CallFrame<?> statefulCallFrame, byte runningState) {
+        throw new NotImplementedException();
     }
 
     protected void insert(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
@@ -607,7 +605,5 @@ public abstract class RdbAdapter {
     public long nextId(){
         return this.idGenerator.nextId();
     }
-
-    public abstract CallFrame[] loadResumableCallFrames(CallFrame<?> resumeFrame);
 
 }

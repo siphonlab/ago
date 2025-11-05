@@ -8,7 +8,6 @@ import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.reactive.SlotsAdapter
 import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter
-import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame
 
 @CompileStatic
 public class ReactiveJsonPGAdapter extends JsonPGAdapter {
@@ -35,7 +34,7 @@ public class ReactiveJsonPGAdapter extends JsonPGAdapter {
 
         // it's new created instance
         if (instance instanceof AgoFrame) {
-            saveAgoFrame((StatefulAgoFrame) instance)
+            saveAgoFrame((AgoFrame)instance)
         } else if (instance instanceof AgoFunction) {
             saveAgoFunction((AgoFunction) instance)
         } else if (instance instanceof AgoClass) {

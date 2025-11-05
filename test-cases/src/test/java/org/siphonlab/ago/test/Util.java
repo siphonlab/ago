@@ -49,7 +49,7 @@ public class Util {
         Compiler compiler = new Compiler();
         Collection<ClassDef> rtClasses = null;
         AgoClassLoader agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
+        agoClassLoader.loadClasses("../ago-sdk/compiled/lang/");
 
         rtClasses = compiler.load(agoClassLoader);
         Unit[] units = compiler.compile(new File[]{new File("examples/%s".formatted(filename))}, rtClasses.toArray(new ClassDef[0]));
@@ -88,7 +88,7 @@ public class Util {
         AgoEngine engine = new AgoEngine();
         AgoClassLoader agoClassLoader = new AgoClassLoader();
 
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/", "output/%s".formatted(filename));
+        agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
 
         engine.load(agoClassLoader);
 
@@ -100,18 +100,18 @@ public class Util {
 
         AgoEngine engine = new AgoEngine(new VertxRunSpaceHost(Vertx.vertx()));
         AgoClassLoader agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/", "output/%s".formatted(filename));
+        agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
 
         engine.load(agoClassLoader);
 
         engine.run(entrance);
     }
 
-    public static void runWithPGJsonLazy(String output, String entrance) throws IOException {
+    public static void runWithPGJsonLazy(String filename, String entrance) throws IOException {
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
-        agoClassLoader.loadClasses(output);
+        agoClassLoader.loadClasses("../ago-sdk/compiled/lang/");
+        agoClassLoader.loadClasses("output/%s".formatted(filename));
 
         BasicDataSource ds = new BasicDataSource();
         ds.setDriverClassName("org.postgresql.Driver");

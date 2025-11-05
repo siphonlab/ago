@@ -4,8 +4,6 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.opcode.Move;
 import org.siphonlab.ago.opcode.arithmetic.Add;
 import org.siphonlab.ago.runtime.rdb.reactive.CallFrameBoundSlots;
-import org.siphonlab.ago.runtime.rdb.json.lazy.RunningStateStoreViaAdapter;
-import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,13 +17,13 @@ import static org.siphonlab.ago.opcode.OpCode.DTYPE_MASK_NEG;
 /**
  * this call frame dispatch some commands to adapter, and adapter translate them to sql, i.e. update xx set slot1 = slot2 + slot3
  */
-public class ReactiveJsonCallFrame extends StatefulAgoFrame {
+public class ReactiveJsonCallFrame extends AgoFrame {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ReactiveJsonCallFrame.class);
     private final ReactiveJsonPGAdapter adapter;
 
     public ReactiveJsonCallFrame(Slots slots, AgoFunction agoFunction, ReactiveJsonAgoEngine engine) {
-        super(slots, agoFunction, engine, new RunningStateStoreViaAdapter(engine.getRdbAdapter()));
+        super(slots, agoFunction, engine);
         this.slots = wrapSlots(slots,engine, this);
         this.adapter = (ReactiveJsonPGAdapter) engine.getRdbAdapter();
     }

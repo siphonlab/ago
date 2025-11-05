@@ -14,11 +14,8 @@ import org.siphonlab.ago.runtime.rdb.lazy.DereferenceAdapter
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstance
 import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots
-import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame
 import org.siphonlab.ago.runtime.rdb.json.JsonRefSlots;
 import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter
-import org.siphonlab.ago.runtime.stateful.StatefulCallFrame
-import org.siphonlab.ago.runtime.stateful.StatefulNativeFrame
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory;
 
@@ -63,9 +60,9 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     @Override
     def void insert(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
         if (instance instanceof AgoFrame) {
-            saveAgoFrame((StatefulAgoFrame) instance)
+            saveAgoFrame(instance)
         } else if(instance instanceof NativeFrame){
-            saveNativeFrame((StatefulNativeFrame) instance)
+            saveNativeFrame(instance)
         } else if (instance instanceof AgoFunction) {
             saveAgoFunction((AgoFunction) instance)
         } else if (instance instanceof AgoClass) {
@@ -85,13 +82,13 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
         String sql
         if(instance instanceof CallFrame){
-            if(instance instanceof NativeFrame) {
-                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, state = :state WHERE id = :id"
-                arguments["state"] = ((StatefulCallFrame) instance).runningState.code
+            if(instance instanceof AgoFrame) {
+                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, suspended = :suspended, pc = :pc WHERE id = :id"
+                arguments["pc"] = instance.pc
+                arguments["suspended"] = instance.suspended
             } else {
-                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, state = :state, pc = :pc WHERE id = :id"
-                arguments["state"] = ((StatefulAgoFrame) instance).runningState.code
-                arguments["pc"] = ((StatefulAgoFrame) instance).pc
+                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, suspended = :suspended WHERE id = :id"
+                arguments["suspended"] = instance.suspended
             }
         } else {
             sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots WHERE id = :id"
@@ -254,14 +251,15 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
         return map
     }
 
-    @Override
-    CallFrame[] loadResumableCallFrames(CallFrame<?> resumeFrame) {
-        // PENDING, RUNNING
-        var rows = sql.rows("SELECT id, ago_class FROM ago_frame WHERE application = ? AND state IN (0, 1)", [this.applicationId as Object])
-        var refInstances = rows.collect({
-            AgoClass agoClass = classManager.getClass(it["ago_class"] as String)
-            return (ObjectRefCallFrame)restoreInstance(new ObjectRef(agoClass.fullname, (Long) it["id"]), resumeFrame)
-        })
-        return refInstances.collect {it.recomposeAsCallFrame()}.toArray(CallFrame[]::new)     //TODO need a CallFrame to deserialize json
-    }
+//    AgoRunSpace[] loadResumableRunSpaces() {
+//        // PENDING, RUNNING
+//        var rows = sql.rows("SELECT id, ago_class FROM ago_frame WHERE application = ? AND state IN (0, 1)", [this.applicationId as Object])
+//        var refInstances = rows.collect({
+//            AgoClass agoClass = classManager.getClass(it["ago_class"] as String)
+//            return (ObjectRefCallFrame) restoreInstance(new ObjectRef(agoClass.fullname, (Long) it["id"]), resumeFrame)
+//        })
+//        return refInstances.collect { it.recomposeAsCallFrame() }.toArray(CallFrame[]::new)
+//        //TODO need a CallFrame to deserialize json
+//    }
+
 }

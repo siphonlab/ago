@@ -126,7 +126,7 @@ public class AgoRunSpace implements Runnable{
         tryComplete();
     }
 
-    protected void tryComplete() {
+    protected boolean tryComplete() {
         if(this.getRunningState() == RunningState.RUNNING && this.forkedSpaces.isEmpty()){    // wait children complete
             if(this.unhandledException != null)
                 this.setRunningState(RunningState.ERROR);
@@ -136,7 +136,9 @@ public class AgoRunSpace implements Runnable{
             for (CompleteListener completeListener : this.completeListeners) {
                 completeListener.handle();
             }
+            return true;
         }
+        return false;
     }
 
     public void waitResult() {

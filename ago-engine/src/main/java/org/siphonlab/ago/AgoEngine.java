@@ -39,7 +39,7 @@ public class AgoEngine implements ClassManager{
     protected AgoClass PRIMITIVE_TYPE;
     protected AgoClass PRIMITIVE_NUMBER_TYPE;
 
-    private final AgoRunSpace runSpace;
+    private AgoRunSpace runSpace;
     private ObjectMapper jsonObjectMapper;
     private BoxTypes boxTypes;
     private ObjectMapper jsonSlotsMapper;
@@ -102,7 +102,6 @@ public class AgoEngine implements ClassManager{
 
     public AgoEngine(RunSpaceHost runSpaceHost){
         this.runSpaceHost = runSpaceHost;
-        runSpace = createRunSpace(this.runSpaceHost);
     }
 
     protected AgoRunSpace createRunSpace(RunSpaceHost runSpaceHost) {
@@ -110,6 +109,8 @@ public class AgoEngine implements ClassManager{
     }
 
     public void load(AgoClassLoader classLoader){
+        this.runSpace = createRunSpace(this.runSpaceHost);
+
         this.classes = classLoader.getClasses().toArray(new AgoClass[0]);
         this.strings = classLoader.getStrings().toArray(new String[0]);
         this.classByName = classLoader.getClassByName();

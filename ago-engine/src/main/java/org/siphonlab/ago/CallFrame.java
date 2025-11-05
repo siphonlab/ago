@@ -144,15 +144,18 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     public void finishException(Instance<?> exception, boolean throwOut) {
         if(throwOut) {
-            getRunSpace().setCurrCallFrame(null);
             if (!fail(exception)) {
                 var caller = this.getCaller();
                 if(caller == null){
                     throw new UnhandledException(getRunSpace().getAgoEngine(), exception);
                 }
-                var runSpace = caller.getRunSpace();
-                runSpace.acceptException(exception, caller);
+                var callerRunSpace = caller.getRunSpace();
+                if(callerRunSpace != this.getRunSpace()){
+                    getRunSpace().setCurrCallFrame(null);
+                }
+                callerRunSpace.acceptException(exception, caller);
             } else {
+                getRunSpace().setCurrCallFrame(null);
                 throw new UnhandledException(getRunSpace().getAgoEngine(), exception);
             }
         } else {
@@ -164,7 +167,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         return suspended;
     }
 
-    protected void setSuspended(boolean suspended) {
+    public void setSuspended(boolean suspended) {
         this.suspended = suspended;
     }
 

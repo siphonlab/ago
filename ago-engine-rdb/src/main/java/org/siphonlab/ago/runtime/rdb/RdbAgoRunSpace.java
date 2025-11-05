@@ -1,10 +1,14 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Set;
 
 public class RdbAgoRunSpace extends AgoRunSpace {
+
+    private final static Logger logger = LoggerFactory.getLogger(RdbAgoRunSpace.class);
 
     private final RdbAdapter rdbAdapter;
     private final long id;
@@ -21,16 +25,33 @@ public class RdbAgoRunSpace extends AgoRunSpace {
 
     @Override
     public void run() {
-        for (var cf = this.currCallFrame; cf != null; cf = this.currCallFrame) {
-            cf.run();
+        if (this.currCallFrame == null) {
+            if (logger.isDebugEnabled()) logger.debug(this + " has no callframe, exit");
+        } else {
+            if (logger.isDebugEnabled()) logger.debug(this + " run callframe " + this.currCallFrame);
+        }
 
-            save(cf);     // save after function run
-
-            if (this.currCallFrame == cf) {       // not set new CallFrame
-                this.setCurrCallFrame(null);
-                return;
+        this.setRunningState(RunningState.RUNNING);
+        CallFrame<?> cf = null;
+        boolean saveAtEnd = false;
+        while (this.currCallFrame != null && ((this.getRunningState() & RunningState.PAUSE_OR_WAIT_RESULT) == 0)) {
+            cf = currCallFrame;
+            rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
+            this.currCallFrame.run();
+            if(this.currCallFrame == null) {     // exited goto tryComplete
+                saveAtEnd = true;
+            } else {        // whenever this.currCallFrame == cf or this.currCallFrame != cf, only save cf, for currCallFrame will save at LN39
+                if(cf != currCallFrame){
+                    assert !cf.isSuspended();
+                    rdbAdapter.saveCallFrameRunningState(cf, this.exception == null? RunningState.DONE : RunningState.ERROR);
+                } else {
+                    rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
+                }
             }
         }
+        tryComplete();
+        if(saveAtEnd && cf != null)
+            rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
     }
 
     @Override
@@ -101,5 +122,11 @@ public class RdbAgoRunSpace extends AgoRunSpace {
     public void resumeByAcceptResult() {
         super.resumeByAcceptResult();
         rdbAdapter.updateRunSpace(this);
+    }
+
+    @Override
+    public void interrupt() {
+        rdbAdapter.saveCallFrameRunningState(this.currCallFrame, RunningState.INTERRUPTED);
+        super.interrupt();
     }
 }

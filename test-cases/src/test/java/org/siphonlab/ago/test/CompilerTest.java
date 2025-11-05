@@ -32,7 +32,7 @@ public class CompilerTest {
                 new File("../ago-sdk/src/lang/runspace.ago"),
                 new File("../ago-sdk/src/lang/atomic.ago")
         });
-        ClassFile.saveToDirectory(units, "../ago-sdk/src/compiled/lang/");
+        ClassFile.saveToDirectory(units, "../ago-sdk/compiled/lang/");
     }
 
 

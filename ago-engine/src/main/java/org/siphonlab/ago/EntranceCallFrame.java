@@ -117,7 +117,7 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     }
 
     @Override
-    protected void setSuspended(boolean suspended) {
+    public void setSuspended(boolean suspended) {
         inner.setSuspended(suspended);
     }
 
@@ -134,5 +134,9 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     @Override
     public void interrupt() {
         inner.interrupt();
+    }
+
+    public CallFrame<T> getInner() {
+        return inner;
     }
 }

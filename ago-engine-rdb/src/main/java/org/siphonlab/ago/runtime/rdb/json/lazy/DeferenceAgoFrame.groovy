@@ -10,21 +10,20 @@ import org.siphonlab.ago.runtime.rdb.lazy.DereferenceAdapter;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait
 import org.siphonlab.ago.runtime.rdb.lazy.ReferenceableInstance
-import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static LazyJsonAgoEngine.toObjectRefCallFrame;
 
 @CompileStatic
-public class DeferenceAgoFrame extends StatefulAgoFrame implements ReferenceableInstance, ObjectRefOwner{
+public class DeferenceAgoFrame extends AgoFrame implements ReferenceableInstance, ObjectRefOwner{
 
     private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame)
 
     private final RdbAdapter adapter;
 
     public DeferenceAgoFrame(LazyJsonRefSlots slots, AgoFunction agoFunction, RdbEngine engine) {
-        super(slots, agoFunction, engine, new RunningStateStoreViaAdapter(engine.getRdbAdapter()));
+        super(slots, agoFunction, engine);
 
         slots.setOwner(this);
         this.adapter = engine.getRdbAdapter();
@@ -45,7 +44,6 @@ public class DeferenceAgoFrame extends StatefulAgoFrame implements Referenceable
         if (!Objects.equals(caller, this.caller)) {
             CallFrame c = toObjectRefCallFrame(caller, this)
             super.setCaller(c)
-            this.runningStateStore.saveState(this)
         } else if(caller instanceof ObjectRefInstanceTrait){
             super.setCaller((CallFrame)caller)
         }

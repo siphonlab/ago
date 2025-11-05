@@ -8,8 +8,6 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
 import org.siphonlab.ago.runtime.rdb.lazy.ReferenceableInstance;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
-import org.siphonlab.ago.runtime.stateful.RunningState;
-import org.siphonlab.ago.runtime.stateful.StatefulAgoFrame;
 
 import java.util.function.Consumer;
 
@@ -92,11 +90,11 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     }
 
     public void resume(){
-        StatefulAgoFrame resumeFrame = (StatefulAgoFrame) this.createFunctionInstance(null, (AgoFunction) this.getClass("@resume#"), null, null, this.getRunSpace());
-        resumeFrame.setRunningState(RunningState.DONE);
-        CallFrame<?>[] callFrames = this.getRdbAdapter().loadResumableCallFrames(resumeFrame);
-        for (CallFrame<?> callFrame : callFrames) {
-            callFrame.getRunSpace().spawn(callFrame);   //TODO resume in original runspace
-        }
+        //TODO load resumable runspaces
+//        var resumeFrame = this.createFunctionInstance(null, (AgoFunction) this.getClass("@resume#"), null, null, this.getRunSpace());
+//        CallFrame<?>[] callFrames = this.getRdbAdapter().loadResumableCallFrames(resumeFrame);
+//        for (CallFrame<?> callFrame : callFrames) {
+//            callFrame.getRunSpace().spawn(callFrame);   //TODO resume in original runspace
+//        }
     }
 }
