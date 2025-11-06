@@ -1,10 +1,17 @@
 package org.siphonlab.ago.runtime.rdb.reactive;
 
+import org.agrona.collections.Long2ObjectHashMap;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.mina.util.IdentityHashSet;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
+import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
@@ -14,6 +21,8 @@ import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
  * and for `setInt`, `setDouble`, they are all stay in db, and all commands works as sql, i.e. `jump_if_i` transforms to `update function_inst set pc = x where cond = `
  */
 public class PersistentRdbEngine extends RdbEngine {
+
+    protected Long2ObjectHashMap<AgoRunSpace> runspaces = new Long2ObjectHashMap<>();
 
     public PersistentRdbEngine(RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
         super(rdbAdapter, runSpaceHost);
@@ -69,7 +78,18 @@ public class PersistentRdbEngine extends RdbEngine {
     }
 
     public void resume(){
-
+        throw new NotImplementedException();
     }
 
+    public void releaseRunSpace(long id) {
+        this.runspaces.remove(id);
+    }
+
+    public AgoRunSpace getRunSpace(long id) {
+        return this.runspaces.get(id);
+    }
+
+    Set<AgoRunSpace> getRunSpaces(){
+        return new IdentityHashSet<>(this.runspaces.values());
+    }
 }

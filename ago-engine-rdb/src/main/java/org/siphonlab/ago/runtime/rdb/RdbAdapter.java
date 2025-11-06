@@ -606,4 +606,7 @@ public abstract class RdbAdapter {
         return this.idGenerator.nextId();
     }
 
+    public List<RunSpaceDesc> loadResumableRunSpaces() {
+        throw new NotImplementedException();
+    }
 }

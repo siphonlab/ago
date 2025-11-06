@@ -97,8 +97,7 @@ public class AgoEngine implements ClassManager{
     }
 
     public AgoEngine(){
-        EventLoopGroup eventLoopGroup = new NioEventLoopGroup(0, Executors.newCachedThreadPool());
-        this(new NettyEventLoopRunSpaceHost(eventLoopGroup));
+        this(new NettyEventLoopRunSpaceHost(new NioEventLoopGroup(0, Executors.newCachedThreadPool())));
     }
 
     public AgoEngine(RunSpaceHost runSpaceHost){

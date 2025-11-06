@@ -101,8 +101,13 @@ class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements 
         return deference().getCreator();
     }
 
-    CallFrame recomposeAsCallFrame() {
+    public CallFrame recomposeAsCallFrame() {
         return deference() as CallFrame;
+    }
+
+    @Override
+    AgoRunSpace getRunSpace() {
+        return recomposeAsCallFrame().getRunSpace()
     }
 
     @Override

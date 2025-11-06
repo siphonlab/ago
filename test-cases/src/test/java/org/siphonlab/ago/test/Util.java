@@ -1,5 +1,6 @@
 package org.siphonlab.ago.test;
 
+import groovy.sql.Sql;
 import io.vertx.core.Vertx;
 import org.agrona.concurrent.SnowflakeIdGenerator;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -12,6 +13,7 @@ import org.siphonlab.ago.compiler.ClassFile;
 import org.siphonlab.ago.compiler.Compiler;
 import org.siphonlab.ago.compiler.Unit;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
 import org.siphonlab.ago.runtime.rdb.json.lazy.PGJsonSlotsCreatorFactory;
@@ -20,7 +22,9 @@ import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Collection;
+import java.util.List;
 
 public class Util {
 
@@ -107,6 +111,7 @@ public class Util {
         engine.run(entrance);
     }
 
+    public static int applicationId = 1;
     public static void runWithPGJsonLazy(String filename, String entrance) throws IOException, CompilationError {
         compile(filename);
 
@@ -123,7 +128,6 @@ public class Util {
         ds.setDefaultAutoCommit(true);
         ds.setMaxTotal(20);
 
-        int applicationId = 1;
         var rdbAdapter = new LazyJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader,
                                 applicationId,
                                 new SnowflakeIdGenerator(1));
@@ -133,6 +137,30 @@ public class Util {
         PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
         rdbEngine.load(agoClassLoader);
         rdbEngine.run(entrance);
+    }
+
+    public static void resumeWithPGJsonLazy() throws IOException, CompilationError, SQLException {
+
+        BasicDataSource ds = new BasicDataSource();
+        ds.setDriverClassName("org.postgresql.Driver");
+        ds.setUrl("jdbc:postgresql://127.0.0.1:5432/ago");
+        ds.setUsername("ago");
+        ds.setPassword("ago");
+        ds.setDefaultAutoCommit(true);
+
+        PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
+        var agoClassLoader = new JsonAgoClassLoader(slotsCreatorFactory);
+        agoClassLoader.loadClasses(ds, applicationId);      // load classes from db
+
+        var rdbAdapter = new LazyJsonPGAdapter(agoClassLoader.getBoxTypes(), agoClassLoader, applicationId, new SnowflakeIdGenerator(1));
+
+        slotsCreatorFactory.setAdapter(rdbAdapter);
+        rdbAdapter.setDataSource(ds);
+
+        PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        rdbEngine.load(agoClassLoader);
+        rdbEngine.resume();
+
     }
 
 

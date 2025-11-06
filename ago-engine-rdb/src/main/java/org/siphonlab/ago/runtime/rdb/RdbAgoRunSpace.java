@@ -1,9 +1,13 @@
 package org.siphonlab.ago.runtime.rdb;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
+import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Set;
 
 public class RdbAgoRunSpace extends AgoRunSpace {
@@ -14,10 +18,15 @@ public class RdbAgoRunSpace extends AgoRunSpace {
     private final long id;
 
     public RdbAgoRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
+        this(agoEngine, rdbAdapter, runSpaceHost, rdbAdapter.nextId());
+    }
+
+    public RdbAgoRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost, long id) {
         super(agoEngine, runSpaceHost);
         this.rdbAdapter = rdbAdapter;
-        this.id = rdbAdapter.nextId();
+        this.id = id;
     }
+
 
     public long getId() {
         return id;
@@ -36,6 +45,9 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         boolean saveAtEnd = false;
         while (this.currCallFrame != null && ((this.getRunningState() & RunningState.PAUSE_OR_WAIT_RESULT) == 0)) {
             cf = currCallFrame;
+            if(cf instanceof ObjectRefCallFrame<?> objectRefCallFrame){
+                cf = objectRefCallFrame.recomposeAsCallFrame();
+            }
             rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
             this.currCallFrame.run();
             if(this.currCallFrame == null) {     // exited goto tryComplete
@@ -54,6 +66,15 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         tryComplete();
         if(saveAtEnd && cf != null)
             rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
+    }
+
+    @Override
+    protected boolean tryComplete() {
+        boolean r = super.tryComplete();
+        if(r && agoEngine instanceof PersistentRdbEngine persistentRdbEngine){
+            persistentRdbEngine.releaseRunSpace(this.getId());
+        }
+        return r;
     }
 
     @Override
@@ -104,12 +125,14 @@ public class RdbAgoRunSpace extends AgoRunSpace {
 
     @Override
     public void setRunningState(byte runningState) {
+        if(this.runningState == runningState) return;
         super.setRunningState(runningState);
         rdbAdapter.updateRunSpace(this);
     }
 
     @Override
     public void setCurrCallFrame(CallFrame<?> currCallFrame) {
+        if(this.currCallFrame == currCallFrame) return;
         super.setCurrCallFrame(currCallFrame);
         rdbAdapter.updateRunSpace(this);
     }
@@ -130,5 +153,23 @@ public class RdbAgoRunSpace extends AgoRunSpace {
     public void interrupt() {
         rdbAdapter.saveCallFrameRunningState(this.currCallFrame, RunningState.INTERRUPTED);
         super.interrupt();
+    }
+
+    public void resumeByRestore() {
+        if (this.getRunningState() == RunningState.RUNNING) {  // only works for RUNNING
+            runSpaceHost.execute(this);
+        }
+    }
+
+    public void restore(byte runningState, CallFrame<?> currCallFrame, AgoRunSpace parent,
+                        List<AgoRunSpace> forkedRunspaces, List<AgoRunSpace> pausingParents,
+                        Instance<?> exception, ResultSlots resultSlots) {
+        this.runningState = runningState;
+        this.currCallFrame = currCallFrame;
+        this.parent = parent;
+        if(forkedRunspaces != null) this.forkedSpaces.addAll(forkedRunspaces);
+        if(pausingParents != null) this.pausingParents.addAll(pausingParents);
+        this.exception = exception;
+        if(resultSlots != null) this.resultSlots = resultSlots;
     }
 }

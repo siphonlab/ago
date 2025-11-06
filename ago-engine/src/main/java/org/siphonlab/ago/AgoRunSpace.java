@@ -15,15 +15,17 @@ import java.util.concurrent.Future;
 public class AgoRunSpace implements Runnable{
 
     public static class RunningState{
-        public static final byte PENDING     = 1;
-        public static final byte RUNNING     = 2;
-        public static final byte PAUSE       = 0b0000_0100;
-        public static final byte WAITING_RESULT = 0b0000_1000;
-        public static final byte DONE        = 0x08;
-        public static final byte ERROR       = 0x10;
-        public static final byte INTERRUPTED = 0x20;
+        public static final byte PENDING                = 1;
+        public static final byte RUNNING                = 2;
+        public static final byte PAUSE                  = 0b0000_0100;
+        public static final byte WAITING_RESULT         = 0b0000_1000;
+        public static final byte DONE                   = 0x10;
+        public static final byte ERROR                  = 0x20;
+        public static final byte INTERRUPTED            = 0x40;
 
-        public static final byte PAUSE_OR_WAIT_RESULT = 0b0000_1100;
+        public static final byte PAUSE_OR_WAIT_RESULT   = 0b0000_1100;
+        public static final byte DE_PAUSE_MASK          = (byte)0b1111_1011;
+        public static final byte DE_AWAIT_RESULT_MASK   = (byte)0b1111_0111;
     }
 
     private final static Logger logger = LoggerFactory.getLogger(AgoRunSpace.class);
@@ -203,7 +205,7 @@ public class AgoRunSpace implements Runnable{
                         this.setRunningState(RunningState.RUNNING);
                         runSpaceHost.execute(this);
                     } else {
-                        this.setRunningState((byte) (this.getRunningState() & (byte) 0b1111_1011));    // remove pause
+                        this.setRunningState((byte) (this.getRunningState() & RunningState.DE_PAUSE_MASK));    // remove pause
                     }
                 }
                 for (AgoRunSpace childSpace : this.forkedSpaces) {
@@ -219,7 +221,7 @@ public class AgoRunSpace implements Runnable{
                 this.setRunningState(RunningState.RUNNING);   //TODO concurrent
                 runSpaceHost.execute(this);     // resume
             } else {
-                this.setRunningState((byte) (this.getRunningState() & (byte) 0b1111_0111));    // only remove waiting result
+                this.setRunningState((byte) (this.getRunningState() & RunningState.DE_AWAIT_RESULT_MASK));    // only remove waiting result
             }
         }
     }
@@ -459,6 +461,5 @@ public class AgoRunSpace implements Runnable{
     public void setRunningState(byte runningState) {
         this.runningState = runningState;
     }
-
 
 }

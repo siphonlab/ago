@@ -1,14 +1,20 @@
 package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.agrona.collections.Long2ObjectHashMap;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
+import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace;
+import org.siphonlab.ago.runtime.rdb.RunSpaceDesc;
+import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
 import org.siphonlab.ago.runtime.rdb.lazy.ReferenceableInstance;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -90,7 +96,39 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     }
 
     public void resume(){
-        //TODO load resumable runspaces
+        LazyJsonPGAdapter adapter = (LazyJsonPGAdapter) this.getRdbAdapter();
+        List<RunSpaceDesc> runSpaceDescs = adapter.loadResumableRunSpaces();
+
+        Long2ObjectHashMap<RdbAgoRunSpace> runspaces = new Long2ObjectHashMap<>();
+        for (RunSpaceDesc runSpaceDesc : runSpaceDescs) {
+            var r  = new RdbAgoRunSpace(this, adapter, this.runSpaceHost, runSpaceDesc.getId()); //TODO multiple runSpaceHost
+            runspaces.put(runSpaceDesc.getId(),r);
+        }
+        this.runspaces.putAll(runspaces);
+
+        var resumeFrame = this.createFunctionInstance(null, (AgoFunction) this.getClass("@resume#"), null, null, this.getRunSpace());
+        resumeFrame.setRunSpace(this.getRunSpace());
+        for (RunSpaceDesc runSpaceDesc : runSpaceDescs) {
+            var r = runspaces.get(runSpaceDesc.getId());
+            CallFrame<?> currCallFrame = (CallFrame<?>) adapter.restoreInstance(runSpaceDesc.getCurrFrame(), resumeFrame);
+            if(currCallFrame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
+                objectRefCallFrame.bindCallFrame(resumeFrame);
+                currCallFrame = (CallFrame<?>) objectRefCallFrame.recomposeAsCallFrame();
+            }
+            List<AgoRunSpace> forkedRunspaces = runSpaceDesc.getForkedRunSpaces() == null ? null : runSpaceDesc.getForkedRunSpaces().stream().map(d -> (AgoRunSpace) runspaces.get(d.getId())).toList();
+            AgoRunSpace parent = runSpaceDesc.getParentRunSpace() == null ? null : runspaces.get(runSpaceDesc.getParentRunSpace().getId());
+            List<AgoRunSpace> pausingParents = runSpaceDesc.getPausingParents() == null ? null : runSpaceDesc.getPausingParents().stream().map(d -> (AgoRunSpace)runspaces.get(d.getId())).toList();
+            byte runningState = runSpaceDesc.getRunningState();
+            Instance<?> exception = adapter.restoreInstance(runSpaceDesc.getException(), resumeFrame);
+            r.restore(runningState, currCallFrame, parent, forkedRunspaces, pausingParents, exception, runSpaceDesc.getResultSlots());
+        }
+
+        for (RdbAgoRunSpace runSpace : runspaces.values()) {
+            if(runSpace.getRunningState() == AgoRunSpace.RunningState.RUNNING){
+                runSpace.resumeByRestore();
+            }
+        }
+
 //        var resumeFrame = this.createFunctionInstance(null, (AgoFunction) this.getClass("@resume#"), null, null, this.getRunSpace());
 //        CallFrame<?>[] callFrames = this.getRdbAdapter().loadResumableCallFrames(resumeFrame);
 //        for (CallFrame<?> callFrame : callFrames) {

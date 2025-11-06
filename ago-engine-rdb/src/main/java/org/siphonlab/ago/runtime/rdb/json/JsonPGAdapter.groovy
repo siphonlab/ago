@@ -3,8 +3,10 @@ package org.siphonlab.ago.runtime.rdb.json
 import groovy.json.JsonBuilder
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
+import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
+import io.netty.util.collection.LongObjectHashMap
 import org.agrona.collections.Int2ObjectHashMap
 import org.agrona.concurrent.IdGenerator
 import org.apache.commons.dbcp2.BasicDataSource
@@ -18,6 +20,7 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
+import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
 
@@ -269,7 +272,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     void saveStrings(List<String> strings) {
         this.sql.withBatch("INSERT INTO ago_string(id, application, index, value) VALUES(?, ?, ?, ?)", {
             for (i in 0..<strings.size()) {
-                it.addBatch([this.nextId() as Object, 1, i, strings[i]])
+                it.addBatch([this.nextId() as Object, applicationId, i, strings[i]])
             }
         })
     }
@@ -278,7 +281,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     void saveBlobs(List<byte[]> blobs) {
         this.sql.withBatch("INSERT INTO ago_blob(id, application, index, data) VALUES(?, ?, ?, ?)", {
             for (i in 0..<blobs.size()) {
-                it.addBatch([this.nextId() as Object, 1, i, blobs[i]])
+                it.addBatch([this.nextId() as Object, applicationId, i, blobs[i]])
             }
         })
     }
@@ -602,5 +605,50 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         return r;
     }
 
+    static int[] loadPgLongArray(PgArray array) throws SQLException {
+        if (array == null) return null;
+        Long[] integers = (Long[]) array.getArray();
+        long[] r = new long[integers.length];
+        for (int i = 0; i < integers.length; i++) {
+            Long integer = integers[i];
+            r[i] = integer;
+        }
+        return r;
+    }
+
+    @Override
+    List<RunSpaceDesc> loadResumableRunSpaces() {
+        var rows = this.sql.rows("SELECT * FROM ago_runspace WHERE application=? AND running_state < 16", [applicationId as Object])
+        LongObjectHashMap<RunSpaceDesc> runspaceDescById = new LongObjectHashMap<>()
+
+        List<RunSpaceDesc> ls = new ArrayList<>(rows.size())
+        for(var row : rows){
+            ls.add(new RunSpaceDesc().with {
+                it.id = row["id"] as Long
+                it.runSpaceHostClass = row['native_host_class'] as String
+                it.currFrame = row['curr_frame_id'] != null ? new ObjectRef(row['curr_frame_table'] as String, row['curr_frame_id'] as Long) : null
+                it.resultSlots =  parseResultSlots(row['result_slots'] as PGobject)
+                it.runningState = (byte) (row['running_state'] as int)
+                it.exception = row['exception_id'] == null ? null : new ObjectRef("ago_instance", row['exception_id'] as Long);
+
+                runspaceDescById[it.id] = it
+
+                it
+            })
+        }
+
+        for(var row : rows){
+            var r = runspaceDescById[row['id'] as Long]
+            r.pausingParents = row['pausing_parents'] == null ? null : loadPgLongArray(row['pausing_parents'] as PgArray).collect { runspaceDescById[it as Long] }.toList()
+            r.forkedRunSpaces = row['forked_runspaces'] == null ? null : loadPgLongArray(row['forked_runspaces'] as PgArray).collect { runspaceDescById[it as Long] }.toList()
+            r.parentRunSpace = row['parent_runspace'] == null ? null : runspaceDescById[row['parent_runspace'] as Long]
+        }
+
+        return ls
+    }
+
+    private static ResultSlots parseResultSlots(PGobject json){
+        return null;    // TODO
+    }
 
 }

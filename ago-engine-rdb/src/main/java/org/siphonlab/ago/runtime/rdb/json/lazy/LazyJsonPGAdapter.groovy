@@ -1,12 +1,15 @@
-package org.siphonlab.ago.runtime.rdb.json.lazy;
+package org.siphonlab.ago.runtime.rdb.json.lazy
 
+import groovy.json.JsonSlurper;
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
+import org.agrona.collections.Long2ObjectHashMap
 import org.agrona.concurrent.IdGenerator
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.runtime.rdb.ObjectRef
+import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.lazy.BoxValueInstance
@@ -16,6 +19,7 @@ import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstance
 import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots
 import org.siphonlab.ago.runtime.rdb.json.JsonRefSlots;
 import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter
+import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +40,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     Instance restoreInstance(ObjectRef objectRef, CallFrame<?> callFrame){
+        if(objectRef == null) return null;
         AgoClass agoClass = classManager.getClass(objectRef.className())
         Instance r;
         if (agoClass instanceof AgoFunction) {
@@ -134,8 +139,21 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 })
                 if (frame instanceof DeferenceAgoFrame) {
                     frame.pc = row['pc'] as int
+                } else if(frame instanceof NativeFrame){
+                    if(row['payload']) frame.setPayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
                 }
                 if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, frame))
+                if(row['runspace']) {
+                    PersistentRdbEngine persistentRdbEngine = (PersistentRdbEngine)callFrame.getRunSpace().agoEngine;
+                    frame.runSpace = persistentRdbEngine.getRunSpace(row['runspace'] as Long)
+                }
+
+                if(row['is_entrance']){
+                    return new EntranceCallFrame<>(frame)
+                } else if(row['is_async_entrance']){
+                    return new AsyncEntranceCallFrame<>(frame)
+                }
+
                 return frame
             } else {
                 def runSpace = callFrame.getRunSpace()
