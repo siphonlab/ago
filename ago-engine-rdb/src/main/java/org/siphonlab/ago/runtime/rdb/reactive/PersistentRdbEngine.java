@@ -81,6 +81,15 @@ public class PersistentRdbEngine extends RdbEngine {
         throw new NotImplementedException();
     }
 
+    @Override
+    protected AgoRunSpace createRunSpace(RunSpaceHost runSpaceHost) {
+        var r = super.createRunSpace(runSpaceHost);
+        if(r instanceof RdbAgoRunSpace rdbAgoRunSpace){
+            this.runspaces.put(rdbAgoRunSpace.getId(), rdbAgoRunSpace);
+        }
+        return r;
+    }
+
     public void releaseRunSpace(long id) {
         this.runspaces.remove(id);
     }
