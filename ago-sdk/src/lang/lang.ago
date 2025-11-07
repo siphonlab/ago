@@ -233,6 +233,23 @@ public class String from Boxer<string>{
 
 }
 
+public class Boolean from Boxer<boolean>{
+
+    override hashCode() as int{
+        return 1231 if value else 1237;;
+    }
+
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof Boolean b) and value == b.value;
+    }
+
+    override toString() as string{
+        return "true" if value else "false";
+    }
+
+}
+
 // array creator will get ArrayInstance insteadof
 class Array<T> with Iterable<T>{
     public final length as int;

@@ -52,7 +52,7 @@ public class Compare extends BiExpression{
 
     @Override
     protected void processTwoVariables(Var.LocalVar result, Var.LocalVar left, Var.LocalVar right, BlockCompiler blockCompiler) throws CompilationError {
-        blockCompiler.getCode().biOperate(type.op, left.inferType().getTypeCode(), left.getVariableSlot(), right.getVariableSlot(), result.getVariableSlot());
+        blockCompiler.getCode().compareVariables(type.op, left.inferType().getTypeCode(), left.getVariableSlot(), right.getVariableSlot(), result.getVariableSlot());
     }
 
     @Override

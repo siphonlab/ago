@@ -74,39 +74,40 @@ public class CodeBuffer {
         sizeVerifier.verify();
     }
 
-    public void compareConst(int opCode, TypeCode typeCode, SlotDef left, Literal<?> right, SlotDef target) {
-        SizeVerifier sizeVerifier = this.sizeVerifier();
-        ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0203 + additionSizeOf(typeCode)));        // equals_i_vvc
-        slot(target);
-        slot(left);
-        literal(right);
-        sizeVerifier.verify();
-    }
-
     private static int additionSizeOf(TypeCode typeCode) {
         int additionSize = 0;
-        if(typeCode == DOUBLE || typeCode == LONG){
+        if (typeCode == DOUBLE || typeCode == LONG) {
             additionSize = 1;
         }
         return additionSize;
     }
 
-    public void compareConst(int opCode, TypeCode typeCode, Literal<?> left, SlotDef right,  SlotDef target) {
-        if(opCode == Equals.KIND_EQUALS) {
-            compareConst(opCode, typeCode, right, left, target);
-            return;
-        }
-        SizeVerifier sizeVerifier = this.sizeVerifier();
-        int additionSize = 0;
-        if(typeCode == DOUBLE || typeCode == LONG){
-            additionSize = 1;
-        }
-        ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0503 + additionSize));        // compare_i_vcv
-        slot(target);
-        literal(left);
-        slot(right);
-        sizeVerifier.verify();
-    }
+
+//    public void compareConst(int opCode, TypeCode typeCode, SlotDef left, Literal<?> right, SlotDef target) {
+//        SizeVerifier sizeVerifier = this.sizeVerifier();
+//        ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0203 + additionSizeOf(typeCode)));        // equals_i_vvc
+//        slot(target);
+//        slot(left);
+//        literal(right);
+//        sizeVerifier.verify();
+//    }
+
+//    public void compareConst(int opCode, TypeCode typeCode, Literal<?> left, SlotDef right,  SlotDef target) {
+//        if(opCode == Equals.KIND_EQUALS) {
+//            compareConst(opCode, typeCode, right, left, target);
+//            return;
+//        }
+//        SizeVerifier sizeVerifier = this.sizeVerifier();
+//        int additionSize = 0;
+//        if(typeCode == DOUBLE || typeCode == LONG){
+//            additionSize = 1;
+//        }
+//        ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0203 + additionSize));        // compare_i_vcv
+//        slot(target);
+//        literal(left);
+//        slot(right);
+//        sizeVerifier.verify();
+//    }
 
     public void biOperateConst(int opCode, TypeCode typeCode, SlotDef left, Literal<?> right, SlotDef target) {
         SizeVerifier sizeVerifier = this.sizeVerifier();
@@ -140,6 +141,14 @@ public class CodeBuffer {
         slot(right);
         sizeVerifier.verify();
     }
+
+    public void compareVariables(int opCode, TypeCode typeCode, SlotDef slot1, SlotDef slot2, SlotDef target) {
+        ls.addInt(opCode | (typeCode.getValue() << 16) | 0x0403);        // add_vvv
+        slot(target);
+        slot(slot1);
+        slot(slot2);
+    }
+
 
     private void literal(Literal<?> literal){
         TypeCode typeCode = literal.inferType().getTypeCode();
