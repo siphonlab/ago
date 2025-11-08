@@ -108,7 +108,7 @@ public class Equals extends BiExpression{
             }
             return;
         }
-        blockCompiler.getCode().biOperateConst(type.op, left.inferType().getTypeCode(), left.getVariableSlot(), literal, result.getVariableSlot());
+        blockCompiler.getCode().biOperateVariableLiteral(type.op, left.inferType().getTypeCode(), left.getVariableSlot(), literal, result.getVariableSlot());
     }
 
     @Override

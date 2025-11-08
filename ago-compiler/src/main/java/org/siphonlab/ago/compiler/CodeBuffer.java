@@ -9,6 +9,7 @@ import org.siphonlab.ago.compiler.expression.Invoke.InvokeMode;
 import org.siphonlab.ago.opcode.arithmetic.IncDec;
 import org.siphonlab.ago.opcode.arithmetic.Neg;
 import org.siphonlab.ago.opcode.compare.Equals;
+import org.siphonlab.ago.opcode.compare.GreaterEquals;
 import org.siphonlab.ago.opcode.compare.InstanceOf;
 import org.siphonlab.ago.opcode.compare.NotEquals;
 import org.siphonlab.ago.opcode.logic.BitNot;
@@ -83,33 +84,7 @@ public class CodeBuffer {
     }
 
 
-//    public void compareConst(int opCode, TypeCode typeCode, SlotDef left, Literal<?> right, SlotDef target) {
-//        SizeVerifier sizeVerifier = this.sizeVerifier();
-//        ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0203 + additionSizeOf(typeCode)));        // equals_i_vvc
-//        slot(target);
-//        slot(left);
-//        literal(right);
-//        sizeVerifier.verify();
-//    }
-
-//    public void compareConst(int opCode, TypeCode typeCode, Literal<?> left, SlotDef right,  SlotDef target) {
-//        if(opCode == Equals.KIND_EQUALS) {
-//            compareConst(opCode, typeCode, right, left, target);
-//            return;
-//        }
-//        SizeVerifier sizeVerifier = this.sizeVerifier();
-//        int additionSize = 0;
-//        if(typeCode == DOUBLE || typeCode == LONG){
-//            additionSize = 1;
-//        }
-//        ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0203 + additionSize));        // compare_i_vcv
-//        slot(target);
-//        literal(left);
-//        slot(right);
-//        sizeVerifier.verify();
-//    }
-
-    public void biOperateConst(int opCode, TypeCode typeCode, SlotDef left, Literal<?> right, SlotDef target) {
+    public void biOperateVariableLiteral(int opCode, TypeCode typeCode, SlotDef left, Literal<?> right, SlotDef target) {
         SizeVerifier sizeVerifier = this.sizeVerifier();
         boolean isSameSlot = (target.getIndex() == left.getIndex());
         int additionSize = 0;
@@ -128,7 +103,7 @@ public class CodeBuffer {
         sizeVerifier.verify();
     }
 
-    public void biOperateConst(int opCode, TypeCode typeCode, Literal<?> left,SlotDef right, SlotDef target) {
+    public void biOperateLiteralVariable(int opCode, TypeCode typeCode, Literal<?> left, SlotDef right, SlotDef target) {
         SizeVerifier sizeVerifier = this.sizeVerifier();
         boolean isSameSlot = (target.getIndex() == right.getIndex());
         int additionSize = 0;
@@ -142,8 +117,17 @@ public class CodeBuffer {
         sizeVerifier.verify();
     }
 
+    public void compareVariableLiteral(int opCode, TypeCode typeCode, SlotDef left, Literal<?> right, SlotDef target) {
+        SizeVerifier sizeVerifier = this.sizeVerifier();
+        ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0203 + additionSizeOf(typeCode)));        // equals_i_vvc
+        slot(target);
+        slot(left);
+        literal(right);
+        sizeVerifier.verify();
+    }
+
     public void compareVariables(int opCode, TypeCode typeCode, SlotDef slot1, SlotDef slot2, SlotDef target) {
-        ls.addInt(opCode | (typeCode.getValue() << 16) | 0x0403);        // add_vvv
+        ls.addInt(opCode | (typeCode.getValue() << 16) | 0x0403);        // cmp_vvv
         slot(target);
         slot(slot1);
         slot(slot2);

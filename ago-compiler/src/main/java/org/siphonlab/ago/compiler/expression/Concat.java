@@ -59,14 +59,14 @@ public class Concat extends BiExpression{
     protected void processRightLiteral(Var.LocalVar result, Var.LocalVar left, Literal<?> literal, BlockCompiler blockCompiler) throws CompilationError {
         assert left.inferType().getTypeCode() == TypeCode.STRING;
         assert right.inferType().getTypeCode() == TypeCode.STRING;
-        blockCompiler.getCode().biOperateConst(KIND_CONCAT, literal.inferType().getTypeCode(), left.getVariableSlot(), literal, result.getVariableSlot());
+        blockCompiler.getCode().biOperateVariableLiteral(KIND_CONCAT, literal.inferType().getTypeCode(), left.getVariableSlot(), literal, result.getVariableSlot());
     }
 
     @Override
     protected void processLeftLiteral(Var.LocalVar result, Literal<?> literal, Var.LocalVar right, BlockCompiler blockCompiler) throws CompilationError {
         assert left.inferType().getTypeCode() == TypeCode.STRING;
         assert right.inferType().getTypeCode() == TypeCode.STRING;
-        blockCompiler.getCode().biOperateConst(KIND_CONCAT, literal.inferType().getTypeCode(), literal, right.getVariableSlot(), result.getVariableSlot());
+        blockCompiler.getCode().biOperateLiteralVariable(KIND_CONCAT, literal.inferType().getTypeCode(), literal, right.getVariableSlot(), result.getVariableSlot());
     }
 
     @Override

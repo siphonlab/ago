@@ -57,12 +57,19 @@ public class Compare extends BiExpression{
 
     @Override
     protected void processRightLiteral(Var.LocalVar result, Var.LocalVar left, Literal<?> literal, BlockCompiler blockCompiler) throws CompilationError {
-        blockCompiler.getCode().biOperateConst(type.op, literal.inferType().getTypeCode(), left.getVariableSlot(), literal, result.getVariableSlot());
+        blockCompiler.getCode().compareVariableLiteral(type.op, literal.inferType().getTypeCode(), left.getVariableSlot(), literal, result.getVariableSlot());
     }
 
     @Override
     protected void processLeftLiteral(Var.LocalVar result, Literal<?> literal, Var.LocalVar right, BlockCompiler blockCompiler) throws CompilationError {
-        blockCompiler.getCode().biOperateConst(type.op, literal.inferType().getTypeCode(), literal, right.getVariableSlot(), result.getVariableSlot());
+        // no `cmp_vcv`, reverse to `cmp_vvc`
+        Type reverse = switch (type){
+            case LT -> Type.GE;
+            case GT -> Type.LE;
+            case GE -> Type.LT;
+            case LE -> Type.GT;
+        };
+        blockCompiler.getCode().compareVariableLiteral(reverse.op, literal.inferType().getTypeCode(), right.getVariableSlot(), literal, result.getVariableSlot());
     }
 
     @Override

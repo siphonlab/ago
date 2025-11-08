@@ -84,7 +84,7 @@ public class ArithmeticExpr extends BiExpression {
 
     @Override
     protected void processRightLiteral(Var.LocalVar result, Var.LocalVar left, Literal<?> literal, BlockCompiler blockCompiler) throws CompilationError {
-        blockCompiler.getCode().biOperateConst(type.op, literal.inferType().getTypeCode(), left.getVariableSlot(), literal, result.getVariableSlot());
+        blockCompiler.getCode().biOperateVariableLiteral(type.op, literal.inferType().getTypeCode(), left.getVariableSlot(), literal, result.getVariableSlot());
     }
 
     @Override
@@ -93,7 +93,7 @@ public class ArithmeticExpr extends BiExpression {
             processRightLiteral(result, right, literal, blockCompiler);
             return;
         }
-        blockCompiler.getCode().biOperateConst(type.op, literal.inferType().getTypeCode(), literal, right.getVariableSlot(), result.getVariableSlot());
+        blockCompiler.getCode().biOperateLiteralVariable(type.op, literal.inferType().getTypeCode(), literal, right.getVariableSlot(), result.getVariableSlot());
     }
 
     @Override

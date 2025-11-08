@@ -127,9 +127,9 @@ public class BitShiftExpr extends ExpressionBase {
                 processTwoLiterals(literal1, (IntLiteral) literal2).outputToLocalVar(localVar, blockCompiler);
             } else {
                 if (left instanceof Literal<?> literal) {
-                    blockCompiler.getCode().biOperateConst(type.opCode, literal.getTypeCode(), literal, ((Var.LocalVar) right).getVariableSlot(), localVar.getVariableSlot());
+                    blockCompiler.getCode().biOperateLiteralVariable(type.opCode, literal.getTypeCode(), literal, ((Var.LocalVar) right).getVariableSlot(), localVar.getVariableSlot());
                 } else if (right instanceof Literal<?> literal) {
-                    blockCompiler.getCode().biOperateConst(type.opCode, left.inferType().getTypeCode(), ((Var.LocalVar) left).getVariableSlot(), literal, localVar.getVariableSlot());
+                    blockCompiler.getCode().biOperateVariableLiteral(type.opCode, left.inferType().getTypeCode(), ((Var.LocalVar) left).getVariableSlot(), literal, localVar.getVariableSlot());
                 } else {
                     blockCompiler.getCode().biOperate(type.opCode, left.inferType().getTypeCode(), ((Var.LocalVar) left).getVariableSlot(), ((Var.LocalVar) right).getVariableSlot(), localVar.getVariableSlot());
                 }
