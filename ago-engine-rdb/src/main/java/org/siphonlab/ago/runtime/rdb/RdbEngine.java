@@ -1,18 +1,18 @@
 package org.siphonlab.ago.runtime.rdb;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.siphonlab.ago.*;
-import org.siphonlab.ago.classloader.AgoClassLoader;
-import org.siphonlab.ago.runtime.json.AgoJsonFactory;
-import org.siphonlab.ago.runtime.json.InstanceJsonDeserializer;
-import org.siphonlab.ago.runtime.json.InstanceJsonSerializer;
+import org.siphonlab.ago.runtime.json.*;
+import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
+import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 
 import static org.apache.commons.dbcp2.Utils.closeQuietly;
 
@@ -22,65 +22,89 @@ public class RdbEngine extends AgoEngine {
 
     RdbAdapter rdbAdapter;
 
+    protected ObjectMapper dumpingObjectMapper;
+
     public RdbEngine(RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
         super(runSpaceHost);
         this.rdbAdapter = rdbAdapter;
+        createDumpingObjectMapper();
     }
 
     public RdbEngine(RdbAdapter rdbAdapter) {
         super();
         this.rdbAdapter = rdbAdapter;
+        createDumpingObjectMapper();
     }
 
-    protected ObjectMapper createJsonObjectMapper(AgoClassLoader classLoader, boolean writeType, boolean writeId, boolean serializeObjectAsReference, boolean serializeSlots) {
+
+    @Override
+    protected ObjectMapper createDefaultObjectMapper() {
         var r = new ObjectMapper();
         SimpleModule module = new SimpleModule();
-        BoxTypes boxTypes = new BoxTypes(classLoader);
-        module.addSerializer(Instance.class, new InstanceJsonSerializerWithObjectId(this, boxTypes, false, serializeSlots));
-        module.addDeserializer(Instance.class, new JsonDeserializerWithObjectId(this, boxTypes, serializeObjectAsReference, serializeSlots));
+        BoxTypes boxTypes = getBoxTypes();
+        InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
+        module.addSerializer(Instance.class, jsonSerializer);
+        module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
 
-        module.addSerializer(ResultSetMapper.class, new ResultSetMapper.JsonSerializer(this.getJsonObjectMapper()));
+        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
+        module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
 
+        //        module.addSerializer(ResultSetMapper.class, new ResultSetMapper.JsonSerializer(this.getJsonObjectMapper()));
+        r.registerModule(module);
+        return r;
+    }
+
+    protected void createDumpingObjectMapper(){
+        var r = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
+        module.addSerializer(Instance.class, jsonSerializer);
+        module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+
+        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
+        module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
+
+        //        module.addSerializer(ResultSetMapper.class, new ResultSetMapper.JsonSerializer(this.getJsonObjectMapper()));
         r.registerModule(module);
 
-        return r.copyWith(new AgoJsonFactory(writeType, writeId, serializeObjectAsReference));
+        //new AgoJsonConfig(AgoJsonConfig.WriteTypeMode.Always, true, AgoJsonConfig.ObjectAsReferenceMode.Always, true)
+        this.dumpingObjectMapper = r.copyWith(new AgoJsonParserFactory(AgoJsonConfig.RPC_OBJECT_REF));
     }
 
-
-    static class InstanceJsonSerializerWithObjectId extends InstanceJsonSerializer {
-
-        public InstanceJsonSerializerWithObjectId(AgoEngine agoEngine, BoxTypes boxTypes, boolean writeType, boolean serializeSlots) {
-            super(agoEngine, boxTypes, writeType, serializeSlots);
-        }
-
-        @Override
-        public void writeObjectId(Instance<?> instance, JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
-            RdbSlots slots = (RdbSlots) instance.getSlots();
-            gen.writeNumberField("@id", slots.getId());
-        }
-    }
-
-    static class JsonDeserializerWithObjectId extends InstanceJsonDeserializer {
-        public JsonDeserializerWithObjectId(AgoEngine agoEngine, BoxTypes boxTypes, boolean serializeObjectAsReference, boolean serializeSlots) {
-            super(agoEngine, boxTypes, serializeObjectAsReference, serializeSlots);
-        }
-
-        @Override
-        protected void readObjectId (Instance<?> currObject, JsonParser p, CallFrame<?> callFrame) throws IOException {
-            long id = p.getLongValue();
-            ((RdbSlots) currObject.getSlots()).setId(id);
-        }
-
-        @Override
-        protected Instance<?> acceptObject(Instance<?> instance) {
-            RdbSlots slots = (RdbSlots) instance.getSlots();
-            slots.setRowState(RowState.Unchanged);
-            return super.acceptObject(instance);
-        }
-    }
 
     public RdbAdapter getRdbAdapter() {
         return rdbAdapter;
+    }
+
+    public String dumpJson(Object object) throws JsonProcessingException {
+        return this.dumpingObjectMapper.writeValueAsString(object);
+    }
+
+    // restore dumped json to Instance
+    public Instance<?> restoreJson(String json) throws IOException {
+        return this.dumpingObjectMapper.readValue(new StringReader(json), Instance.class);
+    }
+
+    // restore dumped json to Instance
+    public Instance<?> restoreJson(String json, CallFrame<?> creator) throws IOException {
+        return dumpingObjectMapper
+                .copyWith(new AgoJsonParserFactory(AgoJsonConfig.RPC_OBJECT_REF, null, creator))
+                .readValue(new StringReader(json), Instance.class);
+    }
+
+    public String jsonStringifySlots(Instance<?> instance) throws JsonProcessingException {
+        return dumpingObjectMapper.writeValueAsString(instance.getSlots());
+    }
+
+    public void restoreSlots(AgoClass agoClass, String json) throws JsonProcessingException {
+        dumpingObjectMapper.readerFor(Instance.class)
+                .withAttribute("class", agoClass)
+                .readValue(json);
+    }
+
+    @Override
+    public Instance<?> jsonDeserialize(AgoClass agoClass, CallFrame<?> callFrame, Reader reader, boolean deserializeSlots) throws IOException {
+        return super.jsonDeserialize(agoClass, callFrame, reader, deserializeSlots);
     }
 
     @Override
@@ -91,22 +115,22 @@ public class RdbEngine extends AgoEngine {
     }
 
     @Override
-    public Instance<?> createScopedClass(CallFrame<?> caller, int classId, Instance<?> parentScope) {
+    public AgoClass createScopedClass(CallFrame<?> caller, int classId, Instance<?> parentScope) {
         var r = super.createScopedClass(caller, classId, parentScope);
         this.rdbAdapter.saveInstance(r);
         return r;
     }
 
     @Override
-    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator, AgoRunSpace runSpace) {
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
 //        if(!boxTypes.isBoxType(agoClass)) {
 //            ((RdbAgoSpace)runSpace).collectInstance(inst);
 //        }
-        return super.createInstance(parentScope, agoClass, creator, runSpace);
+        return super.createInstance(parentScope, agoClass, creator);
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator, AgoRunSpace runSpace) {
-        var inst = super.createFunctionInstance(parentScope, agoFunction, caller, creator, runSpace);
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
+        var inst = super.createFunctionInstance(parentScope, agoFunction, caller, creator);
 //        ((RdbAgoSpace) runSpace).collectInstance(inst);
         return inst;
     }

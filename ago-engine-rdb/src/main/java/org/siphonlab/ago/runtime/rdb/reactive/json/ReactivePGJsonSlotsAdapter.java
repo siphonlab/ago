@@ -68,7 +68,7 @@ public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefS
                         String json = obj.getValue();
                         Map<String, Object> r = (Map<String, Object>) new JsonSlurper().parseText(json);
                         ObjectRef ref = new ObjectRef((String) r.get("@type"), (Long)r.get("@id"));
-                        yield adapter.restoreInstance(connection, ref, callFrame);
+                        yield adapter.restoreInstance(connection, ref);
                     }
                     case TypeCode.CLASS_REF_VALUE -> {
                         String className = resultSet.getString(1);
@@ -129,7 +129,7 @@ public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefS
                 String json = obj.getValue();
                 Map<String, Object> r = (Map<String, Object>) new JsonSlurper().parseText(json);
                 ObjectRef ref = new ObjectRef((String) r.get("@type"), (Long) r.get("@id"));
-                return adapter.restoreInstance(connection, ref, callFrame);
+                return adapter.restoreInstance(connection, ref);
             } else {
                 return null;
             }

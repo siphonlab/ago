@@ -91,7 +91,7 @@ public class BoxTypes {
             return typeCode;
         }
 
-        var t = (boxTypes.get(agoClass));
+        var t = boxTypes.get(agoClass);
         if (t != null) {
             cache.put(agoClass, t);
             return t;
@@ -99,7 +99,9 @@ public class BoxTypes {
         t = boxTypesInterfaces.get(agoClass);
         if (t != null)
             return t;
-        if(agoClass.getInterfaces() != null) {
+
+        // we only handle single field type
+        if(agoClass.getSlotDefs().length == 1 && agoClass.getInterfaces() != null) {
             for (AgoClass anInterface : agoClass.getInterfaces()) {
                 t = getUnboxType(anInterface);
                 if (t != null) {

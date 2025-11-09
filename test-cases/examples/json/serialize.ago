@@ -1,0 +1,67 @@
+fun jsonSerialize(data as Object,
+                writeType as WriteTypeMode,
+                writeId as boolean,
+                objectAsReference as ObjectAsReferenceMode,
+                writeSlots as boolean) as string
+        native "org.siphonlab.ago.test.TestFunctions.jsonSerialize";
+
+enum WriteTypeMode{
+    Never,
+    Always,
+    Inner,
+    OnDemand
+}
+
+enum ObjectAsReferenceMode{
+    Never,
+    Always,
+    Inner
+}
+
+class VarChar from String{
+    metaclass{
+        maxLength as int
+        fun new(maxLength as int){
+            this.maxLength = maxLength
+        }
+    }
+}
+
+class Contact{
+    public name as VarChar::(200)
+    public phone as VarChar::(20)
+}
+
+fun main(){
+    var i = 123;
+    var b = true;
+    var l as long = 1234;
+    var s = "hello json"
+
+    var tom = new Contact()
+    tom.name = 'Tom'
+    tom.phone = "123232"
+
+    Trace.print(jsonSerialize(i,WriteTypeMode.Always, true, ObjectAsReferenceMode.Always, true))    // {"@type":"lang.Integer","@value":123}
+    Trace.print(jsonSerialize(i,WriteTypeMode.OnDemand, true, ObjectAsReferenceMode.Always, true))  // 123
+
+    Trace.print(jsonSerialize(s,WriteTypeMode.Always, true, ObjectAsReferenceMode.Always, true))
+    Trace.print(jsonSerialize(s,WriteTypeMode.OnDemand, true, ObjectAsReferenceMode.Always, true))
+
+    Trace.print(jsonSerialize(b,WriteTypeMode.Always, true, ObjectAsReferenceMode.Always, true))
+    Trace.print(jsonSerialize(b,WriteTypeMode.OnDemand, true, ObjectAsReferenceMode.Always, true))
+
+    Trace.print(jsonSerialize(l,WriteTypeMode.Always, true, ObjectAsReferenceMode.Always, true))
+    Trace.print(jsonSerialize(l,WriteTypeMode.OnDemand, true, ObjectAsReferenceMode.Always, true))
+
+    Trace.print(jsonSerialize(tom, WriteTypeMode.Always, false, ObjectAsReferenceMode.Never, true))
+    Trace.print(jsonSerialize(tom, WriteTypeMode.Always, false, ObjectAsReferenceMode.Never, false))
+
+    Trace.print(jsonSerialize(tom, WriteTypeMode.OnDemand, false, ObjectAsReferenceMode.Never, true))
+    Trace.print(jsonSerialize(tom, WriteTypeMode.OnDemand, false, ObjectAsReferenceMode.Never, false))
+
+    Trace.print(jsonSerialize(tom, WriteTypeMode.Inner, false, ObjectAsReferenceMode.Never, true))
+    Trace.print(jsonSerialize(tom, WriteTypeMode.Inner, false, ObjectAsReferenceMode.Never, false))
+
+    // for AgoClass/reference cannot create testcase yet
+}

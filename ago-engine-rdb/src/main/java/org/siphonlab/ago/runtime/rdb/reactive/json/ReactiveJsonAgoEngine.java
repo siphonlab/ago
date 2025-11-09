@@ -18,7 +18,7 @@ public class ReactiveJsonAgoEngine extends PersistentRdbEngine {
         return new AgoRunSpace(this, runSpaceHost);
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator, AgoRunSpace runSpace) {
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
         var inst = new ReactiveJsonCallFrame(agoFunction.createSlots(), agoFunction,this);
         if(parentScope != null) inst.setParentScope(parentScope);
         inst.setCaller(caller);
@@ -33,8 +33,8 @@ public class ReactiveJsonAgoEngine extends PersistentRdbEngine {
     }
 
     @Override
-    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator, AgoRunSpace runSpace) {
-        var inst = super.createInstance(parentScope, agoClass, creator, runSpace);
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
+        var inst = super.createInstance(parentScope, agoClass, creator);
         return inst;
     }
 

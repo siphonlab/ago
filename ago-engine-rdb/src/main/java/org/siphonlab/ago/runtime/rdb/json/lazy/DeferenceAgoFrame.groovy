@@ -33,7 +33,6 @@ public class DeferenceAgoFrame extends AgoFrame implements ReferenceableInstance
     protected CallFrame<?> getCallFrameAt(int slot) {
         var inst = slots.getObject(slot);
         if(inst instanceof ObjectRefCallFrame){
-            inst.bindCallFrame(this);
             return (CallFrame<?>) inst.doDeference();
         }
         return (CallFrame<?>) inst;
@@ -42,7 +41,7 @@ public class DeferenceAgoFrame extends AgoFrame implements ReferenceableInstance
     @Override
     void setCaller(CallFrame<?> caller) {
         if (!Objects.equals(caller, this.caller)) {
-            CallFrame c = toObjectRefCallFrame(caller, this)
+            CallFrame c = toObjectRefCallFrame(caller)
             super.setCaller(c)
         } else if(caller instanceof ObjectRefInstanceTrait){
             super.setCaller((CallFrame)caller)

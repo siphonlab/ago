@@ -606,7 +606,16 @@ public abstract class RdbAdapter {
         return this.idGenerator.nextId();
     }
 
-    public List<RunSpaceDesc> loadResumableRunSpaces() {
+    public List<RunSpaceDesc> loadResumableRunSpaces(CallFrame<?> resumeFrame) {
         throw new NotImplementedException();
+    }
+
+    public AgoClass loadScopedAgoClass(AgoClass baseClass, long id) {
+        throw new NotImplementedException();
+    }
+
+    public Instance<?> restoreInstance(ObjectRef objectRef) {
+        RdbEngine rdbEngine = (RdbEngine) this.classManager;
+        return getById(rdbEngine.getClass(objectRef.className()),rdbEngine, objectRef.id());
     }
 }

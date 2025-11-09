@@ -9,47 +9,39 @@ import java.util.Deque;
 
 public class AgoJsonGenerator extends JsonGeneratorDelegate {
 
-    private boolean writeType;          // the 1st tier is always true, applied on the inner members
-    private boolean writeId;
+    private final AgoJsonConfig config;
 
-    private boolean serializeObjectAsReference;         // the 1st tier is always false, and then, inner members use this configuration
+    private boolean writeType;          // the 1st tier is always true, applied on the inner members
 
     private Deque<Boolean> writeTypeStack = new ArrayDeque<>();
     private int depth = 0;
 
-    public AgoJsonGenerator(JsonGenerator delegate, boolean writeType, boolean writeId, boolean serializeObjectAsReference) {
+    public AgoJsonGenerator(JsonGenerator delegate, AgoJsonConfig config) {
         super(delegate, false);
-        this.writeType = writeType;
-        this.writeId = writeId;
-        this.serializeObjectAsReference = serializeObjectAsReference;
+        this.config = config;
+        if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.Always){
+            this.writeType = true;
+        }
     }
 
     public void setWriteType(boolean writeType) {
         this.writeType = writeType;
     }
 
-    public void setWriteId(boolean writeId) {
-        this.writeId = writeId;
-    }
-
     public boolean isWriteType() {
         return writeType;
     }
 
-    public boolean isWriteId() {
-        return writeId;
+    public AgoJsonConfig getConfig() {
+        return config;
     }
 
-    public boolean isSerializeObjectAsReference() {
-        return serializeObjectAsReference;
-    }
-
-    public void setSerializeObjectAsReference(boolean serializeObjectAsReference) {
-        this.serializeObjectAsReference = serializeObjectAsReference;
-    }
-
-    public boolean currSerializeObjectAsReference(){
-        return serializeObjectAsReference && depth > 0;
+    public boolean currWriteObjectAsReference(){
+        return switch (config.getWriteObjectAsReference()) {
+            case Always -> true;
+            case Inner -> depth > 0;
+            case null, default -> false;
+        };
     }
 
     public int getDepth() {

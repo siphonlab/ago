@@ -1,7 +1,6 @@
 package org.siphonlab.ago.web;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.linecorp.armeria.common.*;
 import com.linecorp.armeria.server.*;
 import org.siphonlab.ago.*;
@@ -76,7 +75,7 @@ public class RestfulService {
                     public HttpResponse serve(ServiceRequestContext ctx, HttpRequest req) throws Exception {
                         CompletableFuture<HttpResponse> completableFuture = new CompletableFuture<>();
 
-                        var frame = agoEngine.createFunctionInstance(null, fun, null, null , agoEngine.getRunSpace());
+                        var frame = agoEngine.createFunctionInstance(null, fun, null, null);
                         Map<String, String> pathParams = ctx.pathParams();
                         Slots slots = frame.getSlots();
                         if(pathParams != null && !pathParams.isEmpty()){

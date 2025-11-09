@@ -41,6 +41,19 @@ public class Boxer {
         this.DOUBLE = DOUBLE;
     }
 
+    public boolean isNarrowBoxType(AgoClass agoClass){
+        return agoClass == INTEGER ||
+                agoClass == LONG ||
+                agoClass == BYTE ||
+                agoClass == CHAR ||
+                agoClass == SHORT ||
+                agoClass == CLASS_REF ||
+                agoClass == STRING ||
+                agoClass == BOOLEAN ||
+                agoClass == FLOAT ||
+                agoClass == DOUBLE;
+    }
+
     public void setEngine(AgoEngine engine) {
         this.engine = engine;
     }

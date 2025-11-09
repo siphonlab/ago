@@ -3,18 +3,14 @@ package org.siphonlab.ago;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
-import org.siphonlab.ago.runtime.json.AgoJsonParserFactory;
-import org.siphonlab.ago.runtime.json.AgoJsonFactory;
+import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.*;
-import org.siphonlab.ago.runtime.json.InstanceJsonDeserializer;
-import org.siphonlab.ago.runtime.json.InstanceJsonSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +37,10 @@ public class AgoEngine implements ClassManager{
     protected AgoClass PRIMITIVE_NUMBER_TYPE;
 
     private AgoRunSpace runSpace;
-    private ObjectMapper jsonObjectMapper;
     private BoxTypes boxTypes;
-    private ObjectMapper jsonSlotsMapper;
+
+    protected ObjectMapper defaultObjectMapper;
+    protected Map<AgoJsonConfig, ObjectMapper> jsonObjectMappers = new HashMap<>();
 
     private AgoClass runSpaceClass;
 
@@ -124,9 +121,6 @@ public class AgoEngine implements ClassManager{
         this.runSpaceClass = classLoader.getRunSpaceClass();
 
         // applyMetaClasses(classLoader.getMetaClassCreationQueue()); // TODO applyMetaClasses will change the slots info, however, we need jsonObjectMapper for dump slots
-        this.jsonObjectMapper = createJsonObjectMapper(classLoader);
-        this.jsonSlotsMapper = createJsonSlotsMapper(classLoader);
-
         applyMetaClasses(classLoader.getMetaClassCreationQueue());
     }
 
@@ -138,42 +132,45 @@ public class AgoEngine implements ClassManager{
         return boxTypes;
     }
 
-    protected ObjectMapper createJsonObjectMapper(AgoClassLoader classLoader) {
-        return createJsonObjectMapper(classLoader, false,true, false, false);
-    }
-
-    protected ObjectMapper createJsonSlotsMapper(AgoClassLoader classLoader) {
-        return createJsonObjectMapper(classLoader, false, true, false, true);
-    }
-
-    protected ObjectMapper createJsonObjectMapper(AgoClassLoader classLoader, boolean writeType, boolean writeId, boolean serializeObjectAsReference, boolean serializeSlots) {
+    protected ObjectMapper createDefaultObjectMapper(){
         var r = new ObjectMapper();
         SimpleModule module = new SimpleModule();
-        BoxTypes boxTypes = classLoader.getBoxTypes();
-        InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializer(this, boxTypes, false, serializeSlots);
+        InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializer(this);
         module.addSerializer(Instance.class, jsonSerializer);
-        module.addDeserializer(Instance.class, new InstanceJsonDeserializer(this, boxTypes, serializeObjectAsReference, serializeSlots));
+        module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
 
+        module.addDeserializer(Instance.class, new InstanceJsonDeserializer(this));
+        module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
         r.registerModule(module);
-
-        return r.copyWith(new AgoJsonFactory(writeType, writeId, serializeObjectAsReference));
+        return r;
     }
 
-    public String jsonStringify(Instance<?> instance, boolean serializeSlots) throws JsonProcessingException {
-        if(serializeSlots){
-            return jsonSlotsMapper.writeValueAsString(instance);
-        } else {
-            return getJsonObjectMapper().writeValueAsString(instance);
+    public ObjectMapper getObjectMapper(AgoJsonConfig agoJsonConfig) {
+        if(defaultObjectMapper == null){
+            defaultObjectMapper = createDefaultObjectMapper();
         }
+        return this.jsonObjectMappers.computeIfAbsent(agoJsonConfig,c ->{
+            return defaultObjectMapper.copyWith(new AgoJsonParserFactory(agoJsonConfig));
+        });
     }
 
-    public Instance<?> jsonDeserialize(AgoClass agoClass, CallFrame<?> callFrame, Reader reader, boolean serializeSlots) throws IOException {
-        ObjectMapper mapper = serializeSlots ? jsonSlotsMapper : getJsonObjectMapper();
-        return mapper.copyWith(new AgoJsonParserFactory(agoClass, callFrame)).readValue(reader, Instance.class);
+    public String jsonStringify(Instance<?> instance, AgoJsonConfig agoJsonConfig) throws JsonProcessingException {
+        return getObjectMapper(agoJsonConfig).writeValueAsString(instance);
     }
 
-    public ObjectMapper getJsonObjectMapper() {
-        return jsonObjectMapper;
+    public Instance<?> jsonDeserialize(Reader reader, boolean deserializeSlots) throws IOException {
+        return jsonDeserialize(null,null,reader,deserializeSlots);
+    }
+
+    public Instance<?> jsonDeserialize(AgoClass agoClass, CallFrame<?> callFrame, Reader reader, boolean deserializeSlots) throws IOException {
+        AgoJsonConfig agoJsonConfig = new AgoJsonConfig();
+        agoJsonConfig.setWriteSlots(deserializeSlots);
+        if(agoClass != null || callFrame != null){  // unable to cache
+            return defaultObjectMapper.copyWith(new AgoJsonParserFactory(agoJsonConfig, agoClass, callFrame))
+                    .readValue(reader, Instance.class);
+        } else {
+            return getObjectMapper(agoJsonConfig).readValue(reader, Instance.class);
+        }
     }
 
     private void applyMetaClasses(List<MetaClassCreatingTask> metaClassCreationQueue) {
@@ -185,7 +182,7 @@ public class AgoEngine implements ClassManager{
             var item = metaClassCreationQueue.removeFirst();
             if(LOGGER.isDebugEnabled()) LOGGER.debug("apply meta class %s".formatted(item));
             var constructor = item.constructor;
-            AgoFrame frame = (AgoFrame) createFunctionInstance(item.target, constructor, null, null, runSpace);
+            AgoFrame frame = (AgoFrame) createFunctionInstance(item.target, constructor, null, null);
             Object[] arguments = item.arguments;
             for (int i = 0; i < arguments.length; i++) {
                 Object argument = arguments[i];
@@ -218,7 +215,7 @@ public class AgoEngine implements ClassManager{
     public void run(String functionName){
         var agoClass = classByName.get(functionName);
         if(agoClass instanceof AgoFunction fun) {
-            var frame = createFunctionInstance(null, fun, null, null , runSpace);
+            var frame = createFunctionInstance(null, fun, null, null);
             this.runSpace.awaitTillComplete(frame);
         } else {
             throw new RuntimeException(functionName + " is not function");
@@ -228,14 +225,14 @@ public class AgoEngine implements ClassManager{
     public void run(String className, String functionName){
         var agoClass = classByName.get(className + "." + functionName);
         if(agoClass instanceof AgoFunction fun) {
-            var frame = createFunctionInstance(classByName.get(className), fun, null, null , runSpace);
+            var frame = createFunctionInstance(classByName.get(className), fun, null, null);
             runSpace.awaitTillComplete(frame);
         } else {
             throw new RuntimeException(functionName + " is not function");
         }
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator, AgoRunSpace runSpace){
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator){
         if(LOGGER.isDebugEnabled()) LOGGER.debug("create instance of " + agoFunction);
         CallFrame<?> result;
         if (agoFunction instanceof AgoNativeFunction agoNativeFunction) {
@@ -249,9 +246,9 @@ public class AgoEngine implements ClassManager{
         return result;
     }
 
-    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator, AgoRunSpace runSpace) {
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
         if (agoClass instanceof AgoFunction fun)
-            return createFunctionInstance(parentScope, fun, creator, creator, runSpace);
+            return createFunctionInstance(parentScope, fun, creator, creator);
 
         var instance = new Instance<>(agoClass.createSlots(), agoClass);
         if(parentScope != null) instance.setParentScope(parentScope);
@@ -260,7 +257,7 @@ public class AgoEngine implements ClassManager{
     }
 
     public Instance<?> createInstance(AgoClass agoClass, CallFrame<?> creator){
-        return createInstance(null, agoClass, creator, creator.getRunSpace());
+        return createInstance(null, agoClass, creator);
     }
 
     public AgoClass getClass(int classId) {
@@ -268,7 +265,7 @@ public class AgoEngine implements ClassManager{
     }
 
     public Instance<?> createInstance(Instance<?> parentScope, int classId, CallFrame<?> creator, AgoRunSpace runSpace) {
-        return createInstance(parentScope,classes[classId], creator , runSpace);
+        return createInstance(parentScope,classes[classId], creator);
     }
 
     public Instance<?> createNativeInstance(Instance<?> parentScope, int classId, CallFrame<?> creator) {
@@ -277,7 +274,7 @@ public class AgoEngine implements ClassManager{
 
     public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
         if (agoClass instanceof AgoNativeFunction agoNativeFunction) {
-            return createFunctionInstance(parentScope, agoNativeFunction, creator, creator, creator.getRunSpace());
+            return createFunctionInstance(parentScope, agoNativeFunction, creator, creator);
         }
         var instance = new NativeInstance(agoClass.createSlots(), agoClass);
         if (parentScope != null) instance.setParentScope(parentScope);
@@ -285,7 +282,7 @@ public class AgoEngine implements ClassManager{
         return instance;
     }
 
-    public Instance<?> createScopedClass(CallFrame<?> caller, int classId, Instance<?> parentScope) {
+    public AgoClass createScopedClass(CallFrame<?> caller, int classId, Instance<?> parentScope) {
         var c = classes[classId].withScope(parentScope);
         c.setCreator(caller);
 
@@ -308,7 +305,7 @@ public class AgoEngine implements ClassManager{
 
     public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, AgoRunSpace runSpace){
         // after getClass(scopedClass.classId), the ScopedClass restore to the original class
-        return createInstance(scopedClass.getParentScope(), getClass(scopedClass.classId), creator, runSpace);
+        return createInstance(scopedClass.getParentScope(), getClass(scopedClass.classId), creator);
     }
 
     public AgoRunSpace getRunSpace() {
@@ -369,7 +366,5 @@ public class AgoEngine implements ClassManager{
         }
         return true;
     }
-
-
 
 }

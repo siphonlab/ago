@@ -3,6 +3,7 @@ package org.siphonlab.ago.runtime.json;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import org.apache.commons.lang3.NotImplementedException;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
 
@@ -21,49 +22,81 @@ import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
 import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 
 public class InstanceJsonSerializer extends JsonSerializer<Instance> {
-    private final AgoEngine agoEngine;
-    private final BoxTypes boxTypes;
-    private final boolean writeType;
-    private final boolean serializeSlots;
+    protected final AgoEngine agoEngine;
 
-    public InstanceJsonSerializer(AgoEngine agoEngine, BoxTypes boxTypes, boolean writeType, boolean serializeSlots) {
+    public InstanceJsonSerializer(AgoEngine agoEngine) {
         this.agoEngine = agoEngine;
-        this.boxTypes = boxTypes;
-        this.writeType = writeType;
-        this.serializeSlots = serializeSlots;
     }
 
-    public void writeObjectId(Instance<?> instance, JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
+    public void writeObjectId(Instance<?> instance, JsonGenerator gen) throws IOException {
+        throw new NotImplementedException();
+    }
 
+    public void writeObjectAsReference(Instance<?> instance, JsonGenerator gen) throws IOException {
+        throw new NotImplementedException();
     }
 
     @Override
     public void serialize(Instance instance, JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
         AgoClass agoClass = instance.getAgoClass();
 
-        AgoJsonGenerator agoJsonGenerator = (AgoJsonGenerator) gen;
-        boolean writeType = agoJsonGenerator.isWriteType();
-        boolean writeId = agoJsonGenerator.isWriteId();
-        boolean serializeObjectAsReference = agoJsonGenerator.currSerializeObjectAsReference();
+        AgoJsonGenerator ag = (AgoJsonGenerator) gen;
+        AgoJsonConfig config = ag.getConfig();
 
+        boolean writeType = ag.isWriteType();
+        boolean writeId = config.isWriteId();
+        boolean writeObjectAsReference = ag.currWriteObjectAsReference();
+
+        BoxTypes boxTypes = agoEngine.getBoxTypes();
         if(boxTypes.isBoxType(agoClass)) {
+            if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.OnDemand) {
+                // for depth>0,depends on agoClass == slotDef.agoClass
+                if (ag.getDepth() == 0 && !agoEngine.getBoxer().isNarrowBoxType(agoClass)) {
+                    writeType = true;
+                }
+            } else if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.Inner){
+                if(!writeType) writeType = !agoEngine.getBoxer().isNarrowBoxType(agoClass);
+            }
             TypeCode typeCode = boxTypes.getUnboxType(agoClass);
-            serializeUnboxed(instance, typeCode, gen, serializerProvider);
+            serializeUnboxed(instance, typeCode, gen, serializerProvider, writeType);
             return;
         }
-        if(serializeObjectAsReference){
-            gen.writeStartObject();
-            gen.writeStringField("@type", instance.getAgoClass().getFullname());
-            writeObjectId(instance, gen, serializerProvider);
-            gen.writeEndObject();
+        if (writeObjectAsReference) {
+            writeObjectAsReference(instance, gen);
             return;
         }
+        if(instance instanceof AgoClass classInst){     // output an AgoClass
+            // class of AgoClass often be MetaClass, cannot find backward to itself, so we always
+            if(!writeType){
+                switch (config.getWriteType()) {
+                    case OnDemand:
+                    case Inner:
+                        writeType = true;
+                }
+            }
+            if (writeType || writeId) {
+                gen.writeStartObject();
+                if(writeType) gen.writeStringField("@class", classInst.getFullname());
+                if(writeId) writeObjectId(classInst, gen);
+                if(agoClass.getParentScope() != null){
+                    gen.writeObjectField("scope", agoClass.getParentScope());
+                }
+                gen.writeEndObject();
+            } else {
+                gen.writeString(classInst.getFullname());
+            }
+            return;
+        }
+
         if(instance instanceof AgoArrayInstance arrayInstance){
+            if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.OnDemand && ag.getDepth() == 0){
+                writeType = true;
+            }
             if (writeType || writeId) {
                 gen.writeStartObject();
 
-                if(writeType) gen.writeStringField("@type", instance.getAgoClass().getFullname());
-                if(writeId) writeObjectId(instance, gen, serializerProvider);
+                if(writeType) writeClass(gen, "@collection", instance.getAgoClass());
+                if(writeId) writeObjectId(instance, gen);
 
                 gen.writeArrayFieldStart("@elements");
                 gen.writeObject(arrayInstance.getArray());
@@ -75,16 +108,20 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             }
             return;
         }
-        // iterable/iterator
+        //TODO iterable/iterator
 
         gen.writeStartObject();
         if(writeType){
-            gen.writeStringField("@type", instance.getAgoClass().getFullname());
+            writeClass(gen, "@type", instance.getAgoClass());
         }
-        if(writeId) writeObjectId(instance, gen, serializerProvider);
+        if(writeId) writeObjectId(instance, gen);
         var slots = instance.getSlots();
         AgoSlotDef[] slotDefs = agoClass.getSlotDefs();
-        if(!serializeSlots){
+        if(slotDefs == null) {
+            gen.writeEndObject();
+            return;
+        }
+        if(!config.isWriteSlots()){
             var ls = new ArrayList<AgoSlotDef>();
             for (AgoField field : agoClass.getFields()) {
                 if((field.getModifiers() & AgoClass.PUBLIC) == AgoClass.PUBLIC) {
@@ -93,9 +130,27 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             }
             slotDefs = ls.toArray(AgoSlotDef[]::new);
         }
+        writeSlots(agoEngine,ag,slotDefs,config,slots);
+    }
+
+    private void writeClass(JsonGenerator gen, String fieldName, AgoClass agoClass) throws IOException {
+        if(agoClass.getParentScope() == null){
+            gen.writeStringField(fieldName,agoClass.getFullname());
+        } else {
+            gen.writeFieldName(fieldName);
+            writeObjectAsReference(agoClass, gen);
+        }
+    }
+
+    public static void writeSlots(AgoEngine agoEngine, AgoJsonGenerator gen, AgoSlotDef[] slotDefs, AgoJsonConfig config, Slots slots) throws IOException {
+        gen.writeStartObject();
+        if (slotDefs == null || slotDefs.length == 0) {
+            gen.writeEndObject();
+            return;
+        }
         for (AgoSlotDef slotDef : slotDefs) {
             int slotDefIndex = slotDef.getIndex();
-            String slotDefName =  serializeSlots ? slotDef.getName() + "_" + slotDefIndex : slotDef.getName();
+            String slotDefName = config.isWriteSlots() ? slotDef.getName() + "_" + slotDefIndex : slotDef.getName();
             switch (slotDef.getTypeCode().value) {
                 case INT_VALUE:
                     gen.writeNumberField(slotDefName, slots.getInt(slotDefIndex));
@@ -129,11 +184,12 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
                     if (object == null) {
                         gen.writeNullField(slotDefName);
                     } else {
-                        if(!this.writeType) {
-                            if(slotDef.getAgoClass() != object.getAgoClass()){
-                                agoJsonGenerator.setWriteType(true);     // write type for inner objects if the type mismatch with slotDef
-                            }
-                        }
+                        boolean innerWriteType = switch (config.getWriteType()) {
+                            case Always, Inner -> true;
+                            case OnDemand -> (slotDef.getAgoClass() != object.getAgoClass());
+                            case null, default -> false;
+                        };
+                        gen.setWriteType(innerWriteType);
                         gen.writeObjectField(slotDefName, object);
                     }
                     break;
@@ -149,9 +205,17 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
         gen.writeEndObject();
     }
 
-    private void serializeUnboxed(Instance<?> instance, TypeCode typeCode, JsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
+    protected void serializeUnboxed(Instance<?> instance, TypeCode typeCode, JsonGenerator gen, SerializerProvider serializerProvider,
+                                  boolean writeType) throws IOException {
+
+        //TODO for number types, I am not sure OnDemand need `@type` or not yet
+        if(writeType){
+            gen.writeStartObject();
+            gen.writeStringField("@box_type",instance.getAgoClass().getFullname());
+            gen.writeFieldName("value");
+        }
         Slots slots = instance.getSlots();
-        switch (typeCode.value){
+        switch (typeCode.value) {
             case INT_VALUE:
                 gen.writeNumber(slots.getInt(0));
                 break;
@@ -181,7 +245,7 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
                 break;
             case OBJECT_VALUE:
                 Instance<?> object = slots.getObject(0);
-                serialize(object,gen,serializerProvider);
+                serialize(object, gen, serializerProvider);
                 break;
             case NULL_VALUE:
                 gen.writeNull();
@@ -191,5 +255,9 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
                 gen.writeString(agoEngine.getClass(classRef).getFullname());
                 break;
         }
+        if(writeType){
+            gen.writeEndObject();
+        }
+
     }
 }

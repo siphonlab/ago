@@ -8,6 +8,7 @@ import org.apache.commons.dbcp2.Utils;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.runtime.json.AgoJsonConfig;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
@@ -48,11 +49,30 @@ public class TestFunctions {
         }
     }
 
+    //TODO auto convert enum to primitive type
+    public static void jsonSerialize(NativeFrame nativeFrame,
+                                     Instance<?> input,
+                                     Instance<?> writeType,
+                                     boolean writeId ,
+                                     Instance<?> objectAsReference,
+                                     boolean writeSlots){
+        AgoJsonConfig.WriteTypeMode typeMode = AgoJsonConfig.WriteTypeMode.valueOf(writeType.getSlots().getInt(0));
+        AgoJsonConfig.ObjectAsReferenceMode objectAsReferenceMode = AgoJsonConfig.ObjectAsReferenceMode.valueOf(objectAsReference.getSlots().getInt(0));
+        var engine = nativeFrame.getRunSpace().getAgoEngine();
+        var objectMapper = engine.getObjectMapper(new AgoJsonConfig(typeMode, writeId, objectAsReferenceMode, writeSlots));
+        try {
+            nativeFrame.finishString(objectMapper.writeValueAsString(input));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static void sendMessage(NativeFrame nativeFrame, Instance<?> destination, Instance<?> message){
         VertxRunSpaceHost vertxRunSpaceHost = (VertxRunSpaceHost) nativeFrame.getRunSpace().getRunSpaceHost();
 //        vertxRunSpaceHost.getVertx().eventBus().send(ObjectRefOwner.extractObjectRef(destination).toString(), ObjectRefOwner.extractObjectRef(message));
         try {
-            vertxRunSpaceHost.getVertx().eventBus().send(String.valueOf(destination.hashCode()), nativeFrame.getRunSpace().getAgoEngine().jsonStringify(message, true));
+            vertxRunSpaceHost.getVertx().eventBus().send(String.valueOf(destination.hashCode()), nativeFrame.getRunSpace().getAgoEngine()
+                    .jsonStringify(message, AgoJsonConfig.RPC_OBJECT_REF));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -112,7 +132,7 @@ public class TestFunctions {
             public void handle(String consumerTag, Delivery message) throws IOException {
                 Map<String,Object> o = (Map<String, Object>) new JsonSlurper().parse(message.getBody());
                 ObjectRef messageRef = new ObjectRef((String) o.get("className"), (Long) o.get("id"));
-                var instance = adapter.restoreInstance(messageRef, nativeFrame);
+                var instance = adapter.restoreInstance(messageRef);
                 Utils.closeQuietly(channel);
                 Utils.closeQuietly(connection);
                 nativeFrame.finishObject(instance);

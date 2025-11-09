@@ -5,6 +5,7 @@ import io.vertx.core.Vertx;
 import org.agrona.concurrent.SnowflakeIdGenerator;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.file.PathUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.classloader.AgoClassLoader;
@@ -111,9 +112,11 @@ public class Util {
         engine.run(entrance);
     }
 
-    public static int applicationId = 1;
+    public static int applicationId = 0;
     public static void runWithPGJsonLazy(String filename, String entrance) throws IOException, CompilationError {
         compile(filename);
+
+        if (applicationId == 0) applicationId = RandomUtils.insecure().randomInt();
 
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
@@ -140,7 +143,6 @@ public class Util {
     }
 
     public static void resumeWithPGJsonLazy() throws IOException, CompilationError, SQLException {
-
         BasicDataSource ds = new BasicDataSource();
         ds.setDriverClassName("org.postgresql.Driver");
         ds.setUrl("jdbc:postgresql://127.0.0.1:5432/ago");

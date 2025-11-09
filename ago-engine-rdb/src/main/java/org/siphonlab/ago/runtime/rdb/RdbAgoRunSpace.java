@@ -46,7 +46,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         while (this.currCallFrame != null && ((this.getRunningState() & RunningState.PAUSE_OR_WAIT_RESULT) == 0)) {
             cf = currCallFrame;
             if(cf instanceof ObjectRefCallFrame<?> objectRefCallFrame){
-                cf = objectRefCallFrame.recomposeAsCallFrame();
+                cf = currCallFrame = objectRefCallFrame.recomposeAsCallFrame();
             }
             rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
             this.currCallFrame.run();

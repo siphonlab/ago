@@ -1,15 +1,12 @@
 package org.siphonlab.ago.runtime.rdb.json
 
-import groovy.json.JsonBuilder
-import groovy.json.JsonOutput
+
 import groovy.json.JsonSlurper
-import groovy.sql.GroovyRowResult
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import io.netty.util.collection.LongObjectHashMap
 import org.agrona.collections.Int2ObjectHashMap
 import org.agrona.concurrent.IdGenerator
-import org.apache.commons.dbcp2.BasicDataSource
 import org.postgresql.jdbc.PgArray
 import org.postgresql.util.PGobject
 import org.siphonlab.ago.*
@@ -18,6 +15,7 @@ import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
 import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
+import org.siphonlab.ago.runtime.rdb.RdbEngine
 import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
@@ -25,7 +23,6 @@ import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
 
 import javax.sql.DataSource
-import java.sql.Array
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Types
@@ -79,7 +76,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         this.sql = new Sql(this.getDataSource());
     }
 
-    Instance restoreInstance(Connection connection, ObjectRef objectRef, CallFrame<?> callFrame){
+    Instance restoreInstance(Connection connection, ObjectRef objectRef){
         // TODO improve AgoClass performance, let's don't load row
         var row = new Sql(connection).firstRow("SELECT * FROM " + getTableName(objectRef.className()) + " WHERE id = ?", [objectRef.id() as Object])
         String className = row["ago_class"]
@@ -87,16 +84,15 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         Instance parentScope = null;
         if(parentScopeTable != null){
             long parent_scope_id = row["parent_scope_id"] as long
-            parentScope = restoreInstance(connection, new ObjectRef(parentScopeTable, parent_scope_id), callFrame)
+            parentScope = restoreInstance(connection, new ObjectRef(parentScopeTable, parent_scope_id))
         }
 
         AgoClass agoClass = this.getClassByName(className);
         if(agoClass instanceof MetaClass){
             return this.getClassByName(row["fullname"] as String);
         } else if(agoClass instanceof AgoFunction){
-            def runSpace = callFrame.getRunSpace()
             // TODO new NativeFrame...
-            var frame = new ReactiveJsonCallFrame(restoreSlots(objectRef, row, agoClass), agoClass as AgoFunction, runSpace.getAgoEngine() as ReactiveJsonAgoEngine)
+            var frame = new ReactiveJsonCallFrame(restoreSlots(objectRef, row, agoClass), agoClass as AgoFunction, this.classManager as ReactiveJsonAgoEngine)
             frame.parentScope = parentScope
             frame.pc = row['pc'] as int
             frame.suspended = row['suspended']
@@ -137,7 +133,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.caller);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.creator);
 
-        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
+//        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
         def params = [
                 id                : slots.objectRef.id() as Object,
@@ -155,11 +151,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 exception_id      : null,
                 exception_class   : null,
                 runspace          : (agoFrame.getRunSpace() as RdbAgoRunSpace)?.id,
-                slots             : new PGobject().with {
-                    it.type = "jsonb"
-                    it.value = JsonOutput.toJson(defaultSlots)
-                    it
-                }
+                slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
         ]
 
         sql.executeInsert("""
@@ -178,7 +170,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.caller);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.creator);
 
-        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
+//        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
         def params = [
                 id                : slots.objectRef.id() as Object,
@@ -196,11 +188,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 exception_id      : null,
                 exception_class   : null,
                 runspace          : (agoFrame.getRunSpace() as RdbAgoRunSpace)?.id,
-                slots             : new PGobject().with {
-                    it.type = "jsonb"
-                    it.value = JsonOutput.toJson(defaultSlots)
-                    it
-                }
+                slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
         ]
 
         sql.executeInsert("""INSERT INTO ago_frame
@@ -385,7 +373,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         )
     }
 
-    static Map<String, Object> toMap(AgoClass agoClass, int applicationId){
+    Map<String, Object> toMap(AgoClass agoClass, int applicationId){
         var slots = agoClass.slots as JsonRefSlots;
         var parentScope = agoClass.parentScope?.slots as JsonRefSlots;
         var creator = agoClass.creator?.slots as JsonRefSlots;
@@ -425,19 +413,29 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ]
     }
 
-    static PGobject toJsonb(Object object){
+    PGobject toJsonb(Object object){
         if(object == null) return null;
 
         var obj = new PGobject();
         obj.type = "jsonb";
-        obj.value = JsonOutput.toJson(object);
+        obj.value = (this.classManager as RdbEngine).dumpJson(object);
         return obj;
     }
+
+    PGobject toJsonb(String string) {
+        if (string == null) return null;
+
+        var obj = new PGobject();
+        obj.type = "jsonb";
+        obj.value = string;
+        return obj;
+    }
+
 
     PGobject toJsonb(Instance instance) {
         if (instance == null) return null;
 
-        var s = ((AgoEngine) this.classManager).jsonStringify(instance, true);
+        var s = ((RdbEngine) this.classManager).dumpJson(instance);
         var obj = new PGobject();
         obj.type = "jsonb";
         obj.value = s
@@ -466,7 +464,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var parentScope = instance.parentScope?.slots as JsonRefSlots;
         var creator = instance.creator?.slots as JsonRefSlots;
 
-        var defaultSlots = defaultSlots(instance.agoClass, slots.jsonSlotMapper.jsonFiledNames)
+//        var defaultSlots = defaultSlots(instance.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
         System.err.println("INSERT Instance " + slots.objectRef.id())
 
@@ -475,7 +473,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                                 VALUES(?, ?, ?, ?, ?, ?, ?, ?)""",
                 [slots.objectRef.id() as Object, applicationId, instance.agoClass.fullname, parentScope?.objectRef?.id(), parentScope?.objectRef?.className(),
                  creator?.objectRef?.id(), creator?.objectRef?.className(),
-                 toJsonb(defaultSlots)]
+                 toJsonb((classManager as RdbEngine).jsonStringifySlots(instance))]
         )
     }
 
@@ -505,6 +503,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
     Map<String, Object> toMap(RdbAgoRunSpace runSpace){
+        RdbEngine rdbEngine = this.classManager as RdbEngine
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
         return [
                 "id"               : (Object) runSpace.id,
@@ -512,7 +511,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 "native_host_class": runSpace.getRunSpaceHost().getClass().getName(),
                 "curr_frame_table" : currFrameRef?.className(),
                 "curr_frame_id"    : currFrameRef?.id(),
-                "result_slots"     : toJsonb(toMap(runSpace.resultSlots)),
+                "result_slots"     : rdbEngine.dumpJson(runSpace.resultSlots),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
                 "pausing_parents"  : runSpace.pausingParents.collect { ((RdbAgoRunSpace) it).id }.toArray(new Long[0]),
@@ -520,24 +519,15 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ];      // UnhandledException
     }
 
-    Map<String, Object> toMap(ResultSlots resultSlots){
-        def object = resultSlots.getResultAsObject(this.getBoxTypes(), this.classManager)
-        if(object == null){
-            return ["type": (Object)resultSlots.getDataType(), "value": null];
-        } else if(object instanceof Instance){
-            return ["type": (Object) resultSlots.getDataType(), "value": toMap(object)];
-        } else {
-            return ["type": (Object)resultSlots.getDataType(), "value": object]
-        }
-    }
-
     Map<String, Object> toUpdateMap(RdbAgoRunSpace runSpace) {
+        RdbEngine rdbEngine = this.classManager as RdbEngine
+
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
         return [
                 "id"               : (Object) runSpace.id,
                 "curr_frame_table" : currFrameRef?.className(),
                 "curr_frame_id"    : currFrameRef?.id(),
-                "result_slots"     : toJsonb(toMap(runSpace.resultSlots)),
+                "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
                 "pausing_parents"  : runSpace.pausingParents.collect { ((RdbAgoRunSpace) it).id}.toArray(new Long[0]),
@@ -545,9 +535,47 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ];
     }
 
-    Map<String, Object> toMap(Instance<?> instance){
-        var ref = ObjectRefOwner.extractObjectRef(instance)
-        return ["@type": (Object)ref.className(), "@id": ref.id()]
+    private ResultSlots parseResultSlots(PGobject json, CallFrame resumeFrame) {
+        var map = new JsonSlurper().parseText(json.value);
+        int typeCode = map['type'] as Integer;
+        var r = new ResultSlots();
+        switch (typeCode){
+            case TypeCode.INT_VALUE: r.setIntValue(((Number)map['value']).intValue()); break;
+            case TypeCode.LONG_VALUE: r.setLongValue(((Number) map['value']).longValue()); break;
+            case TypeCode.SHORT_VALUE: r.setShortValue(((Number) map['value']).shortValue()); break;
+            case TypeCode.BYTE_VALUE: r.setByteValue(((Number) map['value']).byteValue()); break;
+            case TypeCode.FLOAT_VALUE: r.setFloatValue(((Number) map['value']).floatValue()); break;
+            case TypeCode.DOUBLE_VALUE: r.setDoubleValue(((Number) map['value']).doubleValue()); break;
+            case TypeCode.BOOLEAN_VALUE: r.setBooleanValue(map['value'] as Boolean); break;
+            case TypeCode.STRING_VALUE: r.setStringValue(map['value'] as String); break;
+            case TypeCode.CHAR_VALUE: r.setCharValue((map['value'] as String).charAt(0)); break;
+            case TypeCode.CLASS_REF_VALUE: {
+                if(map['value']) {
+                    r.setClassRefValue(this.classManager.getClass(map['value'] as String))
+                }
+            }; break;
+            case TypeCode.NULL_VALUE: r.setNullValue();break;
+            case TypeCode.VOID_VALUE: r.setVoidValue(); break;
+            case TypeCode.OBJECT_VALUE:{
+                String value = map['value'] as String
+                if(value == null)
+                    r.setObjectValue(null)
+                else {
+                    def instance = ((AgoEngine) this.classManager).jsonDeserialize(null, resumeFrame, new StringReader(value), true)
+                    r.setObjectValue(instance)
+                }
+//                String boxType = map['box_type'] as String
+//                Object value = map['value']
+//                if(value == null) {
+//                    r.setObjectValue(null);
+//                } else if(boxType){
+//                    ((AgoEngine)this.classManager).getBoxer().
+//                } else {
+//
+//                }
+            }
+        }
+        return r;
     }
 
 
@@ -617,7 +645,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
     @Override
-    List<RunSpaceDesc> loadResumableRunSpaces() {
+    List<RunSpaceDesc> loadResumableRunSpaces(CallFrame<?> resumeFrame) {
         var rows = this.sql.rows("SELECT * FROM ago_runspace WHERE application=? AND running_state < 16", [applicationId as Object])
         LongObjectHashMap<RunSpaceDesc> runspaceDescById = new LongObjectHashMap<>()
 
@@ -627,7 +655,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 it.id = row["id"] as Long
                 it.runSpaceHostClass = row['native_host_class'] as String
                 it.currFrame = row['curr_frame_id'] != null ? new ObjectRef(row['curr_frame_table'] as String, row['curr_frame_id'] as Long) : null
-                it.resultSlots =  parseResultSlots(row['result_slots'] as PGobject)
+                it.resultSlots =  parseResultSlots(row['result_slots'] as PGobject, resumeFrame)
                 it.runningState = (byte) (row['running_state'] as int)
                 it.exception = row['exception_id'] == null ? null : new ObjectRef("ago_instance", row['exception_id'] as Long);
 
@@ -647,8 +675,5 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         return ls
     }
 
-    private static ResultSlots parseResultSlots(PGobject json){
-        return null;    // TODO
-    }
 
 }

@@ -1,10 +1,7 @@
 package org.siphonlab.ago;
 
 import org.apache.commons.lang3.StringUtils;
-import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.opcode.*;
-import org.siphonlab.ago.opcode.compare.*;
 import org.siphonlab.ago.opcode.compare.*;
 import org.siphonlab.ago.opcode.logic.*;
 import org.siphonlab.ago.opcode.arithmetic.*;
@@ -1117,22 +1114,22 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     // here the C was used in transform code, to locate method index
                     // and the class of scope will use to implement method overriding
                     Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), this, this, runSpace));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), this, this ));
                     pc++;
                     break;
                 }
                 case New.new_method_voIm: {
                     Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().resolveMethodByInterface(code[pc++], code[pc++]), this, this, runSpace));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().resolveMethodByInterface(code[pc++], code[pc++]), this, this ));
                     break;
                 }
                 case New.new_cls_method_vCm:{
                     AgoClass scopeClass;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scopeClass = engine.getClass(code[pc++]), scopeClass.getAgoClass().getMethod(code[pc++]), this, this,  runSpace));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(scopeClass = engine.getClass(code[pc++]), scopeClass.getAgoClass().getMethod(code[pc++]), this, this  ));
                     break;
                 }
                 case New.new_scope_child_vcC:{
-                    slots.setObject(code[pc++], engine.createInstance(getScope(code[pc++]), engine.getClass(code[pc++]),  this, runSpace));
+                    slots.setObject(code[pc++], engine.createInstance(getScope(code[pc++]), engine.getClass(code[pc++]),  this ));
                     break;
                 }
                 case New.newn_scope_child_vcC:{
@@ -1144,12 +1141,12 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case New.new_scope_method_vcCm:{
                     // like new_method_voCm, C wa used in transform code
                     Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = getScope(code[pc++]), scope.getAgoClass().getMethod(code[++pc]),this,this,  runSpace));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = getScope(code[pc++]), scope.getAgoClass().getMethod(code[++pc]),this,this  ));
                     pc++;
                     break;
                 }
                 case New.new_scope_method_fix_vcCm:{
-                    slots.setObject(code[pc++], engine.createFunctionInstance(getScope(code[pc++]), engine.getClass(code[pc++]).getMethod(code[pc++]),this,this,  runSpace));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(getScope(code[pc++]), engine.getClass(code[pc++]).getMethod(code[pc++]),this,this  ));
                     break;
                 }
         }
@@ -1517,7 +1514,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     public void raiseException(String exceptionClassName, String message){
         var ExceptionClass = engine.getClass(exceptionClassName);
-        var exception = engine.createInstance(null, ExceptionClass, this, runSpace);
+        var exception = engine.createInstance(null, ExceptionClass, this );
         exception.invokeMethod(this, runSpace, ExceptionClass.findMethod("new#message"), message);
         if(!this.handleException(exception))
             this.pc = code.length;

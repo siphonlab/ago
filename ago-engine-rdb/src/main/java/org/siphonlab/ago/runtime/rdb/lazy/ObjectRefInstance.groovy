@@ -30,11 +30,11 @@ public trait ObjectRefInstanceTrait extends ReferenceInstanceTrait{
     }
 
     Instance<?> doDeference() {
-        return dereferenceAdapter.dereference(objectRef, this.boundCallFrame);
+        return dereferenceAdapter.dereference(objectRef);
     }
 
-    public void bindCallFrame(CallFrame<?> callFrame) {     // cannot recognize super has this method
-        super.bindCallFrame(callFrame)
+    public void bindCallFrame(AgoRunSpace runSpace) {     // cannot recognize super has this method
+        super.bindRunSpace(runSpace)
     }
 }
 
@@ -44,6 +44,11 @@ class ObjectRefInstance extends Instance<AgoClass> implements ObjectRefInstanceT
     ObjectRefInstance(AgoClass agoClass, ObjectRef objectRef, DereferenceAdapter dereferenceAdapter) {
         super(agoClass)
         init(agoClass, objectRef, dereferenceAdapter)
+    }
+
+    @Override
+    AgoClass getAgoClass() {
+        return deference().getAgoClass()
     }
 
     @Override
@@ -118,6 +123,11 @@ class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements 
     @Override
     boolean handleException(Instance<?> exception) {
         return recomposeAsCallFrame().handleException(exception)
+    }
+
+    @Override
+    F getAgoClass() {
+        return recomposeAsCallFrame().getAgoClass()
     }
 
     @Override

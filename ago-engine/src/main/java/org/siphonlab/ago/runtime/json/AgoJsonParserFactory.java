@@ -12,14 +12,21 @@ import java.io.*;
 /**
  * mapper.copyWith(new AgoJsonParserFactory(initialClass)).readValue()
  */
-public class AgoJsonParserFactory extends JsonFactory {
+public class AgoJsonParserFactory extends AgoJsonFactory {
 
     private final AgoClass initialClass;
     private final CallFrame<?> callFrame;
 
-    public AgoJsonParserFactory(AgoClass initialClass, CallFrame<?> callFrame){
+    public AgoJsonParserFactory(AgoJsonConfig config, AgoClass initialClass, CallFrame<?> callFrame){
+        super(config);
         this.initialClass = initialClass;
         this.callFrame = callFrame;
+    }
+
+    public AgoJsonParserFactory(AgoJsonConfig config) {
+        super(config);
+        this.initialClass = null;
+        this.callFrame = null;
     }
 
     @Override
@@ -29,7 +36,7 @@ public class AgoJsonParserFactory extends JsonFactory {
 
     private JsonParser wrapJsonParser(JsonParser jsonParser) {
         if(jsonParser == null) return null;
-        return new AgoJsonParser(jsonParser,initialClass, callFrame);
+        return new AgoJsonParser(jsonParser,initialClass, callFrame, jsonConfig.isWriteSlots());
     }
 
     @Override

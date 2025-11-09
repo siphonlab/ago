@@ -10,7 +10,6 @@ import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
 
-import java.util.HashSet;
 import java.util.Set;
 
 
@@ -58,14 +57,14 @@ public class PersistentRdbEngine extends RdbEngine {
     }
 
     @Override
-    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator, AgoRunSpace runSpace) {
-        var inst = super.createInstance(parentScope, agoClass, creator, runSpace);
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
+        var inst = super.createInstance(parentScope, agoClass, creator);
         saveInstance(inst);
         return inst;
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator, AgoRunSpace runSpace) {
-        var inst = super.createFunctionInstance(parentScope, agoFunction, caller, creator, runSpace);
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
+        var inst = super.createFunctionInstance(parentScope, agoFunction, caller, creator);
         saveInstance(inst);
         return inst;
     }

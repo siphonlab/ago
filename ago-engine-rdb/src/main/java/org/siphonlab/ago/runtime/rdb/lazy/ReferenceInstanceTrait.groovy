@@ -1,6 +1,7 @@
 package org.siphonlab.ago.runtime.rdb.lazy
 
 import groovy.transform.CompileStatic
+import org.siphonlab.ago.AgoRunSpace
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.Slots
@@ -12,29 +13,25 @@ public trait ReferenceInstanceTrait {
 
     private static final Logger logger = LoggerFactory.getLogger(ReferenceInstanceTrait)
 
-    private CallFrame boundCallFrame;       // to instantiate Boxer
+    private AgoRunSpace runSpace;       // to create instance
 
     private List<InstanceUser> references = new LinkedList<>();
 
-    public void bindCallFrame(CallFrame<?> callFrame) {
-        this.boundCallFrame = callFrame;
-    }
-
-    public CallFrame getBoundCallFrame() {
-        return boundCallFrame;
-    }
+    private Instance deferenced = null;
 
     public void addReference(Slots owner, int slot) {
         this.references.add(new InstanceUser(owner, slot));
     }
 
     public Instance<?> deference() {
+        if(deferenced) return deferenced;
+
         var inst = doDeference();
         for (InstanceUser user : this.references) {
             user.owner().setObject(user.slot(), inst);
         }
         this.references.clear();
-        return inst;
+        return deferenced = inst;
     }
 
     public abstract Instance<?> doDeference();

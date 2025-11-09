@@ -3,13 +3,12 @@ package org.siphonlab.ago.runtime.rdb.json.lazy
 import groovy.json.JsonSlurper;
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
-import org.agrona.collections.Long2ObjectHashMap
 import org.agrona.concurrent.IdGenerator
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.runtime.rdb.ObjectRef
-import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
+import org.siphonlab.ago.runtime.rdb.RdbEngine
 import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.lazy.BoxValueInstance
@@ -35,11 +34,11 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     @Override
-    public Instance restoreInstance(Connection connection, ObjectRef objectRef, CallFrame<?> callFrame) {
-        return restoreInstance(objectRef, callFrame)
+    public Instance restoreInstance(Connection connection, ObjectRef objectRef) {
+        return restoreInstance(objectRef)
     }
 
-    Instance restoreInstance(ObjectRef objectRef, CallFrame<?> callFrame){
+    Instance restoreInstance(ObjectRef objectRef){
         if(objectRef == null) return null;
         AgoClass agoClass = classManager.getClass(objectRef.className())
         Instance r;
@@ -48,7 +47,6 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
         } else {
             r = new ObjectRefInstance(agoClass, objectRef, this)
         }
-        r.bindCallFrame(callFrame);
         return r
     }
 
@@ -104,7 +102,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     @Override
-    Instance<?> dereference(ObjectRef objectRef, CallFrame callFrame) {
+    Instance<?> dereference(ObjectRef objectRef) {
         try(var connection = getDataSource().getConnection()) {
             var row = new Sql(connection).firstRow("SELECT * FROM " + getTableName(objectRef.className()) + " WHERE id = ?", [objectRef.id() as Object])
             String className = row["ago_class"]
@@ -112,12 +110,12 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             Instance parentScope = null;
             if (parentScopeTable != null) {
                 long parent_scope_id = row["parent_scope_id"] as long
-                parentScope = restoreInstance(connection, new ObjectRef(parentScopeTable, parent_scope_id), callFrame)
+                parentScope = restoreInstance(connection, new ObjectRef(parentScopeTable, parent_scope_id))
             }
 
             CallFrame creator;
             if (row["creator_id"] != null) {
-                creator = restoreInstance(new ObjectRef(row["creator_class"] as String, row["creator_id"] as Long), callFrame) as CallFrame
+                creator = restoreInstance(new ObjectRef(row["creator_class"] as String, row["creator_id"] as Long)) as CallFrame
             } else {
                 creator = null
             }
@@ -128,14 +126,13 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             } else if (agoClass instanceof AgoFunction) {
                 CallFrame caller;
                 if (row["caller_id"] != null) {
-                    caller = (CallFrame) restoreInstance(new ObjectRef(row["caller_class"] as String, row["caller_id"] as Long), callFrame)
+                    caller = (CallFrame) restoreInstance(new ObjectRef(row["caller_class"] as String, row["caller_id"] as Long))
                 } else {
                     caller = null
                 }
-                def runSpace = callFrame.getRunSpace()
-                LazyJsonAgoEngine engine = runSpace.getAgoEngine() as LazyJsonAgoEngine;
+                LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
                 var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, caller, creator, slots -> {
-                    dereferenceSlots(slots as LazyJsonRefSlots, objectRef, row, agoClass, callFrame)
+                    dereferenceSlots(slots as LazyJsonRefSlots, objectRef, row, agoClass)
                 })
                 if (frame instanceof DeferenceAgoFrame) {
                     frame.pc = row['pc'] as int
@@ -144,7 +141,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 }
                 if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, frame))
                 if(row['runspace']) {
-                    PersistentRdbEngine persistentRdbEngine = (PersistentRdbEngine)callFrame.getRunSpace().agoEngine;
+                    PersistentRdbEngine persistentRdbEngine = (PersistentRdbEngine) this.classManager;
                     frame.runSpace = persistentRdbEngine.getRunSpace(row['runspace'] as Long)
                 }
 
@@ -156,10 +153,9 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
                 return frame
             } else {
-                def runSpace = callFrame.getRunSpace()
-                LazyJsonAgoEngine engine = runSpace.getAgoEngine() as LazyJsonAgoEngine;
-                var inst = engine.createInstance(parentScope, agoClass, creator, runSpace, slots -> {
-                    dereferenceSlots(slots as LazyJsonRefSlots, objectRef, row, agoClass, callFrame)
+                LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
+                var inst = engine.createInstance(parentScope, agoClass, creator, slots -> {
+                    dereferenceSlots(slots as LazyJsonRefSlots, objectRef, row, agoClass)
                 })
                 if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, inst))
                 return inst
@@ -167,38 +163,11 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
         }
     }
 
-    void dereferenceSlots(LazyJsonRefSlots jsonRefSlots, ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass, CallFrame callFrame) {
-        Map<String, Object> map = loadPgJsonAsMap((PGobject)dbRow["slots"]);
+    void dereferenceSlots(LazyJsonRefSlots jsonRefSlots, ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass) {
         jsonRefSlots.setId(objectRef.id())
         jsonRefSlots.setRowState(RowState.Unchanged)
-        var slots = jsonRefSlots.getBaseSlots()     //TODO lost a generated id
-
-        for(var slotDef : agoClass.getSlotDefs()){
-            int slot = slotDef.index
-            var v = map[jsonRefSlots.getJsonSlotMapper().getFieldName(slot)]
-            switch (slotDef.typeCode.value){
-                case TypeCode.INT_VALUE -> slots.setInt(slot, v as int)
-                case TypeCode.LONG_VALUE -> slots.setLong(slot, v as long)
-                case TypeCode.SHORT_VALUE -> slots.setShort(slot, v as short)
-                case TypeCode.BYTE_VALUE -> slots.setByte(slot, v as byte)
-                case TypeCode.FLOAT_VALUE -> slots.setFloat(slot, v as float)
-                case TypeCode.DOUBLE_VALUE -> slots.setDouble(slot, v as double)
-                case TypeCode.BOOLEAN_VALUE -> slots.setBoolean(slot, v as boolean)
-                case TypeCode.STRING_VALUE -> slots.setString(slot, v as String)
-                case TypeCode.CHAR_VALUE -> slots.setChar(slot, v as char)
-                case TypeCode.CLASS_REF_VALUE -> slots.setClassRef(slot, this.getClassByName(v as String).classId)
-                case TypeCode.OBJECT_VALUE -> {
-                    if(v instanceof Map){
-                        var r = new ObjectRef(v["@type"] as String, v["@id"] as Long)
-                        slots.setObject(slot, restoreInstance(null,  r, callFrame));
-                    } else if(v == null){
-                        //
-                    } else {
-                        slots.setObject(slot, new BoxValueInstance(v, slotDef.agoClass));
-                    }
-                }
-            }
-        }
+        var slots = jsonRefSlots.getBaseSlots()
+        (this.classManager as RdbEngine).restoreSlots(agoClass, (dbRow['json'] as PGobject).value);
     }
 
     Map<String, Object> toMap(JsonRefSlots slots, AgoClass agoClass) {

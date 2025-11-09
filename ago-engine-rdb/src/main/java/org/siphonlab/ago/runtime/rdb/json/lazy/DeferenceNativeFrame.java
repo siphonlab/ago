@@ -38,7 +38,7 @@ public class DeferenceNativeFrame extends NativeFrame implements ReferenceableIn
     @Override
     public void setCaller(CallFrame<?> caller) {
         if (!Objects.equals(caller, this.caller)) {
-            var c = toObjectRefCallFrame(caller, this);
+            var c = toObjectRefCallFrame(caller);
             super.setCaller(c);
         } else if(caller instanceof ObjectRefInstanceTrait){
             super.setCaller(caller);

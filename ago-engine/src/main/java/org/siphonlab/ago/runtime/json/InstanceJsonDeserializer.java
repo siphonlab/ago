@@ -6,30 +6,28 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import org.apache.commons.lang3.NotImplementedException;
+import org.agrona.collections.IntArrayList;
+import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.*;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static org.siphonlab.ago.TypeCode.*;
 
 public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
-    private final AgoEngine agoEngine;
-    private final BoxTypes boxTypes;
-    private final boolean serializeSlots;
-    private final boolean serializeObjectAsReference;
-
+    protected final AgoEngine agoEngine;
 
     enum ParseState {
         None,
         FieldName,
         FieldValue,
 
-        CollectionElement       // {"@type": "List<int", "@elements" : [1,2, 3]}, or `[1,2,3]` if type known
+        Class,                      // {"@class":"class name", [@id: ], [scope: ]}
+        CollectionElements,         // {"@collection": "List<int> or int[]", "@elements" : [1,2, 3]}, or `[1,2,3]` if type known
+        ClassRef,                   // {"@classref": [classname, id, [parentScope]]}
+        ObjectRef,                  // {"@objectref": [classname, id]}
     }
 
     static final class ParseContext {
@@ -93,357 +91,340 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         }
     }
 
-    public InstanceJsonDeserializer(AgoEngine agoEngine, BoxTypes boxTypes, boolean serializeObjectAsReference, boolean serializeSlots) {
+    public InstanceJsonDeserializer(AgoEngine agoEngine) {
         this.agoEngine = agoEngine;
-        this.boxTypes = boxTypes;
-        this.serializeSlots = serializeSlots;
-        this.serializeObjectAsReference = serializeObjectAsReference;
     }
 
     @Override
     public Instance<?> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
-        if(serializeObjectAsReference) throw new NotImplementedException("serializeObjectAsReference not implemented yet");
+        AgoJsonParser ajp = (AgoJsonParser) p;
+        CallFrame<?> creator = ajp.getCallFrame();
 
-        JsonToken token;
-        CallFrame<?> callFrame = ((AgoJsonParser) p).getCallFrame();
+        AgoClass agoClassOfSlots = (AgoClass) ctxt.getAttribute("class");       // to parse slots
+        if(agoClassOfSlots != null){
+            Map<String, AgoSlotDef> map = new HashMap<>();
+            for (AgoSlotDef slotDef : agoClassOfSlots.getSlotDefs())
+                map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
+            deserializeSlots(ajp, ctxt, creator, agoClassOfSlots, map);
+            return null;
+        }
 
-        final ArrayDeque<ParseContext> parseContextStack = new ArrayDeque<>();
+        ajp.nextToken();
+        return deserializeAny(ajp, ctxt, ajp.initialClass, creator, null, null);
+    }
 
-        ParseState currentState = ParseState.None;
-        ParseContext currContext = new ParseContext(currentState, ((AgoJsonParser) p).getInitialClass());
+    protected Instance<?> deserializeAny(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass expectedClass, CallFrame<?> creator, Instance<?> host, AgoSlotDef slotDef) throws IOException {
+        // host and slotDef only for parse primitive values
+        // for object value, an `slots.set(, deserializeUnknown())` will within deserializeObject
+        JsonToken token = ajp.currentToken();
+        switch (token){
+            case START_OBJECT: {
+                token = ajp.nextToken();
+                if (token == JsonToken.FIELD_NAME){
+                    String fieldName = ajp.getValueAsString();
+                    if(fieldName.equals("@objectref")){
+                        return deserializeObjectRef(ajp, ctxt);
+                    } else if(fieldName.equals("@classref")){
+                        return deserializeClassRef(ajp, ctxt, creator);
+                    } else if(fieldName.equals("@collection")){
+                        AgoClass agoClass = deserializeClass(ajp, ctxt, creator);
+                        assert ajp.nextToken() == JsonToken.FIELD_NAME;
+                        assert "@elements".equals(ajp.getValueAsString());
+                        assert ajp.nextToken() == JsonToken.START_ARRAY;
 
-        while ((token = p.getCurrentToken()) != null) {
-            switch (currentState){
-                case None:
-                    switch (token) {
-                        case START_OBJECT:  currentState  = ParseState.FieldName; break;
-                        case START_ARRAY:
-                            currentState = ParseState.CollectionElement;        //TODO validate collection type
-                            resolveElementType(currContext, p);
-                            break;
-                        default:    throw new JsonParseException(p, "unexpected token '%s' at '%s'".formatted(token, currentState));
-                    };
-                    break;
-                case FieldName:
-                    switch (token){
-                        case FIELD_NAME:
-                            String fieldName = p.getValueAsString();
-                            if (fieldName.equals("@type")) {
-                                var n = p.nextToken();
-                                if (Objects.requireNonNull(n) == JsonToken.VALUE_STRING) {
-                                    String typeName = p.getValueAsString();
-                                    AgoClass deferClass = agoEngine.getClass(typeName);
-                                    if (currContext.getCurrClass() != null) {
-                                        if (!deferClass.isThatOrDerivedFrom(currContext.getCurrClass())) {
-                                            throw new JsonParseException(p, "type '%s' not match '%s'".formatted(deferClass, currContext.currClass));
-                                        }
-                                    }
-                                    currContext.setCurrClass(deferClass);       // object type provided
-                                    currContext.currObject = agoEngine.createInstance(currContext.currClass, callFrame);
-                                } else {
-                                    throw new JsonParseException(p, "class name expected");
-                                }
-                            } else {
-                                if(currContext.currObject == null) currContext.currObject = agoEngine.createInstance(currContext.currClass, callFrame);
-                                if(fieldName.equals("@id")){
-                                    readObjectId(currContext.currObject, p, callFrame);
-                                } else if (fieldName.equals("@elements")) {
-                                    var n = p.nextToken();
-                                    if (n != JsonToken.START_ARRAY) {
-                                        throw new JsonParseException(p, "array expected");
-                                    } else {
-                                        currentState = ParseState.CollectionElement;    //TODO validate collection type
-                                        resolveElementType(currContext, p);
-                                    }
-                                } else {
-                                    if(serializeSlots){
-                                        int slotIndex = Integer.parseInt(fieldName.substring(fieldName.lastIndexOf('_') + 1));
-                                        currContext.setSlotDef(currContext.currClass.getSlotDefs()[slotIndex]);
-                                    } else {
-                                        AgoField field = currContext.currClass.findField(fieldName);
-                                        currContext.setSlotDef(currContext.currClass.getSlotDefs()[field.getSlotIndex()]);
-                                    }
-                                    // enter slot value
-                                    currentState = ParseState.FieldValue;
-                                }
-                            }
-                            break;
-                        case END_OBJECT:
-                            if (currContext.currObject == null)
-                                currContext.currObject = agoEngine.createInstance(currContext.currClass, callFrame);
-
-                            Instance<?> currObject = currContext.currObject;
-                            if (!parseContextStack.isEmpty()) {
-                                currContext = parseContextStack.pop();
-                                acceptObject(currContext, currObject);
-                            } else {
-                                return acceptObject(currObject);
-                            }
-                            break;
-                        default:
-                            throw new JsonParseException(p, "unexpected token '%s' at '%s'".formatted(token, currentState));
+                        return deserializeCollection(ajp, ctxt, agoClass, creator);
+                    } else if(fieldName.equals("@class")){
+                        String className = ajp.getValueAsString();
+                        return deserializeClass(agoEngine.getClass(className), ajp, ctxt, creator);
+                    } else {
+                        if(fieldName.equals("@type")){
+                            AgoClass agoClass = deserializeClass(ajp,ctxt, creator);
+                            ajp.nextToken();
+                            return deserializeObject(ajp, ctxt, agoClass, creator);
+                        } else {
+                            return deserializeObject(ajp, ctxt, expectedClass, creator);
+                        }
                     }
-                    break;
-                case FieldValue:
-                    int slotIndex = currContext.getSlotDef().getIndex();
-                    var slotDef = currContext.getSlotDef();
-                    Instance<?> currObject = currContext.getCurrObject();
-                    currentState = ParseState.FieldName;    // next field
-                    Slots slots = currObject.getSlots();
-                    switch (token){
-                        case VALUE_NUMBER_INT:
-                        case VALUE_NUMBER_FLOAT:
-                            switch (slotDef.getTypeCode().value){
-                                case INT_VALUE:
-                                    slots.setInt(slotIndex, p.getIntValue());
-                                    break;
-                                case LONG_VALUE:
-                                    slots.setLong(slotIndex, p.getLongValue());
-                                    break;
-                                case FLOAT_VALUE:
-                                    slots.setFloat(slotIndex, p.getFloatValue());
-                                    break;
-                                case DOUBLE_VALUE:
-                                    slots.setDouble(slotIndex, p.getDoubleValue());
-                                    break;
-                                case SHORT_VALUE:
-                                    slots.setShort(slotIndex, p.getShortValue());
-                                    break;
-                                case BYTE_VALUE:
-                                    slots.setByte(slotIndex, p.getByteValue());
-                                    break;
-                                case OBJECT_VALUE:
-                                    if(boxTypes.isBoxType(slotDef.getAgoClass())){
-                                        var type = boxTypes.getUnboxType(slotDef.getAgoClass());
-                                        var boxedValue = switch (type.getValue()){
-                                            case INT_VALUE ->
-                                                agoEngine.getBoxer().boxInt(callFrame, slotDef.getAgoClass(), p.getIntValue());
-                                            case LONG_VALUE ->
-                                                agoEngine.getBoxer().boxLong(callFrame, slotDef.getAgoClass(), p.getLongValue());
-                                            case FLOAT_VALUE ->
-                                                agoEngine.getBoxer().boxFloat(callFrame, slotDef.getAgoClass(), p.getFloatValue());
-                                            case DOUBLE_VALUE ->
-                                                agoEngine.getBoxer().boxDouble(callFrame, slotDef.getAgoClass(), p.getDoubleValue());
-                                            case SHORT_VALUE ->
-                                                agoEngine.getBoxer().boxShort(callFrame, slotDef.getAgoClass(), p.getShortValue());
-                                            case BYTE_VALUE ->
-                                                agoEngine.getBoxer().boxByte(callFrame, slotDef.getAgoClass(), p.getByteValue());
-                                            case STRING_VALUE ->
-                                                agoEngine.getBoxer().boxString(callFrame, slotDef.getAgoClass(), p.getValueAsString());
-                                            default ->
-                                                throw new JsonParseException(p, "unexpected number value for %s".formatted(slotDef.getTypeCode()));
-                                        };
-                                        slots.setObject(slotIndex, boxedValue);
-                                    } else {
-                                        parseContextStack.push(currContext);
-                                        currContext = new ParseContext(ParseState.None, slotDef.getAgoClass());
-                                    }
-                                    break;
-                                case CLASS_REF_VALUE:
-                                case BOOLEAN_VALUE:
-                                case STRING_VALUE:
-                                case CHAR_VALUE:
-                                    throw new JsonParseException(p, "unexpected number value for %s".formatted(slotDef.getTypeCode()));
-                            }
-                            break;
-                        case VALUE_NULL:
-                            if(slotDef.getTypeCode() == OBJECT){
-                                slots.setObject(slotIndex, null);
-                            } else {
-                                throw new JsonParseException(p, "unexpected null value for %s".formatted(slotDef.getTypeCode()));
-                            }
-                            break;
-                        case VALUE_FALSE:
-                        case VALUE_TRUE:
-                            if(slotDef.getTypeCode() == BOOLEAN){
-                                slots.setBoolean(slotIndex,token == JsonToken.VALUE_TRUE);
-                                break;
-                            } else if(slotDef.getTypeCode() == OBJECT){
-                                if(boxTypes.getUnboxType(slotDef.getAgoClass()) == BOOLEAN){
-                                    slots.setObject(slotIndex,agoEngine.getBoxer().boxBoolean(callFrame,slotDef.getAgoClass(),token == JsonToken.VALUE_TRUE));
-                                    break;
-                                }
-                            }
-                            throw new JsonParseException(p, "unexpected boolean value for %s".formatted(slotDef.getTypeCode()));
-                        case VALUE_STRING:
-                            if (slotDef.getTypeCode() == STRING) {
-                                slots.setString(slotIndex, p.getValueAsString());
-                                break;
-                            } else if (slotDef.getTypeCode() == OBJECT) {
-                                if (boxTypes.getUnboxType(slotDef.getAgoClass()) == STRING) {
-                                    slots.setObject(slotIndex, agoEngine.getBoxer().boxString(callFrame, slotDef.getAgoClass(), p.getValueAsString()));
-                                    break;
-                                }
-                            }
-                            throw new JsonParseException(p, "unexpected string value for %s".formatted(slotDef.getTypeCode()));
-                        case START_OBJECT:
-                            currContext.setParseState(ParseState.FieldValue);   // set back
-                            parseContextStack.push(currContext);
-                            currContext = new ParseContext(ParseState.FieldName, slotDef.getAgoClass());
-                            break;
-                        case START_ARRAY:
-                            currentState = ParseState.CollectionElement;
-                            resolveElementType(currContext, p);
-                            break;
-                        default:
-                            throw new JsonParseException(p, "unexpected token '%s' for %s".formatted(token, slotDef.getTypeCode()));
-                    }
-                    break;
-
-                case CollectionElement:
-                    List<Object> collection = currContext.collection;
-                    var elementType = currContext.elementType;
-                    switch (token) {
-                        case VALUE_NUMBER_INT:
-                        case VALUE_NUMBER_FLOAT:
-                            switch (elementType.getTypeCode().value) {
-                                case INT_VALUE:
-                                    collection.add(p.getIntValue());
-                                    break;
-                                case LONG_VALUE:
-                                    collection.add(p.getLongValue());
-                                    break;
-                                case FLOAT_VALUE:
-                                    collection.add(p.getFloatValue());
-                                    break;
-                                case DOUBLE_VALUE:
-                                    collection.add(p.getDoubleValue());
-                                    break;
-                                case SHORT_VALUE:
-                                    collection.add(p.getShortValue());
-                                    break;
-                                case BYTE_VALUE:
-                                    collection.add(p.getByteValue());
-                                    break;
-                                case OBJECT_VALUE:
-                                    if (boxTypes.isBoxType(elementType.getAgoClass())) {
-                                        var type = boxTypes.getUnboxType(elementType.getAgoClass());
-                                        var boxedValue = switch (type.getValue()) {
-                                            case INT_VALUE ->
-                                                    agoEngine.getBoxer().boxInt(callFrame, elementType.getAgoClass(), p.getIntValue());
-                                            case LONG_VALUE ->
-                                                    agoEngine.getBoxer().boxLong(callFrame, elementType.getAgoClass(), p.getLongValue());
-                                            case FLOAT_VALUE ->
-                                                    agoEngine.getBoxer().boxFloat(callFrame, elementType.getAgoClass(), p.getFloatValue());
-                                            case DOUBLE_VALUE ->
-                                                    agoEngine.getBoxer().boxDouble(callFrame, elementType.getAgoClass(), p.getDoubleValue());
-                                            case SHORT_VALUE ->
-                                                    agoEngine.getBoxer().boxShort(callFrame, elementType.getAgoClass(), p.getShortValue());
-                                            case BYTE_VALUE ->
-                                                    agoEngine.getBoxer().boxByte(callFrame, elementType.getAgoClass(), p.getByteValue());
-                                            case STRING_VALUE ->
-                                                    agoEngine.getBoxer().boxString(callFrame, elementType.getAgoClass(), p.getValueAsString());
-                                            default ->
-                                                    throw new JsonParseException(p, "unexpected number value for %s".formatted(elementType.getTypeCode()));
-                                        };
-                                        collection.add(boxedValue);
-                                    } else {
-                                        parseContextStack.push(currContext);
-                                        currContext = new ParseContext(ParseState.None, elementType.getAgoClass());
-                                    }
-                                    break;
-                                case CLASS_REF_VALUE:
-                                case BOOLEAN_VALUE:
-                                case STRING_VALUE:
-                                case CHAR_VALUE:
-                                    throw new JsonParseException(p, "unexpected number value for %s".formatted(elementType.getTypeCode()));
-                            }
-                        case VALUE_NULL:
-                            if (elementType.getTypeCode() == OBJECT) {
-                                collection.add(null);
-                            } else {
-                                throw new JsonParseException(p, "unexpected null value for %s".formatted(elementType.getTypeCode()));
-                            }
-                            break;
-                        case VALUE_FALSE:
-                        case VALUE_TRUE:
-                            if (elementType.getTypeCode() == BOOLEAN) {
-                                collection.add(token == JsonToken.VALUE_TRUE);
-                                break;
-                            } else if (elementType.getTypeCode() == OBJECT) {
-                                if (boxTypes.getUnboxType(elementType.getAgoClass()) == BOOLEAN) {
-                                    collection.add(agoEngine.getBoxer().boxBoolean(callFrame, elementType.getAgoClass(), token == JsonToken.VALUE_TRUE));
-                                    break;
-                                }
-                            }
-                            throw new JsonParseException(p, "unexpected boolean value for %s".formatted(elementType.getTypeCode()));
-                        case VALUE_STRING:
-                            if (elementType.getTypeCode() == STRING) {
-                                collection.add(p.getValueAsString());
-                                break;
-                            } else if (elementType.getTypeCode() == OBJECT) {
-                                if (boxTypes.getUnboxType(elementType.getAgoClass()) == STRING) {
-                                    collection.add(agoEngine.getBoxer().boxString(callFrame, elementType.getAgoClass(), p.getValueAsString()));
-                                    break;
-                                }
-                            }
-                            throw new JsonParseException(p, "unexpected string value for %s".formatted(elementType.getTypeCode()));
-                        case START_OBJECT:
-                            parseContextStack.push(currContext);
-                            currContext = new ParseContext(ParseState.FieldName, elementType.getAgoClass());
-                            break;
-                        case START_ARRAY:
-                            parseContextStack.push(currContext);
-                            currContext = new ParseContext(ParseState.CollectionElement, elementType.getAgoClass());
-                            break;
-                        case END_ARRAY:
-                            acceptArray(currContext, p);
-                            Instance<?> currArray = currContext.currObject;
-                            if (parseContextStack.isEmpty()) {
-                                return acceptObject(currArray);
-                            } else {
-                                currContext = parseContextStack.pop();
-                                acceptObject(currContext, currArray);
-                                break;
-                            }
-                        default:
-                            throw new JsonParseException(p, "unexpected token '%s' for %s".formatted(token, elementType.getTypeCode()));
-                    }
-                    break;
-
+                } else {
+                    return deserializeObject(ajp, ctxt, expectedClass, creator);
+                }
             }
-            p.nextToken();
+
+            case START_ARRAY:
+                assert expectedClass != null;
+                return deserializeCollection(ajp,ctxt,expectedClass, creator);
+
+            default:
+                if(host != null){
+                    Slots slots = host.getSlots();
+                    readPrimitiveSlot(ajp, token, slots, slotDef);
+                    return host;
+                } else {
+                    return deserializeBoxedValue(ajp, token, expectedClass, creator);
+                }
         }
-        return null;
-    }
-
-    protected void readObjectId(Instance<?> currObject, JsonParser p, CallFrame<?> callFrame) throws IOException {
 
     }
 
-    private void acceptArray(ParseContext parseContext, JsonParser p) throws JsonParseException {
-        AgoClass arrayClass = parseContext.currClass;
-        List<Object> list = parseContext.collection;
-        if(arrayClass.getConcreteTypeInfo() instanceof ArrayInfo) {
-            AgoArrayInstance arrayInstance = switch (parseContext.elementType.getTypeCode().value) {
-                case INT_VALUE ->   new IntArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case LONG_VALUE -> new LongArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case DOUBLE_VALUE -> new DoubleArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case BOOLEAN_VALUE -> new BooleanArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case STRING_VALUE -> new StringArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case CHAR_VALUE -> new CharArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case SHORT_VALUE -> new ShortArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case BYTE_VALUE -> new ByteArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case FLOAT_VALUE -> new FloatArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                case OBJECT_VALUE -> new ObjectArrayInstance(arrayClass.createSlots(), arrayClass, list.size());
-                default ->
-                        throw new JsonParseException(p, "Unknown array type: " + arrayClass);
+    private void readPrimitiveSlot(AgoJsonParser ajp, JsonToken token, Slots slots, AgoSlotDef slotDef) throws IOException {
+        int index = slotDef.getIndex();
+        switch (token){
+            case VALUE_STRING:
+                String string = ajp.getValueAsString();
+                switch (slotDef.getTypeCode().getValue()) {
+                    case STRING_VALUE:  slots.setString(index, string); break;
+                    case CLASS_REF_VALUE: slots.setClassRef(index, agoEngine.getClass(string).getClassId()); break;
+                    case CHAR_VALUE: slots.setChar(index, string.charAt(0));
+                }
+                break;
+            case VALUE_NULL:
+                switch (slotDef.getTypeCode().getValue()){
+                    case STRING_VALUE : slots.setString(index, null); break;
+                    case OBJECT_VALUE: slots.setObject(index, null); break;
+                    case VOID_VALUE: slots.setVoid(index,null); break;
+                }
+                break;
+            case VALUE_NUMBER_INT: {
+                int value = ajp.getIntValue();
+                switch (slotDef.getTypeCode().getValue()) {
+                    case INT_VALUE: slots.setInt(index, value); break;
+                    case DOUBLE_VALUE: slots.setDouble(index, value); break;
+                    case LONG_VALUE: slots.setLong(index, value); break;
+                    case FLOAT_VALUE: slots.setFloat(index, value); break;
+                    case BYTE_VALUE: slots.setByte(index, (byte) value); break;
+                    case SHORT_VALUE: slots.setInt(index, (short)value); break;
+                }
+                break;
+            }
+            case VALUE_NUMBER_FLOAT:{
+                double value = ajp.getDoubleValue();
+                switch (slotDef.getTypeCode().getValue()) {
+                    case INT_VALUE: slots.setInt(index, (int) value); break;
+                    case DOUBLE_VALUE: slots.setDouble(index, value); break;
+                    case LONG_VALUE: slots.setLong(index, (long) value); break;
+                    case FLOAT_VALUE: slots.setFloat(index, (float) value); break;
+                    case BYTE_VALUE: slots.setByte(index, (byte) value); break;
+                    case SHORT_VALUE: slots.setInt(index, (short)value); break;
+                }
+                break;
+            }
+
+            case VALUE_TRUE:
+                slots.setBoolean(index, true);
+                break;
+            case VALUE_FALSE:
+                slots.setBoolean(index,false);
+                break;
+
+        }
+    }
+
+    private Instance<?> deserializeBoxedValue(AgoJsonParser ajp, JsonToken token, AgoClass expectedClass, CallFrame<?> creator) throws IOException {
+        //TODO should avoid save to db
+        var instance = agoEngine.createInstance(expectedClass, creator);
+        readPrimitiveSlot(ajp, token, instance.getSlots(), expectedClass.getSlotDefs()[0]);
+        return instance;
+    }
+
+    private Instance<?> deserializeObject(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass agoClass, CallFrame<?> creator) throws IOException {
+        // curr token already pass '{'
+        Map<String, AgoSlotDef> map = new HashMap<>();
+        AgoSlotDef[] slotDefs = agoClass.getSlotDefs();
+        if(!ajp.isSerializeSlots()){
+            for (AgoField field : agoClass.getFields()) {
+                if ((field.getModifiers() & AgoClass.PUBLIC) == AgoClass.PUBLIC) {
+                    var slotDef = slotDefs[field.getSlotIndex()];
+                    map.put(field.getName(), slotDef);
+                }
+            }
+        } else {
+            for (AgoSlotDef slotDef : slotDefs)
+                map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
+        }
+        var instance = agoEngine.createInstance(agoClass,creator);
+        deserializeSlots(ajp, ctxt, creator, instance, map);
+        return instance;
+    }
+
+    protected void deserializeSlots(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator, Instance<?> instance, Map<String, AgoSlotDef> map) throws IOException {
+        JsonToken token;
+        for(token = ajp.currentToken(); token != JsonToken.END_OBJECT; token = ajp.nextToken()){
+            assert ajp.currentToken() == JsonToken.FIELD_NAME;
+            String fieldName = ajp.getValueAsString();
+            if(fieldName.equals("@id")){
+                readObjectId(instance, ajp, ctxt, creator);
+            } else {
+                AgoSlotDef agoSlotDef = map.get(fieldName);
+                if (agoSlotDef == null) throw new NullPointerException("'%s' not exists".formatted(fieldName));
+                deserializeAny(ajp, ctxt, agoSlotDef.getAgoClass(), creator, instance, agoSlotDef);
+            }
+        }
+    }
+
+    protected void readObjectId(Instance<?> instance, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    // classname or {"@class":"classname", [@id: ], [scope: ]}
+    private AgoClass deserializeClass(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
+        JsonToken token = ajp.nextToken();
+        if(token == JsonToken.VALUE_STRING){
+            String className = ajp.getValueAsString();
+            return agoEngine.getClass(className);
+        } else {
+            token = ajp.nextToken();
+            assert token == JsonToken.FIELD_NAME;
+            String s = ajp.getValueAsString();
+            assert s.equals("@class");
+            String className = ajp.getValueAsString();
+            return deserializeClass(agoEngine.getClass(className), ajp, ctxt, creator);
+        }
+    }
+
+    // {"@class":"classname", [@id: ], [scope: ]}
+    // override this to implement your readObjectId
+    protected AgoClass deserializeClass(AgoClass baseClass, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
+        var token = ajp.nextToken();
+        AgoClass result = null;
+        while((token = ajp.nextToken()) != JsonToken.END_OBJECT) {
+            if(token == JsonToken.FIELD_NAME) {
+                if (ajp.getValueAsString().equals("@id")) {
+                    if (result == null) {
+                        result = deserializeClassRef(baseClass, ajp.getValueAsLong());
+                    }
+                } else if(ajp.getValueAsString().equals("scope")){
+                    var scope = deserializeAny(ajp,ctxt,null,creator, null,null);
+                    if(result == null) {
+                        result = agoEngine.createScopedClass(creator, baseClass.getClassId(), scope);
+                    }
+                }
+            }
+        }
+        return result == null ? baseClass : result;
+    }
+
+    //{"@classref": [classname, id, [parentScope]]}
+    private Instance<?> deserializeClassRef(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
+        assert ajp.nextToken() == JsonToken.START_ARRAY;
+        ajp.nextToken();
+        String classname = ajp.getValueAsString();
+        AgoClass baseClass = agoEngine.getClass(classname);
+        JsonToken token;
+        AgoClass result = null;
+        while((token = ajp.nextToken()) != JsonToken.END_ARRAY) {
+            if (token == JsonToken.VALUE_NUMBER_INT) {      // id
+                if(result == null)
+                    result = deserializeClassRef(result, ajp.getValueAsLong());
+            } else if(token == JsonToken.START_OBJECT){
+                var scope = deserializeAny(ajp, ctxt, null, creator, null, null);
+                if(result == null)
+                    result = agoEngine.createScopedClass(creator, baseClass.getClassId(), scope);
+            }
+        }
+        assert ajp.nextToken() == JsonToken.END_OBJECT;
+        return result == null ? baseClass : result;
+    }
+
+    protected AgoClass deserializeClassRef(AgoClass baseClass, long id) {
+        throw new UnsupportedOperationException();
+    }
+
+    private Instance<?> deserializeCollection(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass collectionClass, CallFrame<?> creator) throws IOException {
+        // curr token is `[`
+        if (collectionClass.getConcreteTypeInfo() instanceof ArrayInfo arrayInfo){
+            TypeInfo elementType = arrayInfo.getElementType();
+            var collection = switch (elementType.getTypeCode().getValue()) {
+                case INT_VALUE -> {
+                    IntArrayList list = new IntArrayList();
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.addInt(ajp.getIntValue());
+                    }
+                    var r = new IntArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    list.toIntArray(r.value);
+                    yield r;
+                }
+                case DOUBLE_VALUE -> {
+                    List<Object> list = new ArrayList<>();
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.add(ajp.getDoubleValue());
+                    }
+                    var r = new DoubleArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    r.fill(list);
+                    yield r;
+                }
+                case BOOLEAN_VALUE -> {
+                    List<Object> list = new ArrayList<>();
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.add(ajp.getValueAsBoolean());
+                    }
+                    var r = new BooleanArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    r.fill(list);
+                    yield r;
+                }
+                case STRING_VALUE -> {
+                    List<String> list = new ArrayList<>();
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.add(ajp.getValueAsString());
+                    }
+                    var r = new StringArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    list.toArray(r.value);
+                    yield r;
+                }
+                case CHAR_VALUE -> {
+                    List<Object> list = new ArrayList<>();
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.add(ajp.getValueAsString().charAt(0));
+                    }
+                    var r = new CharArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    r.fill(list);
+                    yield r;
+                }
+                case SHORT_VALUE -> {
+                    List<Object> list = new ArrayList<>();
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.add(ajp.getIntValue());
+                    }
+                    var r = new ShortArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    r.fill(list);
+                    yield r;
+                }
+                case BYTE_VALUE -> {
+                    IoBuffer buffer = IoBuffer.allocate(128).setAutoExpand(true);
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        buffer.put((byte) ajp.getIntValue());   //TODO write as base64
+                    }
+                    var r = new ByteArrayInstance(collectionClass.createSlots(), collectionClass, buffer.position());
+                    buffer.flip().get(r.value);
+                    yield r;
+                }
+                case FLOAT_VALUE -> {
+                    List<Object> list = new ArrayList<>();
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.add(ajp.getFloatValue());
+                    }
+                    var r = new FloatArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    r.fill(list);
+                    yield r;
+                }
+                case OBJECT_VALUE -> {
+                    List<Object> list = new ArrayList<>();
+                    for (var token = ajp.currentToken(); token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.add(deserializeAny(ajp, ctxt, null, creator, null, null));
+                    }
+                    var r = new ObjectArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    r.fill(list);
+                    yield r;
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + elementType.getTypeCode().getValue());
             };
-            arrayInstance.fill(list);
-            parseContext.currObject = arrayInstance;
-        } else {
-            AgoClass currClass = parseContext.currClass;
-            //TODO
+            collection.setCreator(creator);
+            return collection;
         }
+        throw new RuntimeException("bad exit");
     }
 
-    private void acceptObject(ParseContext currContext, Instance<?> currObject) {
-        acceptObject(currObject);
-        if(currContext.elementType != null){
-            currContext.collection.add(currObject);
-        } else {
-            currContext.currObject.getSlots().setObject(currContext.slotDef.getIndex(), currObject);
-        }
+    protected Instance<?> deserializeObjectRef(AgoJsonParser ajp, DeserializationContext ctxt) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     protected Instance<?> acceptObject(Instance<?> instance){

@@ -10,14 +10,10 @@ import java.io.Writer;
 
 public class AgoJsonFactory extends JsonFactory {
 
-    private final boolean writeType;
-    private final boolean writeId;
-    private final boolean serializeObjectAsReference;
+    protected final AgoJsonConfig jsonConfig;
 
-    public AgoJsonFactory(boolean writeType, boolean writeId, boolean serializeObjectAsReference){
-        this.writeType = writeType;
-        this.writeId = writeId;
-        this.serializeObjectAsReference = serializeObjectAsReference;
+    public AgoJsonFactory(AgoJsonConfig jsonConfig){
+        this.jsonConfig = jsonConfig;
     }
 
     @Override
@@ -26,7 +22,7 @@ public class AgoJsonFactory extends JsonFactory {
     }
 
     private JsonGenerator wrapGenerator(JsonGenerator jsonGenerator) {
-        return new AgoJsonGenerator(jsonGenerator,writeType,writeId, serializeObjectAsReference);
+        return new AgoJsonGenerator(jsonGenerator, jsonConfig);
     }
 
     @Override
