@@ -4,6 +4,7 @@ package org.siphonlab.ago.runtime.rdb.reactive.json
 import groovy.transform.CompileStatic
 import org.agrona.concurrent.IdGenerator
 import org.siphonlab.ago.*
+import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.reactive.SlotsAdapter
@@ -26,15 +27,14 @@ public class ReactiveJsonPGAdapter extends JsonPGAdapter {
     }
 
     @Override
-    public void saveInstance(Instance<?> instance) {
-        ReactiveJsonRefSlots jsonRefSlots = instance.slots as ReactiveJsonRefSlots;
-
+    protected void insert(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
+        ReactiveJsonRefSlots jsonRefSlots = rdbSlots as ReactiveJsonRefSlots;
         if (jsonRefSlots.isSaved())
             return
 
         // it's new created instance
         if (instance instanceof AgoFrame) {
-            saveAgoFrame((AgoFrame)instance)
+            saveAgoFrame((AgoFrame) instance)
         } else if (instance instanceof AgoFunction) {
             saveAgoFunction((AgoFunction) instance)
         } else if (instance instanceof AgoClass) {
@@ -42,7 +42,7 @@ public class ReactiveJsonPGAdapter extends JsonPGAdapter {
         } else {
             saveAgoInstance(instance)
         }
-        jsonRefSlots.setSaved(true)
+        jsonRefSlots.setSaved(true);
     }
 
     Slots restoreSlots(ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass) {

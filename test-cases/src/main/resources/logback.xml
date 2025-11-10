@@ -18,9 +18,9 @@
 
     <logger name="ch.qos.logback" level="OFF"/>
     <logger name="org.siphonlab.ago.classloader.ClassHeader" level="OFF"/>
-    <logger name="compile.ClassDef" level="OFF"/>
+    <logger name="org.siphonlab.ago.compiler.ClassDef" level="OFF"/>
     <logger name="org.siphonlab.ago.AgoFrame" level="OFF" />
-    <logger name="compile.AgoClassParser" level="OFF"/>
+    <logger name="org.siphonlab.ago.compiler.AgoClassParser" level="OFF"/>
 
     <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
 

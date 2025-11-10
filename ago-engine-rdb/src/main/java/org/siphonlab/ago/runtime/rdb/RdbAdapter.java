@@ -318,6 +318,10 @@ public abstract class RdbAdapter {
 //                    case RowState.Deleted:
 //                        delete(rdbSlots);
 //                        break;
+                    default:
+                        if(instance instanceof CallFrameWithRunningState<?> callFrameWithRunningState){
+                            update(instance, rdbSlots, instance.getAgoClass());
+                        }
                 }
                 rdbSlots.setRowState(RowState.Unchanged);
                 rdbSlots.clearDetachedInstances();
@@ -340,7 +344,7 @@ public abstract class RdbAdapter {
         throw new NotImplementedException("not implemented yet");
     }
 
-    public void saveCallFrameRunningState(CallFrame<?> statefulCallFrame, byte runningState) {
+    public void updateCallFrameRunningState(CallFrame<?> statefulCallFrame, byte runningState) {
         throw new NotImplementedException();
     }
 

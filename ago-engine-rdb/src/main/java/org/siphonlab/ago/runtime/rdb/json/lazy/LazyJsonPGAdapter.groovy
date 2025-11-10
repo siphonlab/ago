@@ -6,7 +6,8 @@ import groovy.transform.CompileStatic
 import org.agrona.concurrent.IdGenerator
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*
-import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.native_.NativeFrame
+import org.siphonlab.ago.runtime.rdb.CallFrameWithRunningState;
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.RdbEngine
 import org.siphonlab.ago.runtime.rdb.RdbSlots
@@ -56,11 +57,6 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     @Override
-    void saveInstance(Instance<?> instance) {
-        super.saveInstance(instance)
-    }
-
-    @Override
     def void insert(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
         if (instance instanceof AgoFrame) {
             saveAgoFrame(instance)
@@ -81,10 +77,13 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
         ObjectRef ref = ((RdbRefSlots) rdbSlots).objectRef
         arguments["id"] = ref.id()
-        arguments["slots"] = toJsonb(instance)
+        arguments["slots"] = toJsonb(this.getAgoEngine().jsonStringifySlots(instance))
 
         String sql
-        if(instance instanceof CallFrame){
+        if(instance instanceof CallFrameWithRunningState){
+            updateCallFrameRunningState(instance.unwrap(), instance.getRunningState());
+            return
+        } else if(instance instanceof CallFrame){
             if(instance instanceof AgoFrame) {
                 sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, suspended = :suspended, pc = :pc WHERE id = :id"
                 arguments["pc"] = instance.pc

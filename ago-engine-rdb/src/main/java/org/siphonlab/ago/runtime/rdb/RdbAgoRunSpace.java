@@ -1,6 +1,5 @@
 package org.siphonlab.ago.runtime.rdb;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
@@ -48,7 +47,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
             if(cf instanceof ObjectRefCallFrame<?> objectRefCallFrame){
                 cf = currCallFrame = objectRefCallFrame.recomposeAsCallFrame();
             }
-            rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
+            rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
             this.currCallFrame.run();
             if(this.currCallFrame == null) {     // exited goto tryComplete
                 saveAtEnd = true;
@@ -56,16 +55,16 @@ public class RdbAgoRunSpace extends AgoRunSpace {
                 if(cf != currCallFrame){
                     assert !cf.isSuspended();
                     // cf is calling currCallFrame
-                    rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
+                    rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
                 } else {
                     // it's suspended
-                    rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
+                    rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
                 }
             }
         }
         tryComplete();
         if(saveAtEnd && cf != null)
-            rdbAdapter.saveCallFrameRunningState(cf, this.runningState);
+            rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
     }
 
     @Override
@@ -151,7 +150,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
 
     @Override
     public void interrupt() {
-        rdbAdapter.saveCallFrameRunningState(this.currCallFrame, RunningState.INTERRUPTED);
+        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(this.currCallFrame, RunningState.INTERRUPTED));
         super.interrupt();
     }
 

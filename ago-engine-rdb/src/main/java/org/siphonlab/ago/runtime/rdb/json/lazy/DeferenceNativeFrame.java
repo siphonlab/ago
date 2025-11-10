@@ -64,6 +64,6 @@ public class DeferenceNativeFrame extends NativeFrame implements ReferenceableIn
     @Override
     public void setPayload(Object payload) {
         super.setPayload(payload);
-        ((RdbEngine)this.engine).getRdbAdapter().saveCallFrameRunningState(this, (byte)-1);
+        ((RdbEngine)this.engine).getRdbAdapter().saveInstance(this);
     }
 }

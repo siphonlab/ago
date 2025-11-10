@@ -112,10 +112,17 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     }
 
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {
-        var inst = super.createInstance(parentScope,agoClass, creator);
-        if(inst.getSlots() instanceof LazyJsonRefSlots lazyJsonRefSlots && slotsInitializer != null){
-            slotsInitializer.accept(lazyJsonRefSlots);
-        }
+        if (agoClass instanceof AgoFunction fun)
+            return createFunctionInstance(fun, parentScope, creator, creator, slotsInitializer);
+
+        Slots slots = agoClass.createSlots();
+        if(slotsInitializer != null) slotsInitializer.accept(slots);
+
+        var inst = new Instance<>(slots, agoClass);
+        if (parentScope != null) inst.setParentScope(parentScope);
+        inst.setCreator(creator);
+
+        saveInstance(inst);
         return inst;
     }
 

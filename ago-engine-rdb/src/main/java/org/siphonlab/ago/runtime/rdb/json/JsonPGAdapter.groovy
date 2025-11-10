@@ -16,8 +16,10 @@ import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
 import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbEngine
+import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
+import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
@@ -214,7 +216,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
 
-    void saveCallFrameRunningState(CallFrame callFrame, byte state) {
+    void updateCallFrameRunningState(CallFrame callFrame, byte state) {
         var slots = callFrame.slots as JsonRefSlots
         var map = [
                 "id"       : slots.objectRef.id() as Object,
@@ -230,7 +232,9 @@ public abstract class JsonPGAdapter extends RdbAdapter {
             map["is_entrance"] = true
             callFrame = callFrame.inner
         }
-        map['slots'] = toJsonb(this.getAgoEngine().jsonStringifySlots(callFrame))
+        if(slots instanceof RdbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified)) {
+            map['slots'] = toJsonb(this.getAgoEngine().jsonStringifySlots(callFrame))
+        }
 
         if(callFrame instanceof AgoFrame) {
             map["pc"] = callFrame.pc
@@ -460,7 +464,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
 //        var defaultSlots = defaultSlots(instance.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
-        System.err.println("INSERT Instance " + slots.objectRef.id())
+        System.err.println("INSERT Instance " + slots.objectRef)
 
         sql.executeInsert("""INSERT INTO ago_instance
                                     (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots)
