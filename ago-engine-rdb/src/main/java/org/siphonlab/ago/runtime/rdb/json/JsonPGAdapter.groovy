@@ -1,6 +1,6 @@
 package org.siphonlab.ago.runtime.rdb.json
 
-
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
@@ -230,6 +230,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
             map["is_entrance"] = true
             callFrame = callFrame.inner
         }
+        map['slots'] = toJsonb(this.getAgoEngine().jsonStringifySlots(callFrame))
 
         if(callFrame instanceof AgoFrame) {
             map["pc"] = callFrame.pc
@@ -378,7 +379,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var parentScope = agoClass.parentScope?.slots as JsonRefSlots;
         var creator = agoClass.creator?.slots as JsonRefSlots;
 
-        var defaultSlots = defaultSlots(agoClass.agoClass, slots.jsonSlotMapper.jsonFiledNames)
+        var defaultSlots = agoClass.createSlots();
 
         return [
                 id                      : slots.objectRef.id() as Object,
@@ -390,7 +391,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 parent_scope_class      : parentScope?.objectRef?.className(),
                 creator_id              : creator?.objectRef?.id(),
                 creator_class           : creator?.objectRef?.className(),
-                slots                   : toJsonb(defaultSlots),
+                slots                   : toJsonb(getAgoEngine().jsonStringifySlots(defaultSlots, agoClass)),
                 fullname                : agoClass.getFullname(),
 
                 modifiers               : agoClass.getModifiers(),
@@ -413,12 +414,16 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ]
     }
 
+    RdbEngine getAgoEngine(){
+        return this.classManager as RdbEngine;
+    }
+
     PGobject toJsonb(Object object){
         if(object == null) return null;
 
         var obj = new PGobject();
         obj.type = "jsonb";
-        obj.value = (this.classManager as RdbEngine).dumpJson(object);
+        obj.value = JsonOutput.toJson(object);
         return obj;
     }
 
@@ -442,22 +447,11 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         return obj;
     }
 
-    static PGobject[] toJsonbArray(Object[] objects) {        // needn't connection.createArrayOf
+    PGobject[] toJsonbArray(Object[] objects) {        // needn't connection.createArrayOf
         if (objects == null) return null;
         return objects.collect {toJsonb(it)}.toArray(PGobject[]::new);
     }
 
-
-    static Map<String, Object> defaultSlots(AgoClass agoClass, String[] fieldNames){
-        var map = new HashMap()
-        if (agoClass.slotDefs == null) {
-            return map;
-        }
-        for (var i=0; i<agoClass.slotDefs.length; i++) {
-            map[fieldNames[i]] = TypeCode.defaultValueForDb(agoClass.slotDefs[i].typeCode)
-        }
-        return map;
-    }
 
     void saveAgoInstance(Instance instance) {
         var slots = instance.slots as JsonRefSlots;
@@ -511,7 +505,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 "native_host_class": runSpace.getRunSpaceHost().getClass().getName(),
                 "curr_frame_table" : currFrameRef?.className(),
                 "curr_frame_id"    : currFrameRef?.id(),
-                "result_slots"     : rdbEngine.dumpJson(runSpace.resultSlots),
+                "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
                 "pausing_parents"  : runSpace.pausingParents.collect { ((RdbAgoRunSpace) it).id }.toArray(new Long[0]),

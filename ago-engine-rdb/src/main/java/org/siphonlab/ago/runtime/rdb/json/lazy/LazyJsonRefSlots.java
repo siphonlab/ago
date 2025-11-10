@@ -42,7 +42,6 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
     public void setObject(int slot, Instance<?> value) {
         super.setObject(slot, value);
         if (value instanceof ReferenceInstanceTrait recomposeInstance) {
-            recomposeInstance.bindCallFrame(this.callFrame);
             recomposeInstance.addReference(this.baseSlots, slot);
         }
     }
@@ -51,7 +50,6 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
     public Instance<?> getObject(int slot) {
         Instance<?> value = super.getObject(slot);
         if (value instanceof ReferenceInstanceTrait recomposeInstance) {
-            recomposeInstance.bindCallFrame(this.callFrame);
             recomposeInstance.addReference(this.baseSlots, slot);
         }
         return value;

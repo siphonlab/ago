@@ -7,6 +7,8 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
+import org.siphonlab.ago.runtime.rdb.json.RdbSlotsJsonSerializer;
+import org.siphonlab.ago.runtime.rdb.json.SlotsJsonSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +62,8 @@ public class RdbEngine extends AgoEngine {
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
+        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer());
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
@@ -76,7 +80,11 @@ public class RdbEngine extends AgoEngine {
         return rdbAdapter;
     }
 
-    public String dumpJson(Object object) throws JsonProcessingException {
+    public String dumpJson(Instance<?> object) throws JsonProcessingException {
+        return this.dumpingObjectMapper.writeValueAsString(object);
+    }
+
+    public String dumpJson(ResultSlots object) throws JsonProcessingException {
         return this.dumpingObjectMapper.writeValueAsString(object);
     }
 
@@ -93,12 +101,24 @@ public class RdbEngine extends AgoEngine {
     }
 
     public String jsonStringifySlots(Instance<?> instance) throws JsonProcessingException {
-        return dumpingObjectMapper.writeValueAsString(instance.getSlots());
+        return dumpingObjectMapper
+                .writerFor(Slots.class)
+                .withAttribute("slots_class", instance.getAgoClass())
+                .withAttribute("slots_instance", instance)
+                .writeValueAsString(instance.getSlots());
     }
 
-    public void restoreSlots(AgoClass agoClass, String json) throws JsonProcessingException {
+    public String jsonStringifySlots(Slots slots, AgoClass agoClass) throws JsonProcessingException {
+        return dumpingObjectMapper
+                .writerFor(slots.getClass())
+                .withAttribute("slots_class", agoClass)
+                .writeValueAsString(slots);
+    }
+
+    public void restoreSlots(Slots slots, AgoClass agoClass, String json) throws JsonProcessingException {
         dumpingObjectMapper.readerFor(Instance.class)
-                .withAttribute("class", agoClass)
+                .withAttribute("slots_class", agoClass)
+                .withAttribute("slots", slots)
                 .readValue(json);
     }
 

@@ -13,8 +13,6 @@ public trait ReferenceInstanceTrait {
 
     private static final Logger logger = LoggerFactory.getLogger(ReferenceInstanceTrait)
 
-    private AgoRunSpace runSpace;       // to create instance
-
     private List<InstanceUser> references = new LinkedList<>();
 
     private Instance deferenced = null;

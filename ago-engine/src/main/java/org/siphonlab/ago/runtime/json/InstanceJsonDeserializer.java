@@ -100,12 +100,12 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         AgoJsonParser ajp = (AgoJsonParser) p;
         CallFrame<?> creator = ajp.getCallFrame();
 
-        AgoClass agoClassOfSlots = (AgoClass) ctxt.getAttribute("class");       // to parse slots
+        AgoClass agoClassOfSlots = (AgoClass) ctxt.getAttribute("slots_class");       // to parse slots
         if(agoClassOfSlots != null){
             Map<String, AgoSlotDef> map = new HashMap<>();
             for (AgoSlotDef slotDef : agoClassOfSlots.getSlotDefs())
                 map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
-            deserializeSlots(ajp, ctxt, creator, agoClassOfSlots, map);
+            deserializeSlots(ajp, ctxt, creator, (Slots) ctxt.getAttribute("slots"), map);
             return null;
         }
 
@@ -113,7 +113,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         return deserializeAny(ajp, ctxt, ajp.initialClass, creator, null, null);
     }
 
-    protected Instance<?> deserializeAny(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass expectedClass, CallFrame<?> creator, Instance<?> host, AgoSlotDef slotDef) throws IOException {
+    protected Instance<?> deserializeAny(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass expectedClass, CallFrame<?> creator, Slots hostSlots, AgoSlotDef slotDef) throws IOException {
         // host and slotDef only for parse primitive values
         // for object value, an `slots.set(, deserializeUnknown())` will within deserializeObject
         JsonToken token = ajp.currentToken();
@@ -155,10 +155,9 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 return deserializeCollection(ajp,ctxt,expectedClass, creator);
 
             default:
-                if(host != null){
-                    Slots slots = host.getSlots();
-                    readPrimitiveSlot(ajp, token, slots, slotDef);
-                    return host;
+                if(hostSlots != null){
+                    readPrimitiveSlot(ajp, token, hostSlots, slotDef);
+                    return null;
                 } else {
                     return deserializeBoxedValue(ajp, token, expectedClass, creator);
                 }
@@ -242,26 +241,31 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
         }
         var instance = agoEngine.createInstance(agoClass,creator);
-        deserializeSlots(ajp, ctxt, creator, instance, map);
+        deserializeSlots(ajp, ctxt, creator, instance.getSlots(), map);
         return instance;
     }
 
-    protected void deserializeSlots(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator, Instance<?> instance, Map<String, AgoSlotDef> map) throws IOException {
+    protected void deserializeSlots(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator, Slots hostSlots, Map<String, AgoSlotDef> map) throws IOException {
         JsonToken token;
+        if(ajp.currentToken() == JsonToken.START_OBJECT) ajp.nextToken();
         for(token = ajp.currentToken(); token != JsonToken.END_OBJECT; token = ajp.nextToken()){
             assert ajp.currentToken() == JsonToken.FIELD_NAME;
             String fieldName = ajp.getValueAsString();
             if(fieldName.equals("@id")){
-                readObjectId(instance, ajp, ctxt, creator);
+                readObjectId(hostSlots, ajp, ctxt, creator);
             } else {
                 AgoSlotDef agoSlotDef = map.get(fieldName);
                 if (agoSlotDef == null) throw new NullPointerException("'%s' not exists".formatted(fieldName));
-                deserializeAny(ajp, ctxt, agoSlotDef.getAgoClass(), creator, instance, agoSlotDef);
+                ajp.nextToken();
+                var r = deserializeAny(ajp, ctxt, agoSlotDef.getAgoClass(), creator, hostSlots, agoSlotDef);
+                if(agoSlotDef.getTypeCode().getValue() == OBJECT_VALUE){
+                    hostSlots.setObject(agoSlotDef.getIndex(), r);
+                }
             }
         }
     }
 
-    protected void readObjectId(Instance<?> instance, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
+    protected void readObjectId(Slots slots, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
         throw new UnsupportedOperationException();
     }
 
@@ -304,9 +308,14 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
     }
 
     //{"@classref": [classname, id, [parentScope]]}
-    private Instance<?> deserializeClassRef(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
+    protected Instance<?> deserializeClassRef(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
         assert ajp.nextToken() == JsonToken.START_ARRAY;
         ajp.nextToken();
+        if(ajp.currentToken() == JsonToken.VALUE_NULL){
+            assert ajp.nextToken() == JsonToken.END_ARRAY;
+            assert ajp.nextToken() == JsonToken.END_OBJECT;
+            return null;
+        }
         String classname = ajp.getValueAsString();
         AgoClass baseClass = agoEngine.getClass(classname);
         JsonToken token;
@@ -314,7 +323,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         while((token = ajp.nextToken()) != JsonToken.END_ARRAY) {
             if (token == JsonToken.VALUE_NUMBER_INT) {      // id
                 if(result == null)
-                    result = deserializeClassRef(result, ajp.getValueAsLong());
+                    result = deserializeClassRef(baseClass, ajp.getValueAsLong());
             } else if(token == JsonToken.START_OBJECT){
                 var scope = deserializeAny(ajp, ctxt, null, creator, null, null);
                 if(result == null)

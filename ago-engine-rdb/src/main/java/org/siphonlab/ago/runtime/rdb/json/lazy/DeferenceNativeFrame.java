@@ -31,8 +31,9 @@ public class DeferenceNativeFrame extends NativeFrame implements ReferenceableIn
 
     @Override
     public ObjectRefInstanceTrait toObjectRefInstance() {
-        if (logger.isDebugEnabled()) logger.debug("%s convert to objectref instance %s".formatted(this, ((LazyJsonRefSlots) this.slots).getObjectRef()));
-        return new ObjectRefCallFrame<>(this.agoClass, ((LazyJsonRefSlots) this.slots).getObjectRef(), (DereferenceAdapter) this.adapter);
+        LazyJsonRefSlots slots = (LazyJsonRefSlots) this.slots;
+        if (logger.isDebugEnabled()) logger.debug("%s convert to objectref instance %s".formatted(this, slots.getObjectRef()));
+        return new ObjectRefCallFrame<>(this.agoClass, slots.getObjectRef(), (DereferenceAdapter) this.adapter, slots.getRowState());
     }
 
     @Override

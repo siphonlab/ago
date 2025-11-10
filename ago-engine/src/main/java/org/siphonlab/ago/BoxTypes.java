@@ -101,7 +101,7 @@ public class BoxTypes {
             return t;
 
         // we only handle single field type
-        if(agoClass.getSlotDefs().length == 1 && agoClass.getInterfaces() != null) {
+        if(agoClass.getSlotDefs() != null && agoClass.getSlotDefs().length == 1 && agoClass.getInterfaces() != null) {
             for (AgoClass anInterface : agoClass.getInterfaces()) {
                 t = getUnboxType(anInterface);
                 if (t != null) {

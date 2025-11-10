@@ -54,8 +54,10 @@ public class DeferenceAgoFrame extends AgoFrame implements ReferenceableInstance
 
     @Override
     ObjectRefInstanceTrait toObjectRefInstance() {
-        if(logger.isDebugEnabled()) logger.debug("%s convert to objectref instance %s".formatted(this, ((LazyJsonRefSlots) this.slots).objectRef))
-        return new ObjectRefCallFrame<AgoFunction>(this.agoClass, this.getObjectRef(), (DereferenceAdapter) this.adapter)
+        def slots = (LazyJsonRefSlots) this.slots
+        if(logger.isDebugEnabled())
+            logger.debug("%s convert to objectref instance %s".formatted(this, slots.objectRef))
+        return new ObjectRefCallFrame<AgoFunction>(this.agoClass, this.getObjectRef(), (DereferenceAdapter) this.adapter, slots.rowState)
     }
 
     @Override

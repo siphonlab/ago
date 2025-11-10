@@ -5,16 +5,12 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
-import org.siphonlab.ago.runtime.json.InstanceJsonSerializer;
-import org.siphonlab.ago.runtime.json.ResultSlotsDeserializer;
-import org.siphonlab.ago.runtime.json.ResultSlotsSerializer;
+import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace;
+import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc;
-import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
-import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
-import org.siphonlab.ago.runtime.rdb.json.SlotsIndicator;
-import org.siphonlab.ago.runtime.rdb.json.SlotsJsonSerializer;
+import org.siphonlab.ago.runtime.rdb.json.*;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
 import org.siphonlab.ago.runtime.rdb.lazy.ReferenceableInstance;
@@ -44,7 +40,9 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         SimpleModule module = new SimpleModule();
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
-        module.addSerializer(SlotsIndicator.class, new SlotsJsonSerializer(this));
+        module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
+        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer());
+        module.addSerializer(LazyJsonRefSlots.class, new RdbSlotsJsonSerializer());
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
@@ -53,6 +51,27 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         //        module.addSerializer(ResultSetMapper.class, new ResultSetMapper.JsonSerializer(this.getJsonObjectMapper()));
         r.registerModule(module);
         return r;
+    }
+
+    @Override
+    protected void createDumpingObjectMapper() {
+        var r = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
+        module.addSerializer(Instance.class, jsonSerializer);
+        module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
+        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer());
+        module.addSerializer(LazyJsonRefSlots.class, new RdbSlotsJsonSerializer());
+
+        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
+        module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
+
+        //        module.addSerializer(ResultSetMapper.class, new ResultSetMapper.JsonSerializer(this.getJsonObjectMapper()));
+        r.registerModule(module);
+
+        //new AgoJsonConfig(AgoJsonConfig.WriteTypeMode.Always, true, AgoJsonConfig.ObjectAsReferenceMode.Always, true)
+        this.dumpingObjectMapper = r.copyWith(new AgoJsonParserFactory(AgoJsonConfig.RPC_OBJECT_REF));
     }
 
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, CallFrame<?> caller, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {

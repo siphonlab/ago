@@ -9,7 +9,9 @@ import org.siphonlab.ago.Instance
 import org.siphonlab.ago.Slots
 import org.siphonlab.ago.SourceLocation
 import org.siphonlab.ago.runtime.rdb.ObjectRef
-import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
+import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
+import org.siphonlab.ago.runtime.rdb.RdbSlots
+import org.siphonlab.ago.runtime.rdb.RowState;
 
 /**
  * lazy instance
@@ -31,10 +33,6 @@ public trait ObjectRefInstanceTrait extends ReferenceInstanceTrait{
 
     Instance<?> doDeference() {
         return dereferenceAdapter.dereference(objectRef);
-    }
-
-    public void bindCallFrame(AgoRunSpace runSpace) {     // cannot recognize super has this method
-        super.bindRunSpace(runSpace)
     }
 }
 
@@ -86,8 +84,11 @@ class ObjectRefInstance extends Instance<AgoClass> implements ObjectRefInstanceT
 @CompileStatic
 class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements ObjectRefInstanceTrait, ObjectRefOwner{
 
-    ObjectRefCallFrame(F agoClass, ObjectRef objectRef, DereferenceAdapter dereferenceAdapter) {
-        super(agoClass.createSlots(), agoClass)
+    ObjectRefCallFrame(F agoClass, ObjectRef objectRef, DereferenceAdapter dereferenceAdapter, RowState rowState) {
+        super(agoClass.createSlots().with {if(it instanceof RdbSlots){
+            it.rowState = rowState;
+            it.setId(objectRef.id())
+        }; it}, agoClass)
         init(agoClass, objectRef, dereferenceAdapter)
     }
 

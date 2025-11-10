@@ -144,7 +144,7 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
 
     public static void writeSlots(AgoEngine agoEngine, AgoJsonGenerator gen, AgoSlotDef[] slotDefs, AgoJsonConfig config, Slots slots) throws IOException {
         gen.writeStartObject();
-        if (slotDefs == null || slotDefs.length == 0) {
+        if (slotDefs == null || slotDefs.length == 0 || slots instanceof AgoClass.TraceOwnerSlots) {
             gen.writeEndObject();
             return;
         }
@@ -198,7 +198,11 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
                     break;
                 case CLASS_REF_VALUE:
                     int classRef = slots.getClassRef(slotDefIndex);
-                    gen.writeStringField(slotDefName, agoEngine.getClass(classRef).getFullname());
+                    if(classRef == 0){
+                        gen.writeNullField(slotDefName);
+                    } else {
+                        gen.writeStringField(slotDefName, agoEngine.getClass(classRef).getFullname());
+                    }
                     break;
             }
         }

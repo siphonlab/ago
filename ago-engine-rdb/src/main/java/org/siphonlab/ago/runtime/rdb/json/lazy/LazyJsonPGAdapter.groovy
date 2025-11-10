@@ -11,7 +11,6 @@ import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.RdbEngine
 import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.RowState
-import org.siphonlab.ago.runtime.rdb.lazy.BoxValueInstance
 import org.siphonlab.ago.runtime.rdb.lazy.DereferenceAdapter
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstance
@@ -40,10 +39,11 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
     Instance restoreInstance(ObjectRef objectRef){
         if(objectRef == null) return null;
+        //TODO the class may has scope
         AgoClass agoClass = classManager.getClass(objectRef.className())
         Instance r;
         if (agoClass instanceof AgoFunction) {
-            r = new ObjectRefCallFrame(agoClass, objectRef, this)
+            r = new ObjectRefCallFrame(agoClass, objectRef, this, RowState.Unchanged)
         } else {
             r = new ObjectRefInstance(agoClass, objectRef, this)
         }
@@ -167,75 +167,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
         jsonRefSlots.setId(objectRef.id())
         jsonRefSlots.setRowState(RowState.Unchanged)
         var slots = jsonRefSlots.getBaseSlots()
-        (this.classManager as RdbEngine).restoreSlots(agoClass, (dbRow['json'] as PGobject).value);
-    }
-
-    Map<String, Object> toMap(JsonRefSlots slots, AgoClass agoClass) {
-        Map<String, Object> map = [:]
-        for (var slotDef : agoClass.getSlotDefs()) {
-            int slot = slotDef.index
-            String fldName = slots.jsonSlotMapper.getFieldName(slot)
-            map[fldName]  = switch (slotDef.typeCode.value) {
-                case TypeCode.INT_VALUE -> slots.getInt(slot)
-                case TypeCode.LONG_VALUE -> slots.getLong(slot)
-                case TypeCode.SHORT_VALUE -> slots.getShort(slot)
-                case TypeCode.BYTE_VALUE -> slots.getByte(slot)
-                case TypeCode.FLOAT_VALUE -> slots.getFloat(slot)
-                case TypeCode.DOUBLE_VALUE -> slots.getDouble(slot)
-                case TypeCode.BOOLEAN_VALUE -> slots.getBoolean(slot)
-                case TypeCode.STRING_VALUE -> slots.getString(slot)
-                case TypeCode.CHAR_VALUE -> slots.getChar(slot)
-                case TypeCode.CLASS_REF_VALUE ->  classManager.getClass(slots.getClassRef(slot)).fullname
-                case TypeCode.OBJECT_VALUE -> {
-                    var v = slots.getObject(slot)
-                    if(v == null) yield null
-
-                    if(slotDef.getAgoClass() instanceof MetaClass){
-                        yield ((AgoClass)v).fullname
-                    }
-                    if (v instanceof Instance) {
-                        var t = mapObjectType(v.agoClass)
-                        if(t.additional != null){
-                            var r = v instanceof ObjectRefInstance ? v.objectRef:  (v.slots as JsonRefSlots).objectRef
-                            yield ["@type" : r.className(), "@id": r.id()]
-                        } else {
-                            //TODO boxType != slotDef.class
-                            if(v instanceof BoxValueInstance){
-                                yield v.value;
-                            } else {
-                                // unbox
-                                switch (t.typeCode.value){
-                                    case TypeCode.INT_VALUE:
-                                        yield (slots.getInt(0));
-                                    case TypeCode.LONG_VALUE:
-                                        yield (slots.getLong(0));
-                                    case TypeCode.FLOAT_VALUE:
-                                        yield (slots.getFloat(0));
-                                    case TypeCode.DOUBLE_VALUE:
-                                        yield(slots.getDouble(0));
-                                    case TypeCode.BOOLEAN_VALUE:
-                                        yield(slots.getBoolean(0));
-                                    case TypeCode.STRING_VALUE:
-                                        yield(slots.getString(0));
-                                    case TypeCode.SHORT_VALUE:
-                                        yield(slots.getShort(0));
-                                    case TypeCode.BYTE_VALUE:
-                                        yield(slots.getByte(0));
-                                    case TypeCode.CHAR_VALUE:
-                                        yield(String.valueOf(slots.getChar(0)));
-                                    case TypeCode.NULL_VALUE:
-                                        yield null;
-                                    case TypeCode.CLASS_REF_VALUE:
-                                        int classRef = slots.getClassRef(0);
-                                        yield(classManager.getClass(classRef).getFullname());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return map
+        (this.classManager as RdbEngine).restoreSlots(slots, agoClass, (dbRow['slots'] as PGobject).value);
     }
 
 //    AgoRunSpace[] loadResumableRunSpaces() {

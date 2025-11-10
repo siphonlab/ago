@@ -23,7 +23,9 @@ import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
 import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 import static org.siphonlab.ago.runtime.json.InstanceJsonSerializer.writeSlots;
 
-public class SlotsJsonSerializer extends JsonSerializer<SlotsIndicator> {
+// bind attribute `slots_class` to transfer SlotDefs
+// slots_instance is optional
+public class SlotsJsonSerializer extends JsonSerializer<Slots> {
 
     private final AgoEngine agoEngine;
 
@@ -31,27 +33,27 @@ public class SlotsJsonSerializer extends JsonSerializer<SlotsIndicator> {
         this.agoEngine = agoEngine;
     }
 
+
     @Override
-    public void serialize(SlotsIndicator slotsIndicator, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+    public void serialize(Slots slots, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         // now we are already here to stringify slots, therefore, it must be not box types
         // and shouldn't write object as reference
-        // and not an array too, array is a value type too
+        // and not an array too, array is a slots type too
         // and not an AgoClass
-        Instance<?> instance = slotsIndicator.getInstance();
+        AgoClass agoClass = (AgoClass) serializers.getAttribute("slots_class");
+        var instance = (Instance<?>) serializers.getAttribute("slots_instance");
+
         assert !(instance instanceof AgoArrayInstance);
         assert !(instance instanceof AgoClass);
 
-        AgoClass agoClass = instance.getAgoClass();
-        var slots = instance.getSlots();
+        if (agoClass == null && instance != null) {
+            agoClass = instance.getAgoClass();
+        }
+
         AgoSlotDef[] slotDefs = agoClass.getSlotDefs();
 
         writeSlots(agoEngine, (AgoJsonGenerator) gen, slotDefs,
                 new AgoJsonConfig(AgoJsonConfig.WriteTypeMode.Always, true, AgoJsonConfig.ObjectAsReferenceMode.Always, true),
                 slots);
     }
-
-
-
-
-
 }

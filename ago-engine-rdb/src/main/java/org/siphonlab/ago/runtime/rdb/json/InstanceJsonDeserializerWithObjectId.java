@@ -11,6 +11,7 @@ import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.siphonlab.ago.runtime.rdb.RowState;
 
 import java.io.IOException;
+import java.util.Map;
 
 public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializer {
     public InstanceJsonDeserializerWithObjectId(RdbEngine agoEngine) {
@@ -18,9 +19,9 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
     }
 
     @Override
-    protected void readObjectId(Instance<?> currObject, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
+    protected void readObjectId(Slots slots, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
         long id = ajp.getLongValue();
-        ((RdbSlots) currObject.getSlots()).setId(id);
+        ((RdbSlots) slots).setId(id);
     }
 
     // {"@class":"class name", [@id: ], [scope: ]}
@@ -69,6 +70,12 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         return  ((RdbEngine)this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
     }
 
+    @Override
+    protected AgoClass deserializeClassRef(AgoClass baseClass, long id) {
+        if (((RdbSlots) baseClass.getSlots()).getId() == id) return baseClass;
+        return ((RdbEngine) this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
+    }
+
     // {"@objectref": [classname, id]}
     @Override
     protected Instance<?> deserializeObjectRef(AgoJsonParser ajp, DeserializationContext ctxt) throws IOException {
@@ -80,6 +87,15 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         assert ajp.nextToken() == JsonToken.END_ARRAY;
         assert ajp.nextToken() == JsonToken.END_OBJECT;
         return ((RdbEngine) this.agoEngine).getRdbAdapter().restoreInstance(new ObjectRef(classname,id));
+    }
+
+    @Override
+    protected void deserializeSlots(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator, Slots hostSlots, Map<String, AgoSlotDef> map) throws IOException {
+        if(hostSlots instanceof RdbSlots rdbSlots) {
+            super.deserializeSlots(ajp, ctxt, creator, rdbSlots.getBaseSlots(), map);
+        } else {
+            super.deserializeSlots(ajp, ctxt, creator, hostSlots, map);
+        }
     }
 
     @Override
