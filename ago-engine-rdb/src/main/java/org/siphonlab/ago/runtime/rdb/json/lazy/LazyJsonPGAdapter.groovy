@@ -4,6 +4,7 @@ import groovy.json.JsonSlurper;
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import org.agrona.concurrent.IdGenerator
+import org.apache.commons.lang3.NotImplementedException
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.NativeFrame
@@ -73,17 +74,20 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
     @Override
     def void update(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
-        Map<String, Object> arguments = new HashMap<>();
+        if (instance instanceof CallFrameWithRunningState) {
+            updateCallFrameRunningState(instance.unwrap(), instance.getRunningState());
+            return
+        }
 
+        Map<String, Object> arguments = new HashMap<>();
         ObjectRef ref = ((RdbRefSlots) rdbSlots).objectRef
+        logger.info("UPDATE " + ref)
+
         arguments["id"] = ref.id()
         arguments["slots"] = toJsonb(this.getAgoEngine().jsonStringifySlots(instance))
 
         String sql
-        if(instance instanceof CallFrameWithRunningState){
-            updateCallFrameRunningState(instance.unwrap(), instance.getRunningState());
-            return
-        } else if(instance instanceof CallFrame){
+        if(instance instanceof CallFrame){
             if(instance instanceof AgoFrame) {
                 sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, suspended = :suspended, pc = :pc WHERE id = :id"
                 arguments["pc"] = instance.pc
@@ -131,7 +135,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 }
                 LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
                 var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, caller, creator, slots -> {
-                    dereferenceSlots(slots as LazyJsonRefSlots, objectRef, row, agoClass)
+                    getAgoEngine().restoreSlots(slots as LazyJsonRefSlots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value));
                 })
                 if (frame instanceof DeferenceAgoFrame) {
                     frame.pc = row['pc'] as int
@@ -154,7 +158,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             } else {
                 LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
                 var inst = engine.createInstance(parentScope, agoClass, creator, slots -> {
-                    dereferenceSlots(slots as LazyJsonRefSlots, objectRef, row, agoClass)
+                    getAgoEngine().restoreSlots(slots as LazyJsonRefSlots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value));
                 })
                 if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, inst))
                 return inst
@@ -162,22 +166,25 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
         }
     }
 
-    void dereferenceSlots(LazyJsonRefSlots jsonRefSlots, ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass) {
-        jsonRefSlots.setId(objectRef.id())
-        jsonRefSlots.setRowState(RowState.Unchanged)
-        var slots = jsonRefSlots.getBaseSlots()
-        (this.classManager as RdbEngine).restoreSlots(slots, agoClass, (dbRow['slots'] as PGobject).value);
+    LazyJsonAgoEngine getAgoEngine() {
+        return this.classManager as LazyJsonAgoEngine;
     }
 
-//    AgoRunSpace[] loadResumableRunSpaces() {
-//        // PENDING, RUNNING
-//        var rows = sql.rows("SELECT id, ago_class FROM ago_frame WHERE application = ? AND state IN (0, 1)", [this.applicationId as Object])
-//        var refInstances = rows.collect({
-//            AgoClass agoClass = classManager.getClass(it["ago_class"] as String)
-//            return (ObjectRefCallFrame) restoreInstance(new ObjectRef(agoClass.fullname, (Long) it["id"]), resumeFrame)
-//        })
-//        return refInstances.collect { it.recomposeAsCallFrame() }.toArray(CallFrame[]::new)
-//        //TODO need a CallFrame to deserialize json
-//    }
+    public AgoClass loadScopedAgoClass(AgoClass baseClass, long id) {
+        var row = sql.firstRow("SELECT parent_scope_class, parent_scope_id, creator_class, creator_id, slots FROM ago_class WHERE id =?", [id])
+        var parentScopeId = row["parent_scope_id"]
+        if(parentScopeId != null) {
+            Instance scope = restoreInstance(new ObjectRef((String) row["parent_scope_class"], (Long) parentScopeId));
+            var scoped = baseClass.withScope(scope)
+            Object creatorId = row["creator_id"];
+            if (parentScopeId != null) {
+                scoped.setCreator((CallFrame) this.restoreInstance(new ObjectRef((String) row["creator_class"], (Long) creatorId)));
+            }
+            getAgoEngine().restoreSlots(scoped.getSlots() as LazyJsonRefSlots,id,baseClass.getAgoClass(),row['slots'] as String)
+            return scoped;
+        }
+        return baseClass
+    }
+
 
 }

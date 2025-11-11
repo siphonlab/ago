@@ -23,6 +23,8 @@ import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import javax.sql.DataSource
 import java.sql.Connection
@@ -31,6 +33,8 @@ import java.sql.Types
 
 @CompileStatic
 public abstract class JsonPGAdapter extends RdbAdapter {
+
+    private  final Logger logger = LoggerFactory.getLogger(JsonPGAdapter)
 
     protected Sql sql
     protected int applicationId
@@ -218,6 +222,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     void updateCallFrameRunningState(CallFrame callFrame, byte state) {
         var slots = callFrame.slots as JsonRefSlots
+        logger.info("UPDATE " + slots.objectRef)
         var map = [
                 "id"       : slots.objectRef.id() as Object,
                 "suspended": callFrame.suspended,
@@ -383,8 +388,6 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var parentScope = agoClass.parentScope?.slots as JsonRefSlots;
         var creator = agoClass.creator?.slots as JsonRefSlots;
 
-        var defaultSlots = agoClass.createSlots();
-
         return [
                 id                      : slots.objectRef.id() as Object,
                 application             : applicationId,
@@ -395,7 +398,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 parent_scope_class      : parentScope?.objectRef?.className(),
                 creator_id              : creator?.objectRef?.id(),
                 creator_class           : creator?.objectRef?.className(),
-                slots                   : toJsonb(getAgoEngine().jsonStringifySlots(defaultSlots, agoClass)),
+                slots                   : toJsonb(getAgoEngine().jsonStringifySlots(slots, agoClass.agoClass)),
                 fullname                : agoClass.getFullname(),
 
                 modifiers               : agoClass.getModifiers(),
@@ -533,47 +536,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ];
     }
 
-    private ResultSlots parseResultSlots(PGobject json, CallFrame resumeFrame) {
-        var map = new JsonSlurper().parseText(json.value);
-        int typeCode = map['type'] as Integer;
-        var r = new ResultSlots();
-        switch (typeCode){
-            case TypeCode.INT_VALUE: r.setIntValue(((Number)map['value']).intValue()); break;
-            case TypeCode.LONG_VALUE: r.setLongValue(((Number) map['value']).longValue()); break;
-            case TypeCode.SHORT_VALUE: r.setShortValue(((Number) map['value']).shortValue()); break;
-            case TypeCode.BYTE_VALUE: r.setByteValue(((Number) map['value']).byteValue()); break;
-            case TypeCode.FLOAT_VALUE: r.setFloatValue(((Number) map['value']).floatValue()); break;
-            case TypeCode.DOUBLE_VALUE: r.setDoubleValue(((Number) map['value']).doubleValue()); break;
-            case TypeCode.BOOLEAN_VALUE: r.setBooleanValue(map['value'] as Boolean); break;
-            case TypeCode.STRING_VALUE: r.setStringValue(map['value'] as String); break;
-            case TypeCode.CHAR_VALUE: r.setCharValue((map['value'] as String).charAt(0)); break;
-            case TypeCode.CLASS_REF_VALUE: {
-                if(map['value']) {
-                    r.setClassRefValue(this.classManager.getClass(map['value'] as String))
-                }
-            }; break;
-            case TypeCode.NULL_VALUE: r.setNullValue();break;
-            case TypeCode.VOID_VALUE: r.setVoidValue(); break;
-            case TypeCode.OBJECT_VALUE:{
-                String value = map['value'] as String
-                if(value == null)
-                    r.setObjectValue(null)
-                else {
-                    def instance = ((AgoEngine) this.classManager).jsonDeserialize(null, resumeFrame, new StringReader(value), true)
-                    r.setObjectValue(instance)
-                }
-//                String boxType = map['box_type'] as String
-//                Object value = map['value']
-//                if(value == null) {
-//                    r.setObjectValue(null);
-//                } else if(boxType){
-//                    ((AgoEngine)this.classManager).getBoxer().
-//                } else {
-//
-//                }
-            }
-        }
-        return r;
+    private ResultSlots parseResultSlots(PGobject json) {
+        return ((RdbEngine)agoEngine).getDumpingObjectMapper().readValue(json.value, ResultSlots);
     }
 
 
@@ -643,7 +607,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
     @Override
-    List<RunSpaceDesc> loadResumableRunSpaces(CallFrame<?> resumeFrame) {
+    List<RunSpaceDesc> loadResumableRunSpaces() {
         var rows = this.sql.rows("SELECT * FROM ago_runspace WHERE application=? AND running_state < 16", [applicationId as Object])
         LongObjectHashMap<RunSpaceDesc> runspaceDescById = new LongObjectHashMap<>()
 
@@ -653,7 +617,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 it.id = row["id"] as Long
                 it.runSpaceHostClass = row['native_host_class'] as String
                 it.currFrame = row['curr_frame_id'] != null ? new ObjectRef(row['curr_frame_table'] as String, row['curr_frame_id'] as Long) : null
-                it.resultSlots =  parseResultSlots(row['result_slots'] as PGobject, resumeFrame)
+                it.resultSlots =  parseResultSlots(row['result_slots'] as PGobject)
                 it.runningState = (byte) (row['running_state'] as int)
                 it.exception = row['exception_id'] == null ? null : new ObjectRef("ago_instance", row['exception_id'] as Long);
 

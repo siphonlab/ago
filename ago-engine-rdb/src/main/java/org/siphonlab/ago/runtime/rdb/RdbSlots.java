@@ -3,9 +3,7 @@ package org.siphonlab.ago.runtime.rdb;
 import org.agrona.collections.IntHashSet;
 import org.siphonlab.ago.*;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class RdbSlots implements Slots {
 
@@ -19,6 +17,7 @@ public class RdbSlots implements Slots {
     private Set<Instance<?>> detachedInstances = null;
 
     private long id;
+    private Instance<?>[] objectSlots;
 
     public RdbSlots(Slots baseSlots){
         this.baseSlots = baseSlots;
@@ -47,7 +46,6 @@ public class RdbSlots implements Slots {
     public RowState getRowState() {
         return rowState;
     }
-
 
     public Set<Instance<?>> getUsingInstances() {
         return usingInstances;
@@ -133,6 +131,11 @@ public class RdbSlots implements Slots {
         baseSlots.setString(slot, value);
     }
 
+    public void allocateObjectSlots(int slotDefsLength){
+        if(this.objectSlots == null || this.objectSlots.length < slotDefsLength)
+            this.objectSlots = new Instance[slotDefsLength];
+    }
+
     @Override
     public void setObject(int slot, Instance<?> value) {
         Instance<?> prev = baseSlots.getObject(slot);
@@ -152,6 +155,11 @@ public class RdbSlots implements Slots {
             }
         }
         baseSlots.setObject(slot, value);
+        this.objectSlots[slot] = value;
+    }
+
+    public Instance<?>[] getObjectSlots() {
+        return objectSlots;
     }
 
     public void clearDetachedInstances(){
@@ -297,5 +305,11 @@ public class RdbSlots implements Slots {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public void restoreState(Collection<Instance<?>> usingInstances, RowState rowState) {
+        if(usingInstances != null)
+            this.usingInstances = new HashSet<>(usingInstances);
+        this.rowState = rowState;
     }
 }

@@ -8,6 +8,7 @@ import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.siphonlab.ago.runtime.json.AgoJsonConfig;
 import org.siphonlab.ago.runtime.json.AgoJsonGenerator;
 import org.siphonlab.ago.runtime.rdb.RdbSlots;
+import org.siphonlab.ago.runtime.rdb.RowState;
 
 import java.io.IOException;
 
@@ -19,6 +20,20 @@ public class RdbSlotsJsonSerializer extends JsonSerializer<RdbSlots> {
 
     @Override
     public void serialize(RdbSlots value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
-        serializers.findValueSerializer(Slots.class).serialize(value.getBaseSlots(), gen, serializers);
+        gen.writeStartObject();
+        gen.writeObjectField("usingInstances", value.getUsingInstances());
+        RowState rowState = value.getRowState();
+        if(rowState != RowState.Saving) {
+            gen.writeObjectField("rowState", rowState);
+        } else {
+            gen.writeObjectField("rowState", RowState.Unchanged);
+        }
+        // changedSlots and detachedInstances needn't save, for after saving
+
+        gen.writeFieldName("slots");
+        serializers.findValueSerializer(Slots.class)
+                .serialize(value.getBaseSlots(), gen, serializers);
+
+        gen.writeEndObject();
     }
 }

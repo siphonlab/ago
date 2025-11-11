@@ -9,6 +9,8 @@ import org.siphonlab.ago.runtime.rdb.RdbSlots;
 
 import java.io.IOException;
 
+import static org.siphonlab.ago.runtime.rdb.ObjectRefOwner.extractObjectRef;
+
 public class InstanceJsonSerializerWithObjectId extends InstanceJsonSerializer {
 
     public InstanceJsonSerializerWithObjectId(AgoEngine agoEngine) {
@@ -39,10 +41,9 @@ public class InstanceJsonSerializerWithObjectId extends InstanceJsonSerializer {
         } else {
             gen.writeFieldName("@objectref");
             gen.writeStartArray();
-            gen.writeString(instance.getAgoClass().getFullname());
-
-            RdbSlots slots = (RdbSlots) instance.getSlots();
-            gen.writeNumber(slots.getId());
+            var objectRef = extractObjectRef(instance);
+            gen.writeString(objectRef.className());
+            gen.writeNumber(objectRef.id());
 
             gen.writeEndArray();
         }

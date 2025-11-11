@@ -9,8 +9,11 @@ import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.siphonlab.ago.runtime.rdb.RowState;
+import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializer {
@@ -92,7 +95,29 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
     @Override
     protected void deserializeSlots(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator, Slots hostSlots, Map<String, AgoSlotDef> map) throws IOException {
         if(hostSlots instanceof RdbSlots rdbSlots) {
-            super.deserializeSlots(ajp, ctxt, creator, rdbSlots.getBaseSlots(), map);
+            if (ajp.currentToken() == JsonToken.START_OBJECT) ajp.nextToken();
+            RowState rowState = null;
+            List<Instance<?>> usingInstances = null;
+            for(var token = ajp.currentToken(); token != JsonToken.END_OBJECT; token = ajp.nextToken()) {
+                assert token == JsonToken.FIELD_NAME;
+                String s = ajp.getValueAsString();
+                ajp.nextToken();
+                if (s.equals("usingInstances")) {
+                    if(ajp.currentToken() == JsonToken.VALUE_NULL){
+                        continue;
+                    }
+                    assert ajp.currentToken() == JsonToken.START_ARRAY;
+                    usingInstances = new ArrayList<>();
+                    for(var el = ajp.nextToken(); el != JsonToken.END_ARRAY; el = ajp.nextToken()){
+                        usingInstances.add(deserializeAny(ajp,ctxt,null,null,null,null));
+                    }
+                } else if(s.equals("slots")){
+                    super.deserializeSlots(ajp, ctxt, creator, rdbSlots.getBaseSlots(), map);
+                } else if(s.equals("rowState")){
+                    rowState = RowState.valueOf(ajp.getValueAsString());
+                }
+            }
+            rdbSlots.restoreState(usingInstances, rowState);
         } else {
             super.deserializeSlots(ajp, ctxt, creator, hostSlots, map);
         }

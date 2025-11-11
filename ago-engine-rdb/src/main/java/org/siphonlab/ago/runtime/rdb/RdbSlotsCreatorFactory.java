@@ -21,6 +21,9 @@ public class RdbSlotsCreatorFactory implements SlotsCreatorFactory {
             public Slots create() {
                 var baseSlots = (creator == null)? new AgoClass.TraceOwnerSlots(agoClass) : creator.create();
                 var slots = new RdbSlots(baseSlots);
+                if (agoClass.getSlotDefs() != null) {
+                    slots.allocateObjectSlots(agoClass.getSlotDefs().length);
+                }
                 slots.setId(rdbAdapter.idGenerator.nextId());
                 return slots;
             }

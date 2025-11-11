@@ -456,7 +456,7 @@ public class AgoClass extends Instance<MetaClass>{
         }
     }
 
-    protected AgoClass withScope(Instance<?> parentScope) {
+    public AgoClass withScope(Instance<?> parentScope) {
         if(parentScope == this.parentScope) return this;
         var cls = new AgoClass(this.classLoader, this.agoClass, this.fullname, this.name);
         cls.setParentScope(parentScope);

@@ -15,7 +15,7 @@ public class AgoInterface extends AgoClass{
     }
 
     @Override
-    protected AgoInterface withScope(Instance<?> parentScope) {
+    public AgoInterface withScope(Instance<?> parentScope) {
         if (parentScope == this.parentScope) return this;
         var copy = new AgoInterface(this.getClassLoader(), this.agoClass, this.fullname, this.name);
         copy.setParentScope(parentScope);

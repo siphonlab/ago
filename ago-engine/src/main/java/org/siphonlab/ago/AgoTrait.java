@@ -15,7 +15,7 @@ public class AgoTrait extends AgoClass{
     }
 
     @Override
-    protected AgoTrait withScope(Instance<?> parentScope) {
+    public AgoTrait withScope(Instance<?> parentScope) {
         if (parentScope == this.parentScope) return this;
         var copy = new AgoTrait(this.getClassLoader(), this.agoClass, this.fullname, this.name);
         copy.setParentScope(parentScope);

@@ -88,6 +88,10 @@ public class RdbEngine extends AgoEngine {
         return this.dumpingObjectMapper.writeValueAsString(object);
     }
 
+    public ObjectMapper getDumpingObjectMapper() {
+        return dumpingObjectMapper;
+    }
+
     // restore dumped json to Instance
     public Instance<?> restoreJson(String json) throws IOException {
         return this.dumpingObjectMapper.readValue(new StringReader(json), Instance.class);
@@ -101,11 +105,12 @@ public class RdbEngine extends AgoEngine {
     }
 
     public String jsonStringifySlots(Instance<?> instance) throws JsonProcessingException {
+        Slots slots = instance.getSlots();
         return dumpingObjectMapper
-                .writerFor(Slots.class)
+                .writerFor(slots.getClass())
                 .withAttribute("slots_class", instance.getAgoClass())
                 .withAttribute("slots_instance", instance)
-                .writeValueAsString(instance.getSlots());
+                .writeValueAsString(slots);
     }
 
     public String jsonStringifySlots(Slots slots, AgoClass agoClass) throws JsonProcessingException {

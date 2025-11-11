@@ -45,11 +45,6 @@ class ObjectRefInstance extends Instance<AgoClass> implements ObjectRefInstanceT
     }
 
     @Override
-    AgoClass getAgoClass() {
-        return deference().getAgoClass()
-    }
-
-    @Override
     public Slots getSlots() {
         return deference().getSlots();
     }
@@ -112,11 +107,6 @@ class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements 
     }
 
     @Override
-    AgoRunSpace getRunSpace() {
-        return recomposeAsCallFrame().getRunSpace()
-    }
-
-    @Override
     SourceLocation resolveSourceLocation() {
         return recomposeAsCallFrame().resolveSourceLocation()
     }
@@ -127,8 +117,10 @@ class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements 
     }
 
     @Override
-    F getAgoClass() {
-        return recomposeAsCallFrame().getAgoClass()
+    AgoRunSpace getRunSpace() {
+        var r =  super.getRunSpace()
+        if(r != null) return r;
+        return recomposeAsCallFrame().getRunSpace()
     }
 
     @Override

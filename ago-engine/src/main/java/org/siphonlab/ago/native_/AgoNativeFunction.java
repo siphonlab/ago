@@ -38,7 +38,7 @@ public class AgoNativeFunction extends AgoFunction {
     }
 
     @Override
-    protected AgoFunction withScope(Instance<?> parentScope) {
+    public AgoFunction withScope(Instance<?> parentScope) {
         if (parentScope == this.parentScope) return this;
         var copy = new AgoNativeFunction(this.getClassLoader(), this.agoClass, this.fullname, this.name);
         copy.setParentScope(parentScope);

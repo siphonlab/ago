@@ -1,5 +1,7 @@
 package org.siphonlab.ago.runtime.rdb.reactive;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import groovy.sql.GroovyRowResult;
 import org.agrona.collections.Long2ObjectHashMap;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.mina.util.IdentityHashSet;
@@ -10,6 +12,7 @@ import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
 
+import java.util.Map;
 import java.util.Set;
 
 
@@ -53,7 +56,24 @@ public class PersistentRdbEngine extends RdbEngine {
             if(!loadFromDb) saveInstance(agoClass);
         }
 
+        // parentScope, creator, slots not apply here
+        if(loadFromDb){
+            JsonAgoClassLoader jsonAgoClassLoader = (JsonAgoClassLoader) classLoader;
+            for (Map.Entry<String, GroovyRowResult> entry : jsonAgoClassLoader.getRowsByClassName().entrySet()) {
+                var agoClass = this.getClass(entry.getKey());
+                try {
+                    restoreClassStates(agoClass, entry.getValue());
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
         super.load(classLoader);
+    }
+
+    protected void restoreClassStates(AgoClass agoClass, GroovyRowResult row) throws JsonProcessingException {
+        throw new NotImplementedException();
     }
 
     @Override

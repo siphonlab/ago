@@ -51,7 +51,7 @@ public class AgoEnum extends AgoClass{
     }
 
     @Override
-    protected AgoEnum withScope(Instance<?> parentScope) {
+    public AgoEnum withScope(Instance<?> parentScope) {
         if (parentScope == this.parentScope) return this;
         var copy = new AgoEnum(this.getClassLoader(), this.agoClass, this.fullname, this.name);
         copy.setParentScope(parentScope);

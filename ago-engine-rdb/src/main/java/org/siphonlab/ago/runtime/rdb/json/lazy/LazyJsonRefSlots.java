@@ -6,10 +6,13 @@ import org.siphonlab.ago.Slots;
 import org.siphonlab.ago.runtime.rdb.JsonSlotMapper;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots;
-import org.siphonlab.ago.runtime.rdb.lazy.ReferenceInstanceTrait;
 import org.siphonlab.ago.runtime.rdb.json.JsonRefSlots;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
+
+    private final static Logger logger = LoggerFactory.getLogger(LazyJsonRefSlots.class);
 
     private final JsonSlotMapper jsonSlotMapper;
     private Instance<?> owner;
@@ -38,23 +41,6 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         this.saved = saved;
     }
 
-    @Override
-    public void setObject(int slot, Instance<?> value) {
-        super.setObject(slot, value);
-        if (value instanceof ReferenceInstanceTrait recomposeInstance) {
-            recomposeInstance.addReference(this.baseSlots, slot);
-        }
-    }
-
-    @Override
-    public Instance<?> getObject(int slot) {
-        Instance<?> value = super.getObject(slot);
-        if (value instanceof ReferenceInstanceTrait recomposeInstance) {
-            recomposeInstance.addReference(this.baseSlots, slot);
-        }
-        return value;
-    }
-
     public Instance<?> getOwner() {
         return owner;
     }
@@ -71,5 +57,16 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         this.restoreId(id);
     }
 
+    @Override
+    public void setInt(int slot, int value) {
+        logger.info("%s setInt %d, %d".formatted(this.getObjectRef(), slot, value));
+        super.setInt(slot, value);
+    }
 
+    @Override
+    public int getInt(int slot) {
+        var r = super.getInt(slot);
+        logger.info("%s getInt %d, got %d".formatted(this.getObjectRef(), slot, r));
+        return r;
+    }
 }

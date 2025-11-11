@@ -21,6 +21,8 @@ import static org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter.*;
 
 public class JsonAgoClassLoader extends AgoClassLoader {
 
+    private Map<String, GroovyRowResult> rowsByClassName;
+
     public JsonAgoClassLoader(PGJsonSlotsCreatorFactory slotsCreatorFactory) {
         super(slotsCreatorFactory);
     }
@@ -63,83 +65,83 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         // stage2, resolve hierarchy
         for (AgoClass agoClass : classes) {
             GroovyRowResult row = rowsByClassName.get(agoClass.getFullname());
-            agoClass.setSuperClass(getClass((String) row.get("super_class")));
-            String[] interfaces = loadPgStringArray((PgArray) row.get("interfaces"));
-            if(interfaces != null)
-                agoClass.setInterfaces(Arrays.stream(interfaces).map(this::getClass).toArray(AgoClass[]::new));
-            String permitClass = (String)row.get("permit_class");
-            if(permitClass != null) agoClass.setPermitClass(getClass(permitClass));
+            loadAgoClass(agoClass, row);
+        }
 
-            String[] children = loadPgStringArray((PgArray) row.get("children"));
-            if(children != null)
-                agoClass.setChildren(Arrays.stream(children).map(this::getClass).toArray(AgoClass[]::new));
+        // parentScope, creator, slots not apply here
+        this.rowsByClassName = rowsByClassName;
+    }
 
-            String[] methods = loadPgStringArray((PgArray) row.get("methods"));
-            if(methods != null)
-                agoClass.setMethods(Arrays.stream(methods).map(fullname -> (AgoFunction)getClass(fullname)).toArray(AgoFunction[]::new));
+    public Map<String, GroovyRowResult> getRowsByClassName() {
+        return rowsByClassName;
+    }
 
-            String parent = (String) row.get("parent");
-            if (parent != null) agoClass.setParent(getClass(parent));
-            String parameterizedBaseClass = (String) row.get("parameterized_base_class");
-            if (parameterizedBaseClass != null) agoClass.setParameterizedBaseClass(getClass(parameterizedBaseClass));
+    private void loadAgoClass(AgoClass agoClass, GroovyRowResult row) throws SQLException {
+        agoClass.setSuperClass(getClass((String) row.get("super_class")));
+        String[] interfaces = loadPgStringArray((PgArray) row.get("interfaces"));
+        if(interfaces != null)
+            agoClass.setInterfaces(Arrays.stream(interfaces).map(this::getClass).toArray(AgoClass[]::new));
+        String permitClass = (String) row.get("permit_class");
+        if(permitClass != null) agoClass.setPermitClass(getClass(permitClass));
 
-            Map<String,Object>[] slotDefs = loadPgJsonArrayAsList((PgArray)row.get("slotdefs"));
-            if(slotDefs != null)
-                agoClass.setSlotDefs(Arrays.stream(slotDefs).map(this::loadSlotDef).toArray(AgoSlotDef[]::new));
+        String[] children = loadPgStringArray((PgArray) row.get("children"));
+        if(children != null)
+            agoClass.setChildren(Arrays.stream(children).map(this::getClass).toArray(AgoClass[]::new));
 
-            Map<String, Object>[] fields = loadPgJsonArrayAsList((PgArray)row.get("fields"));
-            if (fields != null)
-                agoClass.setFields(Arrays.stream(fields).map(this::loadField).toArray(AgoField[]::new));
+        String[] methods = loadPgStringArray((PgArray) row.get("methods"));
+        if(methods != null)
+            agoClass.setMethods(Arrays.stream(methods).map(fullname -> (AgoFunction)getClass(fullname)).toArray(AgoFunction[]::new));
 
-            Map<String,Object> concreteTypeInfo = loadPgJsonAsMap((PGobject)row.get("concrete_type_info"));
-            if(concreteTypeInfo != null)
-                agoClass.setConcreteTypeInfo(loadConcreteTypeInfo(concreteTypeInfo));
+        String parent = (String) row.get("parent");
+        if (parent != null) agoClass.setParent(getClass(parent));
+        String parameterizedBaseClass = (String) row.get("parameterized_base_class");
+        if (parameterizedBaseClass != null) agoClass.setParameterizedBaseClass(getClass(parameterizedBaseClass));
 
-            if(agoClass instanceof AgoFunction agoFunction){
-                Map<String, Object>[] variables = loadPgJsonArrayAsList((PgArray)row.get("variables"));
-                TypeInfo resultType = loadTypeInfo(loadPgJsonAsMap((PGobject) row.get("result_type")));
-                agoFunction.setResultType(resultType.getTypeCode(), resultType.getAgoClass());
+        Map<String,Object>[] slotDefs = loadPgJsonArrayAsList((PgArray) row.get("slotdefs"));
+        if(slotDefs != null)
+            agoClass.setSlotDefs(Arrays.stream(slotDefs).map(this::loadSlotDef).toArray(AgoSlotDef[]::new));
 
-                if (variables != null)
-                    agoFunction.setVariables(Arrays.stream(variables).map(this::loadVariable).toArray(AgoVariable[]::new));
+        Map<String, Object>[] fields = loadPgJsonArrayAsList((PgArray) row.get("fields"));
+        if (fields != null)
+            agoClass.setFields(Arrays.stream(fields).map(this::loadField).toArray(AgoField[]::new));
 
-                Map<String, Object>[] parameters = loadPgJsonArrayAsList((PgArray)row.get("parameters"));
-                if (parameters != null)
-                    agoFunction.setParameters(Arrays.stream(parameters).map(this::loadParameter).toArray(AgoParameter[]::new));
+        Map<String,Object> concreteTypeInfo = loadPgJsonAsMap((PGobject) row.get("concrete_type_info"));
+        if(concreteTypeInfo != null)
+            agoClass.setConcreteTypeInfo(loadConcreteTypeInfo(concreteTypeInfo));
 
-                agoFunction.setCode(loadPgIntArray((PgArray) row.get("code")));
+        if(agoClass instanceof AgoFunction agoFunction){
+            Map<String, Object>[] variables = loadPgJsonArrayAsList((PgArray) row.get("variables"));
+            TypeInfo resultType = loadTypeInfo(loadPgJsonAsMap((PGobject) row.get("result_type")));
+            agoFunction.setResultType(resultType.getTypeCode(), resultType.getAgoClass());
 
-                Map<String, Object>[] switchTables = loadPgJsonArrayAsList((PgArray)row.get("switch_tables"));
-                if(switchTables != null)
-                    agoFunction.setSwitchTables(Arrays.stream(switchTables).map(this::loadSwitchTable).toArray(SwitchTable[]::new));
+            if (variables != null)
+                agoFunction.setVariables(Arrays.stream(variables).map(this::loadVariable).toArray(AgoVariable[]::new));
 
-                Map<String, Object>[] tryCatchItems = loadPgJsonArrayAsList((PgArray)row.get("try_catch_items"));
-                if (tryCatchItems != null)
-                    agoFunction.setTryCatchItems(Arrays.stream(tryCatchItems).map(this::loadTryCatchItem).toArray(TryCatchItem[]::new));
+            Map<String, Object>[] parameters = loadPgJsonArrayAsList((PgArray) row.get("parameters"));
+            if (parameters != null)
+                agoFunction.setParameters(Arrays.stream(parameters).map(this::loadParameter).toArray(AgoParameter[]::new));
 
-                Map<String, Object>[] sourceMapEntries = loadPgJsonArrayAsList((PgArray)row.get("source_map_entries"));
-                if (sourceMapEntries != null)
-                    agoFunction.setSourceMap(Arrays.stream(sourceMapEntries).map(this::loadSourceMapEntry).toArray(SourceMapEntry[]::new));
+            agoFunction.setCode(loadPgIntArray((PgArray) row.get("code")));
 
-                if(agoFunction instanceof AgoNativeFunction nativeFunction){
-                    generateNativeCaller(nativeFunction);
-                }
-            }
+            Map<String, Object>[] switchTables = loadPgJsonArrayAsList((PgArray) row.get("switch_tables"));
+            if(switchTables != null)
+                agoFunction.setSwitchTables(Arrays.stream(switchTables).map(this::loadSwitchTable).toArray(SwitchTable[]::new));
 
-            if ((Boolean) row.get("has_slots_creator")) {
-                agoClass.setSlotsCreator(this.getSlotsCreatorFactory().generateSlotsCreator(agoClass));
+            Map<String, Object>[] tryCatchItems = loadPgJsonArrayAsList((PgArray) row.get("try_catch_items"));
+            if (tryCatchItems != null)
+                agoFunction.setTryCatchItems(Arrays.stream(tryCatchItems).map(this::loadTryCatchItem).toArray(TryCatchItem[]::new));
+
+            Map<String, Object>[] sourceMapEntries = loadPgJsonArrayAsList((PgArray) row.get("source_map_entries"));
+            if (sourceMapEntries != null)
+                agoFunction.setSourceMap(Arrays.stream(sourceMapEntries).map(this::loadSourceMapEntry).toArray(SourceMapEntry[]::new));
+
+            if(agoFunction instanceof AgoNativeFunction nativeFunction){
+                generateNativeCaller(nativeFunction);
             }
         }
 
-        // parentScope, creator
-
-        // a placeholder function for resume
-        if (!this.classByName.containsKey("@resume#")) {
-            AgoFunction resumeFunction = new AgoFunction(this, this.getTheMeta(), "@resume#", "@resume#");
-            resumeFunction.setClassId(classes.size());
-            resumeFunction.setSlotsCreator(this.getSlotsCreatorFactory().generateSlotsCreator(resumeFunction));
-            this.classes.add(resumeFunction);
-            this.classByName.put(resumeFunction.getFullname(), resumeFunction);
+        if ((Boolean) row.get("has_slots_creator")) {
+            agoClass.setSlotsCreator(this.getSlotsCreatorFactory().generateSlotsCreator(agoClass));
         }
     }
 

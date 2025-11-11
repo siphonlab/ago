@@ -53,6 +53,9 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
                     return adapterSupplier.get().mapType(typeCode, agoClass).getTypeName();
                 }
             });
+            if(agoClass.getSlotDefs() != null) {
+                r.allocateObjectSlots(agoClass.getSlotDefs().length);
+            }
             return r;
         }
 

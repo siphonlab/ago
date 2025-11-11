@@ -44,10 +44,10 @@ class B{
         public fun main(args as string){
             //var t = new A.B()   // error: not static
 
-            var t = new A()
-            var b as A.B = t.b()
+            var a = new A()
+            var b as A.B = a.b()
             Trace.print(b.m(3))       // 2033
-            Trace.print(t.b().m(4));  // 2034
+            Trace.print(a.b().m(4));  // 2034
 
             //var t2 = new my.test.A.B();       // error: not static
             //Trace.print(t2.m(5))      // 2035
