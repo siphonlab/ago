@@ -20,7 +20,98 @@
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr4</artifactId>
-            <version>4.13.1</version>
+            <version>4.13.2</version>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/gen</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>4.13.2</version> <!-- Use the appropriate version -->
+                <executions>
+                    <execution>
+                        <id>antlr-generate</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <sourceDirectory>${project.basedir}/src/main/antlr/</sourceDirectory>
+                    <outputDirectory>${project.basedir}/gen/org/siphonlab/ago/compiler/parser</outputDirectory>
+<!--                    <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>-->
+<!--                    <outputDirectory>${project.build.directory}/generated-sources/antlr4/org/siphonlab/ago/compiler/parser</outputDirectory>-->
+<!--                    <listener>true</listener>-->
+<!--                    <visitor>true</visitor>-->
+<!--                    <arguments>-->
+<!--                        <argument>-package</argument>-->
+<!--                        <argment>org.siphonlab.ago.compiler.parser</argment>-->
+<!--                    </arguments>-->
+                </configuration>
+            </plugin>
+
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-antrun-plugin</artifactId>-->
+<!--                <version>3.1.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>move-antlr-sources</id>-->
+<!--                        <phase>generate-sources</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>run</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <target>-->
+<!--                                <property name="antlr.source.root"-->
+<!--                                          value="${project.build.directory}/generated-sources/antlr4"/>-->
+<!--                                <property name="antlr.target.dir"-->
+<!--                                          value="${project.build.directory}/generated-sources/antlr4/org/siphonlab/ago/compiler/parser"/>-->
+
+<!--                                <mkdir dir="${antlr.target.dir}"/>-->
+
+<!--                                <move todir="${antlr.target.dir}">-->
+<!--                                    <fileset dir="${antlr.source.root}">-->
+<!--                                        <include name="**/*.*"/>-->
+<!--                                    </fileset>-->
+<!--                                </move>-->
+<!--                            </target>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>22</source>
+                    <target>22</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

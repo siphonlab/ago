@@ -9,6 +9,14 @@
     <artifactId>ago-engine-rdb</artifactId>
     <name>Archetype - ago-engine-rdb</name>
     <url>http://maven.apache.org</url>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>groovy-plugins-release</id>
+            <url>https://groovy.jfrog.io/artifactory/plugins-release</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencies>
         <dependency>
             <groupId>org.siphonlab</groupId>
@@ -57,6 +65,14 @@
             <version>2.9.0</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.apache.groovy/groovy-all -->
+        <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <version>5.0.2</version>
+            <type>pom</type>
+        </dependency>
+
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -71,4 +87,55 @@
         </dependency>
 
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>22</source>
+                    <target>22</target>
+                    <compilerId>groovy-eclipse-compiler</compilerId>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-compiler</artifactId>
+                        <version>3.9.1</version>
+                    </dependency>
+                    <!-- https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-eclipse-batch -->
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-eclipse-batch</artifactId>
+                        <version>5.0.2-01</version> <!-- Java 17+ -->
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+<!--            <plugin>-->
+<!--                <groupId>org.codehaus.gmavenplus</groupId>-->
+<!--                <artifactId>gmavenplus-plugin</artifactId>-->
+<!--                <version>3.0.2</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <goals>-->
+<!--                            <goal>compile</goal>-->
+<!--                            &lt;!&ndash;                            <goal>testCompile</goal>&ndash;&gt;-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+<!--            <plugin>-->
+<!--                <artifactId>maven-compiler-plugin</artifactId>-->
+<!--                <version>3.13.0</version>-->
+<!--                <configuration>-->
+<!--                    <source>22</source>-->
+<!--                    <target>22</target>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+
+        </plugins>
+    </build>
 </project>

@@ -42,14 +42,6 @@
             <version>1.32.5</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.apache.groovy/groovy-all -->
-        <dependency>
-            <groupId>org.apache.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
-            <version>5.0.2</version>
-            <type>pom</type>
-        </dependency>
-
         <!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->
         <dependency>
             <groupId>io.projectreactor</groupId>
