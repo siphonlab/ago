@@ -4,6 +4,7 @@ import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 
 public class InvokeFunctor extends ExpressionBase{
 
@@ -38,6 +39,10 @@ public class InvokeFunctor extends ExpressionBase{
                     blockCompiler.getCode().accept(localVar.getVariableSlot());
                 }
             }
+            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                Assign.to(instance, new NullLiteral(functor.inferType())).termVisit(blockCompiler);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {
@@ -52,7 +57,10 @@ public class InvokeFunctor extends ExpressionBase{
             Var.LocalVar instance = (Var.LocalVar) functor.visit(blockCompiler);
 
             blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
-
+            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                Assign.to(instance, new NullLiteral(functor.inferType())).termVisit(blockCompiler);
+            }
         } catch(CompilationError e){
             throw e;
         } finally{

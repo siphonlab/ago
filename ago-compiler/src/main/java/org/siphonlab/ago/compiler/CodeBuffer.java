@@ -178,7 +178,7 @@ public class CodeBuffer {
                 ls.addInt(((ClassRefLiteral)literal).value);
                 break;
             default:
-                throw new IllegalArgumentException(typeCode + " not support +");
+                throw new IllegalArgumentException(typeCode + " not support");
         }
     }
 
@@ -310,6 +310,11 @@ public class CodeBuffer {
     }
 
     public void assignLiteral(SlotDef targetSlot, Literal<?> value) {
+        if(value instanceof NullLiteral){
+            ls.addInt(Const.const_n_vc);
+            slot(targetSlot);
+            return;
+        }
         TypeCode typeCode = targetSlot.getTypeCode();
         ls.addInt(Const.KIND_CONST | (typeCode.getValue() << 16) | 0x01_02 + additionSizeOf(typeCode));      // const_i_vc
         slot(targetSlot);
@@ -317,6 +322,12 @@ public class CodeBuffer {
     }
 
     public void assignLiteral(SlotDef targetInstanceSlot, SlotDef targetSlot, Literal<?> value) {
+        if (value instanceof NullLiteral) {
+            slot(targetInstanceSlot);
+            ls.addInt(Const.const_fld_n_ovc);
+            slot(targetSlot);
+            return;
+        }
         TypeCode typeCode = targetSlot.getTypeCode();
         ls.addInt(Const.KIND_CONST | (typeCode.getValue() << 16) | 0x02_03 + additionSizeOf(typeCode));    // const_fld_i_ovc
         slot(targetInstanceSlot);

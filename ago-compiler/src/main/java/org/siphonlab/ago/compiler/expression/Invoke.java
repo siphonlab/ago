@@ -10,6 +10,7 @@ import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.expression.literal.VoidLiteral;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 
@@ -121,6 +122,10 @@ public class Invoke extends ExpressionBase{
                     blockCompiler.getCode().accept(localVar.getVariableSlot());
                 }
             }
+            if(instance.varMode == Var.LocalVar.VarMode.Temp){
+                // release the register after invoke if it's a temp var
+                Assign.to(instance,new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {
@@ -142,6 +147,10 @@ public class Invoke extends ExpressionBase{
 
             blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
 
+            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                Assign.to(instance, new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {

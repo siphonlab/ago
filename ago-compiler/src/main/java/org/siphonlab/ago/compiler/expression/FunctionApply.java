@@ -7,6 +7,7 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 
 public class FunctionApply extends ExpressionBase{
 
@@ -53,6 +54,10 @@ public class FunctionApply extends ExpressionBase{
                     blockCompiler.getCode().accept(localVar.getVariableSlot());
                 }
             }
+            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                Assign.to(instance, new NullLiteral(functionDef)).termVisit(blockCompiler);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {
@@ -68,6 +73,11 @@ public class FunctionApply extends ExpressionBase{
             blockCompiler.enter(this);
             Var.LocalVar instance = (Var.LocalVar) functionInstance.visit(blockCompiler);
             blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());        // the returned value needn't accepted
+
+            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                Assign.to(instance, new NullLiteral(functionDef)).termVisit(blockCompiler);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {

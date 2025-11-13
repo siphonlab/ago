@@ -8,6 +8,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.expression.literal.VoidLiteral;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
@@ -101,6 +102,10 @@ public class InvokeExpression extends ExpressionBase{
                     blockCompiler.getCode().accept(localVar.getVariableSlot());
                 }
             }
+            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                Assign.to(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {
@@ -117,6 +122,11 @@ public class InvokeExpression extends ExpressionBase{
             var instance = prepareInvocation(blockCompiler);
 
             blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());        // the returned value needn't accepted
+
+            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                Assign.to(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {
