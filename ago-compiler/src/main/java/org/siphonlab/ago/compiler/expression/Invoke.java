@@ -108,8 +108,11 @@ public class Invoke extends ExpressionBase{
             blockCompiler.enter(this);
 
             var instance = prepareInvocation(blockCompiler);
+
             if (instance == null)
                 return;
+
+            blockCompiler.lockRegister(instance);
             if (invokeMode.isAsync()) {
                 blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot());
             } else {
@@ -126,6 +129,7 @@ public class Invoke extends ExpressionBase{
                 // release the register after invoke if it's a temp var
                 Assign.to(instance,new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
             }
+            blockCompiler.releaseRegister(instance);
         } catch (CompilationError e) {
             throw e;
         } finally {

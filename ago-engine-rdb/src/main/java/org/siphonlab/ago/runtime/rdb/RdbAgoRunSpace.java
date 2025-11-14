@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Set;
 
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.*;
+
 public class RdbAgoRunSpace extends AgoRunSpace {
 
     private final static Logger logger = LoggerFactory.getLogger(RdbAgoRunSpace.class);
@@ -42,17 +44,23 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         this.setRunningState(RunningState.RUNNING);
         CallFrame<?> cf = null;
         boolean saveAtEnd = false;
-        while (this.currCallFrame != null && ((this.getRunningState() & RunningState.PAUSE_OR_WAIT_RESULT) == 0)) {
+        while (this.currCallFrame != null && !RunningState.isPausingOrWaitingResult(this.getRunningState())) {
             cf = currCallFrame;
+
             if(cf instanceof ObjectRefCallFrame<?> objectRefCallFrame){
                 cf = currCallFrame = objectRefCallFrame.recomposeAsCallFrame();
+                ReferenceCounter.increaseRefOfCallFrame(cf, Reason.RunYouCallFrame);
+                objectRefCallFrame.releaseRef(ReferenceCounter.Reason.ReplaceWithDeferenceFrame);
             }
+
             rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+
             this.currCallFrame.run();
+
             if(this.currCallFrame == null) {     // exited goto tryComplete
                 saveAtEnd = true;
             } else {        // whenever this.currCallFrame == cf or this.currCallFrame != cf, only save cf, for currCallFrame will save at LN39
-                if(cf != currCallFrame){
+                if(!ObjectRefOwner.equals(cf, this.currCallFrame)){
                     assert !cf.isSuspended();
                     // cf is calling currCallFrame
                     rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
@@ -60,11 +68,15 @@ public class RdbAgoRunSpace extends AgoRunSpace {
                     // it's suspended
                     rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
                 }
+                // for those cases that rc > 0
+                releaseDeferenceSlotsAndContextBeforeSave(cf);
             }
         }
         tryComplete();
-        if(saveAtEnd && cf != null)
+        if(saveAtEnd) {
             rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+            releaseDeferenceSlotsAndContextBeforeSave(cf);
+        }
     }
 
     @Override
@@ -131,10 +143,16 @@ public class RdbAgoRunSpace extends AgoRunSpace {
 
     @Override
     public void setCurrCallFrame(CallFrame<?> currCallFrame) {
-        if(this.currCallFrame == currCallFrame) return;
+        if (ObjectRefOwner.equals(this.currCallFrame, currCallFrame)) return;
+        releaseRefOfCallFrame(this.currCallFrame, ReferenceCounter.Reason.DropCurrentCallFrame);
+
         super.setCurrCallFrame(currCallFrame);
+
+        increaseRefOfCallFrame(currCallFrame, ReferenceCounter.Reason.InstallCurrentCallFrame);
+
         rdbAdapter.updateRunSpace(this);
     }
+
 
     @Override
     protected void setException(Instance<?> exception) {
@@ -150,8 +168,12 @@ public class RdbAgoRunSpace extends AgoRunSpace {
 
     @Override
     public void interrupt() {
-        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(this.currCallFrame, RunningState.INTERRUPTED));
+        CallFrame<?> callFrame = this.currCallFrame;
         super.interrupt();
+        if(callFrame instanceof ReferenceCounter rc){
+            rc.releaseRef(ReferenceCounter.Reason.CallFrameInterrupt);
+        }
+        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(callFrame, RunningState.INTERRUPTED));
     }
 
     public void resumeByRestore() {
@@ -165,6 +187,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
                         Instance<?> exception, ResultSlots resultSlots) {
         this.runningState = runningState;
         this.currCallFrame = currCallFrame;
+        if (currCallFrame instanceof ReferenceCounter rc) rc.increaseRef(ReferenceCounter.Reason.RestoreCallFrame);
         this.parent = parent;
         if(forkedRunspaces != null) this.forkedSpaces.addAll(forkedRunspaces);
         if(pausingParents != null) this.pausingParents.addAll(pausingParents);

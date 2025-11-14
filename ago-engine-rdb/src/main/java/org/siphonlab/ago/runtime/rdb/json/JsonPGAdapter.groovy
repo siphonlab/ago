@@ -220,7 +220,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
 
-    void updateCallFrameRunningState(CallFrame callFrame, byte state) {
+    void updateCallFrameRunningState(CallFrame callFrame, byte runningState) {
         var slots = callFrame.slots as JsonRefSlots
         logger.info("UPDATE " + slots.objectRef)
         var map = [
@@ -228,7 +228,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 "suspended": callFrame.suspended,
                 "runspace" : (callFrame.runSpace as RdbAgoRunSpace)?.id
         ]
-        if(state != (byte)-1) map["state"] = state
+        if(runningState != (byte)-1) map["state"] = runningState
 
         if(callFrame instanceof AsyncEntranceCallFrame){
             map["is_async_entrance"] = true
@@ -462,8 +462,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     void saveAgoInstance(Instance instance) {
         var slots = instance.slots as JsonRefSlots;
-        var parentScope = instance.parentScope?.slots as JsonRefSlots;
-        var creator = instance.creator?.slots as JsonRefSlots;
+        var parentScope = ObjectRefOwner.extractObjectRef(instance.parentScope);
+        var creator = ObjectRefOwner.extractObjectRef(instance.creator);
 
 //        var defaultSlots = defaultSlots(instance.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
@@ -472,8 +472,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         sql.executeInsert("""INSERT INTO ago_instance
                                     (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots)
                                 VALUES(?, ?, ?, ?, ?, ?, ?, ?)""",
-                [slots.objectRef.id() as Object, applicationId, instance.agoClass.fullname, parentScope?.objectRef?.id(), parentScope?.objectRef?.className(),
-                 creator?.objectRef?.id(), creator?.objectRef?.className(),
+                [slots.objectRef.id() as Object, applicationId, instance.agoClass.fullname, parentScope?.id(), parentScope?.className(),
+                 creator?.id(), creator?.className(),
                  toJsonb((classManager as RdbEngine).jsonStringifySlots(instance))]
         )
     }

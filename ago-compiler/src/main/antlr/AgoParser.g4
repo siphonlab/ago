@@ -33,7 +33,9 @@
 // $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
 
 parser grammar AgoParser;
-
+@header {
+    package org.siphonlab.ago.compiler.parser;
+}
 options {
     tokenVocab = AgoLexer;
     superClass = AgoParserBase;

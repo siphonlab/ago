@@ -291,49 +291,42 @@ public abstract class RdbAdapter {
         return parameterIndex + 1;
     }
 
-    public void saveInstance(Instance<?> instance) {
-        Set<Instance<?>> saved = new HashSet<>();
+    protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved){
+        saved.add(instance);
 
-        LongHashSet ids = new LongHashSet();
-
-        ArrayDeque<Instance<?>> stack = new ArrayDeque<>();
-        stack.push(instance);
-        while (!stack.isEmpty()) {
-            instance = stack.pop();
-            saved.add(instance);
-
-            if (instance.getSlots() instanceof RdbSlots rdbSlots) {
-                if (boxTypes.isBoxTypeOrWithin(instance.getAgoClass()))
-                    continue;
-                switch (rdbSlots.getRowState()) {
-                    case RowState.Added:
-                        ids.add(rdbSlots.getId());
-                        rdbSlots.setRowState(RowState.Saving);
-                        insert(instance, rdbSlots, instance.getAgoClass());
-                        break;
-                    case RowState.Modified:
-                        rdbSlots.setRowState(RowState.Saving);
-                        update(instance, rdbSlots, instance.getAgoClass());       // need load ID
-                        break;
+        if (instance.getSlots() instanceof RdbSlots rdbSlots) {
+            if (boxTypes.isBoxTypeOrWithin(instance.getAgoClass()))
+                return;
+            switch (rdbSlots.getRowState()) {
+                case RowState.Added:
+                    rdbSlots.setRowState(RowState.Saving);
+                    insert(instance, rdbSlots, instance.getAgoClass());
+                    break;
+                case RowState.Modified:
+                    rdbSlots.setRowState(RowState.Saving);
+                    update(instance, rdbSlots, instance.getAgoClass());       // need load ID
+                    break;
 //                    case RowState.Deleted:
 //                        delete(rdbSlots);
 //                        break;
-                    default:
-                        if(instance instanceof CallFrameWithRunningState<?> callFrameWithRunningState){
-                            update(instance, rdbSlots, instance.getAgoClass());
-                        }
-                }
-                rdbSlots.setRowState(RowState.Unchanged);
-                rdbSlots.clearDetachedInstances();
-
-                if (rdbSlots.getUsingInstances() != null) {
-                    for (Instance<?> usingInstance : rdbSlots.getUsingInstances()) {
-                        if (!saved.contains(usingInstance))
-                            stack.push(usingInstance);
+                default:
+                    if (instance instanceof CallFrameWithRunningState<?> callFrameWithRunningState) {
+                        update(instance, rdbSlots, instance.getAgoClass());
                     }
+            }
+            rdbSlots.setRowState(RowState.Unchanged);
+            rdbSlots.clearDetachedInstances();
+
+            if (rdbSlots.getUsingInstances() != null) {
+                for (Instance<?> usingInstance : rdbSlots.getUsingInstances()) {
+                    if (!saved.contains(usingInstance))
+                        saveInstance(usingInstance, saved);
                 }
             }
         }
+    }
+    public void saveInstance(Instance<?> instance) {
+        saveInstance(instance, new HashSet<>());
     }
 
     public void saveRunSpace(RdbAgoRunSpace runSpace) {

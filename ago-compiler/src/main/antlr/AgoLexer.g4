@@ -35,6 +35,9 @@
 
 lexer grammar AgoLexer;
 
+@header {
+    package org.siphonlab.ago.compiler.parser;
+}
 options {
     superClass = AgoLexerBase;
 }

@@ -161,11 +161,6 @@ public class RdbEngine extends AgoEngine {
     }
 
     @Override
-    public Instance<?> createNativeInstance(Instance<?> parentScope, int classId, CallFrame<?> creator) {
-        return super.createNativeInstance(parentScope, classId, creator);
-    }
-
-    @Override
     public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, AgoRunSpace runSpace) {
         var inst = super.createInstanceFromScopedClass(scopedClass, creator, runSpace);
 //        ((RdbAgoSpace) runSpace).collectInstance(inst);

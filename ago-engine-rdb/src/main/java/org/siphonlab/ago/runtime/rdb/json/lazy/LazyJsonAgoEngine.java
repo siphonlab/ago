@@ -13,7 +13,7 @@ import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.json.*;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
-import org.siphonlab.ago.runtime.rdb.lazy.ReferenceableInstance;
+import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 
 import java.util.*;
@@ -99,42 +99,6 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     public void restoreSlots(LazyJsonRefSlots jsonRefSlots, long id, AgoClass agoClass, String json) throws JsonProcessingException {
         jsonRefSlots.setId(id);
         super.restoreSlots(jsonRefSlots, agoClass, json);
-
-        mergeInstances(jsonRefSlots, agoClass);
-    }
-
-    private static void mergeInstances(LazyJsonRefSlots jsonRefSlots, AgoClass agoClass) {
-        // merge same instance and deference
-        Map<ObjectRef, Instance<?>> found = new HashMap<>();
-        for (AgoSlotDef slotDef : agoClass.getSlotDefs()) {
-            if(slotDef.getTypeCode() == TypeCode.OBJECT){
-                var obj = jsonRefSlots.getObject(slotDef.getIndex());
-                if(obj == null) continue;
-                ObjectRef objectRef = extractObjectRef(obj);
-                Instance<?> existed = found.get(objectRef);
-                if(existed != null) {
-                    jsonRefSlots.getBaseSlots().setObject(slotDef.getIndex(), existed);
-                    jsonRefSlots.getObjectSlots()[slotDef.getIndex()] = existed;
-                } else {
-                    jsonRefSlots.getObjectSlots()[slotDef.getIndex()] = obj;
-                    found.put(objectRef, obj);
-                }
-            }
-        }
-        if(jsonRefSlots.getUsingInstances() != null){
-            Set<Instance<?>> newUsingInstances = new HashSet<>();
-            for (Instance<?> obj : jsonRefSlots.getUsingInstances()) {
-                if (obj == null) continue;
-                ObjectRef objectRef = extractObjectRef(obj);
-                Instance<?> existed = found.get(objectRef);
-                if (existed != null) {
-                    newUsingInstances.add(existed);
-                } else {
-                    newUsingInstances.add(obj);
-                }
-            }
-            jsonRefSlots.restoreState(newUsingInstances, jsonRefSlots.getRowState());
-        }
     }
 
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, CallFrame<?> caller, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {
@@ -152,6 +116,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         // it cut off caller chain so that only running CallFrame living in the memory
         CallFrame<?> callerRef = toObjectRefCallFrame(caller);
         inst.setCaller(callerRef);
+
         if(Objects.equals(caller, creator)){
             inst.setCreator(callerRef);
         } else {
@@ -159,21 +124,6 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         }
         saveInstance(inst);
         return inst;
-    }
-
-    public static CallFrame<?> toObjectRefCallFrame(CallFrame<?> callFrame){
-        if (callFrame instanceof ReferenceableInstance) {
-            ObjectRefInstanceTrait r = ((ReferenceableInstance) callFrame).toObjectRefInstance();
-            var cf = (CallFrame<?>) r;
-            cf.setRunSpace(callFrame.getRunSpace());
-            return cf;
-        }
-        return callFrame;
-    }
-
-    @Override
-    public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        return super.createNativeInstance(parentScope, agoClass, creator);
     }
 
     @Override
@@ -188,7 +138,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         Slots slots = agoClass.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);
 
-        var inst = new Instance<>(slots, agoClass);
+        var inst = new DeferenceInstance((LazyJsonRefSlots) slots,agoClass,this);
         if (parentScope != null) inst.setParentScope(parentScope);
         inst.setCreator(creator);
 
@@ -196,6 +146,10 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         return inst;
     }
 
+    @Override
+    public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
+        return super.createNativeInstance(parentScope, agoClass, creator);
+    }
 
     @Override
     public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, AgoRunSpace runSpace) {
@@ -235,4 +189,18 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
             }
         }
     }
+
+    public static CallFrame<?> toObjectRefCallFrame(CallFrame<?> callFrame) {
+        if(callFrame instanceof EntranceCallFrame<?> entranceCallFrame){
+            callFrame =entranceCallFrame.getInner();
+        }
+        if (callFrame instanceof DeferenceObject) {
+            ObjectRefInstanceTrait r = ((DeferenceObject) callFrame).toObjectRefInstance();
+            var cf = (CallFrame<?>) r;
+            cf.setRunSpace(callFrame.getRunSpace());
+            return cf;
+        }
+        return callFrame;
+    }
+
 }

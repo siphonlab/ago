@@ -1,7 +1,8 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%-5level %logger\(%F:%line\) - %msg%n</pattern>
+<!--            <pattern>%-5level %logger\(%F:%line\) - %msg%n</pattern>-->
+            <pattern>%msg%n</pattern>
         </encoder>
     </appender>
 
@@ -18,6 +19,7 @@
 
     <logger name="ch.qos.logback" level="OFF"/>
     <logger name="org.siphonlab.ago.classloader.ClassHeader" level="OFF"/>
+    <logger name="org.siphonlab.ago.compiler" level="OFF"/>
     <logger name="org.siphonlab.ago.compiler.ClassDef" level="OFF"/>
     <logger name="org.siphonlab.ago.AgoFrame" level="OFF" />
     <logger name="org.siphonlab.ago.compiler.AgoClassParser" level="OFF"/>

@@ -6,4 +6,6 @@ import org.siphonlab.ago.runtime.rdb.ObjectRef;
 public interface DereferenceAdapter {
 
     Instance<?> dereference(ObjectRef objectRef);
+
+    void release(ObjectRef objectRef);
 }

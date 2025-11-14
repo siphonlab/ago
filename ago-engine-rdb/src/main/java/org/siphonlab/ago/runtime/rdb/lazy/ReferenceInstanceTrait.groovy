@@ -21,7 +21,17 @@ public trait ReferenceInstanceTrait {
         return deferenced = inst;
     }
 
+    Instance getExistedDeferenced(){
+        return deferenced;
+    }
+
+    void setDeferenced(Instance deferenced){
+        this.deferenced = deferenced
+    }
+
     public abstract Instance<?> doDeference();
 
-
+    public void cleanDeferencedInstance(){
+        deferenced = null;
+    }
 }

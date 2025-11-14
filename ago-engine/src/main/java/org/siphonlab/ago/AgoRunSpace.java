@@ -26,6 +26,13 @@ public class AgoRunSpace implements Runnable{
         public static final byte PAUSE_OR_WAIT_RESULT   = 0b0000_1100;
         public static final byte DE_PAUSE_MASK          = (byte)0b1111_1011;
         public static final byte DE_AWAIT_RESULT_MASK   = (byte)0b1111_0111;
+
+        public static boolean isPausingOrWaitingResult(byte runningState){
+            return (runningState & PAUSE_OR_WAIT_RESULT) != 0;
+        }
+        public static boolean isFinish(byte runningState){
+            return (runningState & (DONE | ERROR | INTERRUPTED)) != 0;
+        }
     }
 
     private final static Logger logger = LoggerFactory.getLogger(AgoRunSpace.class);
@@ -122,7 +129,7 @@ public class AgoRunSpace implements Runnable{
         }
 
         this.setRunningState(RunningState.RUNNING);
-        while (this.currCallFrame != null && ((this.getRunningState() & RunningState.PAUSE_OR_WAIT_RESULT) == 0)) {
+        while (this.currCallFrame != null && !RunningState.isPausingOrWaitingResult(this.getRunningState())) {
             this.currCallFrame.run();
         }
         tryComplete();

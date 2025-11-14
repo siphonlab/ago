@@ -2,6 +2,8 @@ package org.siphonlab.ago.runtime.rdb.json;
 
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import org.agrona.collections.Int2ObjectHashMap;
+import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.json.AgoJsonParser;
 import org.siphonlab.ago.runtime.json.InstanceJsonDeserializer;
@@ -117,7 +119,15 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
                     rowState = RowState.valueOf(ajp.getValueAsString());
                 }
             }
-            rdbSlots.restoreState(usingInstances, rowState);
+            List<Pair<Instance<?>, Integer>> objectValues = new ArrayList<>();
+            Slots baseSlots = rdbSlots.getBaseSlots();
+            for (AgoSlotDef slotDef : map.values()) {
+                if(slotDef.getTypeCode() == TypeCode.OBJECT){
+                    objectValues.add(Pair.of(baseSlots.getObject(slotDef.getIndex()),slotDef.getIndex()));
+                }
+            }
+
+            rdbSlots.restoreState(usingInstances, rowState, objectValues);
         } else {
             super.deserializeSlots(ajp, ctxt, creator, hostSlots, map);
         }
