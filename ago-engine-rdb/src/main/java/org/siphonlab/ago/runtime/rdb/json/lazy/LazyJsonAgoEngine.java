@@ -53,7 +53,8 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     }
 
     public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
-        return createFunctionInstance(agoFunction,parentScope, caller, creator, null);
+        var inst = createFunctionInstance(agoFunction,parentScope, caller, creator, null);
+        return (CallFrame<?>) ((DeferenceObject)inst).toObjectRefInstance();
     }
 
     @Override
