@@ -103,7 +103,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
 
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, CallFrame<?> caller, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {
         LazyJsonRefSlots slots = (LazyJsonRefSlots) agoFunction.createSlots();
-        if(slotsInitializer != null) slotsInitializer.accept(slots);
+        if(slotsInitializer != null) slotsInitializer.accept(slots);    // may change slots rowstate -> none
         CallFrame<?> inst;
         if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
             inst = new DeferenceNativeFrame(slots, agoNativeFunction, this);
@@ -122,6 +122,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         } else {
             inst.setCreator(toObjectRefCallFrame(creator));
         }
+        ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
         saveInstance(inst);
         return inst;
     }
@@ -141,6 +142,8 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         var inst = new DeferenceInstance((LazyJsonRefSlots) slots,agoClass,this);
         if (parentScope != null) inst.setParentScope(parentScope);
         inst.setCreator(creator);
+
+        inst.markSaved();
 
         saveInstance(inst);
         return inst;

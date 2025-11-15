@@ -18,15 +18,17 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicInteger
 
 import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
-
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 @CompileStatic
-public class DeferenceInstance extends Instance implements DeferenceObject, ObjectRefOwner, ReferenceCounter {
+public class DeferenceInstance extends Instance implements DeferenceObject, ObjectRefOwner {
     private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame)
 
     private final RdbAdapter adapter;
 
     private final AtomicInteger referenceCounter = new AtomicInteger();
     private final ObjectRefInstance objectRefInstance
+
+    private boolean saveRequired;
 
     public DeferenceInstance(LazyJsonRefSlots slots, AgoClass agoClass, RdbEngine engine) {
         super(slots, agoClass);
@@ -35,10 +37,8 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
         this.adapter = engine.getRdbAdapter();
 
         ObjectRefInstance inst = adapter.restoreInstance(objectRef) as ObjectRefInstance;
-//        inst.increaseRef(Reason.CreateDeferenceFrame);
-        assert inst.getExistedDeferenced() == null
-        inst.setDeferenced(this)
-        this.objectRefInstance = inst;
+        inst.setDeferenceInstance(this)
+        this.objectRefInstance = inst
     }
 
     @Override
@@ -55,6 +55,7 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
             super.setCreator((CallFrame) creator)
         }
         ReferenceCounter.increaseRefOfCallFrame(this.creator, Reason.SetCreatorInstall)
+        saveRequired = true;
     }
 
     @Override
@@ -63,6 +64,7 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
         if(parentScope instanceof ReferenceCounter){
             parentScope.increaseRef(Reason.SetParentInstall);
         }
+        saveRequired = true;
     }
 
     @Override
@@ -71,36 +73,19 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
     }
 
     @Override
-    int releaseRef(Reason reason) {
-        var cnt = referenceCounter.decrementAndGet();
-        if(logger.isDebugEnabled()) logger.debug("$this release ref got $cnt for $reason")
-        if (cnt == 0) {
-            ReferenceCounter.releaseDeferenceSlotsAndContext(this);
-
-            objectRefInstance.cleanDeferencedInstance();
-            objectRefInstance.releaseRef(Reason.ReleaseRefForDeferenceInstanceFree);
-        }
-        return cnt;
-    }
-
-    @Override
-    int getRefCount() {
-        return referenceCounter.get()
-    }
-
-    @Override
-    void increaseRef(Reason reason) {
-        var r = referenceCounter.incrementAndGet();
-        if(logger.debugEnabled) logger.debug("$this inc ref got $r for $reason")
-    }
-
-    @Override
     ObjectRefInstanceTrait toObjectRefInstance() {
         assert (this.objectRefInstance != null);
         return objectRefInstance
-//        LazyJsonRefSlots slots = this.slots as LazyJsonRefSlots;
-//        return (ObjectRefInstanceTrait) ((LazyJsonPGAdapter) adapter).restoreInstance(slots.getObjectRef(), slots.getRowState());
     }
+
+    boolean isSaveRequired() {
+        return saveRequired;
+    }
+
+    void markSaved() {
+        saveRequired = false
+    }
+
 
     boolean equals(Object obj) {
         if (obj instanceof DeferenceInstance) {

@@ -4,7 +4,7 @@ import groovy.transform.CompileStatic;
 import org.siphonlab.ago.AgoClass
 import org.siphonlab.ago.AgoFunction
 import org.siphonlab.ago.AgoRunSpace;
-import org.siphonlab.ago.CallFrame;
+import org.siphonlab.ago.CallFrame
 import org.siphonlab.ago.Instance
 import org.siphonlab.ago.Slots
 import org.siphonlab.ago.SourceLocation
@@ -22,10 +22,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * lazy instance
  */
 @CompileStatic
-public trait ObjectRefInstanceTrait extends ReferenceInstanceTrait{
+public trait ObjectRefInstanceTrait {
+
+    private final static Logger logger = LoggerFactory.getLogger(ObjectRefInstanceTrait)
 
     private ObjectRef objectRef;
     private DereferenceAdapter dereferenceAdapter;
+    private Set<CallFrame> expanders = new HashSet<>()
+    private Instance<?> deferencedInstance;
 
     public init(AgoClass agoClass, ObjectRef objectRef, DereferenceAdapter dereferenceAdapter) {
         this.objectRef = objectRef;
@@ -36,20 +40,52 @@ public trait ObjectRefInstanceTrait extends ReferenceInstanceTrait{
         return objectRef;
     }
 
-    Instance<?> doDeference() {
-        return dereferenceAdapter.dereference(objectRef);
+    public Instance getDeferencedInstance(){
+        return deferencedInstance
     }
 
+    Instance<?> deference() {
+        if(deferencedInstance != null) return deferencedInstance;
+        if (logger.isDebugEnabled()) logger.debug("$objectRef expand deference")
+        var r = dereferenceAdapter.dereference(objectRef);
+        return deferencedInstance = r;
+    }
+
+    void foldBy(CallFrame<?> expander){
+        expanders.remove(expander);
+        if(logger.isDebugEnabled()) logger.debug("$expander quit, $objectRef has %s expanders".formatted(expanders.size()))
+        tryFold()
+    }
+
+    void tryFold() {
+        if (this.expanders.isEmpty()){
+            if (logger.isDebugEnabled()) logger.debug("$objectRef fold")
+            ReferenceCounter.releaseDeferenceSlotsAndContext(deferencedInstance);
+            deferencedInstance = null
+        }
+    }
+
+    abstract ExpandableObject expandFor(CallFrame expander, boolean alreadyDeferenced);
+
+    Instance dereferenceForExpander(CallFrame expander){
+        if (logger.isDebugEnabled()) logger.debug("$objectRef expand for $expander")
+        expanders.add(expander);
+        return deference()
+    }
+
+    void setDeferenceInstance(Instance inst) {
+        this.deferencedInstance = inst;
+    }
 }
 
 @CompileStatic
-class ObjectRefInstance extends Instance<AgoClass> implements ObjectRefInstanceTrait, ObjectRefOwner, ReferenceCounter{
+class ObjectRefInstance<T extends AgoClass> extends Instance<T> implements ObjectRefInstanceTrait, ObjectRefOwner, ReferenceCounter{
     private final static Logger logger = LoggerFactory.getLogger(ObjectRefInstance)
 
     private AtomicInteger referenceCounter = new AtomicInteger(0);
     DereferenceAdapter dereferenceAdapter
 
-    ObjectRefInstance(AgoClass agoClass, ObjectRef objectRef, DereferenceAdapter dereferenceAdapter) {
+    ObjectRefInstance(T agoClass, ObjectRef objectRef, DereferenceAdapter dereferenceAdapter) {
         super(agoClass)
         init(agoClass, objectRef, dereferenceAdapter)
         this.dereferenceAdapter = dereferenceAdapter;
@@ -106,6 +142,10 @@ class ObjectRefInstance extends Instance<AgoClass> implements ObjectRefInstanceT
         return referenceCounter.get()
     }
 
+    ExpandableInstance expandFor(CallFrame expander, boolean alreadyDeferenced){
+        return new ExpandableInstance(this, expander, alreadyDeferenced);
+    }
+
     @Override
     void increaseRef(Reason reason) {
         var cnt = referenceCounter.incrementAndGet();
@@ -117,11 +157,11 @@ class ObjectRefInstance extends Instance<AgoClass> implements ObjectRefInstanceT
         var r = referenceCounter.decrementAndGet();
         if (logger.isDebugEnabled()) logger.debug("$this release ref got $r for $reason")
         if (r == 0) {
-            this.cleanDeferencedInstance();     // again confirm
             dereferenceAdapter.release(this.getObjectRef())
         }
         return r
     }
+
 }
 
 @CompileStatic
@@ -173,12 +213,6 @@ class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements 
 
     public CallFrame recomposeAsCallFrame() {
         return deference() as CallFrame;
-//        var r = deference() as CallFrame;
-//        r.setRunSpace(this.runSpace)
-//        r.setCaller(this.caller)
-//        r.setParentScope(this.parentScope)
-//        r.setCreator(this.creator)
-//        return r;
     }
 
     @Override
@@ -243,6 +277,10 @@ class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements 
         return objectRef.hashCode()
     }
 
+    ExpandableCallFrame expandFor(CallFrame expander, boolean alreadyDeferenced) {
+        return new ExpandableCallFrame(this, expander, alreadyDeferenced);
+    }
+
     @Override
     int getRefCount() {
         return referenceCounter.get()
@@ -259,9 +297,9 @@ class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements 
         var r= referenceCounter.decrementAndGet()
         if (logger.isDebugEnabled()) logger.debug("$this release ref got $r for $reason")
         if(r == 0){
-            this.cleanDeferencedInstance();     // again confirm
             dereferenceAdapter.release(this.getObjectRef())
         }
         return r;
     }
+
 }

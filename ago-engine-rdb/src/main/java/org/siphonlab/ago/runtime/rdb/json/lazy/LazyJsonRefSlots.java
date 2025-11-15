@@ -1,18 +1,19 @@
 package org.siphonlab.ago.runtime.rdb.json.lazy;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.Slots;
-import org.siphonlab.ago.runtime.rdb.JsonSlotMapper;
-import org.siphonlab.ago.runtime.rdb.ObjectRef;
-import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
-import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
+import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
 import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots;
 import org.siphonlab.ago.runtime.rdb.json.JsonRefSlots;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
@@ -70,8 +71,13 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         // always set ObjectRefInstance, don't use DeferenceObject, that will break reference count
         // when saveInstance, it releases ref of DeferenceObject
         // however when restore, it increases ref of ObjectRefInstance
+        boolean alreadyExpanded = false;
         if(value instanceof DeferenceObject deferenceObject){
             value = (Instance<?>) deferenceObject.toObjectRefInstance();
+            alreadyExpanded = (ObjectRefOwner.equals(((Instance<?>) deferenceObject).getCreator(), callFrame));
+        }
+        if(value instanceof ObjectRefInstanceTrait && callFrame != null){
+            value = (Instance<?>) ((ObjectRefInstanceTrait) value).expandFor(callFrame, alreadyExpanded);
         }
         if (value instanceof ReferenceCounter referenceCounter) {
             referenceCounter.increaseRef(ReferenceCounter.Reason.SetSlotInstall);
@@ -80,22 +86,9 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         super.setObject(slot, value);
     }
 
-
     @Override
     public void setId(long id) {
         this.restoreId(id);
     }
 
-    @Override
-    public void setInt(int slot, int value) {
-        logger.info("%s setInt %d, %d".formatted(this.getObjectRef(), slot, value));
-        super.setInt(slot, value);
-    }
-
-    @Override
-    public int getInt(int slot) {
-        var r = super.getInt(slot);
-        logger.info("%s getInt %d, got %d".formatted(this.getObjectRef(), slot, r));
-        return r;
-    }
 }

@@ -1,8 +1,12 @@
 package org.siphonlab.ago;
 
 import org.siphonlab.ago.runtime.UnhandledException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
+
+    private final static Logger logger = LoggerFactory.getLogger(CallFrame.class);
 
     protected CallFrame<?> caller;
 

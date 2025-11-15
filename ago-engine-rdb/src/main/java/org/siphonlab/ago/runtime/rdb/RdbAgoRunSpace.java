@@ -1,7 +1,6 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.*;
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,11 +46,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         while (this.currCallFrame != null && !RunningState.isPausingOrWaitingResult(this.getRunningState())) {
             cf = currCallFrame;
 
-            if(cf instanceof ObjectRefCallFrame<?> objectRefCallFrame){
-                cf = currCallFrame = objectRefCallFrame.recomposeAsCallFrame();
-                ReferenceCounter.increaseRefOfCallFrame(cf, Reason.RunYouCallFrame);
-                objectRefCallFrame.releaseRef(ReferenceCounter.Reason.ReplaceWithDeferenceFrame);
-            }
+            increaseRefOfCallFrame(cf,Reason.RunCallFrame);
 
             rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
 
@@ -69,13 +64,15 @@ public class RdbAgoRunSpace extends AgoRunSpace {
                     rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
                 }
                 // for those cases that rc > 0
-                releaseDeferenceSlotsAndContextBeforeSave(cf);
+                foldObjectRefFrame(cf);
+                releaseRefOfCallFrame(cf,Reason.CallFrameQuit);
             }
         }
         tryComplete();
         if(saveAtEnd) {
             rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
-            releaseDeferenceSlotsAndContextBeforeSave(cf);
+            foldObjectRefFrame(cf);
+            releaseRefOfCallFrame(cf, Reason.CallFrameQuit);
         }
     }
 

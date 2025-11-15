@@ -23,6 +23,7 @@
     <logger name="org.siphonlab.ago.compiler.ClassDef" level="OFF"/>
     <logger name="org.siphonlab.ago.AgoFrame" level="OFF" />
     <logger name="org.siphonlab.ago.compiler.AgoClassParser" level="OFF"/>
+    <logger name="io.vertx" level="ERROR"/>
 
     <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
 

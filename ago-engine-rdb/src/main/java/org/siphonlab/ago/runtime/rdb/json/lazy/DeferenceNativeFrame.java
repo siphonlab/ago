@@ -11,8 +11,9 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 
-public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject, ObjectRefOwner, ReferenceCounter {
+public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject, ObjectRefOwner {
 
     private static final Logger logger = LoggerFactory.getLogger(DeferenceNativeFrame.class);
 
@@ -21,14 +22,14 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
     private final AtomicInteger referenceCounter = new AtomicInteger();
     private final ObjectRefCallFrame objectRefInstance;
 
+    private boolean saveRequired = false;
+
     public DeferenceNativeFrame(LazyJsonRefSlots slots, AgoNativeFunction agoFunction, RdbEngine engine) {
         super(engine, slots, agoFunction);
         this.adapter = engine.getRdbAdapter();
 
         ObjectRefCallFrame inst = (ObjectRefCallFrame) adapter.restoreInstance(slots.getObjectRef());
-        inst.increaseRef(Reason.CreateDeferenceFrame);
-        assert ((ReferenceInstanceTrait)inst).getExistedDeferenced() == null;
-        inst.setDeferenced(this);
+        inst.setDeferenceInstance(this);
         this.objectRefInstance = inst;
     }
 
@@ -36,9 +37,16 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
     public ObjectRefInstanceTrait toObjectRefInstance() {
         assert (this.objectRefInstance != null);
         return objectRefInstance;
-//        LazyJsonRefSlots slots = (LazyJsonRefSlots) this.slots;
-//        if (logger.isDebugEnabled()) logger.debug("%s convert to objectref instance %s".formatted(this, slots.getObjectRef()));
-//        return (ObjectRefInstanceTrait) ((LazyJsonPGAdapter)adapter).restoreInstance(slots.getObjectRef(), slots.getRowState());
+    }
+
+    @Override
+    public boolean isSaveRequired() {
+        return saveRequired;
+    }
+
+    @Override
+    public void markSaved() {
+        saveRequired = false;
     }
 
     @Override
@@ -55,6 +63,7 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
         var c = toObjectRefCallFrame(caller);
         super.setCaller(c);
         ReferenceCounter.increaseRefOfCallFrame(c, Reason.SetCallerInstall);
+        saveRequired = true;
     }
 
     @Override
@@ -65,6 +74,7 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
 
         super.setCreator(c);
         ReferenceCounter.increaseRefOfCallFrame(c, Reason.SetCreatorInstall);
+        saveRequired = true;
     }
 
     @Override
@@ -73,6 +83,13 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
         if (parentScope instanceof ReferenceCounter rc) {
             rc.increaseRef(Reason.SetParentInstall);
         }
+        saveRequired = true;
+    }
+
+    @Override
+    public void setRunSpace(AgoRunSpace runSpace) {
+        super.setRunSpace(runSpace);
+        saveRequired = true;
     }
 
     public ObjectRef getObjectRef() {
@@ -94,30 +111,6 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
     public void setPayload(Object payload) {
         super.setPayload(payload);
         ((RdbEngine)this.engine).getRdbAdapter().saveInstance(this);
-    }
-
-    @Override
-    public int getRefCount() {
-        return referenceCounter.get();
-    }
-
-    @Override
-    public void increaseRef(Reason reason) {
-        var cnt = referenceCounter.incrementAndGet();
-        if (logger.isDebugEnabled()) logger.debug("%s inc ref got %d for %s".formatted(this, cnt, reason));
-    }
-
-    @Override
-    public int releaseRef(Reason reason) {
-        var cnt = referenceCounter.decrementAndGet();
-        if (logger.isDebugEnabled()) logger.debug("%s release ref got %d for %s".formatted(this, cnt, reason));
-        if(cnt == 0){
-            ReferenceCounter.releaseDeferenceSlotsAndContext(this);
-
-            objectRefInstance.cleanDeferencedInstance();
-            objectRefInstance.releaseRef(Reason.ReleaseRefForDeferenceInstanceFree);
-        }
-        return cnt;
     }
 
     public void releaseSlotsDeference(Reason reason) {

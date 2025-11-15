@@ -10,6 +10,10 @@ public interface DeferenceObject {
 
     ObjectRefInstanceTrait toObjectRefInstance();
 
+    boolean isSaveRequired();
+
+    void markSaved();
+
     public void releaseSlotsDeference(ReferenceCounter.Reason reason);
     public void increaseSlotsDeference(ReferenceCounter.Reason reason);
 

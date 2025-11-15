@@ -21,6 +21,10 @@ import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
+import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
+import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame
+import org.siphonlab.ago.runtime.rdb.lazy.ExpandableSlots
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
 import org.slf4j.Logger
@@ -216,11 +220,14 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         def setClause = columns.collect { k, v -> "$k = :$k" }.join(', ')
         def sqlText = "UPDATE $table SET $setClause WHERE $pkName = :$pkName"
 
-        return sql.executeUpdate(sqlText, data)
+        return sql.executeUpdate(data, sqlText)
     }
 
 
     void updateCallFrameRunningState(CallFrame callFrame, byte runningState) {
+        if(callFrame instanceof ExpandableCallFrame){
+            callFrame = callFrame.getExpandedInstance();
+        }
         var slots = callFrame.slots as JsonRefSlots
         logger.info("UPDATE " + slots.objectRef)
         var map = [
@@ -237,7 +244,24 @@ public abstract class JsonPGAdapter extends RdbAdapter {
             map["is_entrance"] = true
             callFrame = callFrame.inner
         }
-        if(slots instanceof RdbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified)) {
+
+        boolean saveSlots = true;
+        if(callFrame instanceof ObjectRefCallFrame){
+            if(callFrame.deferencedInstance == null){
+                return
+            } else {
+                callFrame = callFrame.deferencedInstance as CallFrame;
+
+                if (callFrame instanceof AsyncEntranceCallFrame) {
+                    map["is_async_entrance"] = true
+                    callFrame = callFrame.inner
+                } else if (callFrame instanceof EntranceCallFrame) {
+                    map["is_entrance"] = true
+                    callFrame = callFrame.inner
+                }
+            }
+        }
+        if(saveSlots && slots instanceof RdbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified)) {
             map['slots'] = toJsonb(this.getAgoEngine().jsonStringifySlots(callFrame))
         }
 
@@ -249,6 +273,9 @@ public abstract class JsonPGAdapter extends RdbAdapter {
             throw new UnsupportedOperationException("unsupported frame type " + callFrame)
         }
         updateRow("ago_frame", map, "id")
+        if(callFrame instanceof DeferenceObject){
+            callFrame.markSaved()
+        }
     }
 
     void saveAgoClass(AgoClass agoClass) {

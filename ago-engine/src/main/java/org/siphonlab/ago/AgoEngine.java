@@ -182,27 +182,27 @@ public class AgoEngine implements ClassManager{
             var item = metaClassCreationQueue.removeFirst();
             if(LOGGER.isDebugEnabled()) LOGGER.debug("apply meta class %s".formatted(item));
             var constructor = item.constructor;
-            AgoFrame frame = (AgoFrame) createFunctionInstance(item.target, constructor, null, null);
+            CallFrame<?> frame = createFunctionInstance(item.target, constructor, null, null);
             Object[] arguments = item.arguments;
             for (int i = 0; i < arguments.length; i++) {
                 Object argument = arguments[i];
                 var p = constructor.getParameters()[i];
                 switch (p.getTypeCode().value){
-                    case INT_VALUE:       frame.slots.setInt(i, (Integer) argument); break;
-                    case STRING_VALUE:    frame.slots.setString(i, (String) argument); break;
-                    case LONG_VALUE:      frame.slots.setLong(i, (Long)argument); break;
-                    case BOOLEAN_VALUE:   frame.slots.setBoolean(i, (Boolean)argument); break;
-                    case DOUBLE_VALUE:    frame.slots.setDouble(i, (Double) argument); break;
-                    case BYTE_VALUE:      frame.slots.setByte(i, (Byte) argument); break;
-                    case FLOAT_VALUE:     frame.slots.setFloat(i, (Float) argument); break;
-                    case CHAR_VALUE:      frame.slots.setChar(i, (Character)argument); break;
-                    case SHORT_VALUE:     frame.slots.setShort(i, (Short) argument); break;
-                    case CLASS_REF_VALUE: frame.slots.setClassRef(i, classByName.get(((ClassRefValue) argument).className()).getClassId()); break;
+                    case INT_VALUE:       frame.getSlots().setInt(i, (Integer) argument); break;
+                    case STRING_VALUE:    frame.getSlots().setString(i, (String) argument); break;
+                    case LONG_VALUE:      frame.getSlots().setLong(i, (Long)argument); break;
+                    case BOOLEAN_VALUE:   frame.getSlots().setBoolean(i, (Boolean)argument); break;
+                    case DOUBLE_VALUE:    frame.getSlots().setDouble(i, (Double) argument); break;
+                    case BYTE_VALUE:      frame.getSlots().setByte(i, (Byte) argument); break;
+                    case FLOAT_VALUE:     frame.getSlots().setFloat(i, (Float) argument); break;
+                    case CHAR_VALUE:      frame.getSlots().setChar(i, (Character)argument); break;
+                    case SHORT_VALUE:     frame.getSlots().setShort(i, (Short) argument); break;
+                    case CLASS_REF_VALUE: frame.getSlots().setClassRef(i, classByName.get(((ClassRefValue) argument).className()).getClassId()); break;
                     default:
                         if(p.getAgoClass() instanceof AgoEnum agoEnum){
                             var enumValue = agoEnum.findMember(argument);
                             assert enumValue != null;
-                            frame.slots.setObject(i,enumValue);
+                            frame.getSlots().setObject(i,enumValue);
                             break;
                         }
                         throw new RuntimeException("unexpected type for meta class constructor");

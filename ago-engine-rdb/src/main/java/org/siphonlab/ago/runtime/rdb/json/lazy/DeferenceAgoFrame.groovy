@@ -16,9 +16,10 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicInteger
 
 import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 
 @CompileStatic
-public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, ObjectRefOwner, ReferenceCounter{
+public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, ObjectRefOwner{
 
     private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame)
 
@@ -27,6 +28,8 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
     private final AtomicInteger referenceCounter = new AtomicInteger();
     private final ObjectRefCallFrame objectRefInstance
 
+    private boolean saveRequired = false;
+
     public DeferenceAgoFrame(LazyJsonRefSlots slots, AgoFunction agoFunction, RdbEngine engine) {
         super(slots, agoFunction, engine);
 
@@ -34,20 +37,19 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
         this.adapter = engine.getRdbAdapter();
 
         ObjectRefCallFrame inst = adapter.restoreInstance(objectRef) as ObjectRefCallFrame;
-        inst.increaseRef(Reason.CreateDeferenceFrame);
-        assert inst.getExistedDeferenced() == null
-        inst.setDeferenced(this)
+        inst.setDeferenceInstance(this)
         this.objectRefInstance = inst;
     }
 
-//    @Override
-//    protected CallFrame<?> getCallFrameAt(int slot) {
-//        var inst = slots.getObject(slot);
-//        if(inst instanceof ObjectRefCallFrame){
-//            return (CallFrame<?>) inst.doDeference();
-//        }
-//        return (CallFrame<?>) inst;
-//    }
+    private void setSaveRequired(boolean value){
+        this.saveRequired = value;
+    }
+
+    @Override
+    void setRunSpace(AgoRunSpace runSpace) {
+        super.setRunSpace(runSpace)
+        this.setSaveRequired(true)
+    }
 
     @Override
     void setCaller(CallFrame<?> caller) {
@@ -59,6 +61,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
         }
         super.setCaller(c)
         ReferenceCounter.increaseRefOfCallFrame(c, Reason.SetCallerInstall);
+        this.setSaveRequired(true);
     }
 
     @Override
@@ -67,6 +70,15 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
         if (parentScope instanceof ReferenceCounter) {
             parentScope.increaseRef(Reason.SetParentInstall);
         }
+        this.setSaveRequired(true);
+    }
+
+    boolean isSaveRequired(){
+        return saveRequired;
+    }
+
+    void markSaved(){
+        saveRequired = false
     }
 
     @Override
@@ -77,6 +89,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
 
         super.setCreator(c)
         ReferenceCounter.increaseRefOfCallFrame(c, Reason.SetCreatorInstall);
+        saveRequired = true;
     }
 
     ObjectRef getObjectRef(){
@@ -87,13 +100,6 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
     ObjectRefInstanceTrait toObjectRefInstance() {
         assert this.objectRefInstance != null;
         return this.objectRefInstance;
-//        def slots = (LazyJsonRefSlots) this.slots
-//        if(logger.isDebugEnabled())
-//            logger.debug("%s convert to objectref instance %s".formatted(this, slots.objectRef))
-//
-//        if(this.objectRefInstance != null) return this.objectRefInstance;
-//
-//        return  ((LazyJsonPGAdapter) adapter).restoreInstance(slots.getObjectRef(), slots.getRowState()) as ObjectRefCallFrame;
     }
 
     @Override
@@ -110,30 +116,6 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
     @Override
     String toString() {
         return "(DeferenceAgoFrame %s)".formatted(this.objectRef)
-    }
-
-    @Override
-    int getRefCount() {
-        return referenceCounter.get()
-    }
-
-    @Override
-    void increaseRef(Reason reason) {
-        var cnt= referenceCounter.incrementAndGet();
-        if (logger.isDebugEnabled()) logger.debug("$this inc ref got $cnt for $reason")
-    }
-
-    @Override
-    int releaseRef(Reason reason) {
-        var cnt = referenceCounter.decrementAndGet();
-        if (logger.isDebugEnabled()) logger.debug("$this release ref got $cnt for $reason")
-        if (cnt == 0) {
-            ReferenceCounter.releaseDeferenceSlotsAndContext(this);
-
-            objectRefInstance.cleanDeferencedInstance();
-            objectRefInstance.releaseRef(Reason.ReleaseRefForDeferenceInstanceFree);
-        }
-        return cnt;
     }
 
     void releaseSlotsDeference(Reason reason) {

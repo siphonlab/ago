@@ -1,6 +1,7 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.lazy.ExpandableSlots;
 
 public class CallFrameWithRunningState<T extends AgoFunction> extends CallFrame<T> {
     private final CallFrame<T> inner;
@@ -24,7 +25,11 @@ public class CallFrameWithRunningState<T extends AgoFunction> extends CallFrame<
 
     @Override
     public Slots getSlots() {
-        return inner.getSlots();
+        Slots innerSlots = inner.getSlots();
+        if(innerSlots instanceof ExpandableSlots expandableSlots){
+            return expandableSlots.getInnerSlots();
+        }
+        return innerSlots;
     }
 
     public byte getRunningState() {
@@ -38,5 +43,10 @@ public class CallFrameWithRunningState<T extends AgoFunction> extends CallFrame<
     @Override
     public T getAgoClass() {
         return inner.getAgoClass();
+    }
+
+    @Override
+    public String toString() {
+        return "(CallFrameWithRunningState %s %s)".formatted(inner, runningState);
     }
 }

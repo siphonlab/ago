@@ -18,6 +18,11 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     }
 
     @Override
+    public Slots getSlots() {
+        return inner.getSlots();
+    }
+
+    @Override
     public void run(CallFrame<?> self) {
         inner.run(this);
     }

@@ -9,10 +9,13 @@ import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.runtime.rdb.CallFrameWithRunningState;
 import org.siphonlab.ago.runtime.rdb.ObjectRef
+import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter
 import org.siphonlab.ago.runtime.rdb.RowState
+import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
 import org.siphonlab.ago.runtime.rdb.lazy.DereferenceAdapter
+import org.siphonlab.ago.runtime.rdb.lazy.ExpandableObject
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstance
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait
@@ -75,20 +78,26 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     @Override
     protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved) {
         if(instance instanceof ObjectRefInstanceTrait){
-//            boolean existed = (instance. getExistedDeferenced() != null)
-//            def deference = instance.deference()
-//            super.saveInstance(deference, saved)
-//            if(!existed) {
-//                if (deference instanceof CallFrame) {
-//                    ReferenceCounter.releaseDeferenceSlotsAndContextOfCallFrame(deference)
-//                } else {
-//                    print(1)
-//                }
-//            }
             return;     // for folded Instance, it must be already saved or never touch its Slots, needn't save
+        } else if(instance instanceof ExpandableObject){
+            if(!instance.isExpanded()){
+                return      // ignore folded Instance
+            } else {
+                saveInstance(instance.getExpandedInstance(), saved)
+                return
+            }
         }
-        logger.debug("save instance " + instance)
+        if(logger.isDebugEnabled()) logger.debug("save instance " + instance)
         super.saveInstance(instance, saved)
+        if(instance instanceof DeferenceObject){
+            if(instance.isSaveRequired()){
+                if(instance instanceof CallFrame) {
+                    updateCallFrameRunningState(instance, (byte) -1)
+                } else {
+                    throw new UnsupportedOperationException("not for DeferenceInstance");
+                }
+            }
+        }
     }
 
     @Override
@@ -103,6 +112,10 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             saveAgoClass((AgoClass) instance)
         } else {
             saveAgoInstance(instance)
+        }
+
+        if (instance instanceof DeferenceObject) {
+            instance.markSaved()
         }
     }
 
@@ -122,19 +135,24 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
         String sql
         if(instance instanceof CallFrame){
+            arguments["runspace"] = (instance.runSpace as RdbAgoRunSpace)?.id
             if(instance instanceof AgoFrame) {
-                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, suspended = :suspended, pc = :pc WHERE id = :id"
+                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, runspace = :runspace, suspended = :suspended, pc = :pc WHERE id = :id"
                 arguments["pc"] = instance.pc
                 arguments["suspended"] = instance.suspended
             } else {
-                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, suspended = :suspended WHERE id = :id"
+                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, runspace = :runspace, suspended = :suspended WHERE id = :id"
                 arguments["suspended"] = instance.suspended
             }
         } else {
             sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots WHERE id = :id"
         }
 
-        this.sql.executeUpdate(sql, arguments)
+        if(instance instanceof DeferenceObject){
+            instance.markSaved()
+        }
+
+        this.sql.executeUpdate(arguments, sql)
 
     }
 
@@ -142,7 +160,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     Instance<?> dereference(ObjectRef objectRef) {
         var objrefInstance = objectReferenceInstancesPool.get(objectRef);
         if(objrefInstance != null){
-            var existed = objrefInstance.getExistedDeferenced()
+            var existed = objrefInstance.getDeferencedInstance()
             if(existed)
                 return existed
         }
@@ -177,9 +195,9 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, caller, creator, slots -> {
                     getAgoEngine().restoreSlots(slots as LazyJsonRefSlots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value));
                 })
-                if (frame instanceof DeferenceAgoFrame) {
+                if (frame instanceof AgoFrame) {
                     frame.pc = row['pc'] as int
-                } else if(frame instanceof DeferenceNativeFrame){        //DeferenceNativeFrame
+                } else if(frame instanceof NativeFrame){        //DeferenceNativeFrame
                     if(row['payload']) frame.setPayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
                 } else {
                     throw new RuntimeException("not deference type");
@@ -193,11 +211,11 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 ReferenceCounter.increaseDeferenceSlotsForRestoreInstance(frame);
 
                 if(row['is_entrance']){
-                    return new EntranceCallFrame<>(frame)
+                    return ensureWrapObjectRef(new EntranceCallFrame<>(frame))
                 } else if(row['is_async_entrance']){
-                    return new AsyncEntranceCallFrame<>(frame)
+                    return ensureWrapObjectRef(new AsyncEntranceCallFrame<>(frame))
                 }
-
+                if(frame instanceof DeferenceObject) frame.markSaved()
                 return frame
             } else {
                 LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
@@ -206,6 +224,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 var inst = new DeferenceInstance(slots, agoClass, engine);
                 inst.parentScope = parentScope
                 inst.creator = creator
+                if(inst instanceof DeferenceObject) inst.markSaved()
 
                 ReferenceCounter.increaseDeferenceSlotsForRestoreInstance(inst);
 
@@ -214,6 +233,17 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             }
         }
     }
+
+    // ensure it has objectRefInstance
+    Instance ensureWrapObjectRef(Instance instance) {
+        if (instance instanceof ObjectRefInstanceTrait) return instance
+
+        RdbRefSlots slots = instance.getSlots() as RdbRefSlots;
+        var objectRefCallFrame = restoreInstance(slots.getObjectRef(), slots.getRowState());
+        ((ObjectRefInstanceTrait)objectRefCallFrame).setDeferenceInstance(instance);
+        return instance;
+    }
+
 
     LazyJsonAgoEngine getAgoEngine() {
         return this.classManager as LazyJsonAgoEngine;
