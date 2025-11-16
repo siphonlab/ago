@@ -246,19 +246,23 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         }
 
         boolean saveSlots = true;
-        if(callFrame instanceof ObjectRefCallFrame){
-            if(callFrame.deferencedInstance == null){
-                return
-            } else {
-                callFrame = callFrame.deferencedInstance as CallFrame;
+        while(true) {
+            if (callFrame instanceof ObjectRefCallFrame) {
+                if (callFrame.deferencedInstance == null) {
+                    return
+                } else {
+                    callFrame = callFrame.deferencedInstance as CallFrame;
 
-                if (callFrame instanceof AsyncEntranceCallFrame) {
-                    map["is_async_entrance"] = true
-                    callFrame = callFrame.inner
-                } else if (callFrame instanceof EntranceCallFrame) {
-                    map["is_entrance"] = true
-                    callFrame = callFrame.inner
+                    if (callFrame instanceof AsyncEntranceCallFrame) {
+                        map["is_async_entrance"] = true
+                        callFrame = callFrame.inner
+                    } else if (callFrame instanceof EntranceCallFrame) {
+                        map["is_entrance"] = true
+                        callFrame = callFrame.inner
+                    }
                 }
+            } else {
+                break
             }
         }
         if(saveSlots && slots instanceof RdbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified)) {

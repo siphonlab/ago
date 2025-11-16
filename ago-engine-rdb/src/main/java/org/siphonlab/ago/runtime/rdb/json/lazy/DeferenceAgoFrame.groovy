@@ -8,13 +8,14 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.RdbEngine
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.increaseRef
 import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 
@@ -30,6 +31,10 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
 
     private boolean saveRequired = false;
 
+    // for objRefFrame.deference(), to deference to EntranceFrame
+    public boolean isEntrance = false;
+    public boolean isAsyncEntrance = false;
+
     public DeferenceAgoFrame(LazyJsonRefSlots slots, AgoFunction agoFunction, RdbEngine engine) {
         super(slots, agoFunction, engine);
 
@@ -37,7 +42,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
         this.adapter = engine.getRdbAdapter();
 
         ObjectRefCallFrame inst = adapter.restoreInstance(objectRef) as ObjectRefCallFrame;
-        inst.setDeferenceInstance(this)
+        inst.setDeferencedInstance(this)
         this.objectRefInstance = inst;
     }
 
@@ -57,19 +62,17 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
         if (ObjectRefOwner.equals(caller, this.caller)) return;
 
         if(this.caller != null){
-            ReferenceCounter.releaseRefOfCallFrame(this.caller, Reason.SetCallerDrop)
+            ReferenceCounter.releaseRef(this.caller, Reason.SetCallerDrop)
         }
         super.setCaller(c)
-        ReferenceCounter.increaseRefOfCallFrame(c, Reason.SetCallerInstall);
+        ReferenceCounter.increaseRef(c, Reason.SetCallerInstall);
         this.setSaveRequired(true);
     }
 
     @Override
     void setParentScope(Instance parentScope) {
         super.setParentScope(parentScope)
-        if (parentScope instanceof ReferenceCounter) {
-            parentScope.increaseRef(Reason.SetParentInstall);
-        }
+        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall);
         this.setSaveRequired(true);
     }
 
@@ -88,7 +91,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
         CallFrame c = toObjectRefCallFrame(creator);
 
         super.setCreator(c)
-        ReferenceCounter.increaseRefOfCallFrame(c, Reason.SetCreatorInstall);
+        ReferenceCounter.increaseRef(c, Reason.SetCreatorInstall);
         saveRequired = true;
     }
 
@@ -97,7 +100,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
     }
 
     @Override
-    ObjectRefInstanceTrait toObjectRefInstance() {
+    ObjectRefObject toObjectRefInstance() {
         assert this.objectRefInstance != null;
         return this.objectRefInstance;
     }
@@ -106,7 +109,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, Obje
     boolean equals(Object obj) {
         if(obj instanceof DeferenceAgoFrame){
             return this.getObjectRef().equals(obj.getObjectRef())
-        } else if(obj instanceof ObjectRefInstanceTrait){
+        } else if(obj instanceof ObjectRefObject){
             return this.getObjectRef().equals(obj.getObjectRef())
         } else {
             return false

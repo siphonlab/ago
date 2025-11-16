@@ -1,14 +1,17 @@
 package org.siphonlab.ago.runtime.rdb.lazy;
 
+import org.siphonlab.ago.CallFrame;
+import org.siphonlab.ago.EntranceCallFrame;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
 
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseDeferenceAndContext;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseDeferenceSlotsAndContext;
 
 public interface DeferenceObject {
 
-    ObjectRefInstanceTrait toObjectRefInstance();
+    ObjectRefObject toObjectRefInstance();
 
     boolean isSaveRequired();
 
@@ -21,15 +24,15 @@ public interface DeferenceObject {
         for (var p : slots.getObjectSlots()){
             if(p == null) continue;
             Instance<?> obj = p.getLeft();
-            if(obj instanceof ReferenceCounter rc){
-                rc.releaseRef(reason);
-            }
-            releaseDeferenceSlotsAndContext(obj);
-//            if (obj instanceof ReferenceCounter rc) {
-//                //  for ObjRefInstance, if down to zero, it removed from cache
-//                //  for DeferenceInstance, if down to zero, the deference cache of ObjRefInstance will clean up
-//                rc.releaseRef(reason);
-//            }
+            if(obj == null) continue;
+
+            releaseDeferenceAndContext(obj, reason);
+
+            // DON'T down to embedded objects
+            // i.e. student.teacher.name = 'Jack'
+            //      here student has a slot, teacher will get a slot too,
+            //      every slot has business of itself
+
         }
     }
 
@@ -37,9 +40,8 @@ public interface DeferenceObject {
         for (var p : slots.getObjectSlots()) {
             if (p == null) continue;
             Instance<?> obj = p.getLeft();
-            if (obj instanceof ReferenceCounter rc) {
-                rc.increaseRef(reason);
-            }
+
+            ReferenceCounter.increaseRef(obj, reason);
         }
     }
 

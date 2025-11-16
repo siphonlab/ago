@@ -12,7 +12,7 @@ import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.json.*;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 
@@ -54,6 +54,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
 
     public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
         var inst = createFunctionInstance(agoFunction,parentScope, caller, creator, null);
+        saveInstance(inst);
         return (CallFrame<?>) ((DeferenceObject)inst).toObjectRefInstance();
     }
 
@@ -124,18 +125,20 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
             inst.setCreator(toObjectRefCallFrame(creator));
         }
         ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
-        saveInstance(inst);
         return inst;
     }
 
     @Override
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        return createInstance(parentScope,agoClass, creator, null);
+        var inst = createInstance(parentScope,agoClass, creator, null);
+        saveInstance(inst);
+        return inst;
     }
 
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {
-        if (agoClass instanceof AgoFunction fun)
+        if (agoClass instanceof AgoFunction fun) {
             return createFunctionInstance(fun, parentScope, creator, creator, slotsInitializer);
+        }
 
         Slots slots = agoClass.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);
@@ -146,7 +149,6 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
 
         inst.markSaved();
 
-        saveInstance(inst);
         return inst;
     }
 
@@ -199,7 +201,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
             callFrame =entranceCallFrame.getInner();
         }
         if (callFrame instanceof DeferenceObject) {
-            ObjectRefInstanceTrait r = ((DeferenceObject) callFrame).toObjectRefInstance();
+            ObjectRefObject r = ((DeferenceObject) callFrame).toObjectRefInstance();
             var cf = (CallFrame<?>) r;
             cf.setRunSpace(callFrame.getRunSpace());
             return cf;

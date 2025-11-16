@@ -10,13 +10,14 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstance
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicInteger
 
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.increaseRef
 import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 @CompileStatic
@@ -37,7 +38,7 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
         this.adapter = engine.getRdbAdapter();
 
         ObjectRefInstance inst = adapter.restoreInstance(objectRef) as ObjectRefInstance;
-        inst.setDeferenceInstance(this)
+        inst.setDeferencedInstance(this)
         this.objectRefInstance = inst
     }
 
@@ -54,16 +55,14 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
         } else {
             super.setCreator((CallFrame) creator)
         }
-        ReferenceCounter.increaseRefOfCallFrame(this.creator, Reason.SetCreatorInstall)
+        ReferenceCounter.increaseRef(this.creator, Reason.SetCreatorInstall)
         saveRequired = true;
     }
 
     @Override
     void setParentScope(Instance parentScope) {
         super.setParentScope(parentScope)
-        if(parentScope instanceof ReferenceCounter){
-            parentScope.increaseRef(Reason.SetParentInstall);
-        }
+        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall);
         saveRequired = true;
     }
 
@@ -73,7 +72,7 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
     }
 
     @Override
-    ObjectRefInstanceTrait toObjectRefInstance() {
+    ObjectRefObject toObjectRefInstance() {
         assert (this.objectRefInstance != null);
         return objectRefInstance
     }
@@ -90,7 +89,7 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
     boolean equals(Object obj) {
         if (obj instanceof DeferenceInstance) {
             return this.getObjectRef().equals(obj.getObjectRef())
-        } else if (obj instanceof ObjectRefInstanceTrait) {
+        } else if (obj instanceof ObjectRefObject) {
             return this.getObjectRef().equals(obj.getObjectRef())
         } else {
             return false

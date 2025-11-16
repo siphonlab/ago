@@ -1,6 +1,7 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +47,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         while (this.currCallFrame != null && !RunningState.isPausingOrWaitingResult(this.getRunningState())) {
             cf = currCallFrame;
 
-            increaseRefOfCallFrame(cf,Reason.RunCallFrame);
+            increaseRef(cf,Reason.RunCallFrame);
 
             rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
 
@@ -65,14 +66,14 @@ public class RdbAgoRunSpace extends AgoRunSpace {
                 }
                 // for those cases that rc > 0
                 foldObjectRefFrame(cf);
-                releaseRefOfCallFrame(cf,Reason.CallFrameQuit);
+                releaseRef(cf,Reason.CallFrameQuit);
             }
         }
         tryComplete();
         if(saveAtEnd) {
             rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
             foldObjectRefFrame(cf);
-            releaseRefOfCallFrame(cf, Reason.CallFrameQuit);
+            releaseRef(cf, Reason.CallFrameQuit);
         }
     }
 
@@ -141,11 +142,16 @@ public class RdbAgoRunSpace extends AgoRunSpace {
     @Override
     public void setCurrCallFrame(CallFrame<?> currCallFrame) {
         if (ObjectRefOwner.equals(this.currCallFrame, currCallFrame)) return;
-        releaseRefOfCallFrame(this.currCallFrame, ReferenceCounter.Reason.DropCurrentCallFrame);
+        releaseRef(this.currCallFrame, ReferenceCounter.Reason.DropCurrentCallFrame);
 
+        if(currCallFrame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
+            if(objectRefCallFrame.getDeferencedCallFrame() instanceof EntranceCallFrame<?> en){
+                currCallFrame = en;
+            }
+        }
         super.setCurrCallFrame(currCallFrame);
 
-        increaseRefOfCallFrame(currCallFrame, ReferenceCounter.Reason.InstallCurrentCallFrame);
+        increaseRef(currCallFrame, ReferenceCounter.Reason.InstallCurrentCallFrame);
 
         rdbAdapter.updateRunSpace(this);
     }
@@ -167,9 +173,10 @@ public class RdbAgoRunSpace extends AgoRunSpace {
     public void interrupt() {
         CallFrame<?> callFrame = this.currCallFrame;
         super.interrupt();
-        if(callFrame instanceof ReferenceCounter rc){
-            rc.releaseRef(ReferenceCounter.Reason.CallFrameInterrupt);
-        }
+
+        foldObjectRefFrame(callFrame);
+        releaseRef(callFrame,Reason.CallFrameInterrupt);
+
         rdbAdapter.saveInstance(new CallFrameWithRunningState<>(callFrame, RunningState.INTERRUPTED));
     }
 
@@ -184,7 +191,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
                         Instance<?> exception, ResultSlots resultSlots) {
         this.runningState = runningState;
         this.currCallFrame = currCallFrame;
-        if (currCallFrame instanceof ReferenceCounter rc) rc.increaseRef(ReferenceCounter.Reason.RestoreCallFrame);
+        increaseRef(currCallFrame, ReferenceCounter.Reason.RestoreCallFrame);
         this.parent = parent;
         if(forkedRunspaces != null) this.forkedSpaces.addAll(forkedRunspaces);
         if(pausingParents != null) this.pausingParents.addAll(pausingParents);

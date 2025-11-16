@@ -25,7 +25,7 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
         this.objectRefInstance = objectRefInstance;
         this.expander = expander;
         if (alreadyDereferenced) {
-            this.deferenceObject = (CallFrame<?>) objectRefInstance.getDeferencedInstance();
+            this.deferenceObject = (CallFrame<?>) objectRefInstance.getDeferencedCallFrame();
             assert this.getObjectRef().equals(ObjectRefOwner.extractObjectRef(deferenceObject));
             this.expanded = true;
         }
@@ -48,6 +48,16 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
     @Override
     public CallFrame<?> getExpandedInstance() {
         return deferenceObject;
+    }
+
+    @Override
+    public CallFrame<?> getCaller() {
+        return expand().getCaller();
+    }
+
+    @Override
+    public void setCaller(CallFrame<?> caller) {
+        expand().setCaller(caller);
     }
 
     @Override

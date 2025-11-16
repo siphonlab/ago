@@ -48,6 +48,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     public void finishVoid() {
         if (stateHandler != null) stateHandler.complete(null);
 
+        CallFrame<?> caller = getCaller();
         AgoRunSpace callerRunSpace = caller.getRunSpace();
         AgoRunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
@@ -59,7 +60,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     public void finishBoolean(boolean result) {
         if (stateHandler != null) ((CallFrameStateHandler<Boolean>) stateHandler).complete(result);
 
-        this.getCaller().getRunSpace().acceptBoolean(result, caller);
+        CallFrame<?> caller = getCaller();
+        caller.getRunSpace().acceptBoolean(result, caller);
     }
 
     public void finishByte(byte result) {

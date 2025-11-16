@@ -1,20 +1,15 @@
 package org.siphonlab.ago.runtime.rdb.json.lazy;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.Slots;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
 import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots;
 import org.siphonlab.ago.runtime.rdb.json.JsonRefSlots;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
 
 public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
 
@@ -64,9 +59,7 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         if (ObjectRefOwner.equals(old, value)) {
             return;
         }
-        if (old instanceof ReferenceCounter rc) {
-            rc.releaseRef(ReferenceCounter.Reason.SetSlotDrop);
-        }
+        ReferenceCounter.releaseRef(old, ReferenceCounter.Reason.SetSlotDrop);
 
         // always set ObjectRefInstance, don't use DeferenceObject, that will break reference count
         // when saveInstance, it releases ref of DeferenceObject
@@ -76,12 +69,21 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
             value = (Instance<?>) deferenceObject.toObjectRefInstance();
             alreadyExpanded = (ObjectRefOwner.equals(((Instance<?>) deferenceObject).getCreator(), callFrame));
         }
-        if(value instanceof ObjectRefInstanceTrait && callFrame != null){
-            value = (Instance<?>) ((ObjectRefInstanceTrait) value).expandFor(callFrame, alreadyExpanded);
-        }
+
         if (value instanceof ReferenceCounter referenceCounter) {
-            referenceCounter.increaseRef(ReferenceCounter.Reason.SetSlotInstall);
+            if(referenceCounter.getRefCount() == 0){
+                if(value instanceof ObjectRefObject objectRefObject){
+                    objectRefObject.fixCache();
+                }
+            }
         }
+
+        if(value instanceof ObjectRefObject && callFrame != null){
+            value = (Instance<?>) ((ObjectRefObject) value).expandFor(callFrame, alreadyExpanded);
+        }
+
+
+        ReferenceCounter.increaseRef(value, ReferenceCounter.Reason.SetSlotInstall);
 
         super.setObject(slot, value);
     }
@@ -90,5 +92,4 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
     public void setId(long id) {
         this.restoreId(id);
     }
-
 }

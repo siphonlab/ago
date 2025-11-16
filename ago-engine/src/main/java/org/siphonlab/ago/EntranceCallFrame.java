@@ -32,6 +32,41 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
         return inner.getRunSpace();
     }
 
+    @Override
+    public void setRunSpace(AgoRunSpace runSpace) {
+        inner.setRunSpace(runSpace);
+    }
+
+    @Override
+    public CallFrame<?> getCaller() {
+        return null;
+    }
+
+    @Override
+    public void setCaller(CallFrame<?> caller) {
+
+    }
+
+    @Override
+    public CallFrame<?> getCreator() {
+        return inner.getCreator();
+    }
+
+    @Override
+    public void setCreator(CallFrame<?> creator) {
+        inner.setCreator(creator);
+    }
+
+    @Override
+    public Instance getParentScope() {
+        return inner.getParentScope();
+    }
+
+    @Override
+    public void setParentScope(Instance parentScope) {
+        inner.setParentScope(parentScope);
+    }
+
     public void finishVoid() {
         if (stateHandler != null) stateHandler.complete(null);
         getRunSpace().acceptVoid(null);

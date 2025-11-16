@@ -1135,7 +1135,6 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case New.newn_scope_child_vcC:{
                     Instance<?> instance;
                     slots.setObject(code[pc++], instance = engine.createNativeInstance(getScope(code[pc++]), code[pc++],this ));
-                    instance.setCreator(this);
                     break;
                 }
                 case New.new_scope_method_vcCm:{

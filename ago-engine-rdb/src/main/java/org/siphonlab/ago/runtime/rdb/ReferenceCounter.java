@@ -6,45 +6,41 @@ import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableObject;
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstanceTrait;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
 
 public interface ReferenceCounter {
     enum Reason{
-        ReplaceWithDeferenceFrame,
         RunCallFrame,
         SetSlotDrop,
         SetSlotInstall,
         SetParentInstall,
-        SetParentDrop,
-        SetCallerInstall, CreateDeferenceFrame, SetCreatorInstall,
+        SetCallerInstall, SetCreatorInstall,
         SetCallerDrop,
-        SaveInstanceComplete,
-        SetParentDropForFrameFree,
-        SetCreatorDropForFrameFree,
-        SetCallerDropForFrameFree,
-        ReleaseRefForDeferenceInstanceFree,
         CallFrameInterrupt, RestoreCallFrame, DropCurrentCallFrame, InstallCurrentCallFrame,
         CallFrameQuit,
-        DropParentForCallFrameQuitOrSaveInstanceDone, DropCallerForCallFrameQuit, DropCreatorForCallFrameQuit, CallFrameQuitCleanSlots,
-        SetParentForRestoreFrame, SetCallerForRestoreFrame, SetCreatorForRestoreFrame, SetSlotsForRestoreInstance
+        DropParentForCallFrameQuit, DropCallerForCallFrameQuit,
+        DropCreatorForCallFrameQuit, CallFrameQuitCleanSlots,
+        SetSlotsForRestoreInstance
     }
     void increaseRef(Reason reason);
     int releaseRef(Reason reason);
 
-    public static void releaseRefOfCallFrame(CallFrame<?> callFrame, ReferenceCounter.Reason reason) {
-        if (callFrame instanceof EntranceCallFrame<?> entranceCallFrame) {
-            callFrame = entranceCallFrame.getInner();
+    public static void releaseRef(Instance<?> instance, ReferenceCounter.Reason reason) {
+        if (instance == null) return;
+        if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {
+            instance = entranceCallFrame.getInner();
         }
-        if (callFrame instanceof ReferenceCounter rc) {
+        if (instance instanceof ReferenceCounter rc) {
             rc.releaseRef(reason);
         }
     }
 
-    public static void increaseRefOfCallFrame(CallFrame<?> callFrame, ReferenceCounter.Reason reason) {
-        if (callFrame instanceof EntranceCallFrame<?> entranceCallFrame) {
-            callFrame = entranceCallFrame.getInner();
+    public static void increaseRef(Instance<?> instance, ReferenceCounter.Reason reason) {
+        if(instance == null) return;
+        if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {
+            instance = entranceCallFrame.getInner();
         }
-        if (callFrame instanceof ReferenceCounter rc) {
+        if (instance instanceof ReferenceCounter rc) {
             rc.increaseRef(reason);
         }
     }
@@ -53,8 +49,8 @@ public interface ReferenceCounter {
         if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {
             instance = entranceCallFrame.getInner();
         }
-        if(instance instanceof ObjectRefInstanceTrait objectRefInstanceTrait){
-            var inst = objectRefInstanceTrait.getDeferencedInstance();
+        if(instance instanceof ObjectRefObject objectRefObject){
+            var inst = objectRefObject.getDeferencedInstance();
             if(inst != null){
                 releaseDeferenceSlotsAndContext(inst);
             }
@@ -66,14 +62,40 @@ public interface ReferenceCounter {
         }
 
         if (instance instanceof DeferenceObject deferenceObject) {
-            if (instance.getParentScope() instanceof ReferenceCounter rc) {
-                rc.releaseRef(ReferenceCounter.Reason.DropParentForCallFrameQuitOrSaveInstanceDone);
-            }
+            releaseRef(instance.getParentScope(), Reason.DropParentForCallFrameQuit);
             if(instance instanceof CallFrame<?> callFrame) {
-                releaseRefOfCallFrame(callFrame.getCaller(), ReferenceCounter.Reason.DropCallerForCallFrameQuit);
+                releaseRef(callFrame.getCaller(), Reason.DropCallerForCallFrameQuit);
             }
-            releaseRefOfCallFrame(instance.getCreator(), ReferenceCounter.Reason.DropCreatorForCallFrameQuit);
+            releaseRef(instance.getCreator(), ReferenceCounter.Reason.DropCreatorForCallFrameQuit);
             deferenceObject.releaseSlotsDeference(Reason.CallFrameQuitCleanSlots);
+        }
+    }
+
+    public static void releaseDeferenceAndContext(Instance<?> instance, Reason reason) {
+        if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {
+            instance = entranceCallFrame.getInner();
+        }
+        if (instance instanceof ExpandableObject<?> expandableObject) {
+            expandableObject.fold();
+            ReferenceCounter.releaseRef(instance,reason);
+            return;
+        }
+
+        if (instance instanceof ObjectRefObject objectRefObject) {
+            var inst = objectRefObject.getDeferencedInstance();
+            if (inst != null) {
+                releaseDeferenceAndContext(inst, reason);
+            }
+            releaseRef(instance,reason);
+            return;
+        }
+
+        if (instance instanceof DeferenceObject deferenceObject) {
+            releaseRef(instance.getParentScope(), Reason.DropParentForCallFrameQuit);
+            if (instance instanceof CallFrame<?> callFrame) {
+                releaseRef(callFrame.getCaller(), Reason.DropCallerForCallFrameQuit);
+            }
+            releaseRef(instance.getCreator(), ReferenceCounter.Reason.DropCreatorForCallFrameQuit);
         }
     }
 
@@ -82,10 +104,12 @@ public interface ReferenceCounter {
         if (callFrame instanceof EntranceCallFrame<?> entranceCallFrame) {
             callFrame = entranceCallFrame.getInner();
         }
-        if (callFrame instanceof ObjectRefInstanceTrait objectRefInstanceTrait) {
-            objectRefInstanceTrait.tryFold();
+        if (callFrame instanceof ObjectRefObject objectRefObject) {     // for EntranceFrame like main#, there is no expander when bootstrap
+            objectRefObject.tryFold();
         } else if(callFrame instanceof ExpandableCallFrame<?> expandableCallFrame){
             expandableCallFrame.fold();
+        } else if (callFrame instanceof DeferenceObject deferenceObject) {
+            throw new IllegalStateException("shouldn't be a DeferenceObject");
         }
     }
 

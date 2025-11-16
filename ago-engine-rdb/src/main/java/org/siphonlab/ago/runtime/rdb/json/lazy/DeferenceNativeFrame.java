@@ -24,17 +24,20 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
 
     private boolean saveRequired = false;
 
+    public boolean isEntrance = false;
+    public boolean isAsyncEntrance = false;
+
     public DeferenceNativeFrame(LazyJsonRefSlots slots, AgoNativeFunction agoFunction, RdbEngine engine) {
         super(engine, slots, agoFunction);
         this.adapter = engine.getRdbAdapter();
 
         ObjectRefCallFrame inst = (ObjectRefCallFrame) adapter.restoreInstance(slots.getObjectRef());
-        inst.setDeferenceInstance(this);
+        inst.setDeferencedInstance(this);
         this.objectRefInstance = inst;
     }
 
     @Override
-    public ObjectRefInstanceTrait toObjectRefInstance() {
+    public ObjectRefObject toObjectRefInstance() {
         assert (this.objectRefInstance != null);
         return objectRefInstance;
     }
@@ -58,11 +61,11 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
     public void setCaller(CallFrame<?> caller) {
         if (ObjectRefOwner.equals(caller, this.caller)) return;
         if (this.caller != null) {
-            ReferenceCounter.releaseRefOfCallFrame(this.caller, Reason.SetCallerDrop);
+            ReferenceCounter.releaseRef(this.caller, Reason.SetCallerDrop);
         }
         var c = toObjectRefCallFrame(caller);
         super.setCaller(c);
-        ReferenceCounter.increaseRefOfCallFrame(c, Reason.SetCallerInstall);
+        ReferenceCounter.increaseRef(c, Reason.SetCallerInstall);
         saveRequired = true;
     }
 
@@ -73,16 +76,14 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
         CallFrame<?> c = toObjectRefCallFrame(creator);
 
         super.setCreator(c);
-        ReferenceCounter.increaseRefOfCallFrame(c, Reason.SetCreatorInstall);
+        ReferenceCounter.increaseRef(c, Reason.SetCreatorInstall);
         saveRequired = true;
     }
 
     @Override
     public void setParentScope(Instance parentScope) {
         super.setParentScope(parentScope);
-        if (parentScope instanceof ReferenceCounter rc) {
-            rc.increaseRef(Reason.SetParentInstall);
-        }
+        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall);
         saveRequired = true;
     }
 
@@ -100,8 +101,8 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
     public boolean equals(Object obj) {
         if (obj instanceof DeferenceAgoFrame deferenceAgoFrame) {
             return this.getObjectRef().equals(deferenceAgoFrame.getObjectRef());
-        } else if (obj instanceof ObjectRefInstanceTrait objectRefInstanceTrait) {
-            return this.getObjectRef().equals(objectRefInstanceTrait.getObjectRef());
+        } else if (obj instanceof ObjectRefObject objectRefObject) {
+            return this.getObjectRef().equals(objectRefObject.getObjectRef());
         } else {
             return false;
         }
