@@ -104,10 +104,10 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         super.restoreSlots(jsonRefSlots, agoClass, json);
     }
 
-    @Override
-    protected RdbAgoRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
-        return new ObjectRefResultsRdbRunSpace(this,getRdbAdapter(),this.runSpaceHost);
-    }
+//    @Override
+//    protected RdbAgoRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
+//        return new ObjectRefResultsRdbRunSpace(this,getRdbAdapter(),this.runSpaceHost);
+//    }
 
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, CallFrame<?> caller, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {
         LazyJsonRefSlots slots = (LazyJsonRefSlots) agoFunction.createSlots();
