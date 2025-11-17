@@ -7,8 +7,12 @@ import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableObject;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface ReferenceCounter {
+    final static Logger logger = LoggerFactory.getLogger(ReferenceCounter.class);
+
     enum Reason{
         RunCallFrame,
         SetSlotDrop,
@@ -20,12 +24,14 @@ public interface ReferenceCounter {
         CallFrameQuit,
         DropParentForCallFrameQuit, DropCallerForCallFrameQuit,
         DropCreatorForCallFrameQuit, CallFrameQuitCleanSlots,
-        SetResultSlotsInstall, SetResultSlotsDrop, TakeObjectValue, SetSlotsForRestoreInstance
+        SetResultSlotsInstall, SetResultSlotsDrop, TakeObjectValue, SetSlotsForRestoreInstance,
+        LoadScope, UnloadScope
     }
     void increaseRef(Reason reason);
     int releaseRef(Reason reason);
 
-    public static void releaseRef(Instance<?> instance, ReferenceCounter.Reason reason) {
+    public static void releaseRef(Instance<?> instance, Reason reason, Instance<?> eventSource) {
+        if(logger.isDebugEnabled()) logger.debug("%s release ref of %s for %s".formatted(eventSource, instance, reason));
         if (instance == null) return;
         if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {
             instance = entranceCallFrame.getInner();
@@ -35,7 +41,9 @@ public interface ReferenceCounter {
         }
     }
 
-    public static void increaseRef(Instance<?> instance, ReferenceCounter.Reason reason) {
+    public static void increaseRef(Instance<?> instance, Reason reason, Instance<?> eventSource) {
+        if (logger.isDebugEnabled()) logger.debug("%s increase ref of %s for %s".formatted(eventSource, instance, reason));
+
         if(instance == null) return;
         if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {
             instance = entranceCallFrame.getInner();
@@ -44,6 +52,27 @@ public interface ReferenceCounter {
             rc.increaseRef(reason);
         }
     }
+
+    public static void releaseRef(Instance<?> instance, Reason reason) {
+        if (instance == null) return;
+        if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {
+            instance = entranceCallFrame.getInner();
+        }
+        if (instance instanceof ReferenceCounter rc) {
+            rc.releaseRef(reason);
+        }
+    }
+
+    public static void increaseRef(Instance<?> instance, Reason reason) {
+        if (instance == null) return;
+        if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {
+            instance = entranceCallFrame.getInner();
+        }
+        if (instance instanceof ReferenceCounter rc) {
+            rc.increaseRef(reason);
+        }
+    }
+
 
     public static void releaseDeferenceSlotsAndContext(Instance<?> instance) {
         if (instance instanceof EntranceCallFrame<?> entranceCallFrame) {

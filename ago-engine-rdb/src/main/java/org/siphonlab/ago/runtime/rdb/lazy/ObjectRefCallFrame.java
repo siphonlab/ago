@@ -201,9 +201,12 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         return referenceCounter.get();
     }
 
+    static int times = 0;
     @Override
     public void increaseRef(Reason reason) {
-
+        if(getObjectRef().className().equals("main#")){
+            times++;
+        }
         int r = referenceCounter.incrementAndGet();
         if (logger.isDebugEnabled()) logger.debug("%s inc ref got %d for %s".formatted(this, r, reason));
     }

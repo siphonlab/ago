@@ -61,11 +61,11 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
     public void setCaller(CallFrame<?> caller) {
         if (ObjectRefOwner.equals(caller, this.caller)) return;
         if (this.caller != null) {
-            ReferenceCounter.releaseRef(this.caller, Reason.SetCallerDrop);
+            ReferenceCounter.releaseRef(this.caller, Reason.SetCallerDrop, this);
         }
         var c = toObjectRefCallFrame(caller);
         super.setCaller(c);
-        ReferenceCounter.increaseRef(c, Reason.SetCallerInstall);
+        ReferenceCounter.increaseRef(c, Reason.SetCallerInstall, this);
         saveRequired = true;
     }
 
@@ -76,14 +76,14 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
         CallFrame<?> c = toObjectRefCallFrame(creator);
 
         super.setCreator(c);
-        ReferenceCounter.increaseRef(c, Reason.SetCreatorInstall);
+        ReferenceCounter.increaseRef(c, Reason.SetCreatorInstall, this);
         saveRequired = true;
     }
 
     @Override
     public void setParentScope(Instance parentScope) {
         super.setParentScope(parentScope);
-        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall);
+        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall, this);
         saveRequired = true;
     }
 

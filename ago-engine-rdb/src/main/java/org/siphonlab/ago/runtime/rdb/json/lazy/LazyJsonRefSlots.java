@@ -59,7 +59,7 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         if (ObjectRefOwner.equals(old, value)) {
             return;
         }
-        ReferenceCounter.releaseRef(old, ReferenceCounter.Reason.SetSlotDrop);
+        ReferenceCounter.releaseRef(old, ReferenceCounter.Reason.SetSlotDrop, this.owner);
 
         // always set ObjectRefInstance, don't use DeferenceObject, that will break reference count
         // when saveInstance, it releases ref of DeferenceObject
@@ -84,7 +84,7 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         }
 
 
-        ReferenceCounter.increaseRef(value, ReferenceCounter.Reason.SetSlotInstall);
+        ReferenceCounter.increaseRef(value, ReferenceCounter.Reason.SetSlotInstall, this.owner);
 
         super.setObject(slot, value);
     }

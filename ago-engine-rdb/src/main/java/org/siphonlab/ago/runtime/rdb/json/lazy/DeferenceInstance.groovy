@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.increaseRef
 import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 @CompileStatic
@@ -55,14 +54,14 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
         } else {
             super.setCreator((CallFrame) creator)
         }
-        ReferenceCounter.increaseRef(this.creator, Reason.SetCreatorInstall)
+        ReferenceCounter.increaseRef(this.creator, Reason.SetCreatorInstall, this)
         saveRequired = true;
     }
 
     @Override
     void setParentScope(Instance parentScope) {
         super.setParentScope(parentScope)
-        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall);
+        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall, this);
         saveRequired = true;
     }
 

@@ -1,13 +1,10 @@
 package org.siphonlab.ago.runtime.rdb.lazy;
 
-import org.siphonlab.ago.CallFrame;
-import org.siphonlab.ago.EntranceCallFrame;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
 
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseDeferenceAndContext;
-import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseDeferenceSlotsAndContext;
 
 public interface DeferenceObject {
 
