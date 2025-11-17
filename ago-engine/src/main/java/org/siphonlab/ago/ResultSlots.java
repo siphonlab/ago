@@ -21,7 +21,7 @@ public class ResultSlots {
     private short shortValue;
     private int intValue;
     private long longValue;
-    private Instance<?> objectValue;
+    protected Instance<?> objectValue;
     private String stringValue;
     private AgoClass classRefValue;
 
@@ -109,6 +109,12 @@ public class ResultSlots {
 
     public Instance<?> getObjectValue() {
         return objectValue;
+    }
+
+    public Instance<?> takeObjectValue() {
+        var r = objectValue;
+        objectValue = null;
+        return r;
     }
 
     public void setObjectValue(Instance<?> value) {

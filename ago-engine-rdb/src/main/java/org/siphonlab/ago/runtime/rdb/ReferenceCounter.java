@@ -20,7 +20,7 @@ public interface ReferenceCounter {
         CallFrameQuit,
         DropParentForCallFrameQuit, DropCallerForCallFrameQuit,
         DropCreatorForCallFrameQuit, CallFrameQuitCleanSlots,
-        SetSlotsForRestoreInstance
+        SetResultSlotsInstall, SetResultSlotsDrop, TakeObjectValue, SetSlotsForRestoreInstance
     }
     void increaseRef(Reason reason);
     int releaseRef(Reason reason);

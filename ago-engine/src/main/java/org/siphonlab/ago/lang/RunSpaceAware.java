@@ -74,7 +74,7 @@ public class RunSpaceAware {
             switch (resultSlots.getDataType()){
                 case VOID_VALUE:    frame.finishVoidAsync(); break;
                 case NULL_VALUE:    frame.finishNullAsync(); break;
-                case OBJECT_VALUE:  frame.finishObjectAsync(resultSlots.getObjectValue()); break;
+                case OBJECT_VALUE:  frame.finishObjectAsync(resultSlots.takeObjectValue()); break;
                 case INT_VALUE:     frame.finishIntAsync(resultSlots.getIntValue()); break;
                 case BYTE_VALUE:    frame.finishByteAsync(resultSlots.getByteValue()); break;
                 case SHORT_VALUE:   frame.finishShortAsync(resultSlots.getShortValue()); break;

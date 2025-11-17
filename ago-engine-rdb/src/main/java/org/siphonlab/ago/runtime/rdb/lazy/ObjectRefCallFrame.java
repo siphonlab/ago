@@ -201,7 +201,6 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         return referenceCounter.get();
     }
 
-    private static int times = 0;
     @Override
     public void increaseRef(Reason reason) {
 
@@ -211,9 +210,6 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
 
     @Override
     public int releaseRef(Reason reason) {
-        if (objectRef.className().equals("my.test.A.B.m#") && reason == DropCreatorForCallFrameQuit) {
-            times++;
-        }
         int r = referenceCounter.decrementAndGet();
         if (logger.isDebugEnabled()) logger.debug("%s release ref got %d for %s".formatted(this, r, reason));
         if (r == 0) {

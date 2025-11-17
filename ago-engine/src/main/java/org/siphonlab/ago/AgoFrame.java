@@ -1191,7 +1191,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         var runSpace = this.getRunSpace();
         switch (instruction){
             case Accept.accept_V_v :  slots.setVoid(code[pc++], null); break;
-            case Accept.accept_o_v :  slots.setObject(code[pc++], runSpace.getResultSlots().getObjectValue()); break;
+            case Accept.accept_o_v :  slots.setObject(code[pc++], runSpace.getResultSlots().takeObjectValue()); break;
             case Accept.accept_n_v :  slots.setObject(code[pc++], null); break;
             case Accept.accept_S_v :  slots.setString(code[pc++], runSpace.getResultSlots().getStringValue()); break;
             case Accept.accept_B_v :  slots.setBoolean(code[pc++], runSpace.getResultSlots().getBooleanValue()); break;

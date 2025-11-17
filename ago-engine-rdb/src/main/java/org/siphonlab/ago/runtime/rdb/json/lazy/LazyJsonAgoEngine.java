@@ -14,6 +14,7 @@ import org.siphonlab.ago.runtime.rdb.json.*;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefResultsRdbRunSpace;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 
 import java.util.*;
@@ -101,6 +102,11 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     public void restoreSlots(LazyJsonRefSlots jsonRefSlots, long id, AgoClass agoClass, String json) throws JsonProcessingException {
         jsonRefSlots.setId(id);
         super.restoreSlots(jsonRefSlots, agoClass, json);
+    }
+
+    @Override
+    protected RdbAgoRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
+        return new ObjectRefResultsRdbRunSpace(this,getRdbAdapter(),this.runSpaceHost);
     }
 
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, CallFrame<?> caller, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {

@@ -102,8 +102,13 @@ public class AgoEngine implements ClassManager{
     }
 
     protected AgoRunSpace createRunSpace(RunSpaceHost runSpaceHost) {
+        return createRunSpaceInner(runSpaceHost);
+    }
+
+    protected AgoRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
         return new AgoRunSpace(this, runSpaceHost);
     }
+
 
     public void load(AgoClassLoader classLoader){
         this.runSpace = createRunSpace(this.runSpaceHost);

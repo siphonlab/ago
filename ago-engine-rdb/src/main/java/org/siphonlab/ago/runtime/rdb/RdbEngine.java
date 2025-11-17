@@ -134,9 +134,14 @@ public class RdbEngine extends AgoEngine {
 
     @Override
     protected AgoRunSpace createRunSpace(RunSpaceHost runSpaceHost) {
-        var r = new RdbAgoRunSpace(this, rdbAdapter, runSpaceHost);
+        var r = createRunSpaceInner(runSpaceHost);
         this.rdbAdapter.saveRunSpace(r);
         return r;
+    }
+
+    @Override
+    protected RdbAgoRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
+        return new RdbAgoRunSpace(this, rdbAdapter, runSpaceHost);
     }
 
     @Override

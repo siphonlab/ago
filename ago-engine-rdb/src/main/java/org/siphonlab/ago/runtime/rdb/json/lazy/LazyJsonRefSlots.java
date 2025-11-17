@@ -70,6 +70,7 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
             alreadyExpanded = (ObjectRefOwner.equals(((Instance<?>) deferenceObject).getCreator(), callFrame));
         }
 
+        // put into result slots and take away, still will cause refcount become 0
         if (value instanceof ReferenceCounter referenceCounter) {
             if(referenceCounter.getRefCount() == 0){
                 if(value instanceof ObjectRefObject objectRefObject){
