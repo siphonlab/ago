@@ -11,6 +11,8 @@ import org.siphonlab.ago.runtime.rdb.json.JsonRefSlots;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
+
 public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
 
     private final static Logger logger = LoggerFactory.getLogger(LazyJsonRefSlots.class);
@@ -67,7 +69,8 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         boolean alreadyExpanded = false;
         if(value instanceof DeferenceObject deferenceObject){
             value = (Instance<?>) deferenceObject.toObjectRefInstance();
-            alreadyExpanded = (ObjectRefOwner.equals(((Instance<?>) deferenceObject).getCreator(), callFrame));
+            var creator = deferenceObject.getDeferenceObjectState().getCreator();
+            alreadyExpanded = Objects.equals(creator, ObjectRefOwner.extractObjectRef(callFrame));
         }
 
         // put into result slots and take away, still will cause refcount become 0

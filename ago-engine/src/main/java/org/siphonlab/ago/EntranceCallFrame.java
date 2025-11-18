@@ -48,16 +48,6 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     }
 
     @Override
-    public CallFrame<?> getCreator() {
-        return inner.getCreator();
-    }
-
-    @Override
-    public void setCreator(CallFrame<?> creator) {
-        inner.setCreator(creator);
-    }
-
-    @Override
     public Instance getParentScope() {
         return inner.getParentScope();
     }

@@ -5,6 +5,7 @@ import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceAgoFrame;
+import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceFrameState;
 import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceNativeFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,16 +88,11 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         }
 
         this.deferencedInstance = inst;
-        if (inst instanceof DeferenceAgoFrame r) {
-            if (r.isEntrance) {
+        if (inst instanceof DeferenceCallFrame r) {
+            DeferenceFrameState state = r.getDeferenceFrameState();
+            if (state.isEntrance()) {
                 inst = new EntranceCallFrame<>(this);
-            } else if (r.isAsyncEntrance) {
-                inst = new AsyncEntranceCallFrame<>(this);
-            }
-        } else if (inst instanceof DeferenceNativeFrame r) {
-            if (r.isEntrance) {
-                inst = new EntranceCallFrame<>(this);
-            } else if (r.isAsyncEntrance) {
+            } else if (state.isAsyncEntrance()) {
                 inst = new AsyncEntranceCallFrame<>(this);
             }
         }
@@ -116,16 +112,6 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
     @Override
     public void setParentScope(Instance parentScope) {
         deferencedInstance.setParentScope(parentScope);
-    }
-
-    @Override
-    public CallFrame<?> getCreator() {
-        return deferencedInstance.getCreator();
-    }
-
-    @Override
-    public void setCreator(CallFrame<?> creator) {
-        recomposeAsCallFrame().setCreator(creator);
     }
 
     @Override

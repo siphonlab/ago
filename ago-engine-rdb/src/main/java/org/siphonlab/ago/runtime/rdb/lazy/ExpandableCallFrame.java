@@ -86,15 +86,6 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
         return expand().getParentScope();
     }
 
-    @Override
-    public void setCreator(CallFrame<?> creator) {
-        expand().setCreator(creator);
-    }
-
-    @Override
-    public CallFrame<?> getCreator() {
-        return expand().getCreator();
-    }
 
     @Override
     public void setRunSpace(AgoRunSpace runSpace) {
@@ -114,7 +105,7 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
 
     @Override
     public SourceLocation resolveSourceLocation() {
-        return expand().getCreator().resolveSourceLocation();
+        return expand().resolveSourceLocation();
     }
 
     @Override

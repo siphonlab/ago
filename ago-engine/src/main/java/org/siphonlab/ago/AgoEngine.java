@@ -247,7 +247,6 @@ public class AgoEngine implements ClassManager{
         }
         if(parentScope != null) result.setParentScope(parentScope);
         result.setCaller(caller);
-        result.setCreator(creator);
         return result;
     }
 
@@ -257,7 +256,6 @@ public class AgoEngine implements ClassManager{
 
         var instance = new Instance<>(agoClass.createSlots(), agoClass);
         if(parentScope != null) instance.setParentScope(parentScope);
-        instance.setCreator(creator);
         return instance;
     }
 
@@ -283,13 +281,11 @@ public class AgoEngine implements ClassManager{
         }
         var instance = new NativeInstance(agoClass.createSlots(), agoClass);
         if (parentScope != null) instance.setParentScope(parentScope);
-        instance.setCreator(creator);
         return instance;
     }
 
     public AgoClass createScopedClass(CallFrame<?> caller, int classId, Instance<?> parentScope) {
         var c = classes[classId].withScope(parentScope);
-        c.setCreator(caller);
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if(emptyArgsConstructor != null){

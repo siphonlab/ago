@@ -95,7 +95,6 @@ public interface ReferenceCounter {
             if(instance instanceof CallFrame<?> callFrame) {
                 releaseRef(callFrame.getCaller(), Reason.DropCallerForCallFrameQuit);
             }
-            releaseRef(instance.getCreator(), ReferenceCounter.Reason.DropCreatorForCallFrameQuit);
             deferenceObject.releaseSlotsDeference(Reason.CallFrameQuitCleanSlots);
         }
     }
@@ -124,7 +123,6 @@ public interface ReferenceCounter {
             if (instance instanceof CallFrame<?> callFrame) {
                 releaseRef(callFrame.getCaller(), Reason.DropCallerForCallFrameQuit);
             }
-            releaseRef(instance.getCreator(), ReferenceCounter.Reason.DropCreatorForCallFrameQuit);
         }
     }
 

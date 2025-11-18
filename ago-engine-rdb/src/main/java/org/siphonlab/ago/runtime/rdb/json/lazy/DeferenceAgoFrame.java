@@ -1,183 +1,186 @@
-package org.siphonlab.ago.runtime.rdb.json.lazy
+package org.siphonlab.ago.runtime.rdb.json.lazy;
 
-import groovy.transform.CompileStatic;
-import org.siphonlab.ago.*
-import org.siphonlab.ago.opcode.Load
-import org.siphonlab.ago.runtime.rdb.ObjectRef
-import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
-import org.siphonlab.ago.runtime.rdb.RdbAdapter;
-import org.siphonlab.ago.runtime.rdb.RdbEngine
-import org.siphonlab.ago.runtime.rdb.ReferenceCounter
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject
-import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.codehaus.groovy.runtime.DefaultGroovyMethods;
+import org.siphonlab.ago.*;
+import org.siphonlab.ago.opcode.Load;
+import org.siphonlab.ago.runtime.rdb.*;
+import org.siphonlab.ago.runtime.rdb.lazy.DeferenceCallFrame;
+import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
+import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.LinkedList;
+import java.util.List;
 
-import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
-import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
-
-@CompileStatic
-public class DeferenceAgoFrame extends AgoFrame implements DeferenceObject, ObjectRefOwner{
-
-    private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame)
-
-    private final RdbAdapter adapter;
-
-    private final AtomicInteger referenceCounter = new AtomicInteger();
-    private final ObjectRefCallFrame objectRefInstance
-
-    private boolean saveRequired = false;
-
-    // for objRefFrame.deference(), to deference to EntranceFrame
-    public boolean isEntrance = false;
-    public boolean isAsyncEntrance = false;
-
+public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, ObjectRefOwner {
     public DeferenceAgoFrame(LazyJsonRefSlots slots, AgoFunction agoFunction, RdbEngine engine) {
         super(slots, agoFunction, engine);
 
         slots.setOwner(this);
         this.adapter = engine.getRdbAdapter();
 
-        ObjectRefCallFrame inst = adapter.restoreInstance(objectRef) as ObjectRefCallFrame;
-        inst.setDeferencedInstance(this)
-        this.objectRefInstance = inst;
-    }
-
-    private void setSaveRequired(boolean value){
-        this.saveRequired = value;
+        ObjectRefCallFrame inst = DefaultGroovyMethods.asType(adapter.restoreInstance(getObjectRef()), ObjectRefCallFrame.class);
+        this.state = new DeferenceFrameState(inst);
+        inst.setDeferencedInstance(this);
     }
 
     @Override
-    void setRunSpace(AgoRunSpace runSpace) {
-        super.setRunSpace(runSpace)
-        this.setSaveRequired(true)
+    public void setRunSpace(AgoRunSpace runSpace) {
+        super.setRunSpace(runSpace);
+        this.state.setSaveRequired();
     }
 
     @Override
-    void setCaller(CallFrame<?> caller) {
-        CallFrame c = toObjectRefCallFrame(caller);
-        if (ObjectRefOwner.equals(caller, this.caller)) return;
+    public void setCaller(CallFrame<?> caller) {
+        CallFrame c = LazyJsonAgoEngine.toObjectRefCallFrame(caller);
+        if (ObjectRefOwner.equals(caller, this.getCaller())) return;
 
-        if(this.caller != null){
-            ReferenceCounter.releaseRef(this.caller, Reason.SetCallerDrop, this)
+
+        if (this.getCaller() != null) {
+            ReferenceCounter.releaseRef(this.getCaller(), ReferenceCounter.Reason.SetCallerDrop, this);
         }
-        super.setCaller(c)
-        ReferenceCounter.increaseRef(c, Reason.SetCallerInstall, this);
-        this.setSaveRequired(true);
+
+        super.setCaller(c);
+        ReferenceCounter.increaseRef(c, ReferenceCounter.Reason.SetCallerInstall, this);
+        this.state.setSaveRequired();
     }
 
     protected int evaluateLoad(Slots slots, int pc, int instruction) {
         switch (instruction) {
-            case Load.loadscope_v: slots.setObject(code[pc++], getScope(1)); break;
-            case Load.loadscope_vc: slots.setObject(code[pc++], getScope(code[pc++])); break;
+            case Load.loadscope_v:
+                slots.setObject(code[pc++], getScope(1));
+                break;
+            case Load.loadscope_vc:
+                slots.setObject(code[pc++], getScope(code[pc++]));
+                break;
 
             case Load.loadcls_scope_vc: {
                 int target = code[pc++];
                 int offset = code[pc++];
-                slots.setObject(target, getScope(offset).agoClass);
+                slots.setObject(target, getScope(offset).getAgoClass());
                 break;
             }
-            case Load.loadcls_scope_v: slots.setObject(code[pc++], getScope(1).getAgoClass()); break;
-            case Load.loadcls_vo: slots.setObject(code[pc++], slots.getObject(code[pc++]).getAgoClass()); break;
-            case Load.loadcls_vC: slots.setObject(code[pc++], engine.getClass(code[pc++])); break;
+            case Load.loadcls_scope_v:
+                slots.setObject(code[pc++], getScope(1).getAgoClass());
+                break;
+            case Load.loadcls_vo:
+                slots.setObject(code[pc++], slots.getObject(code[pc++]).getAgoClass());
+                break;
+            case Load.loadcls_vC:
+                slots.setObject(code[pc++], engine.getClass(code[pc++]));
+                break;
 
             case Load.loadcls2_scope_vc: {
                 int target = code[pc++];
                 int offset = code[pc++];
                 switch (offset) {
-                    case 0: slots.setObject(target, this.agoClass.agoClass); break;
-                    default: slots.setObject(target, this.getScope(offset).agoClass.agoClass); break;
+                    case 0:
+                        slots.setObject(target, this.agoClass.getAgoClass());
+                        break;
+                    default:
+                        slots.setObject(target, this.getScope(offset).getAgoClass().getAgoClass());
+                        break;
                 }
                 break;
             }
-            case Load.loadcls2_scope_v: slots.setObject(code[pc++], getScope(1).getAgoClass().getAgoClass()); break;
-            case Load.loadcls2_vo: slots.setObject(code[pc++], slots.getObject(code[pc++]).getAgoClass().getAgoClass()); break;
+            case Load.loadcls2_scope_v:
+                slots.setObject(code[pc++], getScope(1).getAgoClass().getAgoClass());
+                break;
+            case Load.loadcls2_vo:
+                slots.setObject(code[pc++], slots.getObject(code[pc++]).getAgoClass().getAgoClass());
+                break;
 
-            case Load.bindcls_vCo: slots.setObject(code[pc++], engine.createScopedClass(this, code[pc++], slots.getObject(code[pc++]))); break;
-            case Load.bindcls_scope_vCc: slots.setObject(code[pc++], engine.createScopedClass(this, code[pc++], getScope(code[pc++]))); break;
+            case Load.bindcls_vCo:
+                slots.setObject(code[pc++], engine.createScopedClass(this, code[pc++], slots.getObject(code[pc++])));
+                break;
+            case Load.bindcls_scope_vCc:
+                slots.setObject(code[pc++], engine.createScopedClass(this, code[pc++], getScope(code[pc++])));
+                break;
 
         }
         return pc;
     }
 
-    private List<Instance> loadedScopes = new LinkedList<>();
-
     @Override
     protected Instance<?> getScope(int depth) {
         if (depth == 0) return this;
         Instance<?> r = this;
-        for (var i = 1; i <= depth; i++) {
+        for (Integer i = 1; i <= depth; i++) {
             r = r.getParentScope();
             loadedScopes.add(r);
-            ReferenceCounter.increaseRef(r, Reason.LoadScope, this)
+            ReferenceCounter.increaseRef(r, ReferenceCounter.Reason.LoadScope, this);
         }
+
         return r;
     }
 
     @Override
-    void setParentScope(Instance parentScope) {
-        super.setParentScope(parentScope)
-        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall, this);
-        this.setSaveRequired(true);
+    public void setParentScope(Instance parentScope) {
+        super.setParentScope(parentScope);
+        ReferenceCounter.increaseRef(parentScope, ReferenceCounter.Reason.SetParentInstall, this);
+        this.state.setSaveRequired();
     }
 
-    boolean isSaveRequired(){
-        return saveRequired;
+    public boolean isSaveRequired() {
+        return state.isSaveRequired();
     }
 
-    void markSaved(){
-        saveRequired = false
+    public void markSaved() {
+        state.markSaved();
     }
 
-    @Override
-    void setCreator(CallFrame<?> creator) {
-        if(ObjectRefOwner.equals(creator, this.creator)) return;
-
-        CallFrame c = toObjectRefCallFrame(creator);
-
-        super.setCreator(c)
-        ReferenceCounter.increaseRef(c, Reason.SetCreatorInstall, this);
-        saveRequired = true;
-    }
-
-    ObjectRef getObjectRef(){
-        return ((LazyJsonRefSlots) this.slots).objectRef
+    public ObjectRef getObjectRef() {
+        return ((LazyJsonRefSlots)slots).getObjectRef();
     }
 
     @Override
-    ObjectRefObject toObjectRefInstance() {
-        assert this.objectRefInstance != null;
-        return this.objectRefInstance;
+    public ObjectRefObject toObjectRefInstance() {
+        return this.state.getObjectRefInstance();
     }
 
     @Override
-    boolean equals(Object obj) {
-        if(obj instanceof DeferenceAgoFrame){
-            return this.getObjectRef().equals(obj.getObjectRef())
-        } else if(obj instanceof ObjectRefObject){
-            return this.getObjectRef().equals(obj.getObjectRef())
+    public boolean equals(Object obj) {
+        if (obj instanceof DeferenceAgoFrame) {
+            return this.getObjectRef().equals(((DeferenceAgoFrame) obj).getObjectRef());
+        } else if (obj instanceof ObjectRefObject) {
+            return this.getObjectRef().equals(((ObjectRefObject) obj).getObjectRef());
         } else {
-            return false
+            return false;
         }
+
     }
 
     @Override
-    String toString() {
-        return "(DeferenceAgoFrame %s)".formatted(this.objectRef)
+    public String toString() {
+        return "(DeferenceAgoFrame %s)".formatted(this.getObjectRef());
     }
 
-    void releaseSlotsDeference(Reason reason) {
-        releaseSlotsDeference(this.slots as LazyJsonRefSlots, reason)
-        for(var scope : this.loadedScopes){
-            ReferenceCounter.releaseDeferenceAndContext(scope, Reason.UnloadScope);
+    public void releaseSlotsDeference(ReferenceCounter.Reason reason) {
+        releaseSlotsDeference(DefaultGroovyMethods.asType(this.getSlots(), LazyJsonRefSlots.class), reason);
+        for (Instance scope : this.loadedScopes) {
+            ReferenceCounter.releaseDeferenceAndContext(scope, ReferenceCounter.Reason.UnloadScope);
         }
+
     }
 
-    void increaseSlotsDeference(Reason reason) {
-        increaseSlotsDeference(this.slots as LazyJsonRefSlots, reason)
+    public void increaseSlotsDeference(ReferenceCounter.Reason reason) {
+        increaseSlotsDeference(DefaultGroovyMethods.asType(this.getSlots(), LazyJsonRefSlots.class), reason);
     }
 
+    @Override
+    public DeferenceObjectState getDeferenceObjectState() {
+        return state;
+    }
+
+    private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame.class);
+    private final RdbAdapter adapter;
+    private final DeferenceFrameState state;
+    private List<Instance> loadedScopes = new LinkedList<Instance>();
+
+    @Override
+    public DeferenceFrameState getDeferenceFrameState() {
+        return state;
+    }
 }

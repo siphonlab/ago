@@ -1,8 +1,10 @@
 package org.siphonlab.ago.runtime.rdb.lazy;
 
 import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
+import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceObjectState;
 
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseDeferenceAndContext;
 
@@ -41,5 +43,7 @@ public interface DeferenceObject {
             ReferenceCounter.increaseRef(obj, reason);
         }
     }
+
+    DeferenceObjectState getDeferenceObjectState();
 
 }

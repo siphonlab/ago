@@ -74,16 +74,6 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
     }
 
     @Override
-    public void setCreator(CallFrame<?> creator) {
-        expand().setCreator(creator);
-    }
-
-    @Override
-    public CallFrame<?> getCreator() {
-        return expand().getCreator();
-    }
-
-    @Override
     public String toString() {
         return "(ExpandableInstance %s %s)".formatted(this.getObjectRef(), this.expander);
     }

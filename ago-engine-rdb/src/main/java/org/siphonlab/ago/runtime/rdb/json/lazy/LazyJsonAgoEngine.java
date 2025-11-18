@@ -42,10 +42,6 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         if(parentScopeId != null) {
             agoClass.setParentScope(this.getRdbAdapter().restoreInstance(new ObjectRef((String)row.get("parent_scope_class"), (Long)parentScopeId)));
         }
-        Object creatorId = row.get("creator_id");
-        if (parentScopeId != null) {
-            agoClass.setCreator((CallFrame<?>) this.getRdbAdapter().restoreInstance(new ObjectRef((String) row.get("creator_class"), (Long) creatorId)));
-        }
     }
 
     @Override
@@ -125,10 +121,12 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         CallFrame<?> callerRef = toObjectRefCallFrame(caller);
         inst.setCaller(callerRef);
 
+        if(inst instanceof DeferenceObject deferenceObject){
         if(Objects.equals(caller, creator)){
-            inst.setCreator(callerRef);
+            deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(callerRef));
         } else {
-            inst.setCreator(toObjectRefCallFrame(creator));
+            deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(creator));
+        }
         }
         ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
         return inst;
@@ -151,7 +149,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
 
         var inst = new DeferenceInstance((LazyJsonRefSlots) slots,agoClass,this);
         if (parentScope != null) inst.setParentScope(parentScope);
-        inst.setCreator(creator);
+        inst.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(creator));
 
         inst.markSaved();
 

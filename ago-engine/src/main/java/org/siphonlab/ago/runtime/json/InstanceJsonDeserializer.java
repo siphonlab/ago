@@ -426,7 +426,6 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + elementType.getTypeCode().getValue());
             };
-            collection.setCreator(creator);
             return collection;
         }
         throw new RuntimeException("bad exit");

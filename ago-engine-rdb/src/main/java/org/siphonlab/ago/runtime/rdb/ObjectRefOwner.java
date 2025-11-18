@@ -3,10 +3,18 @@ package org.siphonlab.ago.runtime.rdb;
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.EntranceCallFrame;
 import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
 
 import java.util.Objects;
 
 public interface ObjectRefOwner {
+    static ObjectRef extractCreator(Instance instance) {
+        if(instance instanceof DeferenceObject){
+            return ((DeferenceObject) instance).getDeferenceObjectState().getCreator();
+        }
+        return null;
+    }
+
     ObjectRef getObjectRef();
 
     static ObjectRef extractObjectRef(Instance<?> instance) {

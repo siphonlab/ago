@@ -44,16 +44,6 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
         deference().setParentScope(parentScope);
     }
 
-    @Override
-    public CallFrame<?> getCreator() {
-        return deference().getCreator();
-    }
-
-    @Override
-    public void setCreator(CallFrame<?> creator) {
-        deference().setCreator(creator);
-    }
-
     public int hashCode() {
         return getObjectRef().hashCode();
     }

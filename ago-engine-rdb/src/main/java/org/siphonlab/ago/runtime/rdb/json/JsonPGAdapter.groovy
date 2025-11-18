@@ -141,7 +141,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.caller);
-        ObjectRef creatorObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.creator);
+        ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
 
 //        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
@@ -178,7 +178,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.caller);
-        ObjectRef creatorObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.creator);
+        ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
 
 //        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
@@ -417,7 +417,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     Map<String, Object> toMap(AgoClass agoClass, int applicationId){
         var slots = agoClass.slots as JsonRefSlots;
         var parentScope = agoClass.parentScope?.slots as JsonRefSlots;
-        var creator = agoClass.creator?.slots as JsonRefSlots;
+        var creator = ObjectRefOwner.extractCreator(agoClass);
 
         return [
                 id                      : slots.objectRef.id() as Object,
@@ -427,8 +427,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 parent_scope_id         : parentScope?.objectRef?.id(),
 
                 parent_scope_class      : parentScope?.objectRef?.className(),
-                creator_id              : creator?.objectRef?.id(),
-                creator_class           : creator?.objectRef?.className(),
+                creator_id              : creator?.id(),
+                creator_class           : creator?.className(),
                 slots                   : toJsonb(getAgoEngine().jsonStringifySlots(slots, agoClass.agoClass)),
                 fullname                : agoClass.getFullname(),
 
@@ -494,7 +494,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     void saveAgoInstance(Instance instance) {
         var slots = instance.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(instance.parentScope);
-        var creator = ObjectRefOwner.extractObjectRef(instance.creator);
+        var creator = ObjectRefOwner.extractCreator(instance);
 
 //        var defaultSlots = defaultSlots(instance.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 

@@ -13,43 +13,36 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 
-public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject, ObjectRefOwner {
+public class DeferenceNativeFrame extends NativeFrame implements DeferenceCallFrame, ObjectRefOwner {
 
     private static final Logger logger = LoggerFactory.getLogger(DeferenceNativeFrame.class);
 
     private final RdbAdapter adapter;
 
-    private final AtomicInteger referenceCounter = new AtomicInteger();
-    private final ObjectRefCallFrame objectRefInstance;
-
-    private boolean saveRequired = false;
-
-    public boolean isEntrance = false;
-    public boolean isAsyncEntrance = false;
+    private final DeferenceFrameState state;
 
     public DeferenceNativeFrame(LazyJsonRefSlots slots, AgoNativeFunction agoFunction, RdbEngine engine) {
         super(engine, slots, agoFunction);
         this.adapter = engine.getRdbAdapter();
 
         ObjectRefCallFrame inst = (ObjectRefCallFrame) adapter.restoreInstance(slots.getObjectRef());
+        this.state = new DeferenceFrameState(inst);
         inst.setDeferencedInstance(this);
-        this.objectRefInstance = inst;
     }
 
     @Override
     public ObjectRefObject toObjectRefInstance() {
-        assert (this.objectRefInstance != null);
-        return objectRefInstance;
+        return state.getObjectRefInstance();
     }
 
     @Override
     public boolean isSaveRequired() {
-        return saveRequired;
+        return state.isSaveRequired();
     }
 
     @Override
     public void markSaved() {
-        saveRequired = false;
+        state.markSaved();
     }
 
     @Override
@@ -66,31 +59,20 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
         var c = toObjectRefCallFrame(caller);
         super.setCaller(c);
         ReferenceCounter.increaseRef(c, Reason.SetCallerInstall, this);
-        saveRequired = true;
-    }
-
-    @Override
-    public void setCreator(CallFrame<?> creator) {
-        if (ObjectRefOwner.equals(creator, this.creator)) return;
-
-        CallFrame<?> c = toObjectRefCallFrame(creator);
-
-        super.setCreator(c);
-        ReferenceCounter.increaseRef(c, Reason.SetCreatorInstall, this);
-        saveRequired = true;
+        state.setSaveRequired();
     }
 
     @Override
     public void setParentScope(Instance parentScope) {
         super.setParentScope(parentScope);
         ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall, this);
-        saveRequired = true;
+        state.setSaveRequired();
     }
 
     @Override
     public void setRunSpace(AgoRunSpace runSpace) {
         super.setRunSpace(runSpace);
-        saveRequired = true;
+        state.setSaveRequired();
     }
 
     public ObjectRef getObjectRef() {
@@ -122,4 +104,13 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceObject
         increaseSlotsDeference((LazyJsonRefSlots) this.slots, reason);
     }
 
+    @Override
+    public DeferenceObjectState getDeferenceObjectState() {
+        return state;
+    }
+
+    @Override
+    public DeferenceFrameState getDeferenceFrameState() {
+        return state;
+    }
 }

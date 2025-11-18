@@ -7,7 +7,6 @@ public class Instance<C extends AgoClass>  {
 
     protected C agoClass;
     protected Instance parentScope;
-    protected CallFrame<?> creator;      // it's always the creator CallFrame which created this instance
 
     protected Slots slots;
 
@@ -34,14 +33,6 @@ public class Instance<C extends AgoClass>  {
 
     public void setParentScope(Instance parentScope) {
         this.parentScope = parentScope;
-    }
-
-    public CallFrame<?> getCreator() {
-        return creator;
-    }
-
-    public void setCreator(CallFrame<?> creator) {
-        this.creator = creator;
     }
 
     public Slots getSlots() {

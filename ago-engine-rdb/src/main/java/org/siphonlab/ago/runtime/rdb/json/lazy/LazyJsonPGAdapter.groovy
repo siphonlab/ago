@@ -181,9 +181,9 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 parentScope = restoreInstance(connection, new ObjectRef(parentScopeTable, parent_scope_id))
             }
 
-            CallFrame creator;
+            ObjectRef creator;
             if (row["creator_id"] != null) {
-                creator = restoreInstance(new ObjectRef(row["creator_class"] as String, row["creator_id"] as Long)) as CallFrame
+                creator = new ObjectRef(row["creator_class"] as String, row["creator_id"] as Long)
             } else {
                 creator = null
             }
@@ -199,17 +199,19 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                     caller = null
                 }
                 LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
-                var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, caller, creator, slots -> {
+                var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, caller, null, slots -> {
                     getAgoEngine().restoreSlots(slots as LazyJsonRefSlots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value));
                 })
                 if (frame instanceof DeferenceAgoFrame) {
                     frame.pc = row['pc'] as int
-                    frame.isEntrance = row['is_entrance']
-                    frame.isAsyncEntrance = row['is_async_entrance']
+                    frame.getDeferenceFrameState().entrance = row['is_entrance']
+                    frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
+                    frame.getDeferenceObjectState().setCreator(creator)
                 } else if(frame instanceof DeferenceNativeFrame){        //DeferenceNativeFrame
                     if(row['payload']) frame.setPayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
-                    frame.isEntrance = row['is_entrance']
-                    frame.isAsyncEntrance = row['is_async_entrance']
+                    frame.getDeferenceFrameState().entrance = row['is_entrance']
+                    frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
+                    frame.getDeferenceObjectState().setCreator(creator)
                 } else {
                     throw new RuntimeException("not deference type");
                 }
@@ -230,7 +232,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 getAgoEngine().restoreSlots(slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value));
                 var inst = new DeferenceInstance(slots, agoClass, engine);
                 inst.parentScope = parentScope
-                inst.creator = creator
+                inst.getDeferenceObjectState().setCreator(creator)
                 if(inst instanceof DeferenceObject) inst.markSaved()
 
                 ReferenceCounter.increaseDeferenceSlotsForRestoreInstance(inst);
@@ -253,8 +255,10 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             Instance scope = restoreInstance(new ObjectRef((String) row["parent_scope_class"], (Long) parentScopeId));
             var scoped = baseClass.withScope(scope)
             Object creatorId = row["creator_id"];
-            if (parentScopeId != null) {
-                scoped.setCreator((CallFrame) this.restoreInstance(new ObjectRef((String) row["creator_class"], (Long) creatorId)));
+            if (creatorId != null) {
+                if(scoped instanceof DeferenceObject){
+                    scoped.getDeferenceObjectState().setCreator(new ObjectRef((String) row["creator_class"], (Long) creatorId))
+                }
             }
             getAgoEngine().restoreSlots(scoped.getSlots() as LazyJsonRefSlots,id,baseClass.getAgoClass(),row['slots'] as String)
             return scoped;
