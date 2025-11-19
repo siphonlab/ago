@@ -207,7 +207,7 @@ public class AgoClass extends Instance<MetaClass>{
             if(ClassBound.isClassBound( this)){     // see org.siphonlab.ago.compile.generic.ClassIntervalClassDef.asThatOrSuperOfThat
                 var lBound = ClassBound.getLBound(this);
                 var uBound = ClassBound.getUBound(this);
-                var any = classLoader.getAnyClass();
+                var any = classLoader.getLangClasses().getAnyClass();
                 if(lBound.equals(any) || uBound.equals(any)) return anotherClass;
 
                 if(ClassBound.isClassBound(anotherClass)){
@@ -281,7 +281,7 @@ public class AgoClass extends Instance<MetaClass>{
 
         GenericTypeParametersInfo paramsContext = (GenericTypeParametersInfo) (((GenericArgumentsInfo) concreteTypeInfo).getTemplateClass().concreteTypeInfo);
         var params = paramsContext.getGenericParameters();
-        var any = classLoader.getAnyClass();
+        var any = classLoader.getLangClasses().getAnyClass();
         for (int i = 0; i < typeArgumentsArray.length; i++) {
             GenericParameterTypeInfo p = (GenericParameterTypeInfo) params[i];
             Variance variance = ClassBound.getVariance(p.getSharedGenericTypeParameterClass());        // SharedGenericTypeParameterClassDef

@@ -26,19 +26,18 @@ public class Boxer {
 
     private AgoEngine engine;
 
-    public Boxer(BoxTypes boxTypes, AgoClass INTEGER, AgoClass LONG, AgoClass BYTE, AgoClass CHAR, AgoClass SHORT,
-                 AgoClass CLASS_REF, AgoClass STRING, AgoClass BOOLEAN, AgoClass FLOAT, AgoClass DOUBLE) {
+    public Boxer(BoxTypes boxTypes, LangClasses langClasses) {
         this.boxTypes = boxTypes;
-        this.INTEGER = INTEGER;
-        this.LONG = LONG;
-        this.BYTE = BYTE;
-        this.CHAR = CHAR;
-        this.SHORT = SHORT;
-        this.CLASS_REF = CLASS_REF;
-        this.STRING = STRING;
-        this.BOOLEAN = BOOLEAN;
-        this.FLOAT = FLOAT;
-        this.DOUBLE = DOUBLE;
+        this.INTEGER = langClasses.getIntegerClass();
+        this.LONG = langClasses.getLongClass();
+        this.BYTE = langClasses.getByteClass();
+        this.CHAR = langClasses.getCharClass();
+        this.SHORT = langClasses.getShortClass();
+        this.CLASS_REF = langClasses.getClassRefClass();
+        this.STRING = langClasses.getStringClass();
+        this.BOOLEAN = langClasses.getBooleanClass();
+        this.FLOAT = langClasses.getFloatClass();
+        this.DOUBLE = langClasses.getDoubleClass();
     }
 
     public boolean isNarrowBoxType(AgoClass agoClass){

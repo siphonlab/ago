@@ -43,7 +43,7 @@ public class SlotsJsonSerializer extends JsonSerializer<Slots> {
         AgoClass agoClass = (AgoClass) serializers.getAttribute("slots_class");
         var instance = (Instance<?>) serializers.getAttribute("slots_instance");
 
-        assert !(instance instanceof AgoArrayInstance);
+        assert instance == null || !(instance instanceof AgoArrayInstance);
 
         if (agoClass == null && instance != null) {
             agoClass = instance.getAgoClass();

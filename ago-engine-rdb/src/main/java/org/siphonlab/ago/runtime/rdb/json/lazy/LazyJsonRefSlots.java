@@ -66,6 +66,7 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         // always set ObjectRefInstance, don't use DeferenceObject, that will break reference count
         // when saveInstance, it releases ref of DeferenceObject
         // however when restore, it increases ref of ObjectRefInstance
+        // TODO this is the only usage about creator, once I found some other way, I'll remove creator
         boolean alreadyExpanded = false;
         if(value instanceof DeferenceObject deferenceObject){
             value = (Instance<?>) deferenceObject.toObjectRefInstance();

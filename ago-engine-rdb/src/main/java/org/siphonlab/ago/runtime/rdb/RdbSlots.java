@@ -3,6 +3,7 @@ package org.siphonlab.ago.runtime.rdb;
 import org.agrona.collections.IntHashSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.AgoArrayInstance;
 
 import java.util.*;
 

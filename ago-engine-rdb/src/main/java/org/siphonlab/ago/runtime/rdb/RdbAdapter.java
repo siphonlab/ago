@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeInstance;
+import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -294,9 +295,14 @@ public abstract class RdbAdapter {
     protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved){
         saved.add(instance);
 
+        if (boxTypes.isBoxTypeOrWithin(instance.getAgoClass()) || instance instanceof AgoArrayInstance)
+            return;
         if (instance.getSlots() instanceof RdbSlots rdbSlots) {
-            if (boxTypes.isBoxTypeOrWithin(instance.getAgoClass()))
-                return;
+            if(rdbSlots.getUsingInstances() != null) {
+                rdbSlots.getUsingInstances().removeIf(value -> boxTypes.isBoxTypeOrWithin(value.getAgoClass())
+                        || value instanceof AgoArrayInstance);
+            }
+
             switch (rdbSlots.getRowState()) {
                 case RowState.Added:
                     rdbSlots.setRowState(RowState.Saving);

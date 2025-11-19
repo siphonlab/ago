@@ -40,17 +40,8 @@ public class AgoClassLoader implements ClassManager{
     final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
 
     final SlotsCreatorFactory slotsCreatorFactory;
+     private LangClasses langClasses;
 
-    private AgoClass objectClass;
-    private AgoClass classClass;        //lang.Class
-    private AgoClass anyClass;
-    private AgoClass classRefClass;
-    private AgoClass classIntervalClass;
-    private AgoClass scopedClassIntervalClass;
-    private AgoClass genericTypeParameterClass;
-    private AgoClass throwableClass;
-    private AgoClass functionClass;
-    private AgoClass runSpaceClass;
 
     public AgoClassLoader(SlotsCreatorFactory slotsCreatorFactory) {
         this.theMeta = MetaClass.createTheMeta(this);
@@ -95,9 +86,9 @@ public class AgoClassLoader implements ClassManager{
         }
         collectMethods();
         // collect lang classes
-        collectLangClasses();
-        theMeta.setSuperClass(getClassClass());
-        theMeta.setMethods(getClassClass().getMethods());
+        this.langClasses = new LangClasses(this);
+        theMeta.setSuperClass(langClasses.getClassClass());
+        theMeta.setMethods(langClasses.getClassClass().getMethods());
 
         // EnqueueParameterizingClassTask
         enqueueParameterizingClassTasks();
@@ -114,19 +105,6 @@ public class AgoClassLoader implements ClassManager{
         for(var i=0; i<classes.size(); i++){
             assert i == headers.get(classes.get(i).getFullname()).getClassId();
         }
-    }
-
-    private void collectLangClasses() {
-        this.objectClass = classByName.get("lang.Object");
-        this.classClass = classByName.get("lang.Class");
-        this.anyClass = classByName.get("lang.Any");
-        this.classRefClass = classByName.get("lang.ClassRef");
-        this.classIntervalClass = classByName.get("lang.ClassInterval");
-        this.scopedClassIntervalClass = classByName.get("lang.ScopedClassInterval");
-        this.genericTypeParameterClass = classByName.get("lang.GenericTypeParameter");
-        this.throwableClass = classByName.get("lang.Throwable");
-        this.functionClass = classByName.get("lang.Function");
-        this.runSpaceClass = classByName.get("lang.RunSpace");
     }
 
     void processStage(LoadingStage stage){
@@ -985,51 +963,12 @@ public class AgoClassLoader implements ClassManager{
     }
 
     public Boxer createBoxer(AgoEngine engine) {
-        var boxer = new Boxer(getBoxTypes(), classByName.get("lang.Integer"),classByName.get("lang.Long"), classByName.get("lang.Byte"),
-                classByName.get("lang.Char"), classByName.get("lang.Short"), classByName.get("lang.ClassRef"),
-                classByName.get("lang.String"), classByName.get("lang.Boolean"), classByName.get("lang.Float"),
-                classByName.get("lang.Double"));
+        var boxer = new Boxer(getBoxTypes(), langClasses);
         boxer.setEngine(engine);
         return boxer;
     }
 
-    public AgoClass getObjectClass() {
-        return objectClass;
-    }
-
-    public AgoClass getClassClass() {
-        return classClass;
-    }
-
-    public AgoClass getAnyClass() {
-        return anyClass;
-    }
-
-    public AgoClass getClassRefClass() {
-        return classRefClass;
-    }
-
-    public AgoClass getClassIntervalClass() {
-        return classIntervalClass;
-    }
-
-    public AgoClass getScopedClassIntervalClass() {
-        return scopedClassIntervalClass;
-    }
-
-    public AgoClass getGenericTypeParameterClass() {
-        return genericTypeParameterClass;
-    }
-
-    public AgoClass getThrowableClass() {
-        return throwableClass;
-    }
-
-    public AgoClass getFunctionClass() {
-        return functionClass;
-    }
-
-    public AgoClass getRunSpaceClass() {
-        return runSpaceClass;
+    public LangClasses getLangClasses() {
+        return langClasses;
     }
 }

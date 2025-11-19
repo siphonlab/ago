@@ -5,11 +5,11 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 public interface ClassBound {
     // class bound,
     public static boolean isClassBound(AgoClass classInterval){
-        AgoClassLoader classLoader = classInterval.getClassLoader();
+        var langClasses = classInterval.getClassLoader().getLangClasses();
         return classInterval.getConcreteTypeInfo() instanceof ParameterizedClassInfo p &&
-                (p.getParameterizedBaseClass().equals(classLoader.getClassIntervalClass())
-                || p.getParameterizedBaseClass().equals(classLoader.getScopedClassIntervalClass())
-                || p.getParameterizedBaseClass().equals(classLoader.getGenericTypeParameterClass()));
+                (p.getParameterizedBaseClass().equals(langClasses.getClassIntervalClass())
+                || p.getParameterizedBaseClass().equals(langClasses.getScopedClassIntervalClass())
+                || p.getParameterizedBaseClass().equals(langClasses.getGenericTypeParameterClass()));
     }
 
     public static AgoClass getLBound(AgoClass classInterval){

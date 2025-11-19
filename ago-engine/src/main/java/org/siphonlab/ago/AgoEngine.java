@@ -1,7 +1,9 @@
 package org.siphonlab.ago;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.siphonlab.ago.classloader.AgoClassLoader;
@@ -43,6 +45,8 @@ public class AgoEngine implements ClassManager{
     protected Map<AgoJsonConfig, ObjectMapper> jsonObjectMappers = new HashMap<>();
 
     private AgoClass runSpaceClass;
+
+    private LangClasses langClasses;
 
     public String toString(int i){
         return strings[i];
@@ -117,13 +121,16 @@ public class AgoEngine implements ClassManager{
         this.strings = classLoader.getStrings().toArray(new String[0]);
         this.classByName = classLoader.getClassByName();
         this.blobs = classLoader.getBlobs().toArray(new byte[0][]);
+
+        this.langClasses = classLoader.getLangClasses();
+
         this.boxer = classLoader.createBoxer(this);
-        this.scopedClassIntervalClass = this.classByName.get("lang.ScopedClassInterval");
-        this.PRIMITIVE_TYPE = this.classByName.get("lang.Primitive");
-        this.PRIMITIVE_NUMBER_TYPE = this.classByName.get("lang.PrimitiveNumber");
+        this.scopedClassIntervalClass = this.getScopedClassIntervalClass();
+        this.PRIMITIVE_TYPE = langClasses.getPrimitiveClass();
+        this.PRIMITIVE_NUMBER_TYPE = langClasses.getPrimitiveNumberClass();
 
         this.boxTypes = classLoader.getBoxTypes();
-        this.runSpaceClass = classLoader.getRunSpaceClass();
+        this.runSpaceClass = langClasses.getRunSpaceClass();
 
         // applyMetaClasses(classLoader.getMetaClassCreationQueue()); // TODO applyMetaClasses will change the slots info, however, we need jsonObjectMapper for dump slots
         applyMetaClasses(classLoader.getMetaClassCreationQueue());
@@ -368,4 +375,7 @@ public class AgoEngine implements ClassManager{
         return true;
     }
 
+    public LangClasses getLangClasses() {
+        return langClasses;
+    }
 }

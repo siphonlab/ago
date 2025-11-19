@@ -42,6 +42,7 @@ public class RdbEngine extends AgoEngine {
     @Override
     protected ObjectMapper createDefaultObjectMapper() {
         var r = new ObjectMapper();
+
         SimpleModule module = new SimpleModule();
         BoxTypes boxTypes = getBoxTypes();
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
@@ -58,6 +59,7 @@ public class RdbEngine extends AgoEngine {
 
     protected void createDumpingObjectMapper(){
         var r = new ObjectMapper();
+
         SimpleModule module = new SimpleModule();
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);

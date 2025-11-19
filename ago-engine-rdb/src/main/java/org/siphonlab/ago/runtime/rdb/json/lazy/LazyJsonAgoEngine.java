@@ -1,7 +1,9 @@
 package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import groovy.sql.GroovyRowResult;
 import org.agrona.collections.Long2ObjectHashMap;
@@ -58,6 +60,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     @Override
     protected ObjectMapper createDefaultObjectMapper() {
         var r = new ObjectMapper();
+
         SimpleModule module = new SimpleModule();
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
@@ -77,6 +80,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     @Override
     protected void createDumpingObjectMapper() {
         var r = new ObjectMapper();
+
         SimpleModule module = new SimpleModule();
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);

@@ -61,10 +61,6 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             serializeUnboxed(instance, typeCode, gen, serializerProvider, writeType);
             return;
         }
-        if (writeObjectAsReference) {
-            writeObjectAsReference(instance, gen);
-            return;
-        }
         if(instance instanceof AgoClass classInst){     // output an AgoClass
             // class of AgoClass often be MetaClass, cannot find backward to itself, so we always
             if(!writeType){
@@ -92,15 +88,14 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.OnDemand && ag.getDepth() == 0){
                 writeType = true;
             }
-            if (writeType || writeId) {
+            // writeId not apply on array
+            if (writeType) {
                 gen.writeStartObject();
 
-                if(writeType) writeClass(gen, "@collection", instance.getAgoClass());
-                if(writeId) writeObjectId(instance, gen);
+                writeClass(gen, "@collection", instance.getAgoClass());
 
-                gen.writeArrayFieldStart("@elements");
+                gen.writeFieldName("@elements");
                 gen.writeObject(arrayInstance.getArray());
-                gen.writeEndArray();
 
                 gen.writeEndObject();
             } else {
@@ -109,6 +104,11 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             return;
         }
         //TODO iterable/iterator
+
+        if (writeObjectAsReference) {
+            writeObjectAsReference(instance, gen);
+            return;
+        }
 
         gen.writeStartObject();
         if(writeType){
