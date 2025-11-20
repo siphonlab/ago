@@ -3,6 +3,7 @@ package org.siphonlab.ago.runtime.rdb.json.lazy;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.JsonSlotMapper;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
+import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 
 import java.util.function.Supplier;
 
@@ -11,6 +12,7 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
     private LazyJsonPGAdapter adapter;
 
     private final DefaultSlotsCreatorFactory baseSlotFactory;
+    private PersistentRdbEngine engine;
 
     public PGJsonSlotsCreatorFactory() {
         this.baseSlotFactory = new DefaultSlotsCreatorFactory();
@@ -19,28 +21,42 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
     @Override
     public SlotsCreator generateSlotsCreator(AgoClass agoClass) {
         var creator = baseSlotFactory.generateSlotsCreator(agoClass);
-        return new JsonRefSlotsCreator(creator, agoClass, () -> adapter);
+        return new JsonRefSlotsCreator(creator, agoClass);
     }
 
     public void setAdapter(LazyJsonPGAdapter adapter) {
         this.adapter = adapter;
     }
 
+    public void setEngine(PersistentRdbEngine engine) {
+        this.engine = engine;
+    }
 
-    public static class JsonRefSlotsCreator implements SlotsCreator {
+    public PersistentRdbEngine getEngine() {
+        return engine;
+    }
+
+
+    public class JsonRefSlotsCreator implements SlotsCreator {
         private final SlotsCreator creator;
         private final AgoClass agoClass;
-        private final Supplier<LazyJsonPGAdapter> adapterSupplier;
 
-        public JsonRefSlotsCreator(SlotsCreator creator, AgoClass agoClass, Supplier<LazyJsonPGAdapter> adapterSupplier) {
+        public JsonRefSlotsCreator(SlotsCreator creator, AgoClass agoClass) {
             this.creator = creator;
             this.agoClass = agoClass;
-            this.adapterSupplier = adapterSupplier;
         }
 
         @Override
         public Slots create() {
-            long id = adapterSupplier.get().nextId();
+            if(engine.getBoxTypes() != null && engine.getBoxTypes().isBoxType(agoClass)){
+                return creator.create();
+            } else {
+                LangClasses langClasses = engine.getLangClasses();
+                if(langClasses != null && langClasses.getArrayClass() != null && agoClass.isThatOrDerivedFrom(engine.getLangClasses().getArrayClass())){
+                    return creator.create();
+                }
+            }
+            long id = adapter.nextId();
             ObjectRef objectRef = new ObjectRef(agoClass.getFullname(), id);
             return create(objectRef);
         }
@@ -50,7 +66,7 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
             var r = new LazyJsonRefSlots(baseSlots, objectRef, new JsonSlotMapper(agoClass.getSlotDefs()) {
                 @Override
                 public String mapType(TypeCode typeCode, AgoClass agoClass) {
-                    return adapterSupplier.get().mapType(typeCode, agoClass).getTypeName();
+                    return adapter.mapType(typeCode, agoClass).getTypeName();
                 }
             });
             if(agoClass.getSlotDefs() != null) {

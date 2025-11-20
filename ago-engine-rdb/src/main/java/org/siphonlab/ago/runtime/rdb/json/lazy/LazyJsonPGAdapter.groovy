@@ -4,6 +4,7 @@ import groovy.json.JsonSlurper;
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import org.agrona.concurrent.IdGenerator
+import org.apache.commons.lang3.mutable.MutableObject
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.NativeFrame
@@ -34,7 +35,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
     private final static Logger logger = LoggerFactory.getLogger(LazyJsonPGAdapter)
 
-    private Map<ObjectRef, ObjectRefObject> objectReferenceInstancesPool = new ConcurrentHashMap<>();
+    private Map<ObjectRef, Instance> objectReferenceInstancesPool = new ConcurrentHashMap<>();
 
     public LazyJsonPGAdapter(BoxTypes boxTypes, ClassManager classManager, int applicationId, IdGenerator idGenerator) {
         super(boxTypes, classManager, applicationId, idGenerator);
@@ -57,8 +58,13 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             ObjectRefObject r;
             if (agoClass instanceof AgoFunction) {
                 r = new ObjectRefCallFrame(agoClass, objectRef, this, rowState)
-            } else {
+            } else if(agoClass instanceof AgoClass){
                 r = new ObjectRefInstance(agoClass, objectRef, this)
+            } else {
+                if (r == null && objectRef.className() == "<Meta>"){
+                    return classManager.getTheMeta();
+                }
+                throw new IllegalArgumentException("unknown class " + objectRef.className());
             }
             return r
         }) as Instance;
@@ -74,7 +80,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     @Override
     void repair(ObjectRef objectRef, ObjectRefObject objectRefObject) {
         logger.debug("REPAIR ${objectRef}, put it back to pool")
-        objectReferenceInstancesPool.put(objectRef, objectRefObject);
+        objectReferenceInstancesPool.put(objectRef, (Instance)objectRefObject);
     }
 
     @Override
@@ -84,7 +90,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
     @Override
     protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved) {
-        if (boxTypes.isBoxTypeOrWithin((AgoClass)instance.getAgoClass()) || instance instanceof AgoArrayInstance)
+        if (boxTypes.isBoxType((AgoClass)instance.getAgoClass()) || instance instanceof AgoArrayInstance)
             return;
 
         if(instance instanceof ObjectRefObject){
@@ -131,7 +137,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     @Override
-    def void update(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
+    void update(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
         if (instance instanceof CallFrameWithRunningState) {
             updateCallFrameRunningState(instance.unwrap(), instance.getRunningState());
             return
@@ -171,9 +177,13 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     Instance<?> dereference(ObjectRef objectRef) {
         var objrefInstance = objectReferenceInstancesPool.get(objectRef);
         if(objrefInstance != null){
-            var existed = objrefInstance.getDeferencedInstance()
-            if(existed)
-                return existed
+            if(objrefInstance instanceof ObjectRefObject) {
+                var existed = objrefInstance.getDeferencedInstance()
+                if (existed)
+                    return existed
+            } else {
+                return objrefInstance       // MetaClass
+            }
         }
         try(var connection = getDataSource().getConnection()) {
             var row = new Sql(connection).firstRow("SELECT * FROM " + getTableName(objectRef.className()) + " WHERE id = ?", [objectRef.id() as Object])
@@ -203,8 +213,9 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                     caller = null
                 }
                 LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
+                MutableObject<Instance> boxInstanceScope = new MutableObject<>();
                 var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, caller, null, slots -> {
-                    getAgoEngine().restoreSlots(slots as LazyJsonRefSlots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value));
+                    getAgoEngine().restoreSlots(slots as LazyJsonRefSlots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), boxInstanceScope);
                 })
                 if (frame instanceof DeferenceAgoFrame) {
                     frame.pc = row['pc'] as int
@@ -218,6 +229,9 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                     frame.getDeferenceObjectState().setCreator(creator)
                 } else {
                     throw new RuntimeException("not deference type");
+                }
+                if(boxInstanceScope.get() != null){
+                    frame.setParentScope(boxInstanceScope.get())
                 }
                 if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, frame))
                 if(row['runspace']) {
@@ -233,7 +247,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             } else {
                 LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
                 LazyJsonRefSlots slots = agoClass.createSlots() as LazyJsonRefSlots
-                getAgoEngine().restoreSlots(slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value));
+                getAgoEngine().restoreSlots(slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), null);
                 var inst = new DeferenceInstance(slots, agoClass, engine);
                 inst.parentScope = parentScope
                 inst.getDeferenceObjectState().setCreator(creator)
@@ -264,7 +278,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                     scoped.getDeferenceObjectState().setCreator(new ObjectRef((String) row["creator_class"], (Long) creatorId))
                 }
             }
-            getAgoEngine().restoreSlots(scoped.getSlots() as LazyJsonRefSlots,id,baseClass.getAgoClass(),row['slots'] as String)
+            getAgoEngine().restoreSlots(scoped.getSlots() as LazyJsonRefSlots,id,baseClass.getAgoClass(),row['slots'] as String, null)
             return scoped;
         }
         return baseClass

@@ -30,7 +30,7 @@ public class TypeCode {
     public static final TypeCode OBJECT = new TypeCode(OBJECT_VALUE, "object");
     public static final TypeCode NULL = new TypeCode(NULL_VALUE, "null");
     public static final TypeCode STRING = new TypeCode(STRING_VALUE, "string");
-    public static final TypeCode CLASS_REF = new TypeCode(CLASS_REF_VALUE, "class ref");
+    public static final TypeCode CLASS_REF = new TypeCode(CLASS_REF_VALUE, "classref");
 
     private final String description;
     public final int value;

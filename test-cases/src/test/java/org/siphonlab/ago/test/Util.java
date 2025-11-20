@@ -138,6 +138,7 @@ public class Util {
         rdbAdapter.setDataSource(ds);
 
         PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.run(entrance);
     }
@@ -160,6 +161,7 @@ public class Util {
         rdbAdapter.setDataSource(ds);
 
         PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.resume();
 

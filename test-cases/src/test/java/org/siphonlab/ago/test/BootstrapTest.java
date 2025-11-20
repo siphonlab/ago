@@ -84,7 +84,7 @@ public class BootstrapTest {
     @Test
     public void box_unbox() throws CompilationError, IOException {
         Util.run("bootstrap/8.box_unbox.ago");
-        assertTrue(Trace.outputtedMatch("30", "40", "ClassRef@.+"));
+        assertTrue(Trace.outputtedMatch("30", "40", "Dog"));
     }
 
     @Test

@@ -295,12 +295,17 @@ public abstract class RdbAdapter {
     protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved){
         saved.add(instance);
 
-        if (boxTypes.isBoxTypeOrWithin(instance.getAgoClass()) || instance instanceof AgoArrayInstance)
+        if (boxTypes.isBoxType(instance.getAgoClass()) || instance instanceof AgoArrayInstance)
             return;
+        if(instance instanceof MetaClass && ((MetaClass) instance).getName().equals("<Meta>"))
+            return;
+
         if (instance.getSlots() instanceof RdbSlots rdbSlots) {
             if(rdbSlots.getUsingInstances() != null) {
-                rdbSlots.getUsingInstances().removeIf(value -> boxTypes.isBoxTypeOrWithin(value.getAgoClass())
-                        || value instanceof AgoArrayInstance);
+                rdbSlots.getUsingInstances().removeIf(
+                value -> boxTypes.isBoxType(value.getAgoClass())
+                            || value instanceof AgoArrayInstance
+                            || value instanceof MetaClass m && m.getName().equals("<Meta>"));
             }
 
             switch (rdbSlots.getRowState()) {

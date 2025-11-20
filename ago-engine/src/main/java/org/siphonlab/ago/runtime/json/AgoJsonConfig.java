@@ -16,7 +16,7 @@ public class AgoJsonConfig {
     public static final AgoJsonConfig NESTED_JSON_VIEW = new AgoJsonConfig(WriteTypeMode.Never, false, ObjectAsReferenceMode.Never, false);
     public static final AgoJsonConfig RPC_JSON_VIEW = new AgoJsonConfig(WriteTypeMode.OnDemand, true, ObjectAsReferenceMode.Inner, false);
     public static final AgoJsonConfig RPC_JSON_RAW = new AgoJsonConfig(WriteTypeMode.Always, true, ObjectAsReferenceMode.Inner, true);
-    public static final AgoJsonConfig RPC_OBJECT_REF = new AgoJsonConfig(WriteTypeMode.Never, true, ObjectAsReferenceMode.Always, true);
+    public static final AgoJsonConfig RPC_OBJECT_REF = new AgoJsonConfig(WriteTypeMode.Always, true, ObjectAsReferenceMode.Always, true);
 
     public enum WriteTypeMode {
         Never(0),

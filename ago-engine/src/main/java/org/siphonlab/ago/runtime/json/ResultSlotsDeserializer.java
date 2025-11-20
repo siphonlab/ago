@@ -74,6 +74,7 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
                 break;
         }
         assert p.nextToken() == JsonToken.END_OBJECT;
+        p.nextToken();
         return resultSlots;
     }
 }

@@ -149,10 +149,14 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                                             while(ajp.nextToken() != JsonToken.END_ARRAY){
                                                 tokenBuffer.copyCurrentEvent(ajp);
                                             }
+                                            ajp.nextToken();
+                                            tokenBuffer.copyCurrentEvent(ajp);
                                         } else if(a == JsonToken.START_OBJECT){
                                             while (ajp.nextToken() != JsonToken.END_OBJECT) {
                                                 tokenBuffer.copyCurrentEvent(ajp);
                                             }
+                                            ajp.nextToken();
+                                            tokenBuffer.copyCurrentEvent(ajp);
                                         }
                                     }
                                     ajp.nextToken();  // pass END_ARRAY
@@ -163,17 +167,23 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                             }
                         }
                         assert ajp.nextToken() == JsonToken.END_OBJECT;
+                        ajp.nextToken();
                         AgoJsonParser parser = new AgoJsonParser(tokenBuffer.asParserOnFirstToken(),    // currToken is null
                                 ajp.initialClass, ajp.getCallFrame(), ajp.isSerializeSlots());
                         return deserializeCollection(parser, ctxt,collectionType,creator);
                     } else if(fieldName.equals("@class")){
-                        String className = ajp.getValueAsString();
-                        return deserializeClass(agoEngine.getClass(className), ajp, ctxt, creator);
+                        return deserializeComplexClass(ajp, ctxt, creator);
                     } else {
-                        if(fieldName.equals("@type")){
-                            AgoClass agoClass = deserializeClass(ajp,ctxt, creator);
+                        if(fieldName.equals("@type")) {
+                            AgoClass agoClass = deserializeClass(ajp, ctxt, creator);
                             ajp.nextToken();
                             return deserializeObject(ajp, ctxt, agoClass, creator);
+                        } else if(fieldName.equals("@box_type")){
+                            AgoClass agoClass = deserializeClass(ajp, ctxt, creator);
+                            ajp.nextToken();    // value:
+                            var r = deserializeBoxedValue(ajp, ajp.currentToken(), agoClass, creator);
+                            ajp.nextToken();    // pass END_OBJECT
+                            return r;
                         } else {
                             return deserializeObject(ajp, ctxt, expectedClass, creator);
                         }
@@ -249,12 +259,15 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 break;
 
         }
+        ajp.nextToken();
     }
 
     private Instance<?> deserializeBoxedValue(AgoJsonParser ajp, JsonToken token, AgoClass expectedClass, CallFrame<?> creator) throws IOException {
-        //TODO should avoid save to db
         var instance = agoEngine.createInstance(expectedClass, creator);
         readPrimitiveSlot(ajp, token, instance.getSlots(), expectedClass.getSlotDefs()[0]);
+        if(expectedClass == agoEngine.getLangClasses().getClassRefClass()){
+            instance.getSlots().setObject(1, agoEngine.getClass(instance.getSlots().getClassRef(0)));
+        }
         return instance;
     }
 
@@ -282,62 +295,77 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
     protected void deserializeSlots(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator, Slots hostSlots, Map<String, AgoSlotDef> map) throws IOException {
         JsonToken token;
         if(ajp.currentToken() == JsonToken.START_OBJECT) ajp.nextToken();
-        for(token = ajp.currentToken(); token != JsonToken.END_OBJECT; token = ajp.nextToken()){
+        for(token = ajp.currentToken(); token != JsonToken.END_OBJECT; token = ajp.currentToken()){
             assert ajp.currentToken() == JsonToken.FIELD_NAME;
             String fieldName = ajp.getValueAsString();
+            ajp.nextToken();
             if(fieldName.equals("@id")){
                 readObjectId(hostSlots, ajp, ctxt, creator);
             } else {
                 AgoSlotDef agoSlotDef = map.get(fieldName);
                 if (agoSlotDef == null) throw new NullPointerException("'%s' not exists".formatted(fieldName));
-                ajp.nextToken();
                 var r = deserializeAny(ajp, ctxt, agoSlotDef.getAgoClass(), creator, hostSlots, agoSlotDef);
                 if(agoSlotDef.getTypeCode().getValue() == OBJECT_VALUE){
                     hostSlots.setObject(agoSlotDef.getIndex(), r);
                 }
             }
         }
+        ajp.nextToken();    // pass END_OBJECT
     }
 
     protected void readObjectId(Slots slots, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
         throw new UnsupportedOperationException();
     }
 
-    // classname or {"@class":"classname", [@id: ], [scope: ]}
+    // classname or {"@class": classname} or {"@class": [classname, {@id: }, {scope: }]}
     private AgoClass deserializeClass(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
         JsonToken token = ajp.nextToken();
         if(token == JsonToken.VALUE_STRING){
             String className = ajp.getValueAsString();
+            ajp.nextToken();
             return agoEngine.getClass(className);
         } else {
-            token = ajp.nextToken();
+            token = ajp.nextToken();    // enter {
             assert token == JsonToken.FIELD_NAME;
             String s = ajp.getValueAsString();
             assert s.equals("@class");
-            String className = ajp.getValueAsString();
-            return deserializeClass(agoEngine.getClass(className), ajp, ctxt, creator);
+            return deserializeComplexClass(ajp, ctxt, creator);
         }
     }
 
-    // {"@class":"classname", [@id: ], [scope: ]}
+    // {"@class":[classname, {@id: }, {scope: }]}       // token at "@class"
+    //   or
+    // {"@class": classname}
     // override this to implement your readObjectId
-    protected AgoClass deserializeClass(AgoClass baseClass, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
+    protected AgoClass deserializeComplexClass(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
         var token = ajp.nextToken();
+        if(token == JsonToken.VALUE_STRING){
+            String className = ajp.getValueAsString();
+            return agoEngine.getClass(className);
+        }
+        ajp.nextToken();       // [
+
+        String className = ajp.getValueAsString();
+        AgoClass baseClass = agoEngine.getClass(className);
+
         AgoClass result = null;
-        while((token = ajp.nextToken()) != JsonToken.END_OBJECT) {
-            if(token == JsonToken.FIELD_NAME) {
+        while((token = ajp.nextToken()) != JsonToken.END_ARRAY) {
+            ajp.nextToken();    // {
+            if (token == JsonToken.FIELD_NAME) {
                 if (ajp.getValueAsString().equals("@id")) {
                     if (result == null) {
                         result = deserializeClassRef(baseClass, ajp.getValueAsLong());
                     }
-                } else if(ajp.getValueAsString().equals("scope")){
-                    var scope = deserializeAny(ajp,ctxt,null,creator, null,null);
-                    if(result == null) {
+                } else if (ajp.getValueAsString().equals("scope")) {
+                    var scope = deserializeAny(ajp, ctxt, null, creator, null, null);
+                    if (result == null) {
                         result = agoEngine.createScopedClass(creator, baseClass.getClassId(), scope);
                     }
                 }
             }
+            ajp.nextToken();    // }
         }
+        ajp.nextToken();
         return result == null ? baseClass : result;
     }
 
@@ -348,6 +376,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         if(ajp.currentToken() == JsonToken.VALUE_NULL){
             assert ajp.nextToken() == JsonToken.END_ARRAY;
             assert ajp.nextToken() == JsonToken.END_OBJECT;
+            ajp.nextToken();
             return null;
         }
         String classname = ajp.getValueAsString();
@@ -364,7 +393,9 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     result = agoEngine.createScopedClass(creator, baseClass.getClassId(), scope);
             }
         }
+        ajp.nextToken();    // END_ARRAY
         assert ajp.nextToken() == JsonToken.END_OBJECT;
+        ajp.nextToken();
         return result == null ? baseClass : result;
     }
 
@@ -385,6 +416,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         list.addInt(ajp.getIntValue());
                     }
+                    ajp.nextToken();
                     var r = new IntArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
                     list.toIntArray(r.value);
                     yield r;
@@ -394,6 +426,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         list.add(ajp.getDoubleValue());
                     }
+                    ajp.nextToken();
                     var r = new DoubleArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
                     r.fill(list);
                     yield r;
@@ -403,6 +436,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         list.add(ajp.getValueAsBoolean());
                     }
+                    ajp.nextToken();
                     var r = new BooleanArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
                     r.fill(list);
                     yield r;
@@ -412,6 +446,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         list.add(ajp.getValueAsString());
                     }
+                    ajp.nextToken();
                     var r = new StringArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
                     list.toArray(r.value);
                     yield r;
@@ -421,6 +456,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         list.add(ajp.getValueAsString().charAt(0));
                     }
+                    ajp.nextToken();
                     var r = new CharArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
                     r.fill(list);
                     yield r;
@@ -430,6 +466,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         list.add(ajp.getIntValue());
                     }
+                    ajp.nextToken();
                     var r = new ShortArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
                     r.fill(list);
                     yield r;
@@ -439,6 +476,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         buffer.put((byte) ajp.getIntValue());   //TODO write as base64
                     }
+                    ajp.nextToken();
                     var r = new ByteArrayInstance(collectionClass.createSlots(), collectionClass, buffer.position());
                     buffer.flip().get(r.value);
                     yield r;
@@ -448,6 +486,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         list.add(ajp.getFloatValue());
                     }
+                    ajp.nextToken();
                     var r = new FloatArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
                     r.fill(list);
                     yield r;
@@ -457,6 +496,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                         list.add(deserializeAny(ajp, ctxt, null, creator, null, null));
                     }
+                    ajp.nextToken();
                     var r = new ObjectArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
                     r.fill(list);
                     yield r;

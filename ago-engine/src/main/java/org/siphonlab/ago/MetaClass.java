@@ -12,17 +12,7 @@ public class MetaClass extends AgoClass{
     }
 
     public static MetaClass createTheMeta(AgoClassLoader classLoader){
-        return new MetaClass(classLoader){
-            @Override
-            public MetaClass getAgoClass() {
-                return this;
-            }
-
-            @Override
-            public String getName() {
-                return "Meta<<Meta>>";
-            }
-        };
+        return new MetaClass(classLoader);
     }
 
     public MetaClass(AgoClassLoader classLoader, MetaClass metaClass, String name) {

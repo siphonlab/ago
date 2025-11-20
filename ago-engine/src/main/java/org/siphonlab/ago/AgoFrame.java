@@ -811,8 +811,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             break;
 
             case Box.box_o_vv:              {
-                Class<?> dataType;
-                slots.setObject(code[pc++], engine.getBoxer().boxAny(dataType = agoClass.getSlotsCreator().getSlotType(code[pc]), slots, code[pc++] ));
+                slots.setObject(code[pc++], engine.getBoxer().boxAny(agoClass.getSlotDefs()[code[pc]], slots, code[pc++] ));
             }
             break;
 

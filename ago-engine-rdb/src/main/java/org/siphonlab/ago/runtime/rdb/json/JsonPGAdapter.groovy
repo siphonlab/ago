@@ -460,7 +460,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         if(object == null) return null;
 
         var obj = new PGobject();
-        obj.type = "jsonb";
+        obj.type = "json";
         obj.value = JsonOutput.toJson(object);
         return obj;
     }
@@ -469,7 +469,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         if (string == null) return null;
 
         var obj = new PGobject();
-        obj.type = "jsonb";
+        obj.type = "json";
         obj.value = string;
         return obj;
     }
@@ -480,7 +480,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
         var s = ((RdbEngine) this.classManager).dumpJson(instance);
         var obj = new PGobject();
-        obj.type = "jsonb";
+        obj.type = "json";
         obj.value = s
         return obj;
     }
@@ -575,6 +575,9 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     @Override
     String tableName(AgoClass agoClass) {
         if(agoClass instanceof MetaClass ){
+            if(agoClass.getName() == "<Meta>"){
+                throw new IllegalArgumentException("<Meta> shouldn't save");
+            }
             var m = agoClass as MetaClass
             if(m.getInstanceClass() instanceof AgoFunction){
                 return "ago_function";

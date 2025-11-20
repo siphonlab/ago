@@ -7,9 +7,11 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import groovy.sql.GroovyRowResult;
 import org.agrona.collections.Long2ObjectHashMap;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.json.*;
@@ -38,7 +40,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     @Override
     protected void restoreClassStates(AgoClass agoClass, GroovyRowResult row) throws JsonProcessingException {
         PGobject slots = (PGobject) row.get("slots");
-        restoreSlots((LazyJsonRefSlots) agoClass.getSlots(), (Long)row.get("id"), agoClass.getAgoClass(), slots.getValue());
+        restoreSlots((LazyJsonRefSlots) agoClass.getSlots(), (Long)row.get("id"), agoClass.getAgoClass(), slots.getValue(), null);
 
         Object parentScopeId = row.get("parent_scope_id");
         if(parentScopeId != null) {
@@ -53,8 +55,12 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
 
     public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
         var inst = createFunctionInstance(agoFunction,parentScope, caller, creator, null);
-        saveInstance(inst);
-        return (CallFrame<?>) ((DeferenceObject)inst).toObjectRefInstance();
+        if(inst instanceof DeferenceObject) {
+            saveInstance(inst);
+            return (CallFrame<?>) ((DeferenceObject)inst).toObjectRefInstance();
+        } else {
+            return inst;
+        }
     }
 
     @Override
@@ -65,8 +71,8 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
-        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer());
-        module.addSerializer(LazyJsonRefSlots.class, new RdbSlotsJsonSerializer());
+        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer(this));
+        module.addSerializer(LazyJsonRefSlots.class, new RdbSlotsJsonSerializer(this));
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
@@ -86,8 +92,8 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
         module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
-        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer());
-        module.addSerializer(LazyJsonRefSlots.class, new RdbSlotsJsonSerializer());
+        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer(this));
+        module.addSerializer(LazyJsonRefSlots.class, new RdbSlotsJsonSerializer(this));
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
@@ -99,9 +105,10 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         this.dumpingObjectMapper = r.copyWith(new AgoJsonParserFactory(AgoJsonConfig.RPC_OBJECT_REF));
     }
 
-    public void restoreSlots(LazyJsonRefSlots jsonRefSlots, long id, AgoClass agoClass, String json) throws JsonProcessingException {
+    public void restoreSlots(LazyJsonRefSlots jsonRefSlots, long id, AgoClass agoClass,
+                             String json, MutableObject<Instance<?>> boxInstanceScope) throws JsonProcessingException {
         jsonRefSlots.setId(id);
-        super.restoreSlots(jsonRefSlots, agoClass, json);
+        super.restoreSlots(jsonRefSlots, agoClass, json, boxInstanceScope);
     }
 
 //    @Override
@@ -126,11 +133,11 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         inst.setCaller(callerRef);
 
         if(inst instanceof DeferenceObject deferenceObject){
-        if(Objects.equals(caller, creator)){
-            deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(callerRef));
-        } else {
-            deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(creator));
-        }
+            if(Objects.equals(caller, creator)){
+                deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(callerRef));
+            } else {
+                deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(creator));
+            }
         }
         ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
         return inst;
@@ -148,8 +155,12 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
             return createFunctionInstance(fun, parentScope, creator, creator, slotsInitializer);
         }
 
-        Slots slots = agoClass.createSlots();
+        var slots = agoClass.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);
+
+        if(!(slots instanceof LazyJsonRefSlots)){   // box types use default slots
+            return new Instance<>(slots, agoClass);
+        }
 
         var inst = new DeferenceInstance((LazyJsonRefSlots) slots,agoClass,this);
         if (parentScope != null) inst.setParentScope(parentScope);

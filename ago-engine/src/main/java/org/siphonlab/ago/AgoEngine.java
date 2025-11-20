@@ -52,6 +52,9 @@ public class AgoEngine implements ClassManager{
         return strings[i];
     }
 
+    //TODO support multiple class loader, each class loader has its meta
+    private MetaClass theMata;
+
     public static class MetaClassCreatingTask{
         AgoClass target;
         MetaClass metaClass;
@@ -115,6 +118,8 @@ public class AgoEngine implements ClassManager{
 
 
     public void load(AgoClassLoader classLoader){
+        this.theMata = classLoader.getTheMeta();
+
         this.runSpace = createRunSpace(this.runSpaceHost);
 
         this.classes = classLoader.getClasses().toArray(new AgoClass[0]);
@@ -365,6 +370,11 @@ public class AgoEngine implements ClassManager{
 
     public AgoClass getClass(String name){
         return this.classByName.get(name);
+    }
+
+    @Override
+    public MetaClass getTheMeta() {
+        return theMata;
     }
 
     public boolean validateClassInheritance(AgoFrame agoFrame, AgoClass sampleClass, AgoClass expectedClass) {

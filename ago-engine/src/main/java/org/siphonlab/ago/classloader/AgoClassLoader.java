@@ -43,6 +43,12 @@ public class AgoClassLoader implements ClassManager{
      private LangClasses langClasses;
 
 
+    public AgoClassLoader(MetaClass theMeta, SlotsCreatorFactory slotsCreatorFactory) {
+        this.theMeta = theMeta;
+        this.slotsCreatorFactory = slotsCreatorFactory;
+    }
+
+
     public AgoClassLoader(SlotsCreatorFactory slotsCreatorFactory) {
         this.theMeta = MetaClass.createTheMeta(this);
         this.slotsCreatorFactory = slotsCreatorFactory;
@@ -87,6 +93,7 @@ public class AgoClassLoader implements ClassManager{
         collectMethods();
         // collect lang classes
         this.langClasses = new LangClasses(this);
+        // the meta
         theMeta.setSuperClass(langClasses.getClassClass());
         theMeta.setMethods(langClasses.getClassClass().getMethods());
 

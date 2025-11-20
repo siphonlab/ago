@@ -125,42 +125,37 @@ public class Boxer {
         return instance;
     }
 
-    public Instance<?> boxAny(Class<?> clazz, Slots slots, int slotIndex) {
-        if(clazz == int.class){
-            return boxInt(slots.getInt(slotIndex));
+    public Instance<?> boxAny(AgoSlotDef slotDef, Slots slots, int slotIndex) {
+        switch (slotDef.getTypeCode().value){
+            case INT_VALUE:
+                return boxInt(slots.getInt(slotIndex));
+            case LONG_VALUE:
+                return boxLong(slots.getLong(slotIndex));
+            case FLOAT_VALUE:
+                return boxFloat(slots.getFloat(slotIndex));
+            case DOUBLE_VALUE:
+                return boxDouble(slots.getDouble(slotIndex));
+            case BOOLEAN_VALUE:
+                return boxBoolean(slots.getBoolean(slotIndex));
+            case STRING_VALUE:
+                return boxString(slots.getString(slotIndex));
+            case SHORT_VALUE:
+                return boxShort(slots.getShort(slotIndex));
+            case BYTE_VALUE:
+                return boxByte(slots.getByte(slotIndex));
+            case CHAR_VALUE:
+                return boxChar(slots.getChar(slotIndex));
+            case OBJECT_VALUE:
+                return slots.getObject(slotIndex);
+            case NULL_VALUE:
+                throw new UnsupportedOperationException("null??");
+            case CLASS_REF_VALUE:
+                return boxClassRef(slots.getClassRef(slotIndex));
         }
-        if (clazz == double.class) {
-            return boxDouble(slots.getDouble(slotIndex));
-        }
-        if (clazz == String.class) {
-            return boxString(slots.getString(slotIndex));
-        }
-        if (clazz == long.class) {
-            return boxLong(slots.getLong(slotIndex));
-        }
-        if (clazz == boolean.class) {
-            return boxBoolean(slots.getBoolean(slotIndex));
-        }
-        if (clazz == short.class) {
-            return boxShort(slots.getShort(slotIndex));
-        }
-        if (clazz == byte.class) {
-            return boxByte(slots.getByte(slotIndex));
-        }
-        if (clazz == float.class) {
-            return boxFloat(slots.getFloat(slotIndex));
-        }
-        if (clazz == char.class) {
-            return boxChar(slots.getChar(slotIndex));
-        }
-        if(AgoClass.class.isAssignableFrom(clazz)){
-            return engine.getClass(slots.getClassRef(slotIndex));
-        }
-        if(Instance.class.isAssignableFrom(clazz)){
-            return (Instance<?>) slots.getObject(slotIndex);
-        }
-        throw new UnsupportedOperationException("'%s' is not primitive type".formatted(clazz));
+
+        throw new UnsupportedOperationException("'%s' is not primitive type".formatted(slotDef));
     }
+
 
     private boolean validateBoxType(AgoFrame agoFrame, AgoClass agoClass, int typeCode){
         if(agoClass instanceof AgoEnum agoEnum){

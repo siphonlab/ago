@@ -3,6 +3,7 @@ package org.siphonlab.ago.runtime.rdb;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
@@ -15,12 +16,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.regex.Pattern;
 
 import static org.apache.commons.dbcp2.Utils.closeQuietly;
 
 public class RdbEngine extends AgoEngine {
 
-    public final static Logger LOGGER = LoggerFactory.getLogger(RdbEngine.class);
+    public final static Logger logger = LoggerFactory.getLogger(RdbEngine.class);
 
     RdbAdapter rdbAdapter;
 
@@ -65,7 +67,7 @@ public class RdbEngine extends AgoEngine {
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
         module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
-        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer());
+        module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer(this));
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
@@ -122,11 +124,13 @@ public class RdbEngine extends AgoEngine {
                 .writeValueAsString(slots);
     }
 
-    public void restoreSlots(Slots slots, AgoClass agoClass, String json) throws JsonProcessingException {
+    public void restoreSlots(Slots slots, AgoClass agoClass, String json, MutableObject<Instance<?>> boxInstanceScope) throws JsonProcessingException {
         dumpingObjectMapper.readerFor(Instance.class)
                 .withAttribute("slots_class", agoClass)
                 .withAttribute("slots", slots)
-                .readValue(json);
+                .withAttribute("boxerScope", boxInstanceScope)
+                .readValue(json)
+        ;
     }
 
     @Override

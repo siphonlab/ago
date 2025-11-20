@@ -46,6 +46,8 @@ public class BoxTypes {
         if(t != null) boxTypes.put(t, BYTE);
         t = classByName.get("lang.Short");
         if(t != null) boxTypes.put(t, SHORT);
+        t = classByName.get("lang.ClassRef");
+        if (t != null) boxTypes.put(t, CLASS_REF);
 
         this.mapTypeCodeToClass = boxTypes.entrySet().stream().collect(Collectors.toMap(e -> e.getValue(), e-> e.getKey()));
 
@@ -67,6 +69,8 @@ public class BoxTypes {
         if(t != null) boxTypesInterfaces.put(t, BYTE);
         t = classByName.get("lang.Boxer<short>");
         if(t != null) boxTypesInterfaces.put(t, SHORT);
+        t = classByName.get("lang.Boxer<classref>");
+        if (t != null) boxTypesInterfaces.put(t, CLASS_REF);
 
     }
 

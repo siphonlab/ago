@@ -70,12 +70,30 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
                         writeType = true;
                 }
             }
-            if (writeType || writeId) {
+            if (writeType || writeId) {     // if writeId preferred, writeType too
                 gen.writeStartObject();
-                if(writeType) gen.writeStringField("@class", classInst.getFullname());
-                if(writeId) writeObjectId(classInst, gen);
-                if(agoClass.getParentScope() != null){
-                    gen.writeObjectField("scope", agoClass.getParentScope());
+                gen.writeFieldName("@class");
+                // jsonb doesn't preserver filed order,
+                // so make the structure as
+                //  {@class : classname}
+                // or
+                //  {@class : [classname, {"@id:": id}, {"scope":scope}]]
+                if(writeId || agoClass.getParentScope() != null) {
+                    gen.writeStartArray();
+                    gen.writeString(classInst.getFullname());
+                    if (writeId) {
+                        gen.writeStartObject();
+                        writeObjectId(classInst, gen);
+                        gen.writeEndObject();
+                    }
+                    if (agoClass.getParentScope() != null) {
+                        gen.writeStartObject();
+                        gen.writeObjectField("scope", agoClass.getParentScope());
+                        gen.writeEndObject();
+                    }
+                    gen.writeEndArray();
+                } else {
+                    gen.writeString(classInst.getFullname());
                 }
                 gen.writeEndObject();
             } else {
