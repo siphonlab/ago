@@ -30,6 +30,11 @@ public class Lang {
     }
 
 
+    public static void ClassRef_toString(NativeFrame frame) {
+        int classRef = frame.getParentScope().getSlots().getClassRef(0);
+        frame.finishString(frame.getRunSpace().getAgoEngine().getClass(classRef).getFullname());
+    }
+
     public static void Class_getName( NativeFrame frame){
         var scope = frame.getParentScope();
         if(scope == null) frame.finishNull();

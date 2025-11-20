@@ -23,7 +23,7 @@ class Object{
 final class Any{}
 
 // box type for classref
-class ClassRef{
+class ClassRef from Boxer<classref>{
     protected final value as classref;
     protected final boxedClass as Class;       // an AgoClass instance
 
@@ -34,6 +34,9 @@ class ClassRef{
     final fun getBoxedClass() as Class {
         return boxedClass;
     }
+
+    public override toString() as string native "org.siphonlab.ago.lang.Lang.ClassRef_toString"
+
 }
 
 class ClassInterval from ClassRef{
@@ -159,9 +162,6 @@ public abstract class Number<N as [PrimitiveNumber]> from Boxer<N>{
 class Boxer<T as [Primitive]>{
     fun new(field value as T){
 
-    }
-    override fun toString() as string{
-        return (value | Object).toString()
     }
 }
 
