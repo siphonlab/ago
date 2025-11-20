@@ -8,6 +8,8 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.siphonlab.ago.MetaClass;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.runtime.rdb.RdbDDLGenerator;
@@ -77,6 +79,7 @@ public class AsRuleSeverLazyInstance {
         rdbAdapter.setDataSource(ds);
 
         PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.run("main#");
 
@@ -108,6 +111,7 @@ public class AsRuleSeverLazyInstance {
 //        rdbAdapter.executeDDL(FileUtils.readFileToString(outputSqlFile, "utf-8"));
 
         PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.run("main#");
     }
@@ -149,6 +153,7 @@ public class AsRuleSeverLazyInstance {
         rdbAdapter.setDataSource(ds);
 
         PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.resume();
 
@@ -177,6 +182,7 @@ public class AsRuleSeverLazyInstance {
         rdbAdapter.setDataSource(ds);
 
         PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.resume();
 

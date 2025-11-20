@@ -40,6 +40,7 @@ public class AgoClassParser {
         LinkedList<AgoClass> metas = new LinkedList<>();
 
         for (AgoClass agoClass : classLoader.getClasses()) {
+            if("<Meta>".equals(agoClass.getFullname())) continue;
             allClasses.add(agoClass);
             if (agoClass instanceof MetaClass || belongToMetaClass(agoClass)) {
                 metas.add(agoClass);
@@ -97,11 +98,11 @@ public class AgoClassParser {
 
         processStage(CompilingStage.ValidateMembers, new LinkedList<>(allClasses));
 
-        processStage(CompilingStage.AllocateSlots, allClasses);
+        processStage(CompilingStage.AllocateSlots, new LinkedList<>(allClasses));
 
         root.getAndCleanNewFoundClasses();
 
-        assert classes.size() == classLoader.getClasses().size();
+        assert classes.size() == allClasses.size();
 
         for (Namespace<?> n : root.getAllDescendants().getUniqueElements()) {
             if (n instanceof ClassDef classDef) {
