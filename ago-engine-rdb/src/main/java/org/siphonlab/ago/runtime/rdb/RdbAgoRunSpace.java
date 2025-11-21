@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.*;
 
@@ -146,7 +147,14 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         releaseRef(this.currCallFrame, ReferenceCounter.Reason.DropCurrentCallFrame);
 
         if(currCallFrame instanceof ExpandableCallFrame<?> ex){     // ExpandableCallFrame will release for expander quit
-            currCallFrame = (CallFrame<?>) ex.getObjectRefInstance();
+            if(ObjectRefOwner.equals(ex.getExpander(), this.currCallFrame)){
+                ExpandableCallFrame<?> selfExpand = (ExpandableCallFrame<?>) ex.expandFor(ex);
+                selfExpand.expand();
+                currCallFrame = selfExpand;
+                if(ex.isExpanded()){
+                    ex.fold();
+                }
+            }
         }
         if(currCallFrame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
             if(objectRefCallFrame.getDeferencedCallFrame() instanceof EntranceCallFrame<?> en){
@@ -160,6 +168,31 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         rdbAdapter.updateRunSpace(this);
     }
 
+    @Override
+    public void fork(CallFrame<?> frame) {
+        if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
+            frame = objectRefCallFrame.expandFor(objectRefCallFrame);
+        } else if(frame instanceof ExpandableCallFrame<?> expandableCallFrame){
+            throw new RuntimeException("TODO");
+        }
+        super.fork(frame);
+    }
+
+    @Override
+    public void spawn(CallFrame<?> frame) {
+        if (frame instanceof ObjectRefCallFrame<?> objectRefCallFrame) {
+            frame = objectRefCallFrame.expandFor(objectRefCallFrame, false);
+        }
+        super.spawn(frame);
+    }
+
+    @Override
+    public Future<?> startAsync(CallFrame<?> frame) {
+        if (frame instanceof ObjectRefCallFrame<?> objectRefCallFrame) {
+            frame = objectRefCallFrame.expandFor(objectRefCallFrame, false);
+        }
+        return super.startAsync(frame);
+    }
 
     @Override
     protected void setException(Instance<?> exception) {

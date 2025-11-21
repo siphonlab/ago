@@ -4,17 +4,13 @@ import groovy.lang.Closure;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.*;
-import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceAgoFrame;
 import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceFrameState;
-import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceNativeFrame;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason.DropCreatorForCallFrameQuit;
 
 public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements ObjectRefObject, ObjectRefOwner, ReferenceCounter {
 
@@ -76,7 +72,7 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         tryFold(expanders, this);
     }
 
-    public Instance dereferenceForExpander(CallFrame expander) {
+    public Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander) {
         return dereferenceForExpander(expanders, expander);
     }
 
@@ -178,8 +174,12 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         return getObjectRef().hashCode();
     }
 
-    public ExpandableCallFrame createExpander(CallFrame expander, boolean alreadyDeferenced) {
-        return new ExpandableCallFrame(this, expander, alreadyDeferenced);
+    public ExpandableCallFrame<?> expandFor(ObjectRefCallFrame<?> expander, boolean alreadyDeferenced) {
+        return new ExpandableCallFrame<>(this, expander, alreadyDeferenced);
+    }
+
+    public ExpandableCallFrame<?> expandFor(ObjectRefCallFrame<?> expander) {
+        return new ExpandableCallFrame<>(this, expander, this.deferencedInstance != null);
     }
 
     @Override

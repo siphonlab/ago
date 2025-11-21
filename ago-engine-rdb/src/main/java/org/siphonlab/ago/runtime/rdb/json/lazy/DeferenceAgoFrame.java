@@ -158,7 +158,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
     }
 
     public void releaseSlotsDeference(ReferenceCounter.Reason reason) {
-        releaseSlotsDeference(DefaultGroovyMethods.asType(this.getSlots(), LazyJsonRefSlots.class), reason);
+        releaseSlotsDeference((LazyJsonRefSlots)this.getSlots(), reason);
         for (Instance scope : this.loadedScopes) {
             ReferenceCounter.releaseDeferenceAndContext(scope, ReferenceCounter.Reason.UnloadScope);
         }

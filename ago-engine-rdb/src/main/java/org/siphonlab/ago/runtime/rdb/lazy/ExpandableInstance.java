@@ -12,11 +12,11 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
 
     private boolean expanded = false;
     private final ObjectRefInstance<T> objectRefInstance;
-    private final CallFrame<?> expander;
+    private final ObjectRefCallFrame<?> expander;
 
     private Instance<?> deferenceObject;
 
-    public ExpandableInstance(ObjectRefInstance<T> objectRefInstance, CallFrame<?> expander, boolean alreadyDereferenced) {
+    public ExpandableInstance(ObjectRefInstance<T> objectRefInstance, ObjectRefCallFrame<?> expander, boolean alreadyDereferenced) {
         super(new ExpandableSlots(), objectRefInstance.getAgoClass());
         ExpandableSlots expandableSlots = (ExpandableSlots) slots;
         expandableSlots.setOwner(this);
@@ -55,12 +55,29 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
     }
 
     @Override
+    public ExpandableObject<?> expandFor(ExpandableObject<?> expander) {
+        CallFrame<?> expanderCallFrame;
+        if (expander instanceof ExpandableCallFrame<?> callFrame) {
+            expanderCallFrame = callFrame;
+        } else {
+            expanderCallFrame = expander.getExpander();
+        }
+        if (ObjectRefOwner.equals(this.expander, expanderCallFrame)) {
+            return this;
+        }
+        return this.objectRefInstance.expandFor(expanderCallFrame);
+    }
+
+    @Override
     public void fold(){
         if(this.expanded){
             objectRefInstance.foldBy(expander);
             this.deferenceObject = null;
             this.expanded = false;
-            ((ExpandableSlots) this.getSlots()).setInnerSlots(null);
+            ExpandableSlots expandableSlots = (ExpandableSlots) this.slots;
+            if (expandableSlots.getInnerSlots() != null) {
+                expandableSlots.setInnerSlots(null);
+            }
         }
     }
 
@@ -90,7 +107,7 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
     }
 
     @Override
-    public CallFrame<?> getExpander() {
+    public ObjectRefCallFrame<?> getExpander() {
         return expander;
     }
 

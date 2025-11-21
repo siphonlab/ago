@@ -58,8 +58,14 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
         return referenceCounter.get();
     }
 
-    public ExpandableInstance createExpander(CallFrame expander, boolean alreadyDeferenced) {
+    @Override
+    public ExpandableInstance<?> expandFor(ObjectRefCallFrame<?> expander, boolean alreadyDeferenced) {
         return new ExpandableInstance(this, expander, alreadyDeferenced);
+    }
+
+    @Override
+    public ExpandableObject<?> expandFor(ObjectRefCallFrame<?> expander) {
+        return expandFor(expander, this.deferencedInstance != null);
     }
 
     @Override
@@ -103,7 +109,8 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
         tryFold(expanders,this);
     }
 
-    public Instance dereferenceForExpander(CallFrame expander) {
+
+    public Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander) {
         return dereferenceForExpander(expanders,expander);
     }
 

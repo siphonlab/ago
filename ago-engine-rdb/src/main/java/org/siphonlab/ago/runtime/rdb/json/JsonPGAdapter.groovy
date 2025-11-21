@@ -225,25 +225,14 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
 
     void updateCallFrameRunningState(CallFrame callFrame, byte runningState) {
-        if(callFrame instanceof ExpandableCallFrame){
-            callFrame = callFrame.getExpandedInstance();
-        }
-        var slots = callFrame.slots as JsonRefSlots
-        logger.info("UPDATE " + slots.objectRef)
+        var objectRef = ObjectRefOwner.extractObjectRef(callFrame);
+        logger.info("UPDATE " + objectRef)
         var map = [
-                "id"       : slots.objectRef.id() as Object,
+                "id"       : objectRef.id() as Object,
                 "suspended": callFrame.suspended,
                 "runspace" : (callFrame.runSpace as RdbAgoRunSpace)?.id
         ]
         if(runningState != (byte)-1) map["state"] = runningState
-
-        if(callFrame instanceof AsyncEntranceCallFrame){
-            map["is_async_entrance"] = true
-            callFrame = callFrame.inner
-        } else if(callFrame instanceof EntranceCallFrame){
-            map["is_entrance"] = true
-            callFrame = callFrame.inner
-        }
 
         boolean saveSlots = true;
         while(true) {
@@ -261,12 +250,23 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                         callFrame = callFrame.inner
                     }
                 }
+            } else if (callFrame instanceof AsyncEntranceCallFrame) {
+                map["is_async_entrance"] = true
+                callFrame = callFrame.inner
+            } else if (callFrame instanceof EntranceCallFrame) {
+                map["is_entrance"] = true
+                callFrame = callFrame.inner
+            }
+            else if (callFrame instanceof ExpandableCallFrame) {
+                callFrame = callFrame.getExpandedInstance();
             } else {
                 break
             }
         }
-        if(saveSlots && slots instanceof RdbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified)) {
-            map['slots'] = toJsonb(this.getAgoEngine().jsonStringifySlots(callFrame))
+        if(saveSlots){
+            var slots = callFrame.slots as JsonRefSlots
+            if(slots instanceof RdbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified))
+                map['slots'] = toJsonb(this.getAgoEngine().jsonStringifySlots(callFrame))
         }
 
         if(callFrame instanceof AgoFrame) {

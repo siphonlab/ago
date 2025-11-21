@@ -1,8 +1,13 @@
 package org.siphonlab.ago.runtime.rdb.lazy;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
+import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
 
 public class ExpandableSlots implements Slots {
     private final static Logger logger = LoggerFactory.getLogger(ExpandableSlots.class);
@@ -23,6 +28,7 @@ public class ExpandableSlots implements Slots {
 
     public void setInnerSlots(Slots innerSlots) {
         this.innerSlots = innerSlots;
+        if(logger.isDebugEnabled()) logger.debug("%s setInnerSlots %s".formatted(owner, innerSlots));
     }
 
     public Slots getInnerSlots() {
@@ -97,22 +103,27 @@ public class ExpandableSlots implements Slots {
 
     @Override
     public void setObject(int slot, Instance<?> value) {
+        var existed = innerSlots.getObject(slot);
+        if(ObjectRefOwner.equals(existed, value)){
+            return;
+        }
+
+        if(existed instanceof ExpandableObject<?> object){
+            object.fold();
+        }
+
         // always transform to ExpandableInstance
         if(value instanceof CallFrame<?> callFrame){
             if (value instanceof ObjectRefCallFrame<?> objectRefCallFrame) {
-                value = new ExpandableCallFrame<>(objectRefCallFrame, this.owner.getExpander(), false);
+                value = (Instance<?>) objectRefCallFrame.expandFor(this.owner);
             } else if (value instanceof ExpandableCallFrame<?> expandableInstance) {
-                if (expandableInstance.getExpander() != this.owner.getExpander()) {
-                    value = new ExpandableCallFrame((ObjectRefCallFrame) expandableInstance.getObjectRefInstance(), this.owner.getExpander(), expandableInstance.isExpanded());
-                }
+                value = (Instance<?>) expandableInstance.expandFor(this.owner);
             }
         } else {
             if (value instanceof ObjectRefInstance<?> objectRefInstance) {
-                value = new ExpandableInstance<>(objectRefInstance, this.owner.getExpander(), false);
+                value = (Instance<?>) objectRefInstance.expandFor(this.owner);
             } else if (value instanceof ExpandableInstance<?> expandableInstance) {
-                if (expandableInstance.getExpander() != this.owner.getExpander()) {
-                    value = new ExpandableInstance((ObjectRefInstance) expandableInstance.getObjectRefInstance(), this.owner.getExpander(), expandableInstance.isExpanded());
-                }
+                value = (Instance<?>) expandableInstance.expandFor(this.owner);
             }
         }
         innerSlots.setObject(slot, value);

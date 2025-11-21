@@ -131,10 +131,10 @@ public interface ReferenceCounter {
         if (callFrame instanceof EntranceCallFrame<?> entranceCallFrame) {
             callFrame = entranceCallFrame.getInner();
         }
-        if (callFrame instanceof ObjectRefObject objectRefObject) {     // for EntranceFrame like main#, there is no expander when bootstrap
-            objectRefObject.tryFold();
-        } else if(callFrame instanceof ExpandableCallFrame<?> expandableCallFrame){
+        if (callFrame instanceof ExpandableCallFrame<?> expandableCallFrame) {
             expandableCallFrame.fold();
+        } else if (callFrame instanceof ObjectRefObject objectRefObject) {     // for EntranceFrame like main#, there is no expander when bootstrap
+            objectRefObject.tryFold();
         } else if (callFrame instanceof DeferenceObject deferenceObject) {
             throw new IllegalStateException("shouldn't be a DeferenceObject");
         }

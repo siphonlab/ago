@@ -47,7 +47,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             return;
         }
 
-        final Slots slots = this.getSlots();
+        final Slots slots = self.getSlots();
         final int[] code = this.code;
         while(pc < code.length){
             final int instruction = code[pc++];
@@ -139,11 +139,11 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 runSpace.await(frame);
                 return true;
             case Invoke.spawn_vv:
-                this.getSlots().setObject(code[pc++], frame);
+                self.getSlots().setObject(code[pc++], frame);
                 runSpace.spawn(frame);
                 return false;
             case Invoke.fork_vv:
-                this.getSlots().setObject(code[pc++], frame);
+                self.getSlots().setObject(code[pc++], frame);
                 runSpace.fork(frame);
                 return false;
         }

@@ -1,6 +1,7 @@
 package org.siphonlab.ago.runtime.rdb.lazy;
 
 import org.siphonlab.ago.CallFrame;
+import org.siphonlab.ago.EntranceCallFrame;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
@@ -50,13 +51,38 @@ public interface ObjectRefObject {
 
     }
 
-    ExpandableObject createExpander(CallFrame expander, boolean alreadyDeferenced);
+    ExpandableObject<?> expandFor(ObjectRefCallFrame<?> expander, boolean alreadyDeferenced);
 
-    Instance dereferenceForExpander(CallFrame expander);
+    ExpandableObject<?> expandFor(ObjectRefCallFrame<?> expander);
+
+    default ExpandableObject<?> expandFor(ExpandableObject<?> expander){
+        if (expander instanceof ExpandableCallFrame<?> callFrame) {
+            return expandFor(callFrame.getObjectRefInstance());
+        } else {
+            return expandFor(expander.getExpander());
+        }
+    }
+
+    default ExpandableObject<?> expandFor(CallFrame<?> expander){
+        if(expander instanceof EntranceCallFrame<?> entranceCallFrame){
+            expander = entranceCallFrame.getInner();
+        }
+        if(expander instanceof ObjectRefCallFrame<?> objectRefCallFrame){
+            return expandFor(objectRefCallFrame);
+        } else if(expander instanceof ExpandableCallFrame<?> expandableCallFrame) {
+            return expandFor((ExpandableObject<?>) expandableCallFrame);
+        } else if(expander instanceof DeferenceCallFrame deferenceCallFrame){
+            return expandFor((ObjectRefCallFrame<?>) deferenceCallFrame.toObjectRefInstance());
+        } else {
+            throw new IllegalArgumentException("unexpected CallFrame type " + expander);
+        }
+    }
+
+    Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander);
 
     default Instance dereferenceForExpander(Set<CallFrame> expanders, CallFrame expander) {
-        if (logger.isDebugEnabled()) logger.debug(String.valueOf(getObjectRef()) + " expand for " + String.valueOf(expander));
         expanders.add(expander);
+        if (logger.isDebugEnabled()) logger.debug("%s expand for %s, now there are %d expanders".formatted(getObjectRef(), expander, expanders.size()));
         return deference();
     }
 

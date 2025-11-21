@@ -14,11 +14,11 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
 
     private boolean expanded = false;
     private final ObjectRefCallFrame<T> objectRefInstance;
-    private final CallFrame<?> expander;
+    private final ObjectRefCallFrame<?> expander;
 
     private CallFrame<?> deferenceObject;
 
-    public ExpandableCallFrame(ObjectRefCallFrame<T> objectRefInstance, CallFrame<?> expander, boolean alreadyDereferenced) {
+    public ExpandableCallFrame(ObjectRefCallFrame<T> objectRefInstance, ObjectRefCallFrame<?> expander, boolean alreadyDereferenced) {
         super(new ExpandableSlots(), objectRefInstance.getAgoClass());
         ExpandableSlots expandableSlots = (ExpandableSlots) slots;
         expandableSlots.setOwner(this);
@@ -27,6 +27,7 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
         if (alreadyDereferenced) {
             this.deferenceObject = (CallFrame<?>) objectRefInstance.getDeferencedCallFrame();
             assert this.getObjectRef().equals(ObjectRefOwner.extractObjectRef(deferenceObject));
+            // when the frame quit, its object slots cleaned by #{org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject.releaseSlotsDeference(org.siphonlab.ago.runtime.rdb.RdbSlots, org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason)}
             ((ExpandableSlots) this.getSlots()).setInnerSlots(deferenceObject.getSlots());
         }
     }
@@ -72,7 +73,10 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
             objectRefInstance.foldBy(expander);
             this.deferenceObject = null;
             this.expanded = false;
-            ((ExpandableSlots) this.getSlots()).setInnerSlots(null);
+            ExpandableSlots expandableSlots = (ExpandableSlots) this.slots;
+            if(expandableSlots.getInnerSlots() != null){
+                expandableSlots.setInnerSlots(null);
+            }
         }
     }
 
@@ -111,7 +115,7 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
 
     @Override
     public void run(CallFrame<?> self) {
-        expand().run(this);
+        expand().run(self);
     }
 
     @Override
@@ -119,11 +123,11 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
         return objectRefInstance.getObjectRef();
     }
 
-    public Instance<T> getObjectRefInstance() {
+    public ObjectRefCallFrame<T> getObjectRefInstance() {
         return objectRefInstance;
     }
 
-    public CallFrame<?> getExpander() {
+    public ObjectRefCallFrame<?> getExpander() {
         return expander;
     }
 
@@ -140,5 +144,19 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
     @Override
     public int getRefCount() {
         return objectRefInstance.getRefCount();
+    }
+
+    @Override
+    public ExpandableObject<?> expandFor(ExpandableObject<?> expander) {
+        CallFrame<?> expanderCallFrame;
+        if (expander instanceof ExpandableCallFrame<?> callFrame) {
+            expanderCallFrame = callFrame;
+        } else {
+            expanderCallFrame = expander.getExpander();
+        }
+        if(ObjectRefOwner.equals(this.expander, expanderCallFrame)){
+            return this;
+        }
+        return this.objectRefInstance.expandFor(expanderCallFrame);
     }
 }
