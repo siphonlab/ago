@@ -267,18 +267,24 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     public AgoClass loadScopedAgoClass(AgoClass baseClass, long id) {
-        var row = sql.firstRow("SELECT parent_scope_class, parent_scope_id, creator_class, creator_id, slots FROM ago_class WHERE id =?", [id])
+        var row = sql.firstRow("SELECT parent_scope_class, parent_scope_id, creator_class, creator_id, slots FROM ${baseClass instanceof AgoFunction ? "ago_function" : "ago_class"} WHERE id =?", [id])
         var parentScopeId = row["parent_scope_id"]
         if(parentScopeId != null) {
             Instance scope = restoreInstance(new ObjectRef((String) row["parent_scope_class"], (Long) parentScopeId));
-            var scoped = baseClass.withScope(scope)
+            var scoped = baseClass.cloneWithScope(scope)
             Object creatorId = row["creator_id"];
             if (creatorId != null) {
                 if(scoped instanceof DeferenceObject){
                     scoped.getDeferenceObjectState().setCreator(new ObjectRef((String) row["creator_class"], (Long) creatorId))
                 }
             }
-            getAgoEngine().restoreSlots(scoped.getSlots() as LazyJsonRefSlots,id,baseClass.getAgoClass(),row['slots'] as String, null)
+            var slots = scoped.getSlots() as LazyJsonRefSlots;
+            if(baseClass.getAgoClass() != agoEngine.getTheMeta()) {
+                getAgoEngine().restoreSlots(slots, id, baseClass.getAgoClass(), row['slots'] as String, null)
+            } else {
+                slots.setId(id)
+            }
+            slots.setRowState(RowState.Unchanged);
             return scoped;
         }
         return baseClass

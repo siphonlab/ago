@@ -107,7 +107,7 @@ public class AgoFunction extends AgoClass{
     }
 
     @Override
-    public AgoFunction withScope(Instance<?> parentScope) {
+    public AgoFunction cloneWithScope(Instance<?> parentScope) {
         if (parentScope == this.parentScope) return this;
         var copy = new AgoFunction(this.getClassLoader(),this.agoClass,this.fullname,this.name);
         copy.setParentScope(parentScope);

@@ -102,7 +102,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         CallFrame<?> creator = ajp.getCallFrame();
 
         AgoClass agoClassOfSlots = (AgoClass) ctxt.getAttribute("slots_class");       // to parse slots
-        if(agoClassOfSlots != null){
+        if(agoClassOfSlots != null && agoClassOfSlots.getSlotDefs() != null){
             Map<String, AgoSlotDef> map = new HashMap<>();
             for (AgoSlotDef slotDef : agoClassOfSlots.getSlotDefs())
                 map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
@@ -181,7 +181,12 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                         } else if(fieldName.equals("@box_type")){
                             AgoClass agoClass = deserializeClass(ajp, ctxt, creator);
                             ajp.nextToken();    // value:
-                            var r = deserializeBoxedValue(ajp, ajp.currentToken(), agoClass, creator);
+                            Instance<?> r;
+                            if(!agoEngine.getBoxer().isNarrowBoxType(agoClass) && agoClass.getSlotDefs().length > 1){
+                                r = deserializeComplexBoxedValue(ajp, agoClass, creator, ctxt);
+                            } else {
+                                r = deserializeBoxedValue(ajp, ajp.currentToken(), agoClass, creator);
+                            }
                             ajp.nextToken();    // pass END_OBJECT
                             return r;
                         } else {
@@ -268,6 +273,18 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         if(expectedClass == agoEngine.getLangClasses().getClassRefClass()){
             instance.getSlots().setObject(1, agoEngine.getClass(instance.getSlots().getClassRef(0)));
         }
+        return instance;
+    }
+
+    private Instance<?> deserializeComplexBoxedValue(AgoJsonParser ajp, AgoClass expectedClass, CallFrame<?> creator, DeserializationContext ctxt) throws IOException {
+        var instance = agoEngine.createInstance(expectedClass, creator);
+
+        Map<String, AgoSlotDef> map = new HashMap<>();
+        AgoSlotDef[] slotDefs = expectedClass.getSlotDefs();
+        for (AgoSlotDef slotDef : slotDefs)
+            map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
+
+        deserializeSlots(ajp,ctxt,creator, instance.getSlots(), map);
         return instance;
     }
 

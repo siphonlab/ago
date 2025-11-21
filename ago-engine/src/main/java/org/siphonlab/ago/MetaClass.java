@@ -39,7 +39,7 @@ public class MetaClass extends AgoClass{
     }
 
     @Override
-    public MetaClass withScope(Instance<?> parentScope) {
+    public MetaClass cloneWithScope(Instance<?> parentScope) {
         if (parentScope == this.parentScope) return this;
         throw new UnsupportedOperationException("MetaClass cannot bind scope");
     }

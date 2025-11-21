@@ -25,8 +25,8 @@ fun test(op like add, a as int, b as int){
 }
 
 fun main(){
-    test(add, 1, 2)
-    test(add2, 1, 2)
+    test(add, 1, 2)     // 3
+    test(add2, 1, 2)    // 6
 
     var c = new C(100);
     test(c.add, 1, 2)

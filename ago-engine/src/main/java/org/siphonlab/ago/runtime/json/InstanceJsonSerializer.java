@@ -57,8 +57,13 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             } else if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.Inner){
                 if(!writeType) writeType = !agoEngine.getBoxer().isNarrowBoxType(agoClass);
             }
-            TypeCode typeCode = boxTypes.getUnboxType(agoClass);
-            serializeUnboxed(instance, typeCode, gen, serializerProvider, writeType);
+            if(agoEngine.getBoxer().isNarrowBoxType(agoClass) && agoClass.getSlotDefs().length > 1){
+                TypeCode typeCode = boxTypes.getUnboxType(agoClass);
+                serializeUnboxed(instance, typeCode, gen, serializerProvider, writeType);
+            } else {
+                assert writeType;
+                serializeComplexUnboxed(instance, agoClass, ag, serializerProvider);
+            }
             return;
         }
         if(instance instanceof AgoClass classInst){     // output an AgoClass
@@ -281,5 +286,14 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             gen.writeEndObject();
         }
 
+    }
+
+    protected void serializeComplexUnboxed(Instance<?> instance, AgoClass agoClass, AgoJsonGenerator gen, SerializerProvider serializerProvider) throws IOException {
+        gen.writeStartObject();
+        gen.writeStringField("@box_type", instance.getAgoClass().getFullname());
+        gen.writeFieldName("value");
+
+        writeSlots(agoEngine, gen, agoClass.getSlotDefs(), gen.getConfig(), instance.getSlots());
+        gen.writeEndObject();
     }
 }

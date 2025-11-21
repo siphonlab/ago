@@ -49,6 +49,7 @@ public interface ObjectRefOwner {
         ObjectRef aref = extractObjectRef(a);
         ObjectRef bref = extractObjectRef(b);
         if ((aref == null) != (bref == null)) return false;
+        if(aref == null) return Objects.equals(a,b);
         return Objects.equals(aref, bref);
     }
 }

@@ -1,9 +1,7 @@
 package org.siphonlab.ago;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.siphonlab.ago.classloader.AgoClassLoader;
@@ -297,7 +295,8 @@ public class AgoEngine implements ClassManager{
     }
 
     public AgoClass createScopedClass(CallFrame<?> caller, int classId, Instance<?> parentScope) {
-        var c = classes[classId].withScope(parentScope);
+        var c = classes[classId].cloneWithScope(parentScope);
+        if(parentScope == null) return c;
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if(emptyArgsConstructor != null){

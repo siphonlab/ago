@@ -152,9 +152,17 @@ public class RdbEngine extends AgoEngine {
 
     @Override
     public AgoClass createScopedClass(CallFrame<?> caller, int classId, Instance<?> parentScope) {
-        var r = super.createScopedClass(caller, classId, parentScope);
-        this.rdbAdapter.saveInstance(r);
-        return r;
+        var c = this.getClass(classId).cloneWithScope(parentScope);
+        if (parentScope == null) return c;
+
+        ((RdbSlots)c.getSlots()).setId(rdbAdapter.nextId());
+        this.rdbAdapter.saveInstance(c);
+
+        AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
+        if (emptyArgsConstructor != null) {
+            c.invokeMethod(caller, emptyArgsConstructor, emptyArgsConstructor);
+        }
+        return c;
     }
 
     @Override
