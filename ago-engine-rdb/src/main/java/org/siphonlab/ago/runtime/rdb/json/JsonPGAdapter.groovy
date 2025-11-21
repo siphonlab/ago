@@ -434,7 +434,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
                 modifiers               : agoClass.getModifiers(),
                 super_class             : agoClass.getSuperClass()?.getFullname(),
-                interfaces              : agoClass.getInterfaces()?.collect { (it as AgoInterface).fullname }?.toArray(String[]::new),
+                interfaces              : agoClass.getInterfaces()?.collect { (it as AgoClass).fullname }?.toArray(String[]::new), // trait is not interface
                 children                : agoClass.getChildren()?.collect { (it as AgoClass).fullname }?.toArray(String[]::new),
                 methods                 : agoClass.methods?.collect { (it as AgoFunction)?.fullname }?.toArray(String[]::new),
 
