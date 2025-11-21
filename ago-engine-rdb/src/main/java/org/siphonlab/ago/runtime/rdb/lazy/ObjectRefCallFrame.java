@@ -178,7 +178,7 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         return getObjectRef().hashCode();
     }
 
-    public ExpandableCallFrame expandFor(CallFrame expander, boolean alreadyDeferenced) {
+    public ExpandableCallFrame createExpander(CallFrame expander, boolean alreadyDeferenced) {
         return new ExpandableCallFrame(this, expander, alreadyDeferenced);
     }
 

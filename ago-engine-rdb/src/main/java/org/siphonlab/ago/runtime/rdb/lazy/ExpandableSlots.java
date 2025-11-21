@@ -1,8 +1,11 @@
 package org.siphonlab.ago.runtime.rdb.lazy;
 
 import org.siphonlab.ago.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExpandableSlots implements Slots {
+    private final static Logger logger = LoggerFactory.getLogger(ExpandableSlots.class);
 
     private ExpandableObject<?> owner;
     private Slots innerSlots;

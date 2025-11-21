@@ -1,6 +1,7 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
@@ -144,6 +145,9 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         if (ObjectRefOwner.equals(this.currCallFrame, currCallFrame)) return;
         releaseRef(this.currCallFrame, ReferenceCounter.Reason.DropCurrentCallFrame);
 
+        if(currCallFrame instanceof ExpandableCallFrame<?> ex){     // ExpandableCallFrame will release for expander quit
+            currCallFrame = (CallFrame<?>) ex.getObjectRefInstance();
+        }
         if(currCallFrame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
             if(objectRefCallFrame.getDeferencedCallFrame() instanceof EntranceCallFrame<?> en){
                 currCallFrame = en;

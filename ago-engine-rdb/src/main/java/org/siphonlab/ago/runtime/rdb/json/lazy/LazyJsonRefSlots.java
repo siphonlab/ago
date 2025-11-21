@@ -84,7 +84,7 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
         }
 
         if(value instanceof ObjectRefObject && callFrame != null){
-            value = (Instance<?>) ((ObjectRefObject) value).expandFor(callFrame, alreadyExpanded);
+            value = (Instance<?>) ((ObjectRefObject) value).createExpander(callFrame, alreadyExpanded);
         }
 
 

@@ -1,6 +1,5 @@
 package org.siphonlab.ago.runtime.rdb.lazy;
 
-import groovy.lang.GString;
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
@@ -8,7 +7,6 @@ import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.Set;
 /**
  * lazy instance
@@ -52,7 +50,7 @@ public interface ObjectRefObject {
 
     }
 
-    ExpandableObject expandFor(CallFrame expander, boolean alreadyDeferenced);
+    ExpandableObject createExpander(CallFrame expander, boolean alreadyDeferenced);
 
     Instance dereferenceForExpander(CallFrame expander);
 

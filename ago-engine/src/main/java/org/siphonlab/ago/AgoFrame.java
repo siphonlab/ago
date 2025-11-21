@@ -37,7 +37,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     }
 
     protected CallFrame<?> getCallFrameAt(int slot){
-        return (CallFrame<?>) this.slots.getObject(slot);
+        return (CallFrame<?>) this.getSlots().getObject(slot);
     }
 
     public void run(CallFrame<?> self){
@@ -47,7 +47,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             return;
         }
 
-        final Slots slots = this.slots;
+        final Slots slots = this.getSlots();
         final int[] code = this.code;
         while(pc < code.length){
             final int instruction = code[pc++];

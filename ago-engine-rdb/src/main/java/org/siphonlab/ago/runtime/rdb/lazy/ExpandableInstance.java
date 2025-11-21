@@ -25,6 +25,7 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
         if(alreadyDereferenced){
             this.deferenceObject = objectRefInstance.getDeferencedInstance();
             this.expanded = true;
+            ((ExpandableSlots) this.getSlots()).setInnerSlots(deferenceObject.getSlots());
         }
     }
 
@@ -59,6 +60,7 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
             objectRefInstance.foldBy(expander);
             this.deferenceObject = null;
             this.expanded = false;
+            ((ExpandableSlots) this.getSlots()).setInnerSlots(null);
         }
     }
 

@@ -58,7 +58,7 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
         return referenceCounter.get();
     }
 
-    public ExpandableInstance expandFor(CallFrame expander, boolean alreadyDeferenced) {
+    public ExpandableInstance createExpander(CallFrame expander, boolean alreadyDeferenced) {
         return new ExpandableInstance(this, expander, alreadyDeferenced);
     }
 
