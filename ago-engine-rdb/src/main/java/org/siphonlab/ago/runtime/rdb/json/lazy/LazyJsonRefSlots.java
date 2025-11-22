@@ -57,6 +57,10 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
 
     @Override
     public void setObject(int slot, Instance<?> value) {
+        if(this.restoring){
+            super.setObject(slot,value);
+            return;
+        }
         var old = super.getObject(slot);
         if (ObjectRefOwner.equals(old, value)) {
             return;

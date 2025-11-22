@@ -5,10 +5,13 @@ import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
 import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceObjectState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseDeferenceAndContext;
 
 public interface DeferenceObject {
+    final static Logger logger = LoggerFactory.getLogger(DeferenceObject.class);
 
     ObjectRefObject toObjectRefInstance();
 
@@ -20,6 +23,7 @@ public interface DeferenceObject {
     public void increaseSlotsDeference(ReferenceCounter.Reason reason);
 
     default void releaseSlotsDeference(RdbSlots slots, ReferenceCounter.Reason reason) {
+        if(logger.isDebugEnabled()) logger.debug("release slots of %s".formatted(slots));
         for (var p : slots.getObjectSlots()){
             if(p == null) continue;
             Instance<?> obj = p.getLeft();

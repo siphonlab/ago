@@ -66,16 +66,18 @@ public class RdbAgoRunSpace extends AgoRunSpace {
                     // it's suspended
                     rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
                 }
-                // for those cases that rc > 0
-                foldObjectRefFrame(cf);
-                releaseRef(cf,Reason.CallFrameQuit);
+
+                releaseCaller(cf);
+                foldObjectRefFrame(cf);     // the frame always referenced by caller, it won't release slots/scope now
+                releaseRef(cf,Reason.CleanSlotsForCallFrameQuit);
             }
         }
         tryComplete();
         if(saveAtEnd) {
             rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
             foldObjectRefFrame(cf);
-            releaseRef(cf, Reason.CallFrameQuit);
+            releaseCaller(cf);
+            releaseRef(cf, Reason.CleanSlotsForCallFrameQuit);
         }
     }
 
@@ -212,6 +214,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         super.interrupt();
 
         foldObjectRefFrame(callFrame);
+        releaseCaller(callFrame);
         releaseRef(callFrame,Reason.CallFrameInterrupt);
 
         rdbAdapter.saveInstance(new CallFrameWithRunningState<>(callFrame, RunningState.INTERRUPTED));

@@ -33,10 +33,17 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
     }
 
     @Override
+    public void setParentScope(Instance parentScope) {
+        super.setParentScope(parentScope);
+        ReferenceCounter.increaseRef(parentScope, ReferenceCounter.Reason.SetParentInstall, this);
+        this.state.setSaveRequired();
+    }
+
+
+    @Override
     public void setCaller(CallFrame<?> caller) {
         CallFrame c = LazyJsonAgoEngine.toObjectRefCallFrame(caller);
         if (ObjectRefOwner.equals(caller, this.getCaller())) return;
-
 
         if (this.getCaller() != null) {
             ReferenceCounter.releaseRef(this.getCaller(), ReferenceCounter.Reason.SetCallerDrop, this);
@@ -114,13 +121,6 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
         }
 
         return r;
-    }
-
-    @Override
-    public void setParentScope(Instance parentScope) {
-        super.setParentScope(parentScope);
-        ReferenceCounter.increaseRef(parentScope, ReferenceCounter.Reason.SetParentInstall, this);
-        this.state.setSaveRequired();
     }
 
     public boolean isSaveRequired() {

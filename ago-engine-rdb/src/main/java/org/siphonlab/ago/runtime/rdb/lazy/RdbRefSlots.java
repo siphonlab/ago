@@ -31,4 +31,8 @@ public class RdbRefSlots extends RdbSlots implements ObjectRefOwner {
         this.objectRef = new ObjectRef(objectRef.className(), id);
     }
 
+    @Override
+    public String toString() {
+        return "(RdbRefSlots %s)".formatted(objectRef);
+    }
 }

@@ -70,19 +70,12 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
 
     @Override
     public void increaseRef(Reason reason) {
-        if (objectRef.className().equals("my.test.A")) {
-            times++;
-        }
         int cnt = referenceCounter.incrementAndGet();
         if (logger.isDebugEnabled()) logger.debug("%s inc ref got %d for %s".formatted(this, cnt, reason));
     }
 
-    private static int times = 0;
     @Override
     public int releaseRef(Reason reason) {
-        if(objectRef.className().equals("my.test.A")){
-            times ++;
-        }
         int r = referenceCounter.decrementAndGet();
         if (logger.isDebugEnabled()) logger.debug("%s release ref got %d for %s".formatted(this, r, reason));
         if (r == 0) {
@@ -123,5 +116,8 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
         this.dereferenceAdapter.repair(this.objectRef, this);
     }
 
+    public void addExpander(CallFrame<?> callFrame) {
+        this.expanders.add(callFrame);
+    }
 }
 

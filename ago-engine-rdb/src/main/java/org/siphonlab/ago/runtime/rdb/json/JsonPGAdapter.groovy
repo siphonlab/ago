@@ -140,7 +140,6 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     void saveAgoFrame(AgoFrame agoFrame) {
         var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
-        ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.caller);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
 
 //        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
@@ -153,8 +152,6 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 parent_scope_class: parentScope?.className(),
                 creator_id        : creatorObjectRef?.id(),
                 creator_class     : creatorObjectRef?.className(),
-                caller_id         : callerObjectRef?.id(),
-                caller_class      : callerObjectRef?.className(),
                 pc                : 0,
                 state             : AgoRunSpace.RunningState.PENDING,
                 suspended         : false,
@@ -177,7 +174,6 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     void saveNativeFrame(NativeFrame agoFrame) {
         var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
-        ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(agoFrame.caller);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
 
 //        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
@@ -190,8 +186,6 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 parent_scope_class: parentScope?.className(),
                 creator_id        : creatorObjectRef?.id(),
                 creator_class     : creatorObjectRef?.className(),
-                caller_id         : callerObjectRef?.id(),
-                caller_class      : callerObjectRef?.className(),
                 pc                : 0,
                 state             : AgoRunSpace.RunningState.PENDING,
                 suspended         : false,
@@ -230,7 +224,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var map = [
                 "id"       : objectRef.id() as Object,
                 "suspended": callFrame.suspended,
-                "runspace" : (callFrame.runSpace as RdbAgoRunSpace)?.id
+                "runspace" : (callFrame.runSpace as RdbAgoRunSpace)?.id,
         ]
         if(runningState != (byte)-1) map["state"] = runningState
 
@@ -267,6 +261,11 @@ public abstract class JsonPGAdapter extends RdbAdapter {
             var slots = callFrame.slots as JsonRefSlots
             if(slots instanceof RdbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified))
                 map['slots'] = toJsonb(this.getAgoEngine().jsonStringifySlots(callFrame))
+        }
+        ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(callFrame.caller);
+        if(callerObjectRef){
+            map['caller_id'] = callerObjectRef.id()
+            map['caller_class'] = callerObjectRef.className()
         }
 
         if(callFrame instanceof AgoFrame) {

@@ -26,6 +26,7 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
             this.deferenceObject = objectRefInstance.getDeferencedInstance();
             this.expanded = true;
             ((ExpandableSlots) this.getSlots()).setInnerSlots(deferenceObject.getSlots());
+            objectRefInstance.addExpander(expander);
         }
     }
 

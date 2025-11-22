@@ -11,6 +11,7 @@ import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.runtime.AgoArrayInstance
 import org.siphonlab.ago.runtime.rdb.CallFrameWithRunningState;
 import org.siphonlab.ago.runtime.rdb.ObjectRef
+import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
 import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter
@@ -161,6 +162,11 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, runspace = :runspace, suspended = :suspended WHERE id = :id"
                 arguments["suspended"] = instance.suspended
             }
+            ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(instance.caller);
+            if(callerObjectRef){
+                arguments['caller_id'] = callerObjectRef.id()
+                arguments['caller_class'] = callerObjectRef.className()
+            }
         } else {
             sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots WHERE id = :id"
         }
@@ -214,7 +220,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 }
                 LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
                 MutableObject<Instance> boxInstanceScope = new MutableObject<>();
-                var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, caller, null, slots -> {
+                var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, null, slots -> {
                     getAgoEngine().restoreSlots(slots as LazyJsonRefSlots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), boxInstanceScope);
                 })
                 if (frame instanceof DeferenceAgoFrame) {
@@ -238,6 +244,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                     PersistentRdbEngine persistentRdbEngine = (PersistentRdbEngine) this.classManager;
                     frame.runSpace = persistentRdbEngine.getRunSpace(row['runspace'] as Long)
                 }
+                frame.setCaller(caller)
 
                 ReferenceCounter.increaseDeferenceSlotsForRestoreInstance(frame);
 

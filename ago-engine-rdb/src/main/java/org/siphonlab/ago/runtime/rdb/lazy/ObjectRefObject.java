@@ -94,4 +94,6 @@ public interface ObjectRefObject {
      * so it maybe removed in cache since the ref count = 0, and the follow runspace can access it via ResultSlots!
      */
     void fixCache();
+
+    void addExpander(CallFrame<?> callFrame);
 }

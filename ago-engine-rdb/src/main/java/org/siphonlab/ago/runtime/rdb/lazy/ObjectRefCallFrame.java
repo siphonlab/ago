@@ -87,9 +87,9 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         if (inst instanceof DeferenceCallFrame r) {
             DeferenceFrameState state = r.getDeferenceFrameState();
             if (state.isEntrance()) {
-                inst = new EntranceCallFrame<>(this);
+                inst = new EntranceCallFrame<>(this.expandFor(this));
             } else if (state.isAsyncEntrance()) {
-                inst = new AsyncEntranceCallFrame<>(this);
+                inst = new AsyncEntranceCallFrame<>(this.expandFor(this));
             }
         }
         this.deferencedCallFrame = inst;
@@ -213,4 +213,7 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         this.dereferenceAdapter.repair(this.objectRef, this);
     }
 
+    public void addExpander(CallFrame<?> callFrame) {
+        this.expanders.add(callFrame);
+    }
 }

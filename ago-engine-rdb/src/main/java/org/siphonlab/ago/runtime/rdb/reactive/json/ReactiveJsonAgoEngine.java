@@ -21,7 +21,6 @@ public class ReactiveJsonAgoEngine extends PersistentRdbEngine {
     public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
         var inst = new ReactiveJsonCallFrame(agoFunction.createSlots(), agoFunction,this);
         if(parentScope != null) inst.setParentScope(parentScope);
-        inst.setCaller(caller);
         saveInstance(inst);
         return inst;
     }

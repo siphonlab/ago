@@ -3,7 +3,6 @@ package org.siphonlab.ago.runtime.rdb;
 import org.agrona.collections.IntHashSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.*;
-import org.siphonlab.ago.runtime.AgoArrayInstance;
 
 import java.util.*;
 
@@ -20,6 +19,8 @@ public class RdbSlots implements Slots {
 
     private long id;
     private Pair<Instance<?>, Integer>[] objectSlots;
+
+    protected boolean restoring = false;    // when restoring, don't change state and don't collect change log
 
     public RdbSlots(Slots baseSlots){
         this.baseSlots = baseSlots;
@@ -55,7 +56,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setInt(int slot, int value) {
-        if (value != this.getInt(slot)) {
+        if (restoring && value != this.getInt(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setInt(slot, value);
@@ -63,7 +64,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setClassRef(int slot, int value) {
-        if(value != this.getClassRef(slot)){
+        if(restoring && value != this.getClassRef(slot)){
             collectChangedSlot(slot);
         }
         baseSlots.setClassRef(slot, value);
@@ -71,7 +72,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setLong(int slot, long value) {
-        if (value != this.getLong(slot)) {
+        if (restoring && value != this.getLong(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setLong(slot, value);
@@ -79,7 +80,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setFloat(int slot, float value) {
-        if (value != this.getFloat(slot)) {
+        if (restoring && value != this.getFloat(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setFloat(slot, value);
@@ -87,7 +88,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setDouble(int slot, double value) {
-        if (value != this.getDouble(slot)) {
+        if (restoring && value != this.getDouble(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setDouble(slot, value);
@@ -95,7 +96,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setByte(int slot, byte value) {
-        if (value != this.getByte(slot)) {
+        if (restoring && value != this.getByte(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setByte(slot, value);
@@ -103,7 +104,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setShort(int slot, short value) {
-        if (value != this.getShort(slot)) {
+        if (restoring && value != this.getShort(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setShort(slot, value);
@@ -111,7 +112,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setChar(int slot, char value) {
-        if (value != this.getChar(slot)) {
+        if (restoring && value != this.getChar(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setChar(slot, value);
@@ -119,7 +120,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setBoolean(int slot, boolean value) {
-        if (value != this.getBoolean(slot)) {
+        if (restoring && value != this.getBoolean(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setBoolean(slot, value);
@@ -140,20 +141,22 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setObject(int slot, Instance<?> value) {
-        Instance<?> prev = baseSlots.getObject(slot);
-        if(prev != value) {
-            collectChangedSlot(slot);
-            if(value != null){
-                if (this.usingInstances == null) {
-                    this.usingInstances = new HashSet<>();
+        if(!restoring) {
+            Instance<?> prev = baseSlots.getObject(slot);
+            if (prev != value) {
+                collectChangedSlot(slot);
+                if (value != null) {
+                    if (this.usingInstances == null) {
+                        this.usingInstances = new HashSet<>();
+                    }
+                    usingInstances.add(value);
                 }
-                usingInstances.add(value);
-            }
-            if(prev != null){
-                if (this.detachedInstances == null) {
-                    this.detachedInstances = new HashSet<>();
+                if (prev != null) {
+                    if (this.detachedInstances == null) {
+                        this.detachedInstances = new HashSet<>();
+                    }
+                    detachedInstances.add(prev);
                 }
-                detachedInstances.add(prev);
             }
         }
         baseSlots.setObject(slot, value);
@@ -178,37 +181,37 @@ public class RdbSlots implements Slots {
 
     @Override
     public void incInt(int slot, int value) {
-        collectChangedSlot(slot);
+        if(!restoring) collectChangedSlot(slot);
         baseSlots.incInt(slot, value);
     }
 
     @Override
     public void incFloat(int slot, float value) {
-        collectChangedSlot(slot);
+        if (!restoring) collectChangedSlot(slot);
         baseSlots.incFloat(slot, value);
     }
 
     @Override
     public void incDouble(int slot, double value) {
-        collectChangedSlot(slot);
+        if (!restoring) collectChangedSlot(slot);
         baseSlots.incDouble(slot, value);
     }
 
     @Override
     public void incByte(int slot, byte value) {
-        collectChangedSlot(slot);
+        if (!restoring) collectChangedSlot(slot);
         baseSlots.incByte(slot, value);
     }
 
     @Override
     public void incShort(int slot, short value) {
-        collectChangedSlot(slot);
+        if (!restoring) collectChangedSlot(slot);
         baseSlots.incShort(slot, value);
     }
 
     @Override
     public void incLong(int slot, long value) {
-        collectChangedSlot(slot);
+        if (!restoring) collectChangedSlot(slot);
         baseSlots.incLong(slot, value);
     }
 
@@ -309,14 +312,24 @@ public class RdbSlots implements Slots {
         this.id = id;
     }
 
-    public void restoreState(Collection<Instance<?>> usingInstances, RowState rowState, List<Pair<Instance<?>, Integer>> objectValues) {
-        if(usingInstances != null)
-            this.usingInstances = new HashSet<>(usingInstances);
+    public void beginRestore(List<Instance<?>> usingInstances, RowState rowState) {
+        restoring = true;
+
         this.rowState = rowState;
+        if (usingInstances != null)
+            this.usingInstances = new HashSet<>(usingInstances);
+    }
 
-        for (Pair<Instance<?>, Integer> objectValue : objectValues) {
-            this.objectSlots[objectValue.getRight()] = objectValue;
-        }
+    public void beginRestore(){
+        restoring = true;
+    }
 
+    public void endRestore() {
+        restoring = false;
+    }
+
+    @Override
+    public String toString() {
+        return "(RdbSlots %d)".formatted(id);
     }
 }

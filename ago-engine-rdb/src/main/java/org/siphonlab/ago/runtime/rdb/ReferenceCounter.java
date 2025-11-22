@@ -20,8 +20,9 @@ public interface ReferenceCounter {
         SetParentInstall,
         SetCallerInstall, SetCreatorInstall,
         SetCallerDrop,
-        CallFrameInterrupt, RestoreCallFrame, DropCurrentCallFrame, InstallCurrentCallFrame,
-        CallFrameQuit,
+        CallFrameInterrupt, RestoreCallFrame, DropCurrentCallFrame,
+        InstallCurrentCallFrame,
+        CleanSlotsForCallFrameQuit,
         DropParentForCallFrameQuit, DropCallerForCallFrameQuit,
         DropCreatorForCallFrameQuit, CallFrameQuitCleanSlots,
         SetResultSlotsInstall, SetResultSlotsDrop, TakeObjectValue, SetSlotsForRestoreInstance,
@@ -91,11 +92,16 @@ public interface ReferenceCounter {
         }
 
         if (instance instanceof DeferenceObject deferenceObject) {
+            deferenceObject.releaseSlotsDeference(Reason.CleanSlotsForCallFrameQuit);
             releaseRef(instance.getParentScope(), Reason.DropParentForCallFrameQuit);
-            if(instance instanceof CallFrame<?> callFrame) {
-                releaseRef(callFrame.getCaller(), Reason.DropCallerForCallFrameQuit);
-            }
-            deferenceObject.releaseSlotsDeference(Reason.CallFrameQuitCleanSlots);
+        }
+    }
+
+    // caller was assigned on `Invoke`, after run complete,
+    // must release caller event the CallFrame still alive as an object
+    public static void releaseCaller(Instance<?> instance){
+        if (instance instanceof CallFrame<?> callFrame) {
+            releaseRef(callFrame.getCaller(), Reason.DropCallerForCallFrameQuit);
         }
     }
 
@@ -116,13 +122,6 @@ public interface ReferenceCounter {
             }
             releaseRef(instance,reason);
             return;
-        }
-
-        if (instance instanceof DeferenceObject deferenceObject) {
-            releaseRef(instance.getParentScope(), Reason.DropParentForCallFrameQuit);
-            if (instance instanceof CallFrame<?> callFrame) {
-                releaseRef(callFrame.getCaller(), Reason.DropCallerForCallFrameQuit);
-            }
         }
     }
 

@@ -256,7 +256,6 @@ public class AgoEngine implements ClassManager{
             result = new AgoFrame(agoFunction.createSlots(), agoFunction, this);
         }
         if(parentScope != null) result.setParentScope(parentScope);
-        result.setCaller(caller);
         return result;
     }
 

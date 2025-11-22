@@ -140,23 +140,16 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
                     var scope = deserializeAny(ajp,ctxt,null,creator,null,null);
                     MutableObject<Instance<?>> boxInstanceRef = (MutableObject<Instance<?>>) ctxt.getAttribute("boxerScope");
                     boxInstanceRef.setValue(scope);
-                } else if(s.equals("slots")){
-                    super.deserializeSlots(ajp, ctxt, creator, rdbSlots.getBaseSlots(), map);
                 } else if(s.equals("rowState")){
                     rowState = RowState.valueOf(ajp.getValueAsString());
                     ajp.nextToken();
+                } else if (s.equals("slots")) {
+                    rdbSlots.beginRestore(usingInstances, rowState);
+                    super.deserializeSlots(ajp, ctxt, creator, rdbSlots, map);
+                    rdbSlots.endRestore();
                 }
             }
             ajp.nextToken();
-            List<Pair<Instance<?>, Integer>> objectValues = new ArrayList<>();
-            Slots baseSlots = rdbSlots.getBaseSlots();
-            for (AgoSlotDef slotDef : map.values()) {
-                if(slotDef.getTypeCode() == TypeCode.OBJECT){
-                    objectValues.add(Pair.of(baseSlots.getObject(slotDef.getIndex()),slotDef.getIndex()));
-                }
-            }
-
-            rdbSlots.restoreState(usingInstances, rowState, objectValues);
         } else {
             super.deserializeSlots(ajp, ctxt, creator, hostSlots, map);
         }
