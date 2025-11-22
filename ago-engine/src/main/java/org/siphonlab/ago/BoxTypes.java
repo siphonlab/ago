@@ -72,6 +72,23 @@ public class BoxTypes {
         t = classByName.get("lang.Boxer<classref>");
         if (t != null) boxTypesInterfaces.put(t, CLASS_REF);
 
+        t = classByName.get("lang.Enum<int>");
+        if (t != null) boxTypesInterfaces.put(t, INT);
+        t = classByName.get("lang.Enum<byte>");
+        if (t != null) boxTypesInterfaces.put(t, BYTE);
+        t = classByName.get("lang.Enum<short>");
+        if (t != null) boxTypesInterfaces.put(t, SHORT);
+        t = classByName.get("lang.Enum<long>");
+        if (t != null) boxTypesInterfaces.put(t, LONG);
+
+        t = classByName.get("lang.IntEnum");
+        if (t != null) boxTypesInterfaces.put(t, INT);
+        t = classByName.get("lang.ByteEnum");
+        if (t != null) boxTypesInterfaces.put(t, BYTE);
+        t = classByName.get("lang.ShortEnum");
+        if (t != null) boxTypesInterfaces.put(t, SHORT);
+        t = classByName.get("lang.LongEnum");
+        if (t != null) boxTypesInterfaces.put(t, LONG);
     }
 
     public boolean isBoxType(AgoClass agoClass) {

@@ -40,6 +40,30 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         if(parentScopeId != null) {
             agoClass.setParentScope(this.getRdbAdapter().restoreInstance(new ObjectRef((String)row.get("parent_scope_class"), (Long)parentScopeId)));
         }
+
+        if (agoClass instanceof AgoEnum enumClass) {
+            Map<String, Object> enumValues = new HashMap<>();
+            for (AgoField field : enumClass.getAgoClass().getFields()) {
+                if(field.getAgoClass() == enumClass){
+                    var enumValue = agoClass.getSlots().getObject(field.getSlotIndex());
+                    Slots enumValueSlots = enumValue.getSlots();
+                    switch (enumClass.getBasePrimitiveType().value){
+                        case TypeCode.INT_VALUE:
+                            enumValues.put(enumValueSlots.getString(1), enumValueSlots.getInt(0));
+                            break;
+                        case TypeCode.BYTE_VALUE:
+                            enumValues.put(enumValueSlots.getString(1), enumValueSlots.getByte(0));
+                            break;
+                        case TypeCode.SHORT_VALUE:
+                            enumValues.put(enumValueSlots.getString(1), enumValueSlots.getShort(0));
+                            break;
+                        case TypeCode.LONG_VALUE:
+                            enumValues.put(enumValueSlots.getString(1), enumValueSlots.getLong(0));
+                            break;
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -48,6 +72,9 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     }
 
     public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
+        if(getBoxTypes().isBoxTypeOrWithin(agoFunction)){       // isWithinBoxType
+            return super.createFunctionInstance(parentScope, agoFunction, caller, creator);
+        }
         var inst = createFunctionInstance(agoFunction,parentScope, creator, null);
         if(inst instanceof DeferenceObject) {
             saveInstance(inst);

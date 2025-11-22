@@ -73,7 +73,8 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
     }
 
     public Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander) {
-        return dereferenceForExpander(expanders, expander);
+        dereferenceForExpander(expanders, expander);
+        return deferencedInstance;
     }
 
     public void setDeferencedInstance(Instance inst) {
@@ -91,8 +92,10 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
             } else if (state.isAsyncEntrance()) {
                 inst = new AsyncEntranceCallFrame<>(this.expandFor(this));
             }
+            this.deferencedCallFrame = inst;
+        } else {
+            this.deferencedCallFrame = inst;
         }
-        this.deferencedCallFrame = inst;
     }
 
     @Override
@@ -179,7 +182,7 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
     }
 
     public ExpandableCallFrame<?> expandFor(ObjectRefCallFrame<?> expander) {
-        return new ExpandableCallFrame<>(this, expander, this.deferencedInstance != null);
+        return new ExpandableCallFrame<>(this, expander, this.deferencedCallFrame != null);
     }
 
     @Override

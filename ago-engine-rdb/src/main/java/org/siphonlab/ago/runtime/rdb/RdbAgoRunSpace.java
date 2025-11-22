@@ -1,6 +1,7 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.lazy.DeferenceCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
@@ -49,36 +50,52 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         while (this.currCallFrame != null && !RunningState.isPausingOrWaitingResult(this.getRunningState())) {
             cf = currCallFrame;
 
-            increaseRef(cf,Reason.RunCallFrame);
-
-            rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+            if(isRefCallFrame(cf)){
+                increaseRef(cf, Reason.RunCallFrame);
+                rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+            }
 
             this.currCallFrame.run();
 
             if(this.currCallFrame == null) {     // exited goto tryComplete
                 saveAtEnd = true;
             } else {        // whenever this.currCallFrame == cf or this.currCallFrame != cf, only save cf, for currCallFrame will save at LN39
-                if(!ObjectRefOwner.equals(cf, this.currCallFrame)){
-                    assert !cf.isSuspended();
-                    // cf is calling currCallFrame
-                    rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
-                } else {
-                    // it's suspended
-                    rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+                if(isRefCallFrame(cf)) {
+                    if (!ObjectRefOwner.equals(cf, this.currCallFrame)) {
+                        assert !cf.isSuspended();
+                        // cf is calling currCallFrame
+                        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+                    } else {
+                        // it's suspended
+                        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+                    }
                 }
 
-                releaseCaller(cf);
-                foldObjectRefFrame(cf);     // the frame always referenced by caller, it won't release slots/scope now
-                releaseRef(cf,Reason.CleanSlotsForCallFrameQuit);
+                if(isRefCallFrame(cf)){
+                    if(isRefCallFrame(this.currCallFrame)) {
+                        releaseCaller(cf);
+                        foldObjectRefFrame(cf);     // the frame always referenced by caller, it won't release slots/scope now
+                    }
+                    releaseRef(cf,Reason.CleanSlotsForCallFrameQuit);
+                } else {    // not reference frame, that means, basic AgoFrame and NativeFrame, don't release prev frame
+                    //
+                }
             }
         }
         tryComplete();
-        if(saveAtEnd) {
+        if(saveAtEnd && isRefCallFrame(cf)) {
             rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
             foldObjectRefFrame(cf);
             releaseCaller(cf);
             releaseRef(cf, Reason.CleanSlotsForCallFrameQuit);
         }
+    }
+
+    private static boolean isRefCallFrame(CallFrame<?> currCallFrame) {
+        if(currCallFrame instanceof EntranceCallFrame<?> entranceCallFrame){
+            currCallFrame = entranceCallFrame.getInner();
+        }
+        return currCallFrame instanceof ReferenceCounter || currCallFrame instanceof DeferenceCallFrame;
     }
 
     @Override

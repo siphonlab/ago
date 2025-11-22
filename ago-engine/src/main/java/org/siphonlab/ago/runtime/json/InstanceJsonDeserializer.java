@@ -178,14 +178,19 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                             AgoClass agoClass = deserializeClass(ajp, ctxt, creator);
                             ajp.nextToken();
                             return deserializeObject(ajp, ctxt, agoClass, creator);
-                        } else if(fieldName.equals("@box_type")){
+                        } else if(fieldName.equals("@box_type")) {
                             AgoClass agoClass = deserializeClass(ajp, ctxt, creator);
                             ajp.nextToken();    // value:
+
                             Instance<?> r;
-                            if(!agoEngine.getBoxer().isNarrowBoxType(agoClass) && agoClass.getSlotDefs().length > 1){
-                                r = deserializeComplexBoxedValue(ajp, agoClass, creator, ctxt);
+                            if (agoClass instanceof AgoEnum agoEnum) {
+                                r = deserializeEnumValue(ajp, agoEnum);
                             } else {
-                                r = deserializeBoxedValue(ajp, ajp.currentToken(), agoClass, creator);
+                                if (!agoEngine.getBoxer().isNarrowBoxType(agoClass) && agoClass.getSlotDefs().length > 1) {
+                                    r = deserializeComplexBoxedValue(ajp, agoClass, creator, ctxt);
+                                } else {
+                                    r = deserializeBoxedValue(ajp, ajp.currentToken(), agoClass, creator);
+                                }
                             }
                             ajp.nextToken();    // pass END_OBJECT
                             return r;
@@ -268,12 +273,34 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
     }
 
     private Instance<?> deserializeBoxedValue(AgoJsonParser ajp, JsonToken token, AgoClass expectedClass, CallFrame<?> creator) throws IOException {
-        var instance = agoEngine.createInstance(expectedClass, creator);
-        readPrimitiveSlot(ajp, token, instance.getSlots(), expectedClass.getSlotDefs()[0]);
-        if(expectedClass == agoEngine.getLangClasses().getClassRefClass()){
-            instance.getSlots().setObject(1, agoEngine.getClass(instance.getSlots().getClassRef(0)));
+        if(expectedClass instanceof AgoEnum agoEnum){
+            return deserializeEnumValue(ajp, agoEnum);
+        } else {
+            var instance = agoEngine.createInstance(expectedClass, creator);
+            readPrimitiveSlot(ajp, token, instance.getSlots(), expectedClass.getSlotDefs()[0]);
+            if (expectedClass == agoEngine.getLangClasses().getClassRefClass()) {
+                instance.getSlots().setObject(1, agoEngine.getClass(instance.getSlots().getClassRef(0)));
+            }
+            return instance;
         }
-        return instance;
+    }
+
+    private static Instance<?> deserializeEnumValue(AgoJsonParser ajp, AgoEnum agoEnum) throws IOException {
+        if (ajp.isSerializeSlots()) {
+            var r = switch (agoEnum.getBasePrimitiveType().value) {
+                case INT_VALUE -> agoEnum.findMember(ajp.getValueAsInt());
+                case LONG_VALUE -> agoEnum.findMember(ajp.getValueAsLong());
+                case BYTE_VALUE ->  agoEnum.findMember((byte) ajp.getValueAsInt());
+                case SHORT_VALUE -> agoEnum.findMember((short) ajp.getValueAsInt());
+                default -> throw new IllegalArgumentException("bad enum type " + agoEnum.getBasePrimitiveType());
+            };
+            ajp.nextToken();
+            return r;
+        } else {
+            var r = agoEnum.findMember(ajp.getValueAsString());
+            ajp.nextToken();
+            return r;
+        }
     }
 
     private Instance<?> deserializeComplexBoxedValue(AgoJsonParser ajp, AgoClass expectedClass, CallFrame<?> creator, DeserializationContext ctxt) throws IOException {

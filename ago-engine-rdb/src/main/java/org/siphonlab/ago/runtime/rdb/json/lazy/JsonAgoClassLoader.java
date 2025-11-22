@@ -143,6 +143,22 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         if ((Boolean) row.get("has_slots_creator")) {
             agoClass.setSlotsCreator(this.getSlotsCreatorFactory().generateSlotsCreator(agoClass));
         }
+
+        // primitive type of enum, enum values restore in org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine.restoreClassStates
+        if (agoClass instanceof AgoEnum enumClass) {
+            LangClasses langClasses = getLangClasses();
+            if (agoClass.getSuperClass() == langClasses.getIntEnumClass()) {
+                enumClass.setBasePrimitiveType(TypeCode.INT);
+            } else if (agoClass.getSuperClass() == langClasses.getByteEnumClass()) {
+                enumClass.setBasePrimitiveType(TypeCode.BYTE);
+            } else if (agoClass.getSuperClass() == langClasses.getShortEnumClass()) {
+                enumClass.setBasePrimitiveType(TypeCode.SHORT);
+            } else if (agoClass.getSuperClass() == langClasses.getLongEnumClass()) {
+                enumClass.setBasePrimitiveType(TypeCode.LONG);
+            } else {
+                throw new IllegalStateException("unexpected super class for enum " + agoClass);
+            }
+        }
     }
 
     private AgoClass loadAgoClass(GroovyRowResult row, Map<String, GroovyRowResult> rowsByClassName) throws SQLException {
@@ -171,8 +187,6 @@ public class JsonAgoClassLoader extends AgoClassLoader {
             break;
         case AgoClass.TYPE_ENUM:
             agoClass = new AgoEnum(this, metaClass, fullname, name);
-//                enumClass.setBasePrimitiveType(this.enumBasePrimitiveType);
-//                enumClass.setEnumValues(this.enumValues);
             break;
         case AgoClass.TYPE_INTERFACE:
             agoClass = new AgoInterface(this, metaClass, fullname, name);

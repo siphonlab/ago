@@ -225,24 +225,13 @@ class Box extends ExpressionBase{
         List<Expression> arguments = Collections.singletonList(value);
         if(boxType.isTop()) {
             new Creator(new ConstClass(this.boxType), arguments, getSourceLocation())
-                    .setInvokeConstructor(false)
                     .outputToLocalVar(target, blockCompiler);
         } else {
             MetaClassDef metaClassDef = (MetaClassDef) boxType.getParent();
             ClassUnder classUnder = ClassUnder.create(new ConstClass(metaClassDef.getInstanceClassDef()), boxType);
             new Creator(classUnder, arguments, getSourceLocation())
-                    .setInvokeConstructor(false)
                     .outputToLocalVar(target, blockCompiler);
         }
-        // for box type was treat as Value type, when pass to another box type, it COPIES the value
-        // therefore, constructor make no sense on the Instance, there are 2 ways to solve it
-        // 1. assume the constructor only set value at slot 0
-        // 2. inline the constructor
-        // Now here is the 1st way
-        Map<String, Field> fieldMap = target.inferType().getFields();
-        Field field = fieldMap.values().stream().toList().getFirst();
-        Assign.to(new Var.Field(target, field), value)
-                .setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
     }
 
     @Override

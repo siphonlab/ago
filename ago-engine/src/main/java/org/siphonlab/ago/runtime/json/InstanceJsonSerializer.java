@@ -49,6 +49,35 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
 
         BoxTypes boxTypes = agoEngine.getBoxTypes();
         if(boxTypes.isBoxType(agoClass)) {
+            if (agoClass instanceof AgoEnum agoEnum) {
+                // {@type: "enum class", value: number if writeSlots else string}
+                //  or
+                // number if writeSlots else string
+                if (config.getWriteType() == AgoJsonConfig.WriteTypeMode.OnDemand) {
+                    // for depth>0,depends on agoClass == slotDef.agoClass
+                    if (ag.getDepth() == 0) {
+                        writeType = true;
+                    }
+                } else if (config.getWriteType() == AgoJsonConfig.WriteTypeMode.Inner) {
+                    if (!writeType) writeType = ag.getDepth() > 0;
+                }
+                if (config.isWriteSlots()) {
+                    TypeCode typeCode = boxTypes.getUnboxType(agoClass);
+                    serializeUnboxed(instance, typeCode, gen, serializerProvider, writeType);
+                } else {
+                    if (writeType) {
+                        gen.writeStartObject();
+                        gen.writeStringField("@box_type", agoClass.getFullname());
+                        gen.writeStringField("value", instance.getSlots().getString(1));
+                        gen.writeEndObject();
+                    } else {
+                        gen.writeString(instance.getSlots().getString(1));
+                    }
+                }
+                return;
+            }
+
+
             if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.OnDemand) {
                 // for depth>0,depends on agoClass == slotDef.agoClass
                 if (ag.getDepth() == 0 && !agoEngine.getBoxer().isNarrowBoxType(agoClass)) {
@@ -57,7 +86,7 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             } else if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.Inner){
                 if(!writeType) writeType = !agoEngine.getBoxer().isNarrowBoxType(agoClass);
             }
-            if(!agoEngine.getBoxer().isNarrowBoxType(agoClass) && agoClass.getSlotDefs().length > 1){
+            if(!agoEngine.getBoxer().isNarrowBoxType(agoClass) && agoClass.getSlotDefs().length > 1) {
                 assert writeType;
                 serializeComplexUnboxed(instance, agoClass, ag, serializerProvider);
             } else {

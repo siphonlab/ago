@@ -8,7 +8,7 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     protected final CallFrame<T> inner;
 
     public EntranceCallFrame(CallFrame<T> inner) {
-        super(inner.getSlots(), inner.getAgoClass());
+        super(null, inner.getAgoClass());
         this.inner = inner;
     }
 

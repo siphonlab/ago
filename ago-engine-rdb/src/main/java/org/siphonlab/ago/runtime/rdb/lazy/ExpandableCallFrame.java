@@ -25,7 +25,7 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
         this.objectRefInstance = objectRefInstance;
         this.expander = expander;
         if (alreadyDereferenced) {
-            this.deferenceObject = (CallFrame<?>) objectRefInstance.getDeferencedCallFrame();
+            this.deferenceObject = (CallFrame<?>) objectRefInstance.getDeferencedInstance();
             assert this.getObjectRef().equals(ObjectRefOwner.extractObjectRef(deferenceObject));
             // when the frame quit, its object slots cleaned by #{org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject.releaseSlotsDeference(org.siphonlab.ago.runtime.rdb.RdbSlots, org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason)}
             ((ExpandableSlots) this.getSlots()).setInnerSlots(deferenceObject.getSlots());
