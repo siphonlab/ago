@@ -312,6 +312,7 @@ public class BlockCompiler {
         ClassDef type = null;
         if(localVariableDeclaration.typeOfVariable() != null) {
             type = unit.parseType(functionDef, localVariableDeclaration.typeOfVariable(), false);
+            Compiler.processClassTillStage(type,CompilingStage.AllocateSlots);
             variable.setType(type);
             if(type.getTypeCode() == TypeCode.OBJECT) functionDef.idOfConstString(type.getFullname());
         } else {
@@ -399,7 +400,9 @@ public class BlockCompiler {
             return assign(assignExpr);
         } else if(expression instanceof CastTypeExprContext castTypeExprContext){
             var type = unit.parseType(functionDef, castTypeExprContext.variableType(), false, false);
-            return new Cast(expression(castTypeExprContext.expression()), extractType(type), true);
+            ClassDef t = extractType(type);
+            Compiler.processClassTillStage(t, CompilingStage.AllocateSlots);
+            return new Cast(expression(castTypeExprContext.expression()), t, true);
         } else if(expression instanceof ElementExprContext elementExpr){
             var obj = expression(elementExpr.expression(0));
             var index = expression(elementExpr.expression(1));
@@ -464,6 +467,7 @@ public class BlockCompiler {
     private Expression instanceOfExpr(InstanceOfExprContext instanceOfExpr) throws CompilationError {
         var typeExpr = unit.parseType(functionDef, instanceOfExpr.variableType(), false, false);
         var type = extractType(typeExpr);
+        Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);
         Var.LocalVar receiverVar;
         if(instanceOfExpr.identifier() != null){
             receiverVar = defineLocalVar(instanceOfExpr.identifier(), null, type);
@@ -607,6 +611,7 @@ public class BlockCompiler {
         CreatorContext creator = creatorExpr.creator();
         if(creator instanceof NormalCreatorContext normalCreatorContext) {
             var expr = unit.parseType(functionDef, normalCreatorContext.declarationType(), true, true);
+            Compiler.processClassTillStage(extractType(expr), CompilingStage.AllocateSlots);
             var rest = normalCreatorContext.classCreatorRest();
             if (rest != null) {
                 // if want support anonymous inner class like java did, the class declaration should be handled in {Unit.parseClassDef}, not here
@@ -616,6 +621,7 @@ public class BlockCompiler {
             }
         } else if(creator instanceof ArrayCreatorContext arrayCreator) {
             var elementType = unit.parseTypeName(functionDef, arrayCreator.declarationType().namePath(), false);
+            Compiler.processClassTillStage(elementType, CompilingStage.AllocateSlots);
             var dimension = arrayCreator.LBRACK().size();
             var expressions = arrayCreator.expression();
             ArrayCreate expr = null;
@@ -718,6 +724,8 @@ public class BlockCompiler {
         } else {
             throw unit.syntaxError(lArrayContext, "cannot predict array type");
         }
+        Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
+
         if(!functionDef.getRoot().getAnyArrayClass().isThatOrSuperOfThat(arrayType)){  //TODO allow List
             throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
         }
@@ -951,6 +959,8 @@ public class BlockCompiler {
                 var arg = concreteType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0];
                 type = arg.getClassDefValue();
             }
+            Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);
+
             var iterVar = defineLocalVar(enhancedForControl.identifier(),variableModifiers, type);
             return new ForEachStmt(label, iterVar, expression, statement(forStmt.statement()), mode, unit.sourceLocation(enhancedForControl));
         } else {
@@ -1041,7 +1051,9 @@ public class BlockCompiler {
             cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null);
         } else {
             Expression type = unit.parseType(functionDef, switchLabel.variableType(), false, false);
-            Var.LocalVar localVar = defineLocalVar(switchLabel.varName, null, extractType(type));
+            ClassDef t = extractType(type);
+            Compiler.processClassTillStage(t, CompilingStage.AllocateSlots);
+            Var.LocalVar localVar = defineLocalVar(switchLabel.varName, null, t);
             cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.TypeDispatch, localVar);
         }
         cs.setSourceLocation(unit.sourceLocation(switchLabel));
@@ -1060,6 +1072,7 @@ public class BlockCompiler {
                 var declarationTypeContexts = catchClauseAST.catchType().declarationType();
                 for (DeclarationTypeContext declarationTypeContext : declarationTypeContexts) {
                     var exceptionType = unit.parseTypeName(functionDef, declarationTypeContext.namePath(), false);
+                    Compiler.processClassTillStage(exceptionType, CompilingStage.AllocateSlots);
                     if(!exceptionType.isThatOrDerivedFromThat(functionDef.getRoot().getThrowableClass())){
                         throw unit.typeError(declarationTypeContext,"'%s' is not a throwable class");
                     }

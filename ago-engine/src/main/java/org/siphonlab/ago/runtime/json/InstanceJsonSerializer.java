@@ -57,12 +57,12 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             } else if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.Inner){
                 if(!writeType) writeType = !agoEngine.getBoxer().isNarrowBoxType(agoClass);
             }
-            if(agoEngine.getBoxer().isNarrowBoxType(agoClass) && agoClass.getSlotDefs().length > 1){
-                TypeCode typeCode = boxTypes.getUnboxType(agoClass);
-                serializeUnboxed(instance, typeCode, gen, serializerProvider, writeType);
-            } else {
+            if(!agoEngine.getBoxer().isNarrowBoxType(agoClass) && agoClass.getSlotDefs().length > 1){
                 assert writeType;
                 serializeComplexUnboxed(instance, agoClass, ag, serializerProvider);
+            } else {
+                TypeCode typeCode = boxTypes.getUnboxType(agoClass);
+                serializeUnboxed(instance, typeCode, gen, serializerProvider, writeType);
             }
             return;
         }

@@ -10,6 +10,7 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 // Box only created by cast, don't create it by yourself, use Cast(int, obj) instead
@@ -140,7 +141,7 @@ class Box extends ExpressionBase{
                             if(!boxToDescendant) {
                                 code.box(localVar.getVariableSlot(), literal);
                             } else {
-                                runCreator(localVar, Collections.singletonList(literal), blockCompiler);
+                                runCreator(localVar, literal, blockCompiler);
                             }
                         }
                         break;
@@ -171,7 +172,7 @@ class Box extends ExpressionBase{
                                 code.box(localVar.getVariableSlot(), v.getVariableSlot());
                             } else {
                                 blockCompiler.lockRegister(v);
-                                runCreator(localVar, Collections.singletonList(v), blockCompiler);
+                                runCreator(localVar, v, blockCompiler);
                                 blockCompiler.releaseRegister(v);
                             }
                         }
@@ -220,14 +221,28 @@ class Box extends ExpressionBase{
 
     }
 
-    private void runCreator(Var.LocalVar target, List<Expression> arguments, BlockCompiler blockCompiler) throws CompilationError {
+    private void runCreator(Var.LocalVar target, Expression value, BlockCompiler blockCompiler) throws CompilationError {
+        List<Expression> arguments = Collections.singletonList(value);
         if(boxType.isTop()) {
-            new Creator(new ConstClass(this.boxType), arguments, getSourceLocation()).outputToLocalVar(target, blockCompiler);
+            new Creator(new ConstClass(this.boxType), arguments, getSourceLocation())
+                    .setInvokeConstructor(false)
+                    .outputToLocalVar(target, blockCompiler);
         } else {
             MetaClassDef metaClassDef = (MetaClassDef) boxType.getParent();
             ClassUnder classUnder = ClassUnder.create(new ConstClass(metaClassDef.getInstanceClassDef()), boxType);
-            new Creator(classUnder, arguments, getSourceLocation()).outputToLocalVar(target, blockCompiler);
+            new Creator(classUnder, arguments, getSourceLocation())
+                    .setInvokeConstructor(false)
+                    .outputToLocalVar(target, blockCompiler);
         }
+        // for box type was treat as Value type, when pass to another box type, it COPIES the value
+        // therefore, constructor make no sense on the Instance, there are 2 ways to solve it
+        // 1. assume the constructor only set value at slot 0
+        // 2. inline the constructor
+        // Now here is the 1st way
+        Map<String, Field> fieldMap = target.inferType().getFields();
+        Field field = fieldMap.values().stream().toList().getFirst();
+        Assign.to(new Var.Field(target, field), value)
+                .setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
     }
 
     @Override

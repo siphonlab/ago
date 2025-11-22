@@ -127,21 +127,4 @@ public class Box implements GenericOpCode{
         };
     }
 
-    public static void main(String[] args) {
-        for (TypeCode typeCode : TypeCode.values()) {
-            String type = StringUtils.leftPad(Integer.toHexString(typeCode.getValue()), 2, '0');
-            int addition = 0;
-            if(typeCode == TypeCode.LONG || typeCode == TypeCode.DOUBLE){
-                addition = 1;
-            }
-            String s = MessageFormat.format("""
-            	    public static final int box_{0}_vc    = 0x0d_{1}_01_0{2};
-            	    public static final int box_{0}_vv    = 0x0d_{1}_02_02;
-            	    public static final int unbox_{0}_vo  = 0x0d_{1}_03_02;
-            	""",
-            	    typeCode.toShortString(), type, 2 + addition
-            	);
-            System.out.println(s);
-        }
-    }
 }

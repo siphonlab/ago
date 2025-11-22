@@ -22,6 +22,7 @@ public class Creator extends ExpressionBase{
     protected final List<Expression> arguments;
     private final Expression scope;
     private final ClassDef classDef;
+    private boolean invokeConstructor = true;
 
     public Creator(Expression typeExpr, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
         this.sourceLocation = sourceLocation;
@@ -143,17 +144,19 @@ public class Creator extends ExpressionBase{
                     code.new_(objectSlot, ((Var.LocalVar) term).getVariableSlot(), n);
                 }
             }
-            ConstructorDef constructor = this.classDef.getConstructor();
-            beforeInvokeConstructor(localVar, blockCompiler);
-            if (constructor != null) {
-                blockCompiler.lockRegister(localVar);
-                var constructorInvocation = makeConstructorInvocation(localVar, constructor);
-                constructorInvocation.termVisit(blockCompiler);
-                blockCompiler.releaseRegister(localVar);
-            } else if (CollectionUtils.isNotEmpty(this.arguments)) {
-                throw new ResolveError("no constructor found", typeExpr.getSourceLocation());
-            } else {
-                // no constructor
+            if(invokeConstructor) {
+                ConstructorDef constructor = this.classDef.getConstructor();
+                beforeInvokeConstructor(localVar, blockCompiler);
+                if (constructor != null) {
+                    blockCompiler.lockRegister(localVar);
+                    var constructorInvocation = makeConstructorInvocation(localVar, constructor);
+                    constructorInvocation.termVisit(blockCompiler);
+                    blockCompiler.releaseRegister(localVar);
+                } else if (CollectionUtils.isNotEmpty(this.arguments)) {
+                    throw new ResolveError("no constructor found", typeExpr.getSourceLocation());
+                } else {
+                    // no constructor
+                }
             }
         } catch (CompilationError e) {
             throw e;
@@ -168,6 +171,15 @@ public class Creator extends ExpressionBase{
         c.setCandidates(this.classDef.getConstructors());
         var constructorInvocation = new Invoke(Invoke.InvokeMode.Invoke, c, this.arguments, this.sourceLocation).setSourceLocation(this.getSourceLocation()).transform();
         return constructorInvocation;
+    }
+
+    public Creator setInvokeConstructor(boolean invokeConstructor) {
+        this.invokeConstructor = invokeConstructor;
+        return this;
+    }
+
+    public boolean isInvokeConstructor() {
+        return invokeConstructor;
     }
 
     public static final class NewProps {
