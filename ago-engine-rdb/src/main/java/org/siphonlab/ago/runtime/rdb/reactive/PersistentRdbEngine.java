@@ -56,7 +56,7 @@ public class PersistentRdbEngine extends RdbEngine {
             if(!loadFromDb) saveInstance(agoClass);
         }
 
-        // parentScope, creator, slots not apply here
+        // here is parentScope, creator, slots of class
         if(loadFromDb){
             JsonAgoClassLoader jsonAgoClassLoader = (JsonAgoClassLoader) classLoader;
             for (Map.Entry<String, GroovyRowResult> entry : jsonAgoClassLoader.getRowsByClassName().entrySet()) {

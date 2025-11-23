@@ -191,9 +191,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
     public void fork(CallFrame<?> frame) {
         if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
             frame = objectRefCallFrame.expandFor(objectRefCallFrame);
-        } else if(frame instanceof ExpandableCallFrame<?> expandableCallFrame){
-            throw new RuntimeException("TODO");
-        }
+        }   // for ExpandableCallFrame, let's move on
         super.fork(frame);
     }
 

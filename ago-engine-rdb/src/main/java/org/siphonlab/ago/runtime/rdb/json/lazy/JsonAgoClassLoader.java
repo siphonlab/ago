@@ -272,18 +272,40 @@ public class JsonAgoClassLoader extends AgoClassLoader {
 
     private AgoParameter loadParameter(Map<String, Object> json) {
         if (json == null) return null;
-        //TODO json.get("constLiteralValue") to matchType
-        var parameter = new AgoParameter((String) json.get("name"), (Integer) json.get("modifiers"), loadTypeCode((Map<String, Object>) json.get("typeCode")), getClass((String) json.get("agoClass")),
-                (Integer) json.get("slotIndex"), (AgoFunction) getClass((String) json.get("ownerClass")), json.get("constLiteralValue"));
+        TypeCode typeCode = loadTypeCode((Map<String, Object>) json.get("typeCode"));
+        var parameter = new AgoParameter((String) json.get("name"),
+                (Integer) json.get("modifiers"),
+                typeCode, getClass((String) json.get("agoClass")),
+                (Integer) json.get("slotIndex"),
+                (AgoFunction) getClass((String) json.get("ownerClass")),
+                castConstLiteralValue(json.get("constLiteralValue"), typeCode));
         parameter.setSourceLocation(loadSourceLocation((Map<String, Object>) json.get("sourceLocation")));
         return parameter;
     }
 
+    private Object castConstLiteralValue(Object constLiteralValue, TypeCode typeCode) {
+        if(constLiteralValue == null) return null;
+        return switch (typeCode.value){
+            case TypeCode.INT_VALUE -> ((Number)constLiteralValue).intValue();
+            case TypeCode.LONG_VALUE -> ((Number)constLiteralValue).longValue();
+            case TypeCode.SHORT_VALUE -> ((Number) constLiteralValue).shortValue();
+            case TypeCode.BYTE_VALUE -> ((Number) constLiteralValue).byteValue();
+            case TypeCode.BOOLEAN_VALUE -> (Boolean)constLiteralValue;
+            case TypeCode.FLOAT_VALUE -> ((Number) constLiteralValue).floatValue();
+            case TypeCode.DOUBLE_VALUE -> ((Number) constLiteralValue).doubleValue();
+            case TypeCode.STRING_VALUE -> (String)constLiteralValue;
+            case TypeCode.CLASS_REF_VALUE -> classes.get(((Number)constLiteralValue).intValue());
+            default -> throw new IllegalStateException("Unexpected value: " + typeCode.value);
+        };
+    }
+
     private AgoField loadField(Map<String, Object> json) {
         if (json == null) return null;
-        //TODO json.get("constLiteralValue") to matchType
-        var field = new AgoField((String) json.get("name"), (Integer) json.get("modifiers"), loadTypeCode((Map<String, Object>) json.get("typeCode")), getClass((String) json.get("agoClass")),
-                (Integer) json.get("slotIndex"), getClass((String) json.get("ownerClass")), json.get("constLiteralValue"));
+        TypeCode typeCode = loadTypeCode((Map<String, Object>) json.get("typeCode"));
+        var field = new AgoField((String) json.get("name"), (Integer) json.get("modifiers"),
+                typeCode, getClass((String) json.get("agoClass")),
+                (Integer) json.get("slotIndex"), getClass((String) json.get("ownerClass")),
+                castConstLiteralValue(json.get("constLiteralValue"), typeCode));
         field.setSourceLocation(loadSourceLocation((Map<String, Object>) json.get("sourceLocation")));
         return field;
     }
@@ -291,9 +313,11 @@ public class JsonAgoClassLoader extends AgoClassLoader {
 
     private AgoVariable loadVariable(Map<String, Object> json) {
         if (json == null) return null;
-        //TODO json.get("constLiteralValue") to matchType
-        var variable = new AgoVariable((String) json.get("name"), (Integer) json.get("modifiers"), loadTypeCode((Map<String, Object>) json.get("typeCode")), getClass((String) json.get("agoClass")),
-                (Integer) json.get("slotIndex"),json.get("constLiteralValue"));
+        TypeCode typeCode = loadTypeCode((Map<String, Object>) json.get("typeCode"));
+        var variable = new AgoVariable((String) json.get("name"), (Integer) json.get("modifiers"),
+                typeCode, getClass((String) json.get("agoClass")),
+                (Integer) json.get("slotIndex"),
+                castConstLiteralValue(json.get("constLiteralValue"), typeCode));
         variable.setSourceLocation(loadSourceLocation((Map<String, Object>) json.get("sourceLocation")));
         return variable;
     }
