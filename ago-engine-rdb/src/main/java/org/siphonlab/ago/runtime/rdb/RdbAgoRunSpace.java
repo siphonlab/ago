@@ -193,6 +193,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
             frame = objectRefCallFrame.expandFor(objectRefCallFrame);
         }   // for ExpandableCallFrame, let's move on
         super.fork(frame);
+        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
     }
 
     @Override
@@ -201,6 +202,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
             frame = objectRefCallFrame.expandFor(objectRefCallFrame, false);
         }
         super.spawn(frame);
+        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
     }
 
     @Override

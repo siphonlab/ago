@@ -12,6 +12,7 @@ import org.postgresql.util.PGobject
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.AgoNativeFunction
 import org.siphonlab.ago.native_.NativeFrame
+import org.siphonlab.ago.native_.NativeInstance
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
 import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
@@ -176,8 +177,6 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
 
-//        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
-
         def params = [
                 id                : slots.objectRef.id() as Object,
                 application       : applicationId,
@@ -270,7 +269,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
         if(callFrame instanceof AgoFrame) {
             map["pc"] = callFrame.pc
-        } else if(callFrame instanceof NativeFrame){
+        } else if(callFrame instanceof NativeFrame) {
             map["payload"] = callFrame.payload ? toJsonb(callFrame.payload) : null;
         } else {
             throw new UnsupportedOperationException("unsupported frame type " + callFrame)
@@ -495,16 +494,25 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var parentScope = ObjectRefOwner.extractObjectRef(instance.parentScope);
         var creator = ObjectRefOwner.extractCreator(instance);
 
-//        var defaultSlots = defaultSlots(instance.agoClass, slots.jsonSlotMapper.jsonFiledNames)
-
         System.err.println("INSERT Instance " + slots.objectRef)
 
+        // always put some payload for NativeInstance
+        Object payload;
+        if (instance instanceof NativeInstance && instance.nativePayload != null) {
+            payload = toJsonb(instance.nativePayload)
+        } else {
+            payload = null;
+        }
+
         sql.executeInsert("""INSERT INTO ago_instance
-                                    (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots)
-                                VALUES(?, ?, ?, ?, ?, ?, ?, ?)""",
-                [slots.objectRef.id() as Object, applicationId, instance.agoClass.fullname, parentScope?.id(), parentScope?.className(),
+                                    (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots, payload)
+                                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [slots.objectRef.id() as Object, applicationId,
+                 instance.agoClass.fullname, parentScope?.id(), parentScope?.className(),
                  creator?.id(), creator?.className(),
-                 toJsonb((classManager as RdbEngine).jsonStringifySlots(instance))]
+                 toJsonb((classManager as RdbEngine).jsonStringifySlots(instance)),
+                 payload
+                ]
         )
     }
 

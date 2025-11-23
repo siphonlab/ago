@@ -1,29 +1,25 @@
 package org.siphonlab.ago.runtime.rdb.json.lazy;
 
 import org.siphonlab.ago.AgoClass;
-import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.runtime.rdb.ObjectRef;
-import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
-import org.siphonlab.ago.runtime.rdb.RdbAdapter;
-import org.siphonlab.ago.runtime.rdb.RdbEngine;
-import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
+import org.siphonlab.ago.native_.NativeInstance;
+import org.siphonlab.ago.runtime.rdb.*;
+import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstance;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
-import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 
-public class DeferenceInstance extends Instance implements DeferenceObject, ObjectRefOwner {
-    private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame.class);
+public class DeferenceNativeInstance extends NativeInstance implements DeferenceObject, ObjectRefOwner {
+    private static final Logger logger = LoggerFactory.getLogger(DeferenceNativeInstance.class);
 
     private final RdbAdapter adapter;
 
     private final DeferenceObjectState state;
 
-    public DeferenceInstance(LazyJsonRefSlots slots, AgoClass agoClass, RdbEngine engine) {
+    public DeferenceNativeInstance(LazyJsonRefSlots slots, AgoClass agoClass, RdbEngine engine) {
         super(slots, agoClass);
 
         slots.setOwner(this);
@@ -64,9 +60,14 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
         state.markSaved();
     }
 
+    @Override
+    public void setNativePayload(Object nativePayload) {
+        super.setNativePayload(nativePayload);
+        state.setSaveRequired();
+    }
 
     public boolean equals(Object obj) {
-        if (obj instanceof DeferenceInstance deferenceInstance) {
+        if (obj instanceof DeferenceNativeInstance deferenceInstance) {
             return this.getObjectRef().equals(deferenceInstance.getObjectRef());
         } else if (obj instanceof ObjectRefObject objectRefObject) {
             return this.getObjectRef().equals(objectRefObject.getObjectRef());

@@ -9,6 +9,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.json.*;
@@ -163,7 +164,8 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         return inst;
     }
 
-    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator,
+                                      Consumer<Slots> slotsInitializer) {
         if (agoClass instanceof AgoFunction fun) {
             return createFunctionInstance(fun, parentScope, creator, slotsInitializer);
         }
@@ -175,18 +177,26 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
             return new Instance<>(slots, agoClass);
         }
 
-        var inst = new DeferenceInstance((LazyJsonRefSlots) slots,agoClass,this);
+        Instance<?> inst;
+        if(agoClass.isNative()){
+            inst = new DeferenceNativeInstance((LazyJsonRefSlots) slots, agoClass, this);
+        } else {
+            inst = new DeferenceInstance((LazyJsonRefSlots) slots, agoClass, this);
+        }
         if (parentScope != null) inst.setParentScope(parentScope);
-        inst.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(creator));
 
-        inst.markSaved();
+        DeferenceObject deferenceObject = (DeferenceObject) inst;
+        deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(creator));
+        deferenceObject.markSaved();
 
         return inst;
     }
 
     @Override
     public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        return super.createNativeInstance(parentScope, agoClass, creator);
+        var inst = createInstance(parentScope, agoClass, creator, null);
+        saveInstance(inst);
+        return inst;
     }
 
     @Override
