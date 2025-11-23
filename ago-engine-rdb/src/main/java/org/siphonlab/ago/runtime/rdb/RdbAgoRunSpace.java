@@ -177,9 +177,12 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         }
         if(currCallFrame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
             if(objectRefCallFrame.getDeferencedCallFrame() instanceof EntranceCallFrame<?> en){
-                currCallFrame = en;
+                currCallFrame = en; // Entrance(Expandable())
+            } else {
+                currCallFrame = objectRefCallFrame.expandFor(objectRefCallFrame);
             }
         }
+
         super.setCurrCallFrame(currCallFrame);
 
         increaseRef(currCallFrame, ReferenceCounter.Reason.InstallCurrentCallFrame);

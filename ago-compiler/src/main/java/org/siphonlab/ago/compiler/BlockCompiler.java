@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import static org.siphonlab.ago.compiler.ClassDef.findCommonType;
 import static org.siphonlab.ago.compiler.Unit.extractType;
+import static org.siphonlab.ago.compiler.Unit.extractTypeIfPossible;
 import static org.siphonlab.ago.compiler.expression.Assign.processBoundClass;
 import static org.siphonlab.ago.compiler.parser.AgoParser.*;
 
@@ -611,7 +612,7 @@ public class BlockCompiler {
         CreatorContext creator = creatorExpr.creator();
         if(creator instanceof NormalCreatorContext normalCreatorContext) {
             var expr = unit.parseType(functionDef, normalCreatorContext.declarationType(), true, true);
-            Compiler.processClassTillStage(extractType(expr), CompilingStage.AllocateSlots);
+            Compiler.processClassTillStage(extractTypeIfPossible(expr), CompilingStage.AllocateSlots);
             var rest = normalCreatorContext.classCreatorRest();
             if (rest != null) {
                 // if want support anonymous inner class like java did, the class declaration should be handled in {Unit.parseClassDef}, not here

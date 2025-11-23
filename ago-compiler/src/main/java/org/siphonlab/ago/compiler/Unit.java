@@ -666,6 +666,13 @@ public class Unit {
     }
 
     public static ClassDef extractType(Expression typeExpr) throws CompilationError {
+        var r = extractTypeIfPossible(typeExpr);
+        if(r == null)
+            throw new UnsupportedOperationException("cannot extract type from %s".formatted(typeExpr));
+        return r;
+    }
+
+    public static ClassDef extractTypeIfPossible(Expression typeExpr) throws CompilationError {
         if (typeExpr instanceof ConstClass constClass) {
             return constClass.getClassDef();
         } else if (typeExpr instanceof ClassOf.ClassOfInstance classOfInstance) {
@@ -677,7 +684,7 @@ public class Unit {
         } else if (typeExpr instanceof ClassUnder.ClassUnderInstance classUnderInstance) {
             return classUnderInstance.getClassDef();
         } else {
-            throw new UnsupportedOperationException("cannot extract type from %s".formatted(typeExpr));
+            return null;
         }
     }
 

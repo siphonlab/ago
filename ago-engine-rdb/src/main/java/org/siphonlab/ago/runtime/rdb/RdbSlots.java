@@ -56,7 +56,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setInt(int slot, int value) {
-        if (restoring && value != this.getInt(slot)) {
+        if (!restoring && value != this.getInt(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setInt(slot, value);
@@ -64,7 +64,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setClassRef(int slot, int value) {
-        if(restoring && value != this.getClassRef(slot)){
+        if(!restoring && value != this.getClassRef(slot)){
             collectChangedSlot(slot);
         }
         baseSlots.setClassRef(slot, value);
@@ -72,7 +72,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setLong(int slot, long value) {
-        if (restoring && value != this.getLong(slot)) {
+        if (!restoring && value != this.getLong(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setLong(slot, value);
@@ -80,7 +80,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setFloat(int slot, float value) {
-        if (restoring && value != this.getFloat(slot)) {
+        if (!restoring && value != this.getFloat(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setFloat(slot, value);
@@ -88,7 +88,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setDouble(int slot, double value) {
-        if (restoring && value != this.getDouble(slot)) {
+        if (!restoring && value != this.getDouble(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setDouble(slot, value);
@@ -96,7 +96,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setByte(int slot, byte value) {
-        if (restoring && value != this.getByte(slot)) {
+        if (!restoring && value != this.getByte(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setByte(slot, value);
@@ -104,7 +104,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setShort(int slot, short value) {
-        if (restoring && value != this.getShort(slot)) {
+        if (!restoring && value != this.getShort(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setShort(slot, value);
@@ -112,7 +112,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setChar(int slot, char value) {
-        if (restoring && value != this.getChar(slot)) {
+        if (!restoring && value != this.getChar(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setChar(slot, value);
@@ -120,7 +120,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public void setBoolean(int slot, boolean value) {
-        if (restoring && value != this.getBoolean(slot)) {
+        if (!restoring && value != this.getBoolean(slot)) {
             collectChangedSlot(slot);
         }
         baseSlots.setBoolean(slot, value);

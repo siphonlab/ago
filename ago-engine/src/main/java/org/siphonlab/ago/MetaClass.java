@@ -12,7 +12,17 @@ public class MetaClass extends AgoClass{
     }
 
     public static MetaClass createTheMeta(AgoClassLoader classLoader){
-        return new MetaClass(classLoader);
+        return new MetaClass(classLoader){
+            @Override
+            public MetaClass getAgoClass() {
+                return this;
+            }
+
+            @Override
+            public AgoClass getInstanceClass() {
+                return this;
+            }
+        };
     }
 
     public MetaClass(AgoClassLoader classLoader, MetaClass metaClass, String name) {
@@ -30,7 +40,7 @@ public class MetaClass extends AgoClass{
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof MetaClass m && m.instanceClass.equals(this);
+        return obj instanceof MetaClass m && m.getInstanceClass().equals(this);
     }
 
     @Override

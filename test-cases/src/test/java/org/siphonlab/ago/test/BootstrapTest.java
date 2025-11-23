@@ -66,7 +66,7 @@ public class BootstrapTest {
     @Test
     public void metaclass() throws CompilationError, IOException {
         Util.run("bootstrap/5.metaclass.ago");
-        assertTrue(Trace.outputted("class A", "class Meta@<A>", "class Meta<<Meta>>", "class Meta<<Meta>>"));
+        assertTrue(Trace.outputted("class A", "class Meta@<A>", "class <Meta>", "class <Meta>"));
     }
 
     @Test

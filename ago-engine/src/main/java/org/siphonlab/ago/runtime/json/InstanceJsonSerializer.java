@@ -107,6 +107,11 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             if (writeType || writeId) {     // if writeId preferred, writeType too
                 gen.writeStartObject();
                 gen.writeFieldName("@class");
+                if(classInst instanceof MetaClass && classInst.getFullname().equals("<Meta>")){
+                    gen.writeString(classInst.getFullname());
+                    gen.writeEndObject();
+                    return;
+                }
                 // jsonb doesn't preserver filed order,
                 // so make the structure as
                 //  {@class : classname}

@@ -117,6 +117,15 @@ public class RdbEngine extends AgoEngine {
                 .writeValueAsString(slots);
     }
 
+    @Override
+    public AgoClass getClass(String name) {
+        var r = super.getClass(name);
+        if(r == null && name.equals("<Meta>")){
+            return this.getTheMeta();
+        }
+        return r;
+    }
+
     public String jsonStringifySlots(Slots slots, AgoClass agoClass) throws JsonProcessingException {
         return dumpingObjectMapper
                 .writerFor(slots.getClass())

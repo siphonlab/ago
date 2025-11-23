@@ -37,7 +37,8 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         var token = ajp.nextToken();  // after @class
         if (token == JsonToken.VALUE_STRING) {
             String className = ajp.getValueAsString();
-            ajp.nextToken();
+            ajp.nextToken();  // pass class name
+            ajp.nextToken();    // pass END_OBJECT
             return agoEngine.getClass(className);
         }
         ajp.nextToken();       // [

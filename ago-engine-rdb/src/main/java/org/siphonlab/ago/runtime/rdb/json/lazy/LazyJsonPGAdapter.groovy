@@ -155,9 +155,18 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             arguments["slots"] = toJsonb(this.getAgoEngine().jsonStringifySlots(instance))
         }
 
+        boolean hasPayload = false;
         if(instance instanceof NativeInstance){
+            hasPayload = true;
             if(instance.nativePayload != null) {
                 arguments['payload'] = toJsonb(instance.nativePayload)
+            } else {
+                arguments['payload'] = null
+            }
+        } else if(instance instanceof NativeFrame){
+            hasPayload = true;
+            if (instance.payload != null) {
+                arguments['payload'] = toJsonb(instance.payload)
             } else {
                 arguments['payload'] = null
             }
@@ -167,11 +176,11 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
         if(instance instanceof CallFrame){
             arguments["runspace"] = (instance.runSpace as RdbAgoRunSpace)?.id
             if(instance instanceof AgoFrame) {
-                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, payload = :payload, runspace = :runspace, suspended = :suspended, pc = :pc WHERE id = :id"
+                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, ${hasPayload ? 'payload = :payload,' : ''} runspace = :runspace, suspended = :suspended, pc = :pc WHERE id = :id"
                 arguments["pc"] = instance.pc
                 arguments["suspended"] = instance.suspended
             } else {
-                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, payload = :payload, runspace = :runspace, suspended = :suspended WHERE id = :id"
+                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, ${hasPayload ? 'payload = :payload,' : ''}  runspace = :runspace, suspended = :suspended WHERE id = :id"
                 arguments["suspended"] = instance.suspended
             }
             ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(instance.caller);
@@ -180,7 +189,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                 arguments['caller_class'] = callerObjectRef.className()
             }
         } else {
-            sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, payload = :payload WHERE id = :id"
+            sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots ${hasPayload ? ',payload = :payload' : ''}  WHERE id = :id"
         }
 
         if(instance instanceof DeferenceObject){

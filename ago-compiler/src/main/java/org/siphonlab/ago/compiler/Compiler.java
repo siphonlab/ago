@@ -361,6 +361,7 @@ public class Compiler {
 
     public static void processClassTillStage(ClassDef classDef, CompilingStage stage) throws CompilationError {
         if(LOGGER.isDebugEnabled()) LOGGER.debug("process new found class '%s', compile to stage %s".formatted(classDef, stage));
+        if(classDef == null) return;
         while(classDef.getCompilingStage().getValue() <= stage.getValue()){
             switch (classDef.getCompilingStage()){
                 case ResolveHierarchicalClasses:

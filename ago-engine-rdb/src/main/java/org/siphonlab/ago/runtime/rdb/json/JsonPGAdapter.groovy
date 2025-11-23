@@ -414,7 +414,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     Map<String, Object> toMap(AgoClass agoClass, int applicationId){
         var slots = agoClass.slots as JsonRefSlots;
-        var parentScope = agoClass.parentScope?.slots as JsonRefSlots;
+        var parentScope = ObjectRefOwner.extractObjectRef(agoClass.parentScope);
         var creator = ObjectRefOwner.extractCreator(agoClass);
 
         return [
@@ -422,9 +422,9 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 application             : applicationId,
                 class_id                : agoClass.classId,
                 ago_class               : agoClass.agoClass.fullname,
-                parent_scope_id         : parentScope?.objectRef?.id(),
+                parent_scope_id         : parentScope?.id(),
+                parent_scope_class      : parentScope?.className(),
 
-                parent_scope_class      : parentScope?.objectRef?.className(),
                 creator_id              : creator?.id(),
                 creator_class           : creator?.className(),
                 slots                   : toJsonb(getAgoEngine().jsonStringifySlots(slots, agoClass.agoClass)),

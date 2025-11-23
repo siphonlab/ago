@@ -92,6 +92,7 @@ public class BoxTypes {
     }
 
     public boolean isBoxType(AgoClass agoClass) {
+        if(agoClass == null || agoClass instanceof MetaClass) return false;
         TypeCode unboxType = getUnboxType(agoClass);
         return unboxType != null && unboxType != VOID;
     }

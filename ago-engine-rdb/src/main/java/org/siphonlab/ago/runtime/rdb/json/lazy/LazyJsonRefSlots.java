@@ -101,4 +101,15 @@ public class LazyJsonRefSlots extends RdbRefSlots implements JsonRefSlots {
     public void setId(long id) {
         this.restoreId(id);
     }
+
+    @Override
+    public void setInt(int slot, int value) {
+        if(logger.isDebugEnabled()) logger.info("%s setInt(%d, %d)".formatted(this.getObjectRef(), slot, value));
+        super.setInt(slot, value);
+    }
+
+    @Override
+    public int getInt(int slot) {
+        return super.getInt(slot);
+    }
 }
