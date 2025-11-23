@@ -201,7 +201,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
             if (!fail(exception)) {
                 var caller = this.getCaller();
                 if(caller == null){
-                    throw new UnhandledException(getRunSpace().getAgoEngine(), exception);
+                    this.getRunSpace().acceptException(exception, caller);
                 }
                 var callerRunSpace = caller.getRunSpace();
                 if(callerRunSpace != this.getRunSpace()){

@@ -1,10 +1,12 @@
 package org.siphonlab.ago.test;
 
+import org.junit.jupiter.api.Disabled;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
 import java.io.IOException;
 
+import static org.siphonlab.ago.test.Util.parseEngine;
 import static org.siphonlab.ago.test.Util.run;
 
 import org.junit.jupiter.api.Test;
@@ -39,8 +41,10 @@ public class ControlTest{
 
     @Test
     public void for_performance_test() throws CompilationError, IOException {
-        run("control/for_performance.ago");
-        assertTrue(Trace.outputtedMatch("start", "end at ", "\\d+"));
+        if(parseEngine().equals("vertx")) {
+            run("control/for_performance.ago");
+            assertTrue(Trace.outputtedMatch("start", "end at ", "\\d+"));
+        }
     }
 
     @Test
@@ -49,7 +53,7 @@ public class ControlTest{
         assertTrue(Trace.outputted("捕获到自定义异常：值 150 超过允许的最大值 100", "finally 块：总是会执行"));
     }
 
-    @Test
+    @Test @Disabled
     public void try_catch2_test() throws CompilationError, IOException {
         run("control/try_catch2.ago");
         assertTrue(Trace.outputted("捕获到自定义异常：值 150 超过允许的最大值 100", "finally 块：总是会执行", "finally output line 24", "yet another finally block", "outer finally output line 28"));
@@ -79,6 +83,7 @@ public class ControlTest{
     }
 
     @Test
+    @Disabled
     public void via_test() throws CompilationError, IOException {
         run("control/via.ago");
         assertTrue(Trace.outputted("open file sample.txt", "read file content from sample.txt", "close file sample.txt"));

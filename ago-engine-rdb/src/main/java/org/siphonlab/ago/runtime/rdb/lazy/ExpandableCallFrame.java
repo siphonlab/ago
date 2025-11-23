@@ -27,16 +27,16 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
         if (alreadyDereferenced) {
             this.deferenceObject = (CallFrame<?>) objectRefInstance.getDeferencedInstance();
             assert this.getObjectRef().equals(ObjectRefOwner.extractObjectRef(deferenceObject));
+            objectRefInstance.addExpander(expander, this);
             // when the frame quit, its object slots cleaned by #{org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject.releaseSlotsDeference(org.siphonlab.ago.runtime.rdb.RdbSlots, org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason)}
             ((ExpandableSlots) this.getSlots()).setInnerSlots(deferenceObject.getSlots());
-            objectRefInstance.addExpander(expander);
         }
     }
 
     public CallFrame<?> expand(){
         if (!expanded) {
             expanded = true;
-            deferenceObject = (CallFrame<?>) objectRefInstance.dereferenceForExpander(this.expander);
+            deferenceObject = (CallFrame<?>) objectRefInstance.dereferenceForExpander(this.expander,this);
             ((ExpandableSlots)this.getSlots()).setInnerSlots(deferenceObject.getSlots());
         }
         return deferenceObject;
@@ -71,9 +71,9 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
 
     public void fold(){
         if(this.expanded){
+            this.expanded = false;
             objectRefInstance.foldBy(expander);
             this.deferenceObject = null;
-            this.expanded = false;
             ExpandableSlots expandableSlots = (ExpandableSlots) this.slots;
             if(expandableSlots.getInnerSlots() != null){
                 expandableSlots.setInnerSlots(null);
@@ -159,5 +159,10 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
             return this;
         }
         return this.objectRefInstance.expandFor(expanderCallFrame);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return ObjectRefOwner.equals(this, (Instance<?>) obj);
     }
 }

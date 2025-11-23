@@ -8,6 +8,7 @@ import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Set;
 /**
  * lazy instance
@@ -33,7 +34,7 @@ public interface ObjectRefObject {
         return r;
     }
 
-    default void foldBy(Set<CallFrame> expanders, CallFrame<?> expander) {
+    default void foldBy(Map<CallFrame<?>, ExpandableObject<?>> expanders, CallFrame<?> expander) {
         expanders.remove(expander);
         if (logger.isDebugEnabled()) logger.debug(expander + " quit, " + getObjectRef() + " has %s expanders".formatted(expanders.size()));
         tryFold();
@@ -41,7 +42,7 @@ public interface ObjectRefObject {
 
     void tryFold();
 
-    public default void tryFold(Set<CallFrame> expanders, ObjectRefObject self) {
+    public default void tryFold(Map<CallFrame<?>, ExpandableObject<?>> expanders, ObjectRefObject self) {
         if (expanders.isEmpty()) {
             if (logger.isDebugEnabled()) logger.debug(getObjectRef() + " fold");
             //TODO DOUBT
@@ -78,10 +79,10 @@ public interface ObjectRefObject {
         }
     }
 
-    Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander);
+    Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander, ExpandableObject<?> expandableObject);
 
-    default Instance dereferenceForExpander(Set<CallFrame> expanders, CallFrame expander) {
-        expanders.add(expander);
+    default Instance dereferenceForExpander(Map<CallFrame<?>, ExpandableObject<?>> expanders, CallFrame expander, ExpandableObject<?> expandableObject) {
+        expanders.put(expander, expandableObject);
         if (logger.isDebugEnabled()) logger.debug("%s expand for %s, now there are %d expanders".formatted(getObjectRef(), expander, expanders.size()));
         return deference();
     }
@@ -95,5 +96,5 @@ public interface ObjectRefObject {
      */
     void fixCache();
 
-    void addExpander(CallFrame<?> callFrame);
+    void addExpander(CallFrame<?> callFrame, ExpandableObject<?> expandableObject);
 }

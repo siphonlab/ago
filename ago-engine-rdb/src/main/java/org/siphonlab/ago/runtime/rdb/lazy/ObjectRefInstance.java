@@ -5,7 +5,9 @@ import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -15,7 +17,7 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
     private final DereferenceAdapter dereferenceAdapter;
 
     final ObjectRef objectRef;
-    final Set<CallFrame> expanders = new HashSet<>();
+    final Map<CallFrame<?>, ExpandableObject<?>> expanders = new HashMap<>();
     Instance<?> deferencedInstance;
 
     public ObjectRefInstance(T agoClass, ObjectRef objectRef, DereferenceAdapter dereferenceAdapter) {
@@ -60,7 +62,11 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
 
     @Override
     public ExpandableInstance<?> expandFor(ObjectRefCallFrame<?> expander, boolean alreadyDeferenced) {
-        return new ExpandableInstance(this, expander, alreadyDeferenced);
+        var existed = expanders.get(expander);
+        if (existed != null) return (ExpandableInstance<?>) existed;
+        ExpandableInstance<?> instance = new ExpandableInstance<>(this, expander, alreadyDeferenced);
+        expanders.put(expander, instance);
+        return instance;
     }
 
     @Override
@@ -103,8 +109,9 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
     }
 
 
-    public Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander) {
-        return dereferenceForExpander(expanders,expander);
+    @Override
+    public Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander, ExpandableObject<?> expandableObject) {
+        return dereferenceForExpander(expanders, expander, expandableObject);
     }
 
     public void setDeferencedInstance(Instance inst) {
@@ -116,8 +123,13 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
         this.dereferenceAdapter.repair(this.objectRef, this);
     }
 
-    public void addExpander(CallFrame<?> callFrame) {
-        this.expanders.add(callFrame);
+    public void addExpander(CallFrame<?> callFrame, ExpandableObject<?> expandableObject) {
+        this.expanders.put(callFrame, expandableObject);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return ObjectRefOwner.equals(this, (Instance<?>) obj);
     }
 }
 

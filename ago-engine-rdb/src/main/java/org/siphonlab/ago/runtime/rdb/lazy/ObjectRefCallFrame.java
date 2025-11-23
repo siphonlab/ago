@@ -8,7 +8,9 @@ import org.siphonlab.ago.runtime.rdb.json.lazy.DeferenceFrameState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -18,7 +20,7 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
 
     final ObjectRef objectRef;
     final DereferenceAdapter dereferenceAdapter;
-    final Set<CallFrame> expanders = new HashSet<CallFrame>();
+    final Map<CallFrame<?>, ExpandableObject<?>> expanders = new HashMap<>();
 
     Instance<?> deferencedInstance;
 
@@ -72,8 +74,8 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         tryFold(expanders, this);
     }
 
-    public Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander) {
-        dereferenceForExpander(expanders, expander);
+    public Instance<?> dereferenceForExpander(ObjectRefCallFrame<?> expander, ExpandableObject<?> expandableObject) {
+        dereferenceForExpander(expanders, expander, expandableObject);
         return deferencedInstance;
     }
 
@@ -177,12 +179,18 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         return getObjectRef().hashCode();
     }
 
+
+    @Override
     public ExpandableCallFrame<?> expandFor(ObjectRefCallFrame<?> expander, boolean alreadyDeferenced) {
-        return new ExpandableCallFrame<>(this, expander, alreadyDeferenced);
+        var existed = expanders.get(expander);
+        if(existed != null) return (ExpandableCallFrame<?>) existed;
+        ExpandableCallFrame<?> callFrame = new ExpandableCallFrame<>(this, expander, alreadyDeferenced);
+        expanders.put(expander, callFrame);
+        return callFrame;
     }
 
     public ExpandableCallFrame<?> expandFor(ObjectRefCallFrame<?> expander) {
-        return new ExpandableCallFrame<>(this, expander, this.deferencedCallFrame != null);
+        return expandFor(expander, this.deferencedCallFrame != null);
     }
 
     @Override
@@ -190,12 +198,8 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         return referenceCounter.get();
     }
 
-    static int times = 0;
     @Override
     public void increaseRef(Reason reason) {
-        if(getObjectRef().className().equals("main#")){
-            times++;
-        }
         int r = referenceCounter.incrementAndGet();
         if (logger.isDebugEnabled()) logger.debug("%s inc ref got %d for %s".formatted(this, r, reason));
     }
@@ -216,7 +220,12 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
         this.dereferenceAdapter.repair(this.objectRef, this);
     }
 
-    public void addExpander(CallFrame<?> callFrame) {
-        this.expanders.add(callFrame);
+    public void addExpander(CallFrame<?> callFrame, ExpandableObject<?> expandableObject) {
+        this.expanders.put(callFrame, expandableObject);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return ObjectRefOwner.equals(this, (Instance<?>) obj);
     }
 }

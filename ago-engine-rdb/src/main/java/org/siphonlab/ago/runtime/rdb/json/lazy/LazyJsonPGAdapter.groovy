@@ -98,11 +98,15 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
         if(instance instanceof ObjectRefObject){
             if(instance.getDeferencedInstance() != null){
-                saveInstance(instance.getDeferencedInstance(), saved)
+                var d = instance.getDeferencedInstance()
+                if(!saved.contains(d)) {
+                    saveInstance(d, saved)
+                }
             }
             return;     // for folded Instance, it must be already saved or never touch its Slots, needn't save
         } else if(instance instanceof ExpandableObject){
             if(instance.isExpanded()){
+                saved.add((Instance) instance);
                 saveInstance(instance.getExpandedInstance(), saved)
             }
             return      // ignore folded Instance

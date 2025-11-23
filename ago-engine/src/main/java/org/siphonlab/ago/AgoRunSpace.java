@@ -425,10 +425,14 @@ public class AgoRunSpace implements Runnable{
 
     public void acceptException(Instance<?> exception, CallFrame<?> caller) {
         this.setException(exception);
-        if(caller == null)
+        if(caller == null) {
+            this.setRunningState(RunningState.ERROR);
+            this.setCurrCallFrame(null);
             throw new UnhandledException(getAgoEngine(), exception);
+        }
 
         if(caller.handleException(exception)){
+            this.setCurrCallFrame(null);
             start(caller);
             return;
         }
@@ -439,6 +443,7 @@ public class AgoRunSpace implements Runnable{
         this.setException(exception);
         var caller = this.currCallFrame;
         if (caller.handleException(exception)) {
+            this.setCurrCallFrame(null);
             start(caller);
             return;
         }

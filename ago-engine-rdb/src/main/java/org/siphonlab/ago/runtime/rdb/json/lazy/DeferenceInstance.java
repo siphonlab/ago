@@ -8,6 +8,7 @@ import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
+import org.siphonlab.ago.runtime.rdb.lazy.ExpandableObject;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefInstance;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
@@ -66,13 +67,7 @@ public class DeferenceInstance extends Instance implements DeferenceObject, Obje
 
 
     public boolean equals(Object obj) {
-        if (obj instanceof DeferenceInstance deferenceInstance) {
-            return this.getObjectRef().equals(deferenceInstance.getObjectRef());
-        } else if (obj instanceof ObjectRefObject objectRefObject) {
-            return this.getObjectRef().equals(objectRefObject.getObjectRef());
-        } else {
-            return false;
-        }
+        return ObjectRefOwner.equals(this, (Instance<?>) obj);
     }
 
     public void releaseSlotsDeference(Reason reason) {

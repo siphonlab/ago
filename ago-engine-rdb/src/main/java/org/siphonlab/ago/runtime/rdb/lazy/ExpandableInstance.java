@@ -25,8 +25,8 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
         if(alreadyDereferenced){
             this.deferenceObject = objectRefInstance.getDeferencedInstance();
             this.expanded = true;
+            objectRefInstance.addExpander(expander, this);
             ((ExpandableSlots) this.getSlots()).setInnerSlots(deferenceObject.getSlots());
-            objectRefInstance.addExpander(expander);
         }
     }
 
@@ -39,7 +39,7 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
     public Instance<?> expand() {
         if (!expanded) {
             expanded = true;
-            deferenceObject = objectRefInstance.dereferenceForExpander(this.expander);
+            deferenceObject = objectRefInstance.dereferenceForExpander(this.expander, this);
             ((ExpandableSlots) this.getSlots()).setInnerSlots(deferenceObject.getSlots());
         }
         return deferenceObject;
@@ -72,9 +72,9 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
     @Override
     public void fold(){
         if(this.expanded){
+            this.expanded = false;
             objectRefInstance.foldBy(expander);
             this.deferenceObject = null;
-            this.expanded = false;
             ExpandableSlots expandableSlots = (ExpandableSlots) this.slots;
             if (expandableSlots.getInnerSlots() != null) {
                 expandableSlots.setInnerSlots(null);
@@ -125,5 +125,10 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
     @Override
     public int getRefCount() {
         return objectRefInstance.getRefCount();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return ObjectRefOwner.equals(this, (Instance<?>) obj);
     }
 }

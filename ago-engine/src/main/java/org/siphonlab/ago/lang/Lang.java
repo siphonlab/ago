@@ -49,7 +49,7 @@ public class Lang {
         var scope = callFrame.getParentScope();
         var agoEngine = callFrame.getRunSpace().getAgoEngine();
 
-        CallFrame<?> creator = callFrame.getCaller().getCaller();   // new# -> caller
+        CallFrame<?> creator = callFrame.getCaller().getCaller().getCaller();   // new# -> caller
         AgoClass StackTraceElementClass = agoEngine.getClass("lang.StackTraceElement");
         AgoField functionName = StackTraceElementClass.findField("functionName");
         AgoField fileName = StackTraceElementClass.findField("fileName");
