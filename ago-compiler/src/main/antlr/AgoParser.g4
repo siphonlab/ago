@@ -542,7 +542,7 @@ expression:
     | lambdaExpression                                  # LambdaExpr// Java8
     | primaryExpression                                 # PrimaryExpr
 //
-    | expression '!~' expression                        # SendMessageExpr             // last level, send message
+//    | expression '!~' expression                        # SendMessageExpr             // last level, send message
     ;
 
 primaryExpression:
