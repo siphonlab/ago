@@ -87,7 +87,8 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
                 scope = deserializeAny(ajp, ctxt, null, creator, null, null);
             }
         }
-        assert ajp.nextToken() == JsonToken.END_OBJECT;
+        ajp.nextToken();
+        assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();
 
         if (((RdbSlots) baseClass.getSlots()).getId() == id) return baseClass;
@@ -105,13 +106,16 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
     // {"@objectref": [classname, id]}
     @Override
     protected Instance<?> deserializeObjectRef(AgoJsonParser ajp, DeserializationContext ctxt) throws IOException {
-        assert ajp.nextToken() == JsonToken.START_ARRAY;
+        ajp.nextToken();
+        assert ajp.currentToken() == JsonToken.START_ARRAY;
         ajp.nextToken();
         String classname = ajp.getValueAsString();
         ajp.nextToken();
         long id = ajp.getValueAsLong();
-        assert ajp.nextToken() == JsonToken.END_ARRAY;
-        assert ajp.nextToken() == JsonToken.END_OBJECT;
+        ajp.nextToken();
+        assert ajp.currentToken() == JsonToken.END_ARRAY;
+        ajp.nextToken();
+        assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();        // PASS END_OBJECT
         return ((RdbEngine) this.agoEngine).getRdbAdapter().restoreInstance(new ObjectRef(classname,id));
     }

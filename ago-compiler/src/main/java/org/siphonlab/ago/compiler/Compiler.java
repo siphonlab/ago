@@ -19,7 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 
@@ -36,13 +38,12 @@ public class Compiler {
         return compile(files, null);
     }
 
-    public Unit[] compile(File[] files, ClassDef[] rtClasses) throws IOException, CompilationError {
-        Unit[] units = new Unit[files.length];
-        for (int i = 0; i < files.length; i++) {
-            File file = files[i];
-            String filename = file.getAbsolutePath();
-            var unit = new Unit(filename, CharStreams.fromFileName(filename), root);
-            if(rtClasses != null) {
+    public Unit[] compile(UnitSource[] unitSources, ClassDef[] rtClasses) throws IOException, CompilationError{
+        Unit[] units = new Unit[unitSources.length];
+        for (int i = 0; i < unitSources.length; i++) {
+            UnitSource unitSource = unitSources[i];
+            var unit = new Unit(unitSource.getFileName(), CharStreams.fromReader(unitSource.getReader()), root);
+            if (rtClasses != null) {
                 for (ClassDef rtClass : rtClasses) {
                     unit.importClass(rtClass);
                 }
@@ -50,7 +51,7 @@ public class Compiler {
             units[i] = unit;
         }
 
-        for(var unit : units){
+        for (var unit : units) {
             unit.packageDecl();
         }
 
@@ -66,7 +67,7 @@ public class Compiler {
 
         for (var unit : units) {
             unit.solveRemainImports();
-            if(!unit.getUnsolvedImports().isEmpty()){
+            if (!unit.getUnsolvedImports().isEmpty()) {
                 for (Unit.UnsolvedImport unsolvedImport : unit.getUnsolvedImports()) {
                     throw unit.resolveError(unsolvedImport.importDeclaration(), unsolvedImport.classFullName() + " not found");
                 }
@@ -120,8 +121,8 @@ public class Compiler {
         processNewFoundClasses();
 
         for (Namespace<?> n : root.getAllDescendants().getUniqueElements()) {
-            if(n instanceof ClassDef classDef){
-                if(classDef.getCompilingStage() != CompilingStage.Compiled){
+            if (n instanceof ClassDef classDef) {
+                if (classDef.getCompilingStage() != CompilingStage.Compiled) {
                     throw new RuntimeException("'%s' not compiled".formatted(classDef));
                 }
             }
@@ -129,6 +130,15 @@ public class Compiler {
         root.setCompilingStage(CompilingStage.Compiled);
 
         return units;
+    }
+
+    public Unit[] compile(File[] files, ClassDef[] rtClasses) throws IOException, CompilationError {
+        UnitSource[] unitSources = new UnitSource[files.length];
+        for (int i = 0; i < files.length; i++) {
+            File file = files[i];
+            unitSources[i] = new UnitSource(file.getPath(), new FileReader(file, StandardCharsets.UTF_8));
+        }
+        return compile(unitSources, rtClasses);
     }
 
     private void setupBoxTypes() {

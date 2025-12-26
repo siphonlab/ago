@@ -58,7 +58,7 @@ public class TestFunctions {
                                      boolean writeSlots){
         AgoJsonConfig.WriteTypeMode typeMode = AgoJsonConfig.WriteTypeMode.valueOf(writeType.getSlots().getInt(0));
         AgoJsonConfig.ObjectAsReferenceMode objectAsReferenceMode = AgoJsonConfig.ObjectAsReferenceMode.valueOf(objectAsReference.getSlots().getInt(0));
-        var engine = nativeFrame.getRunSpace().getAgoEngine();
+        var engine = nativeFrame.getAgoEngine();
         var objectMapper = engine.getObjectMapper(new AgoJsonConfig(typeMode, writeId, objectAsReferenceMode, writeSlots));
         try {
             nativeFrame.finishString(objectMapper.writeValueAsString(input));
@@ -71,7 +71,7 @@ public class TestFunctions {
         VertxRunSpaceHost vertxRunSpaceHost = (VertxRunSpaceHost) nativeFrame.getRunSpace().getRunSpaceHost();
 //        vertxRunSpaceHost.getVertx().eventBus().send(ObjectRefOwner.extractObjectRef(destination).toString(), ObjectRefOwner.extractObjectRef(message));
         try {
-            vertxRunSpaceHost.getVertx().eventBus().send(String.valueOf(destination.hashCode()), nativeFrame.getRunSpace().getAgoEngine()
+            vertxRunSpaceHost.getVertx().eventBus().send(String.valueOf(destination.hashCode()), nativeFrame.getAgoEngine()
                     .jsonStringify(message, AgoJsonConfig.RPC_OBJECT_REF));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -86,7 +86,7 @@ public class TestFunctions {
         vertxRunSpaceHost.getVertx().eventBus().consumer(String.valueOf(source.hashCode()), event -> {
             String json = (String) event.body();
             try {
-                var instance = nativeFrame.getRunSpace().getAgoEngine().jsonDeserialize(resultClass, nativeFrame, new StringReader(json), true);
+                var instance = nativeFrame.getAgoEngine().jsonDeserialize(resultClass, nativeFrame, new StringReader(json), true);
                 nativeFrame.finishObjectAsync(instance);
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -117,7 +117,7 @@ public class TestFunctions {
         ObjectRef objectRef = ObjectRefOwner.extractObjectRef(source);
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
-        LazyJsonAgoEngine engine = (LazyJsonAgoEngine) nativeFrame.getRunSpace().getAgoEngine();
+        LazyJsonAgoEngine engine = (LazyJsonAgoEngine) nativeFrame.getAgoEngine();
         LazyJsonPGAdapter adapter = (LazyJsonPGAdapter) engine.getRdbAdapter();
 
         var connection = factory.newConnection();

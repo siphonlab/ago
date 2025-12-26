@@ -2,7 +2,6 @@ package org.siphonlab.ago.compiler;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
-import org.siphonlab.ago.compiler.SourceLocation;
 import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
@@ -18,6 +17,8 @@ import java.net.URLEncoder;
 import java.nio.channels.Channels;
 import java.nio.charset.*;
 import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public class ClassFile {
 
@@ -512,4 +513,23 @@ public class ClassFile {
         }
     }
 
+    public static byte[] createBinaryPackage(Unit[] units) throws IOException, TypeMismatchError {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        try (ZipOutputStream zos = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
+            for (Unit unit : units) {
+                for (ClassDef classDef : unit.getTopClasses()) {
+                    if (classDef instanceof MetaClassDef) continue;  // write metaclass with class
+
+                    String filename = URLEncoder.encode(classDef.getFullname(), StandardCharsets.UTF_8) + ".agoc";
+                    ZipEntry entry = new ZipEntry(filename);
+                    zos.putNextEntry(entry);
+                    new ClassFile().writeToStream(classDef, zos);
+                    zos.closeEntry();
+                }
+            }
+        }
+
+        return baos.toByteArray();
+    }
 }

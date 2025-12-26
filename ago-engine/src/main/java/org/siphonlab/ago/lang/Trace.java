@@ -43,7 +43,7 @@ public class Trace {
     }
 
     public static void print_classref(NativeFrame frame, int classRef){
-        AgoClass agoClass = frame.getRunSpace().getAgoEngine().getClass(classRef);
+        AgoClass agoClass = frame.getAgoEngine().getClass(classRef);
         lines.add(String.valueOf( agoClass));
         System.err.println(agoClass);
         frame.finishVoid();

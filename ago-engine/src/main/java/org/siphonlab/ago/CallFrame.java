@@ -38,6 +38,10 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         return runSpace;
     }
 
+    public AgoEngine getAgoEngine(){
+        return this.getRunSpace().getAgoEngine();
+    }
+
     protected boolean fail(Instance<?> exception) {
         if (stateHandler != null) {
             return stateHandler.fail(new UnhandledException(this.runSpace.getAgoEngine(), exception));
@@ -210,7 +214,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
                 callerRunSpace.acceptException(exception, caller);
             } else {
                 getRunSpace().setCurrCallFrame(null);
-                throw new UnhandledException(getRunSpace().getAgoEngine(), exception);
+                throw new UnhandledException(getAgoEngine(), exception);
             }
         } else {
             getRunSpace().acceptException(exception);

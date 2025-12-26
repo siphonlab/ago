@@ -138,7 +138,7 @@ public class RestfulService {
     // scope is RestService instance
     public static void payload(NativeFrame nativeFrame) {
         NativeInstance restService = (NativeInstance) nativeFrame.getParentScope();
-        AgoEngine agoEngine = nativeFrame.getRunSpace().getAgoEngine();
+        AgoEngine agoEngine = nativeFrame.getAgoEngine();
         HttpRequest httpRequest = (HttpRequest) restService.getNativePayload();
         AgoNativeFunction function = nativeFrame.getAgoClass();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) function.getConcreteTypeInfo();

@@ -108,7 +108,7 @@ public class RunSpaceAware {
 
     public static void receive(NativeFrame nativeFrame){
         NativeInstance restService = (NativeInstance) nativeFrame.getParentScope();
-        AgoEngine agoEngine = nativeFrame.getRunSpace().getAgoEngine();
+        AgoEngine agoEngine = nativeFrame.getAgoEngine();
 
 //        nativeFrame.finishObject();
     }

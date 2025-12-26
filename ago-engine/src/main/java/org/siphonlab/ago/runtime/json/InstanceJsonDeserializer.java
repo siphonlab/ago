@@ -388,11 +388,14 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
 
     //{"@classref": [classname, id, [parentScope]]}
     protected Instance<?> deserializeClassRef(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
-        assert ajp.nextToken() == JsonToken.START_ARRAY;
+        ajp.nextToken();
+        assert ajp.currentToken() == JsonToken.START_ARRAY;
         ajp.nextToken();
         if(ajp.currentToken() == JsonToken.VALUE_NULL){
-            assert ajp.nextToken() == JsonToken.END_ARRAY;
-            assert ajp.nextToken() == JsonToken.END_OBJECT;
+            ajp.nextToken();
+            assert ajp.currentToken() == JsonToken.END_ARRAY;
+            ajp.nextToken();
+            assert ajp.currentToken() == JsonToken.END_OBJECT;
             ajp.nextToken();
             return null;
         }
@@ -411,7 +414,8 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
             }
         }
         ajp.nextToken();    // END_ARRAY
-        assert ajp.nextToken() == JsonToken.END_OBJECT;
+        ajp.nextToken();
+        assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();
         return result == null ? baseClass : result;
     }

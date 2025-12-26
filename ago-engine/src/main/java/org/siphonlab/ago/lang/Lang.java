@@ -32,7 +32,7 @@ public class Lang {
 
     public static void ClassRef_toString(NativeFrame frame) {
         int classRef = frame.getParentScope().getSlots().getClassRef(0);
-        frame.finishString(frame.getRunSpace().getAgoEngine().getClass(classRef).getFullname());
+        frame.finishString(frame.getAgoEngine().getClass(classRef).getFullname());
     }
 
     public static void Class_getName( NativeFrame frame){
@@ -47,7 +47,7 @@ public class Lang {
 
     public static void Throwable_fillStackTrace(NativeFrame callFrame){
         var scope = callFrame.getParentScope();
-        var agoEngine = callFrame.getRunSpace().getAgoEngine();
+        var agoEngine = callFrame.getAgoEngine();
 
         CallFrame<?> creator = callFrame.getCaller().getCaller().getCaller();   // new# -> caller
         AgoClass StackTraceElementClass = agoEngine.getClass("lang.StackTraceElement");

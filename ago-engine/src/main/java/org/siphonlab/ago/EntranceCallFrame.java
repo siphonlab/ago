@@ -142,7 +142,7 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     @Override
     public void finishException(Instance<?> exception, boolean throwOut) {        // entrance callframe has no caller
         if (!fail(exception)) {
-            throw new UnhandledException(getRunSpace().getAgoEngine(), exception);
+            throw new UnhandledException(getAgoEngine(), exception);
         }
     }
 

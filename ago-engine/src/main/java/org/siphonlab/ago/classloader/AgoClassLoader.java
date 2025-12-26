@@ -16,6 +16,9 @@ import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 import static java.lang.String.format;
 import static org.siphonlab.ago.AgoClass.*;
@@ -68,9 +71,20 @@ public class AgoClassLoader implements ClassManager{
     }
 
     public void loadClasses(File[] files) throws IOException {
+        IoBuffer[] buffers = new IoBuffer[files.length];
+        for (int i = 0; i < files.length; i++) {
+            File file = files[i];
+            try(FileInputStream fileInputStream = new FileInputStream(file)) {
+                buffers[i] = IoBuffer.wrap(fileInputStream.readAllBytes());
+            }
+        }
+        loadClasses(buffers);
+    }
+
+    public void loadClasses(IoBuffer[] buffers) throws IOException {
         // stage: LoadClassNames
-        for (File file : files) {
-            loadClassNames(new FileInputStream(file));
+        for (IoBuffer buffer : buffers) {
+            loadClassNames(buffer);
         }
         // expand children of concrete types
         processStage(LoadingStage.LoadClassNames);
@@ -193,9 +207,7 @@ public class AgoClassLoader implements ClassManager{
 
     }
 
-    private void loadClassNames(InputStream inputStream) throws IOException{
-        var buffer = IoBuffer.wrap(inputStream.readAllBytes());
-
+    private void loadClassNames(IoBuffer buffer) throws IOException{
         int headerEnd = buffer.getInt();
         String sourceFileName = buffer.getPrefixedString(decoder);
         // read all headers
@@ -939,6 +951,25 @@ public class AgoClassLoader implements ClassManager{
     public void loadClasses(String directory) throws IOException {
         var dir = new File(directory);
         loadClasses(Objects.requireNonNull(dir.listFiles((dir1, name) -> name.endsWith(".agoc"))));
+    }
+
+    public void loadClasses(ZipInputStream packageStream) throws IOException {
+        List<IoBuffer> streams = new ArrayList<>();
+        ZipEntry entry;
+
+        while ((entry = packageStream.getNextEntry()) != null) {
+            System.out.println("Entry: " + entry.getName());
+
+            if (entry.isDirectory()) {
+                packageStream.closeEntry();
+                continue;
+            }
+
+            streams.add(IoBuffer.wrap(packageStream.readAllBytes()));
+
+            packageStream.closeEntry();
+        }
+        loadClasses(streams.toArray(new IoBuffer[0]));
     }
 
     public void loadClasses(String... directory) throws IOException {

@@ -95,7 +95,7 @@ public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefS
         var unboxType = adapter.getBoxTypes().getUnboxType(slotDef.getAgoClass());
         if (unboxType != null) {
             var v = getSlotValue(callFrame, objectRef, jsonFiledName, typeName, slot, unboxType);
-            final Boxer boxer = callFrame.getRunSpace().getAgoEngine().getBoxer();
+            final Boxer boxer = callFrame.getAgoEngine().getBoxer();
             return switch (unboxType.getValue()) {
                 case INT_VALUE -> boxer.boxInt(callFrame, slotDef.getAgoClass(), (Integer)v);
                 case LONG_VALUE -> boxer.boxLong(callFrame, slotDef.getAgoClass(), (Long) v);
@@ -107,7 +107,7 @@ public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefS
             };
         } else if (slotDef.getAgoClass() instanceof MetaClass) {
             var v = getSlotValue(callFrame, objectRef, jsonFiledName, typeName, slot, STRING);
-            return callFrame.getRunSpace().getAgoEngine().getClass((String) v);
+            return callFrame.getAgoEngine().getClass((String) v);
         }
         String sql = "SELECT nullif((slots->'%s'), 'null') FROM %s WHERE id=?".formatted(
                 jsonFiledName, adapter.getTableName(objectRef.className())

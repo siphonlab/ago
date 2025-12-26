@@ -26,11 +26,13 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
     @Override
     public ResultSlots deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
         ResultSlots resultSlots = new ResultSlots();
-        assert p.nextToken() == JsonToken.START_OBJECT;
+        p.nextToken();
+        assert p.currentToken() == JsonToken.START_OBJECT;
         p.nextToken();
         var dataType = p.getIntValue();
 
-        assert p.nextToken() == JsonToken.FIELD_NAME;   // "value":
+        p.nextToken();
+        assert p.currentToken() == JsonToken.FIELD_NAME;   // "value":
         p.nextToken();
         switch (dataType){
             case TypeCode.INT_VALUE:
@@ -73,7 +75,8 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
                 resultSlots.setObjectValue(ctxt.readValue(p, Instance.class));
                 break;
         }
-        assert p.nextToken() == JsonToken.END_OBJECT;
+        p.nextToken();
+        assert p.currentToken() == JsonToken.END_OBJECT;
         p.nextToken();
         return resultSlots;
     }
