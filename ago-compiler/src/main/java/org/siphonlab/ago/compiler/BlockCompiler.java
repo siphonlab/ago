@@ -91,11 +91,12 @@ public class BlockCompiler {
                 this.compiledStatements.add(statement);
             }
         }
-        System.out.println("generate code for " + functionDef.getFullname());
+
+        if(LOGGER.isDebugEnabled()) LOGGER.debug("generate code for " + functionDef.getFullname());
         for (int i = 0; i < compiledStatements.size(); i++) {
             var stmt = compiledStatements.get(i);
             compiledStatements.set(i, stmt = stmt.transform());
-            System.out.println("\t" + stmt);
+            if (LOGGER.isDebugEnabled()) LOGGER.debug("\t" + stmt);
         }
         // default return statement for `void`
         if(functionDef.getResultType() == null || functionDef.getResultType().getTypeCode() == TypeCode.VOID){
@@ -266,19 +267,19 @@ public class BlockCompiler {
         functionDef.setCompilingStage(CompilingStage.Compiled);
         functionDef.setSourceMap(code.getSourceMapEntries());
 
-        System.out.println(functionDef.getFullname());
+        if (LOGGER.isDebugEnabled()) LOGGER.debug(functionDef.getFullname());
 
         List<String> ls = new ArrayList<>();
         List<String> topStrings = functionDef.getTopStrings();
         for (int i = 0; i < topStrings.size(); i++) {
             ls.add("\t" + i + ":\t" + topStrings.get(i));
         }
-        System.out.println(ls.stream().collect(Collectors.joining("\n")));
+        if (LOGGER.isDebugEnabled()) LOGGER.debug(ls.stream().collect(Collectors.joining("\n")));
 
         var slots = functionDef.getSlotsAllocator().getSlots();
-        System.out.println(slots.stream().map(slot -> "\t" + slot.getIndex() + "\t" + slot.getName() + "\t" + slot.getTypeCode() + "\t" + slot.getClassDef()).collect(Collectors.joining("\n")));
+        if (LOGGER.isDebugEnabled()) LOGGER.debug(slots.stream().map(slot -> "\t" + slot.getIndex() + "\t" + slot.getName() + "\t" + slot.getTypeCode() + "\t" + slot.getClassDef()).collect(Collectors.joining("\n")));
 
-        System.out.println(Arrays.stream(StringUtils.split(InspectUtil.inspectCode(functionDef.getBody()), '\n')).map(s -> "\t" + s).collect(Collectors.joining("\n")));
+        if (LOGGER.isDebugEnabled()) LOGGER.debug(Arrays.stream(StringUtils.split(InspectUtil.inspectCode(functionDef.getBody()), '\n')).map(s -> "\t" + s).collect(Collectors.joining("\n")));
 
     }
 

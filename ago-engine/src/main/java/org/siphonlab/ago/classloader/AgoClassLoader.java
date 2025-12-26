@@ -958,8 +958,6 @@ public class AgoClassLoader implements ClassManager{
         ZipEntry entry;
 
         while ((entry = packageStream.getNextEntry()) != null) {
-            System.out.println("Entry: " + entry.getName());
-
             if (entry.isDirectory()) {
                 packageStream.closeEntry();
                 continue;

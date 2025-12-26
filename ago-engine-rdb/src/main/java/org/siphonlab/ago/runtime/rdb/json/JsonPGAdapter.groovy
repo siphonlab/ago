@@ -282,7 +282,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     void saveAgoClass(AgoClass agoClass) {
         var slots = agoClass.slots as JsonRefSlots;
-        System.err.println("INSERT CLASS " + slots.objectRef.id())
+        if(logger.isDebugEnabled()) logger.debug("INSERT CLASS " + slots.objectRef.id())
 
         sql.executeInsert(toMap(agoClass, applicationId),
             """INSERT INTO ago_class (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, 
@@ -387,7 +387,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     void saveAgoFunction(AgoFunction agoFunction) {
         var slots = agoFunction.slots as JsonRefSlots;
-        System.err.println("INSERT Function " + slots.objectRef.id())
+        if (logger.isDebugEnabled()) logger.debug("INSERT Function " + slots.objectRef.id())
 
         var m = toMap(agoFunction, applicationId);
 
@@ -494,7 +494,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var parentScope = ObjectRefOwner.extractObjectRef(instance.parentScope);
         var creator = ObjectRefOwner.extractCreator(instance);
 
-        System.err.println("INSERT Instance " + slots.objectRef)
+        if (logger.isDebugEnabled()) logger.debug("INSERT Instance " + slots.objectRef)
 
         // always put some payload for NativeInstance
         Object payload;
