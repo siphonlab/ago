@@ -16,6 +16,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void run(CallFrame<?> self){
+        if (this.debugger != null) this.debugger.enterFrame(this);
         this.setRunSpace(runSpace);
         // the native function f(NativeFrame frame, param1, param2), end with `frame.finish(result)`
         nativeFunctionCaller.invoke(this, this.slots);
@@ -37,12 +38,16 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     public void finishVoidAsync() {
         if (stateHandler != null) stateHandler.complete(null);
 
+        if (this.debugger != null) this.debugger.leaveFrame(this);
+
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptVoidByAsync();
     }
 
     public void finishNullAsync() {
         if (stateHandler != null) stateHandler.complete(null);
+
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptNullByAsync();;
@@ -51,12 +56,15 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     public void finishIntAsync(int result) {
         if (stateHandler != null) stateHandler.complete(null);
 
+        if (this.debugger != null) this.debugger.leaveFrame(this);
+
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptIntByAsync(result);
     }
 
     public void finishByteAsync(byte result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptByteByAsync(result);
@@ -64,6 +72,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishShortAsync(short result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptShortByAsync(result);
@@ -71,6 +80,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishFloatAsync(float result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptFloatByAsync(result);
@@ -78,6 +88,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishDoubleAsync(double result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptDoubleByAsync(result);
@@ -85,6 +96,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishLongAsync(long result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptLongByAsync(result);
@@ -92,6 +104,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishCharAsync(char result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptCharByAsync(result);
@@ -99,6 +112,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishStringAsync(String result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptStringByAsync(result);
@@ -106,6 +120,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishBooleanAsync(boolean result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptBooleanByAsync(result);
@@ -113,6 +128,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishObjectAsync(Instance<?> result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptObjectByAsync(result);
@@ -120,6 +136,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishClassRefAsync(AgoClass result) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptClassRefByAsync(result);
@@ -127,6 +144,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void finishExceptionAsync(Instance<?> exception) {
         if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
 
         AgoRunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptExceptionByAsync(exception);

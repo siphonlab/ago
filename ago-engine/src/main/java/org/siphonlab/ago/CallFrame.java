@@ -15,6 +15,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     protected CallFrameStateHandler<?> stateHandler;
     protected boolean suspended = false;
 
+    protected Debugger debugger = null;
+
     public CallFrame(Slots slots, F agoClass) {
         super(slots, agoClass);
     }
@@ -250,4 +252,13 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     public void interrupt(){
     }
+
+    public void setDebugger(Debugger debugger) {
+        this.debugger = debugger;
+    }
+
+    public Debugger getDebugger() {
+        return debugger;
+    }
+
 }

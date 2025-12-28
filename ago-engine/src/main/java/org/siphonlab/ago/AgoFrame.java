@@ -8,7 +8,7 @@ import org.siphonlab.ago.opcode.arithmetic.*;
 import org.siphonlab.ago.runtime.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.siphonlab.ago.TypeCode.*;
+import java.util.Arrays;import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
 import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
 import static org.siphonlab.ago.TypeCode.CHAR_VALUE;
@@ -41,9 +41,13 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     }
 
     public void run(CallFrame<?> self){
+        if(this.debugger != null){
+            this.debugger.enterFrame(this);
+        }
         if(LOGGER.isDebugEnabled()) LOGGER.debug(pc == 0 ? "run %s".formatted(this.agoClass) : "resume %s".formatted(this.agoClass));
         if(suspended) {
             this.getRunSpace().waitResult();
+            if(this.debugger != null) this.debugger.leaveFrame(this);
             return;
         }
 
@@ -59,13 +63,23 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case Add.OP:  pc = evaluateAdd(slots, pc, instruction); break;
                 case New.OP:  pc = evaluateNew(slots, pc, instruction); break;
                 case Invoke.OP: {
-                    if(evaluateInvoke(self, instruction)) return; else break;
+                    if(evaluateInvoke(self, instruction)) {
+                        if(this.debugger != null) this.debugger.leaveFrame(this);
+                        return;
+                    } else break;
                 }
                 case Accept.OP: pc = evaluateAccept(slots, pc, instruction); break;
                 case TryCatch.OP: {
-                    if(evaluateTryCatch(slots, instruction)) break; else return;
+                    if(evaluateTryCatch(slots, instruction)) break; else {
+                        if(this.debugger != null) this.debugger.leaveFrame(this);
+                        return;
+                    }
                 }
-                case Pause.OP: evaluatePause(); return;
+                case Pause.OP: {
+                    evaluatePause();
+                    if(this.debugger != null) this.debugger.leaveFrame(this);
+                    return;
+                }
                 case Jump.OP: pc = evaluateJump(slots, pc, instruction); break;
                 case Concat.OP: pc = evaluateConcat(slots, pc, instruction); break;
                 case Return.OP: pc = evaluateReturn(self, slots, pc, instruction); break;
@@ -96,15 +110,13 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case BitShiftRight.OP: pc = evaluateBitRShift(slots, pc, instruction); break;
                 case BitUnsignedRight.OP: pc = evaluateBitURShift(slots, pc, instruction); break;
                 case InstanceOf.OP: pc = evaluateInstanceOf(slots, pc, instruction); break;
-                // case Debug.OP: pc = evaluateDebug(slots, pc, instruction);  Debug 指令为 0xff,会导致 tableswitch -> lookupswitch
                 default:
                     throw new UnsupportedOperationException("%s not implemented yet, at '%s'".formatted(OpCode.getName(instruction), this));
             }
             nextPC();
         }
 
-//        // there must be a return_void
-//        if(this.caller != null) this.caller.acceptVoid();
+        if(this.debugger != null) this.debugger.leaveFrame(this);
     }
 
     protected void evaluatePause() {
@@ -113,6 +125,9 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     }
 
     protected void nextPC() {
+        if(this.debugger != null){
+            this.debugger.updatePC(this,this.pc);
+        }
     }
 
     /**
@@ -1842,15 +1857,13 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         }
     }
 
+    private PreservableSearcher<SourceMapEntry> preservableSearcher = null;
 
     @Override
     public SourceLocation resolveSourceLocation() {
-        //TODO speedup
-        for (SourceMapEntry entry : this.agoClass.getSourceMap()) {
-            if(entry.codeOffset() >= this.pc){
-                return entry.sourceLocation();
-            }
-        }
+        if(preservableSearcher == null) preservableSearcher = new PreservableSearcher<>(Arrays.asList(this.agoClass.getSourceMap()));
+        SourceMapEntry entry = preservableSearcher.search(s -> s.codeOffset() >= this.pc);
+        if(entry != null) return entry.sourceLocation();
         return this.agoClass.getSourceLocation();
     }
 

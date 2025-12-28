@@ -21,7 +21,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
         slots.setOwner(this);
         this.adapter = engine.getRdbAdapter();
 
-        ObjectRefCallFrame inst = DefaultGroovyMethods.asType(adapter.restoreInstance(getObjectRef()), ObjectRefCallFrame.class);
+        ObjectRefCallFrame inst = (ObjectRefCallFrame) adapter.restoreInstance(getObjectRef());
         this.state = new DeferenceFrameState(inst);
         inst.setDeferencedInstance(this);
     }
@@ -149,7 +149,6 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
         } else {
             return false;
         }
-
     }
 
     @Override
@@ -166,7 +165,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
     }
 
     public void increaseSlotsDeference(ReferenceCounter.Reason reason) {
-        increaseSlotsDeference(DefaultGroovyMethods.asType(this.getSlots(), LazyJsonRefSlots.class), reason);
+        increaseSlotsDeference((LazyJsonRefSlots)(this.getSlots()), reason);
     }
 
     @Override
