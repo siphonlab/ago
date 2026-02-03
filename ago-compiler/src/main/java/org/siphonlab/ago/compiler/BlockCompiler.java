@@ -455,8 +455,6 @@ public class BlockCompiler {
             return ifElseExpr(ifElseExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof LambdaExprContext lambdaExpr){          // we need name
 
-        } else if(expression instanceof SendMessageExprContext sendMessageExprContext){   //TODO need these?
-
         } else if(expression instanceof PostfixExprContext postfixExprContext){     //TODO need these?
 
         } else if(expression instanceof AwaitFunctorContext invokeFunctorContext){
