@@ -1,0 +1,28 @@
+template Container<Entity>{
+    sql FetchChildren(params ){
+
+    }
+
+   "get{plural(Entity.name)}"() as Set<Entity>{
+      return
+   }
+}
+
+template Children<Entity>{
+
+}
+
+class Staff with Container<Contact>{
+   workNo as (class WorkNo from VarChar(200) with Unique {
+            fun validate() as bool{
+            }
+         });
+   name as (class Name from VarChar(200) with NotNull);
+
+   getContacts() as Set<Contact> from Contact.getStaff.reverse();
+}
+
+class Contact{
+   phone as (class Phone from Varchar(200) with NotNull);
+   getStaff() as Staff from Relation<Contact, Staff>;
+}

@@ -1,0 +1,189 @@
+fun main(){
+    testField();
+}
+
+class T{
+    a as int;
+    b as int {get;set;}
+    result as int[];
+    fun new(){
+        result = [1,1]
+    }
+}
+
+fun testField(){
+    var t = new T();
+    t.result = [0, 0]
+    
+    t.a  = 60;    // 二进制: 00111100
+    t.b = 13;    // 二进制: 00001101
+
+    // 1. 按位与 (band): 对应位都为1时，结果为1
+    t.result[0] = t.a  band t.b; // 00111100 band 00001101 = 00001100 (十进制: 12)
+    Trace.print("t.a  band t.b = " + t.result[0]);
+
+    // 2. 按位或 (bor): 对应位有一个为1时，结果为1
+    t.result[0] = t.a  bor t.b; // 00111100 bor 00001101 = 00111101 (十进制: 61)
+    Trace.print("t.a  bor t.b = " + t.result[0]);
+
+    // 3. 按位异或 (bxor): 对应位不同时，结果为1
+    t.result[0] = t.a  bxor t.b; // 00111100 bxor 00001101 = 00110001 (十进制: 49)
+    Trace.print("t.a  bxor t.b = " + t.result[0]);
+
+    // 4. 按位取反 (bnot ): 反转所有位
+    t.result[0] = bnot t.a ; // bnot 00111100 = 11000011 (十进制: -61, 补码表示)
+    Trace.print("bnot t.a  = " + t.result[0]);
+
+    // 5. 左移 (<<): 所有位向左移动，低位补0
+    t.result[0] = t.a  << 2; // 00111100 << 2 = 11110000 (十进制: 240)
+    Trace.print("t.a  << 2 = " + t.result[0]);
+
+    // 6. 右移 (>>): 所有位向右移动，高位补符号位
+    t.result[0] = t.a  >> 2; // 00111100 >> 2 = 00001111 (十进制: 15)
+    Trace.print("t.a  >> 2 = " + t.result[0]);
+
+    // 7. 无符号右移 (>>>): 所有位向右移动，高位补0
+    t.result[0] = t.a  >>> 2; // 00111100 >>> 2 = 00001111 (十进制: 15)
+    Trace.print("t.a  >>> 2 = " + t.result[0]);
+
+    // 处理负数以展示 >> 和 >>> 的区别
+    var negative = -60; // 二进制: 11111111 11111111 11111111 11000100 (32位补码)
+    Trace.print("negative = " + negative);
+    t.result[0] = negative >> 2; // 右移2位，高位补1: 11111111 11111111 11111111 11110001 (十进制: -15)
+    Trace.print("negative >> 2 = " + t.result[0]);
+    t.result[0] = negative >>> 2; // 右移2位，高位补0: 00111111 11111111 11111111 11110001 (十进制: 1073741809)
+    Trace.print("negative >>> 2 = " + t.result[0]);
+
+    // 8. 复合赋值运算符
+    t.result[1] = t.a ; // 复制a的值: 00111100
+    Trace.print("\n初始 t.result[1] = " + t.result[1]);
+
+    // 按位与赋值 (band=)
+    t.result[1] band= t.b; // 00111100 band= 00001101 = 00001100 (十进制: 12)
+    Trace.print("t.result[1] band= t.b = " + t.result[1]);
+
+    // 恢复c的值
+    t.result[1] = t.a ; // 00111100
+    // 按位或赋值 (bor=)
+    t.result[1] bor= t.b; // 00111100 bor= 00001101 = 00111101 (十进制: 61)
+    Trace.print("t.result[1] bor= t.b = " + t.result[1]);
+
+    // 恢复c的值
+    t.result[1] = t.a ; // 00111100
+    // 按位异或赋值 (bxor=)
+    t.result[1] bxor= t.b; // 00111100 bxor= 00001101 = 00110001 (十进制: 49)
+    Trace.print("t.result[1] bxor= t.b = " + t.result[1]);
+
+    // 恢复c的值
+    t.result[1] = t.a ; // 00111100
+    // 左移赋值 (<<=)
+    t.result[1] <<= 2; // 00111100 <<= 2 = 11110000 (十进制: 240)
+    Trace.print("t.result[1] <<= 2 = " + t.result[1]);
+
+    // 恢复c的值
+    t.result[1] = t.a ; // 00111100
+    // 右移赋值 (>>=)
+    t.result[1] >>= 2; // 00111100 >>= 2 = 00001111 (十进制: 15)
+    Trace.print("t.result[1] >>= 2 = " + t.result[1]);
+
+    // 恢复c的值
+    t.result[1] = t.a ; // 00111100
+    // 无符号右移赋值 (>>>=)
+    t.result[1] >>>= 2; // 00111100 >>>= 2 = 00001111 (十进制: 15)
+    Trace.print("t.result[1] >>>= 2 = " + t.result[1]);
+
+    // 实际应用示例：使用位运算交换两个整数（不使用临时变量）
+    Trace.print("\n交换前: t.a  = " + t.a  + ", t.b = " + t.b);
+    t.a  bxor= t.b; // t.a  = t.a  bxor t.b
+    t.b bxor= t.a ; // t.b = t.b bxor (t.a  bxor t.b) = t.a 
+    t.a  bxor= t.b; // t.a  = (t.a  bxor t.b) bxor t.a  = t.b
+    Trace.print("交换后: t.a  = " + t.a  + ", t.b = " + t.b);
+}
+
+fun testVar(){
+    // 定义两个整数用于演示位运算
+    var a = 60;    // 二进制: 00111100
+    var b = 13;    // 二进制: 00001101
+    var result as int;
+
+    // 1. 按位与 (band): 对应位都为1时，结果为1
+    result = a band b; // 00111100 band 00001101 = 00001100 (十进制: 12)
+    Trace.print("a band b = " + result);
+
+    // 2. 按位或 (bor): 对应位有一个为1时，结果为1
+    result = a bor b; // 00111100 bor 00001101 = 00111101 (十进制: 61)
+    Trace.print("a bor b = " + result);
+
+    // 3. 按位异或 (bxor): 对应位不同时，结果为1
+    result = a bxor b; // 00111100 bxor 00001101 = 00110001 (十进制: 49)
+    Trace.print("a bxor b = " + result);
+
+    // 4. 按位取反 (bnot ): 反转所有位
+    result = bnot a; // bnot 00111100 = 11000011 (十进制: -61, 补码表示)
+    Trace.print("bnot a = " + result);
+
+    // 5. 左移 (<<): 所有位向左移动，低位补0
+    result = a << 2; // 00111100 << 2 = 11110000 (十进制: 240)
+    Trace.print("a << 2 = " + result);
+
+    // 6. 右移 (>>): 所有位向右移动，高位补符号位
+    result = a >> 2; // 00111100 >> 2 = 00001111 (十进制: 15)
+    Trace.print("a >> 2 = " + result);
+
+    // 7. 无符号右移 (>>>): 所有位向右移动，高位补0
+    result = a >>> 2; // 00111100 >>> 2 = 00001111 (十进制: 15)
+    Trace.print("a >>> 2 = " + result);
+
+    // 处理负数以展示 >> 和 >>> 的区别
+    var negative = -60; // 二进制: 11111111 11111111 11111111 11000100 (32位补码)
+    Trace.print("negative = " + negative);
+    result = negative >> 2; // 右移2位，高位补1: 11111111 11111111 11111111 11110001 (十进制: -15)
+    Trace.print("negative >> 2 = " + result);
+    result = negative >>> 2; // 右移2位，高位补0: 00111111 11111111 11111111 11110001 (十进制: 1073741809)
+    Trace.print("negative >>> 2 = " + result);
+
+    // 8. 复合赋值运算符
+    var c = a; // 复制a的值: 00111100
+    Trace.print("\n初始 c = " + c);
+
+    // 按位与赋值 (band=)
+    c band= b; // 00111100 band= 00001101 = 00001100 (十进制: 12)
+    Trace.print("c band= b = " + c);
+
+    // 恢复c的值
+    c = a; // 00111100
+    // 按位或赋值 (bor=)
+    c bor= b; // 00111100 bor= 00001101 = 00111101 (十进制: 61)
+    Trace.print("c bor= b = " + c);
+
+    // 恢复c的值
+    c = a; // 00111100
+    // 按位异或赋值 (bxor=)
+    c bxor= b; // 00111100 bxor= 00001101 = 00110001 (十进制: 49)
+    Trace.print("c bxor= b = " + c);
+
+    // 恢复c的值
+    c = a; // 00111100
+    // 左移赋值 (<<=)
+    c <<= 2; // 00111100 <<= 2 = 11110000 (十进制: 240)
+    Trace.print("c <<= 2 = " + c);
+
+    // 恢复c的值
+    c = a; // 00111100
+    // 右移赋值 (>>=)
+    c >>= 2; // 00111100 >>= 2 = 00001111 (十进制: 15)
+    Trace.print("c >>= 2 = " + c);
+
+    // 恢复c的值
+    c = a; // 00111100
+    // 无符号右移赋值 (>>>=)
+    c >>>= 2; // 00111100 >>>= 2 = 00001111 (十进制: 15)
+    Trace.print("c >>>= 2 = " + c);
+
+    // 实际应用示例：使用位运算交换两个整数（不使用临时变量）
+    Trace.print("\n交换前: a = " + a + ", b = " + b);
+    a bxor= b; // a = a bxor b
+    b bxor= a; // b = b bxor (a bxor b) = a
+    a bxor= b; // a = (a bxor b) bxor a = b
+    Trace.print("交换后: a = " + a + ", b = " + b);
+}

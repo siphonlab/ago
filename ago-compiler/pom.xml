@@ -1,0 +1,117 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.siphonlab</groupId>
+        <artifactId>ago</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>ago-compiler</artifactId>
+    <name>Archetype - compiler</name>
+    <url>http://maven.apache.org</url>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.siphonlab</groupId>
+            <artifactId>ago-engine</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.antlr/antlr4 -->
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4</artifactId>
+            <version>4.13.2</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/gen</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>4.13.2</version> <!-- Use the appropriate version -->
+                <executions>
+                    <execution>
+                        <id>antlr-generate</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <sourceDirectory>${project.basedir}/src/main/antlr/</sourceDirectory>
+                    <outputDirectory>${project.basedir}/gen/org/siphonlab/ago/compiler/parser</outputDirectory>
+<!--                    <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>-->
+<!--                    <outputDirectory>${project.build.directory}/generated-sources/antlr4/org/siphonlab/ago/compiler/parser</outputDirectory>-->
+<!--                    <listener>true</listener>-->
+<!--                    <visitor>true</visitor>-->
+<!--                    <arguments>-->
+<!--                        <argument>-package</argument>-->
+<!--                        <argment>org.siphonlab.ago.compiler.parser</argment>-->
+<!--                    </arguments>-->
+                </configuration>
+            </plugin>
+
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-antrun-plugin</artifactId>-->
+<!--                <version>3.1.0</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>move-antlr-sources</id>-->
+<!--                        <phase>generate-sources</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>run</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <target>-->
+<!--                                <property name="antlr.source.root"-->
+<!--                                          value="${project.build.directory}/generated-sources/antlr4"/>-->
+<!--                                <property name="antlr.target.dir"-->
+<!--                                          value="${project.build.directory}/generated-sources/antlr4/org/siphonlab/ago/compiler/parser"/>-->
+
+<!--                                <mkdir dir="${antlr.target.dir}"/>-->
+
+<!--                                <move todir="${antlr.target.dir}">-->
+<!--                                    <fileset dir="${antlr.source.root}">-->
+<!--                                        <include name="**/*.*"/>-->
+<!--                                    </fileset>-->
+<!--                                </move>-->
+<!--                            </target>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>22</source>
+                    <target>22</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

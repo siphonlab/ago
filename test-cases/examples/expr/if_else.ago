@@ -1,0 +1,48 @@
+fun main(){
+    var number = 42;
+    var parity = "偶数" if number % 2 == 0 else "奇数";
+    Trace.print(number + " 是 " + parity); // 输出：42 是 偶数
+
+    // 2. 嵌套三元运算符：判断成绩等级
+    var score = 85;
+    var grade = "优秀" if score >= 90 else "及格" if score >= 60  else "不及格";
+    Trace.print("成绩 " + score + " 对应等级: " + grade); // 输出：成绩 85 对应等级: 及格
+
+    // 3. 用于赋值：设置默认值
+    var name = "";
+    var displayName = name if name else "匿名用户";
+    Trace.print("用户名称: " + displayName); // 输出：用户名称: 匿名用户
+
+    // ATTENTION: below is better than if .. else
+    // displayName = name or "匿名用户";
+
+    // 4. 结合数学运算：计算折扣价格
+    var price = 100.0;
+    var isMember = true;
+    var finalPrice = price * 0.8 if isMember else price; // 会员打8折
+    Trace.print("最终价格: " + finalPrice); // 输出：最终价格: 80.0
+
+    // 5. 在字符串拼接中的使用
+    var age = 20;
+    var message = "您" + ("已成年" if age >= 18 else "未成年") + "，欢迎使用系统！";
+    Trace.print(message); // 输出：您已成年，欢迎使用系统！
+
+    // 6. 在数组或集合操作中
+    var numbers = [int[]| 10, 20, 30, 40];
+    var index = 2;
+    var result = "有效索引: " + numbers[index] if index >= 0 and index < numbers.length else "无效索引";
+    Trace.print(result); // 输出：有效索引: 30
+
+    // 7. 结合方法调用
+    var input = "";
+    var status = getDefaultMessage() if not input else processInput(input);
+    Trace.print("状态: " + status); // 输出：状态: 默认消息
+}
+
+fun getDefaultMessage() as string {
+    return "默认消息";
+}
+
+fun processInput(input as string) as string {
+    return "处理后的输入: " + input;
+}

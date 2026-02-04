@@ -1,0 +1,56 @@
+package my.test;
+
+class A{
+
+    class B{
+        private f as int;
+        public fun new(){
+            f = 2;
+        }
+
+        fun m(p as int) as int{
+            var f as int = 1;
+
+            class G{
+                metaclass{
+                    f as int
+                }
+            }
+
+            Trace.print(this.f)       // 2
+            Trace.print(f)            // 1
+
+            my.test.A.B.this.f = B.this.f + this.f      // all ref to B.this.f
+            Trace.print(this.f)       // 4
+
+            fun.this.f = m.this.f + class.this.f + 2024
+            Trace.print(f)    // 1 + 4 + 2024 = 2029
+            Trace.print(fun.this.f)   // 2029
+
+            G.f = p + 1;
+            Trace.print(G.f)          // 4, 5, 6
+            return G.f + f;     // 2033, 2034, 2035
+        }
+    }
+    public fun b() as B{
+        return new B();
+    }
+}
+
+class B{
+    private f as int = 3
+
+    metaclass{
+        public fun main(args as string){
+            //var t = new A.B()   // error: not static
+
+            var a = new A()
+            var b as A.B = a.b()
+            Trace.print(b.m(3))       // 2033
+            Trace.print(a.b().m(4));  // 2034
+
+            //var t2 = new my.test.A.B();       // error: not static
+            //Trace.print(t2.m(5))      // 2035
+        }
+    }
+}

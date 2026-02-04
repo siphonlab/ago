@@ -1,0 +1,53 @@
+abstract class Animal {
+    abstract fun makeSound();
+    abstract fun eat();
+}
+
+// 定义第二个接口
+interface Flyable for Animal {
+    fun fly();
+}
+
+// 定义第三个接口
+interface Swimmable2 for Animal {
+    fun swim();
+}
+
+interface Swimmable from Swimmable2{
+
+}
+
+// 定义实现多个接口的类
+class Duck from Animal with Flyable, Swimmable {
+    
+    override fun makeSound() {
+        Trace.print("Duck says quack!");
+    }
+
+    override fun eat() {
+        Trace.print("Duck is eating.");
+    }
+
+    override fun fly() {
+        Trace.print("Duck is flying.");
+    }
+
+    override fun swim() {
+        Trace.print("Duck is swimming.");
+    }
+}
+
+public fun main() {
+    var duck = new Duck();
+
+    duck.makeSound();  // 输出: Duck says quack!
+    duck.eat();        // 输出: Duck is eating.
+    duck.fly();        // 输出: Duck is flying.
+    duck.swim();       // 输出: Duck is swimming.
+
+    var swimmer as Swimmable = duck
+    swimmer.swim()
+
+    var a as Animal = swimmer
+    a.makeSound()
+}

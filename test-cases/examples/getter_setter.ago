@@ -1,0 +1,13 @@
+class Staff{
+    name as string {get;set;}
+    name2 as string {private get;set;}
+    name3 as string
+    get name3() as string{
+        return name3;
+    }
+    private set name3(v as string){
+        name3 = v;
+    }
+    name4 as string {protected set; get;}
+    name5 as string {get;}
+}

@@ -1,0 +1,67 @@
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Bird from Animal{
+    override bark(){
+        Trace.print("tweet")
+    }
+}
+
+class A<TA as [Animal to _]>{
+    public a as TA
+
+    fun new(a as TA){
+        this.a = a
+    }
+
+    class B{
+        public b as TA
+        fun new(b as TA){
+            this.b = b
+        }
+    }
+
+    class C<TC as [Animal to _]>{
+        public a as TA
+        public c as TC
+
+        fun new(a as TA, c as TC){
+            this.a = a;
+            this.c = c;
+        }
+    }
+
+    fun test(){
+        var b = new B(this.a)
+        b.b.bark()
+
+        var c = new C<Bird>(this.a, new Bird());
+        c.a.bark()      // meow
+        c.c.bark()      // tweet
+    }
+}
+
+fun main(){
+    var a = new A<Cat>(new Cat());  // in A.test#, the apply order is `A.C => A.C<Bird> => A<Cat>.C<Bird>`
+    a.test();
+
+    var b = new a.B(new Cat())
+    b.b.bark()      // meow
+
+    var c = new a.C<Bird>(a.a, new Bird());
+    c.a.bark()      // meow
+    c.c.bark()      // tweet
+
+}

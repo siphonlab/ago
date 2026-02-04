@@ -1,0 +1,9 @@
+fun tryAgain() native "org.siphonlab.ago.test.TestFunctions.mustTryAgain";
+
+fun main(){
+    Trace.print("Now start a task and it will quit application until try again")
+
+    tryAgain()
+
+    Trace.print("Great! try again success! we are here now")
+}

@@ -1,0 +1,185 @@
+class Node {
+    position as Point2
+    chan cFrame as AnimationFrame       // channel to broadcast animation frame
+    actions as ArrayList<Action> = [];      // current actions
+
+    fun new(field chan cFrame as AnimationFrame){}        // constructor
+
+    fun play(action as Action, append as bool = false){
+        if(append){
+            this.actions.add(action)
+        } else {
+            this.stop()
+            this.actions = [action]
+            spawn action()
+        }
+    }
+
+    fun stop(){
+        // stop current action
+        for(action as Action in this.actions){
+            action.stop()
+        }
+    }
+
+    fun pause(){
+        for(action in this.actions){
+            action.pause()      // pause provided by CallFrame
+        }
+    }
+
+    fun resume(){
+        for(action in this.actions){
+            action.resume()     // resume provided by CallFrame
+        }
+    }
+
+    // no step(), for Action do in its own loop
+}
+
+class Point2 {
+    x as int
+    y as int
+
+    // def Point2(x, y);       // map to x, y field
+    fun new(field x as int, y as int){}
+
+    fun new(){}
+
+    fun __plus__(other as Point2){      // for operator +
+        return new Point2() with {
+            .x = this.x + other.x; .y = this.y + other.y
+        }
+    }
+
+    static fun __minus__(pt1 as Point2, pt2 as Point2){
+        return new Point2() with {.x= pt1.x - pt2.x, .y=pt1.y-pt2.y}
+    }
+}
+
+class AnimationFrame{
+    frameIndex as int
+    dt as long      // ms after last invoke
+}
+
+class Node.Animation from Action {
+    duration as long
+    // target as Node          // it's Node.Animation, so the target come from sprite.call, however we can change target with bind(target), like js did
+    protected elapsed as long = 0
+    // private done as bool = false     // CallFrame support CallFrame.state
+    // private scheduledToRemove as bool   // CallFrame support CallFrame.state
+
+    // fun start(),  CallFrame support it
+    // fun stop(),   CallFrame support it
+    // fun __add__(Action)  sequence, sequence statements in language,
+    //      sprite.play(() => {sprite.moveTo(); sprite.rotateTo(); })
+    //  or  sprite.play(() => {Node.this.moveTo(); Node.this.rotateTo(); })
+    //
+    //      sprite.play(new sprite.sequence(new sprite.moveTo(), new sprite.rotateTo()));
+    //      sprite.play(new sprite.moveTo(), new sprite.rotateTo());
+    //      sprite.play(new sprite.moveTo() + new sprite.rotateTo());
+    // fun isDone() { return done;}
+
+    abstract fun step(frame as AnimationFrame);
+
+    fun run(){
+        while(var frame = this.cFrame~!){
+            this.elapsed += frame.dt
+            if(this.elapsed > this.duration){
+                break
+            }
+            this.step(frame);
+        }
+    }
+
+}
+
+class Node.IntervalAction from Animation{
+    override fun step(){
+        if(this.duration == 0){
+            this.update(1);
+        } else {
+            this.update(this.elapsed / this.duration)
+        }
+    }
+    abstract fun update(progress as double);
+}
+
+class Node.MoveTo from Animation{
+    startPosition as Point2
+    endPosition as Point2
+    delta as Point2
+    duration as long = 5_000
+
+    fun new(dst as Point2, duration as int = 5_000){
+        this.endPosition = dst
+        this.duration = duration
+    }
+
+    override fun run(){      // override from CallFrame
+        this.endPosition = Node.this.position.clone()
+        this.delta = this.endPosition - this.startPosition
+        super.run()
+    }
+
+    override fun update(progress as double){
+        Node.this.position = this.startPosition + this.delta * progress
+    }
+}
+
+class Sprite from Node {
+    image as Image;
+    zOrder as int;
+
+    fun new(image as Object, chan cFrame as Object) {
+        super(cFrame)
+    }
+
+    fun render(canvas as Canvas){
+        canvas.drawImage(image, this.x, this.y)
+    }
+}
+
+class Scene from Node{       // from SpriteGroup
+    canvas as Canvas
+    private lastTick as long
+
+    private sprites as new ArrayList();
+
+    fun new(canvas as Canvas){
+        this.cFrame = new Channel() with .multiUsage = true
+        lastTick = System.currMilliseconds()
+
+        canvas.onAnimationFrame((t as Date) => {
+            this.cFrame !~ new AnimationFrame(t - lastTick)
+            lastTick = t;
+        });
+    }
+
+    fun createSprite(image as Image){
+        var sprite = new Sprite(image, this.cFrame);
+        sprites.add(sprite);
+        return sprite;
+    }
+
+    fun start(){
+        while(not this.cFrame){
+            this.render()
+        }
+    }
+
+    fun render(){
+        for(sprite in sprites){     // todo by z-order
+            sprite.render(canvas)
+        }
+    }
+}
+
+class MyGame {
+    scene = new Scene(canvas);
+
+    fun init(){
+        var grossini = scene.createSprite("grossini.png") with {.x=100, .y=100}
+        grossini.play(new grossini.MoveTo(new Point2(200, 200), 10));
+    }
+}

@@ -1,0 +1,22 @@
+class Add{
+    metaclass{
+        private c as int
+        fun new(){
+            c = 2
+        }
+
+        fun add(a as int, b as int) as int{
+            return c + Add.c + a + b;
+        }
+    }
+
+    public fun add2(a as int, b as int) as int{
+        return c + Add.c + a + b;
+    }
+}
+fun main(args as string){
+     Trace.print(Add.add(5, 4));      // 9+4=13
+
+     var add = new Add();
+     Trace.print(add.add2(10, 8));        // 18+4=22
+}

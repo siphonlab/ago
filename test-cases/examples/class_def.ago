@@ -1,0 +1,46 @@
+
+class Person {
+    private name as string;
+    private age as int
+    email as string;
+    protected phone as string[1]
+    addresses as string[];      // default public
+    array1 as string[1]
+    array2 as int[][2]
+    i as int = 10000
+    // t as int[] = [1,2, 3]
+    // t as int[] = [[1,2,3],[4,5,6]]
+
+    fun inc() as int{      // default public
+        return age++;
+    }
+
+    private fun f(a as object, b as int = 20) as int{
+
+    }
+
+    fun test() from inc{
+         //
+    }
+
+    fun j(){
+        var a = 1;
+        {
+            return 1;
+        }
+    }
+
+    fun t(){
+        private a = 1;
+        b = 2;
+        fun new (field a as int){
+        }
+        {
+            return a + b;
+        }
+    }
+}
+
+class Staff from my.pkg.Person with A, B, pkg.C{
+    joinDate as Date
+}

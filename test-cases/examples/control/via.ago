@@ -1,0 +1,17 @@
+class File with ViaObject{
+    fun new(field filename as string){}
+
+    override enter(f as Function<_>){
+        Trace.print("open file " + filename)
+    }
+
+    override exit(f as Function<_>){
+        Trace.print("close file " + filename)
+    }
+}
+
+fun main(){
+    via (var f = new File('sample.txt')){
+        Trace.print('read file content from ' + f.filename)
+    }
+}

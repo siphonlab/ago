@@ -1,0 +1,85 @@
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Samoyed from Dog{
+    override bark(){
+        Trace.print("Samoyed")
+    }
+}
+
+class Tuple<T1, T2>{
+    public t1 as T1
+    public t2 as T2
+    fun new(t1 as T1, t2 as T2){
+        this.t1 = t1
+        this.t2 = t2
+    }
+}
+
+class CatLeft<C> from Tuple<Cat, C>{
+    fun new(c as C){
+        super(new Cat(), c)
+    }
+}
+class CatRight<C> from Tuple<C, Cat>{
+    fun new(c as C){
+        super(c, new Cat())
+    }
+}
+class CatDog from CatLeft<Dog>{
+    fun new(){
+        super(new Dog())
+    }
+}
+class DogCat from CatRight<Dog>{
+    fun new(){
+        super(new Dog())
+    }
+}
+class Last from CatDog{
+    fun new(){
+        super()
+    }
+}
+
+fun main(){
+    var dog = new Dog()
+
+    Trace.print("CatLeft")
+    var cp = new CatLeft<Dog>(dog)
+    cp.t1.bark()
+    cp.t2.bark()
+
+    Trace.print("CatRight")
+    var cp2 = new CatRight<Dog>(dog)
+    cp2.t1.bark()
+    cp2.t2.bark()
+
+    Trace.print("CatDog")
+    var cp3 = new CatDog()
+    cp3.t1.bark()
+    cp3.t2.bark()
+
+    Trace.print("DogCat")
+    var cp4 = new DogCat()
+    cp4.t1.bark()
+    cp4.t2.bark()
+
+    Trace.print("Last")
+    var cp5 = new Last()
+    cp5.t1.bark()
+    cp5.t2.bark()
+
+}

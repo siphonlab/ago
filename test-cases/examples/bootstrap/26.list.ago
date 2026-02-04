@@ -1,0 +1,41 @@
+interface Collection<T> from Iterable<T>{
+    fun count#get() as int;
+    fun isReadOnly() as boolean;
+    fun add(item as T);
+    fun clear();
+    fun contains(item as T);
+    fun copyTo(array as T[], arrayIndex as int);
+    fun remove(item as T) as boolean;
+}
+
+interface ReadOnlyCollection<T+> from Iterable<T>{
+    fun count#get() as int;
+    fun isReadOnly() as boolean;
+    fun add(item as T);
+    fun clear();
+    fun contains(item as T);
+    fun copyTo(array as T[], arrayIndex as int);
+    fun remove(item as T) as boolean;
+}
+
+interface ReadWriteList<T> from Collection<T>, Iterable<T>{
+    fun get#index(index as int) as T;
+    fun set#index(index as T)
+}
+
+interface ReadOnlyList<T+> from ReadOnlyCollection<T>{
+    fun get#index(index as int) as T;
+}
+
+abstract class List<T> with ReadWriteList<T>, ReadOnlyList<T>{
+
+}
+
+native class LinkedList<E> from List<E>{
+    fun new(){
+        init()
+    }
+    fun init() native "org.siphonlab.ago.lang.LinkList.LinkList_create";
+
+
+}

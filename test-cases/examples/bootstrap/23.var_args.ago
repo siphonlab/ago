@@ -1,0 +1,49 @@
+fun f#1(a as int, b as int, c as int){
+    Trace.print("f#1")
+    Trace.print(a)
+    Trace.print(b)
+    Trace.print(c)
+}
+
+fun f#2(a as double, arr as int...){
+    Trace.print("f#2")
+    Trace.print(a)
+    for(var i=0; i<arr.length; i++){
+        Trace.print(arr[i])
+    }
+}
+
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Bird from Animal{
+    override bark(){
+        Trace.print("tweet")
+    }
+}
+
+fun f#3<T as [Animal to _]>(values as T...){
+    for(var i=0; i<values.length; i++){
+        values[i].bark()
+    }
+}
+
+fun main(){
+    f(1,2, 3)
+
+    f(1.0, 2, 4)
+
+    f(new Cat(), new Dog())
+}

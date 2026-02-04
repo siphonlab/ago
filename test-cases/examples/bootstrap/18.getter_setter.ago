@@ -1,0 +1,36 @@
+class Staff{
+    name as string {get;set;} = "Jack"
+
+    get age() as int{      // compile to age#get
+        return 22
+    }
+
+    set age(value as int){        // compile to age#set
+        Trace.print("set age to " + value)
+    }
+
+    _gender as string
+    fun gender#get() as string{
+        return _gender
+    }
+
+    fun gender#set(s as string){
+        this._gender = s;
+    }
+}
+
+fun main(){
+    var tom = new Staff();
+    Trace.print(tom.name)
+    Trace.print(tom.age)
+
+
+    tom.name = "Tom"
+    tom.age = 30
+    tom.gender = "M"
+
+    Trace.print(tom.name)
+    Trace.print(tom.age)
+    Trace.print(tom.gender)
+
+}

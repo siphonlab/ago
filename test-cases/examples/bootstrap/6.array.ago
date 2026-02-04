@@ -1,0 +1,22 @@
+fun main(){
+    var arr1 = new int[10];
+    Trace.print("arr1.length: " + arr1.length)
+
+    var arr2 as int[] = [1,2,3,4,5]
+    var arr3 = [int[]| 6,7,8,9,10]
+
+    arr1[0] = 1;
+    arr1[1] = 2;
+    arr1[2] = 3;
+
+    Trace.print(arr1[0])
+    Trace.print(arr1[0] + arr1[1])
+    Trace.print(arr1[0] + arr1[1] + arr1[2])
+
+    var arr4 as int[] = [arr1[0], arr2[1], arr3[3] + arr2[2], 100]
+    Trace.print(arr4[0] + arr4[1] + arr4[2] + arr4[3])
+
+    for(var i in arr2){
+        Trace.print(i)
+    }
+}

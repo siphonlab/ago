@@ -1,0 +1,13 @@
+fun main(){
+    var a = 1
+    if(a){
+        Trace.print("success");
+    }
+
+
+    if(var b = 0){
+        Trace.print("success");
+    } else {
+        Trace.print("failed");
+    }
+}

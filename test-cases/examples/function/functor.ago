@@ -1,0 +1,26 @@
+fun add(a as int, b as int) as int{
+    return a + b;
+}
+
+fun test(s as string){
+    sleep(2000);
+    Trace.print("test " + s)
+}
+
+fun main(){
+    var f as Function<int> = new add(1,2);
+    var c = f()
+    Trace.print(c);
+
+    f = new add(2, 3)
+    var d = await f;
+    Trace.print(d)
+
+    var g as Function<void> = new test("spawn")
+    spawn g;
+
+    sleep(100)
+
+    g = new test("fork")
+    fork g      // fork will wait forked child runspace finish
+}

@@ -1,0 +1,90 @@
+class A{
+    private a as string;
+    protected b as string;
+
+    public fun new#0(){
+        this("new0");
+    }
+
+    public fun new#1(s as string){
+        Trace.print("new 1 " + s);
+    }
+
+    public fun setA(v as string){
+        a = v
+    }
+
+    public fun getA() as string{
+        return a
+    }
+
+    public fun setB(v as string){
+        b = v;
+    }
+
+    public fun getB() as string{
+        return b;
+    }
+
+    public fun setA#2(a as string, b as string){
+        this.a = a
+        this.b = b
+    }
+
+}
+
+class AA from A{
+    public fun new#0(){
+        super("AA new");
+    }
+
+    public fun new#1(s as string){
+        this()
+    }
+
+    private a as string;
+    public override fun setA(v as string){
+        Trace.print("AA set to " + v)
+        a = v
+    }
+    public fun setAOld(v as string){
+        super.setA(v)
+    }
+    public override fun setB(v as string) {
+        Trace.print("set b " + v);
+        super.setB(v);
+    }
+}
+
+fun main(args as string){
+    new A()             // new 1 new0
+    new A("Abcd")       // new 1 Abcd
+    new AA()            // new 1 AA new
+    new AA("Abcd")      // new 1 AA new
+
+    var a1 as A = new AA()
+    a1.setA("OVERRIDE");
+
+    var a = new AA()
+
+    a.setA('abcd to aa')    // AA.a = 'abcd to aa'
+    a.setAOld('abcd to a')  // A.a = 'abcd to a'
+    Trace.print(a.getA());     // abcd to a
+
+    a.setB('bb')            // output "set b bb", and A.b = 'bb'
+    Trace.print(a.getB());     // bb
+
+    a.setA('a', 'b')        // polymorphism, A.a = a, A.b = b
+    Trace.print(a.getA())      // a
+    Trace.print(a.getB())      // b
+
+    a.setA#2('aa', 'bb')    // fixed name
+    Trace.print(a.getA())      // aa
+    Trace.print(a.getB())      // bb
+
+    //var r as Shape = new Rectangle(200, 100)
+    //print(r.getArea())
+
+    //var c as Shape = new Circle(200)
+    //print(c.getArea())
+}

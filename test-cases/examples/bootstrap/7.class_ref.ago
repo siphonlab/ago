@@ -1,0 +1,10 @@
+class Animal{
+}
+class Cat from Animal{
+}
+class Dog from Animal{
+}
+fun main(){
+    var t as classref = Cat
+    Trace.print(t)
+}

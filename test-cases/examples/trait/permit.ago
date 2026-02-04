@@ -1,0 +1,29 @@
+trait Config for Worker{
+    timeout as int = 2000
+
+    fun getTimeout() as int{
+        return this.timeout
+    }
+    fun setTimeout(v as int){
+        trait.this.timeout = v;
+        Worker.this.delay(timeout)
+        class.this.delay(timeout)
+    }
+}
+
+class Worker with Config{
+    fun delay(timeout as int){
+
+        Trace.print('delay: ' + timeout)
+
+        Trace.print(Config.this.timeout)
+    }
+}
+
+fun main(){
+    var worker = new Worker()
+    worker.setTimeout(1000);
+
+    var c as Config = worker;
+    c.setTimeout(3000)
+}

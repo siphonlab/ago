@@ -1,0 +1,20 @@
+fun f<T>(t as T){
+    if(t instanceof int i){             // impossible to implement `if(t instanceof Primitive p) ...`
+        g(i)
+    } else if(t instanceof string s){
+        g(s)
+    } else {
+        Trace.print("non primitive type")
+        g(t)
+    }
+}
+
+fun g(obj as Object){
+    Trace.print(obj);
+}
+
+fun main(){
+    var i = 20
+
+    f(i)
+}

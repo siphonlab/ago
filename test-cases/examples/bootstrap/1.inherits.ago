@@ -1,0 +1,40 @@
+class Vehicle {
+    private brand as string;
+    protected year as int;
+    public color as string;
+
+    public fun new(brand as string, year as int, color as string) {
+        this.brand = brand;
+        this.year = year;
+        this.color = color;
+    }
+
+    public fun getBrand() as string {
+        return brand;
+    }
+}
+
+class Car from Vehicle {
+    private doors as int;
+
+    public fun new(brand as string, year as int, color as string, doors as int) {
+        super(brand, year, color);
+        this.doors = doors;
+    }
+
+    public fun displayInfo() {
+        // Trace.print("Brand: " + brand);  // 错误，不能直接访问
+        Trace.print("Brand: " + getBrand());  // 正确，通过公共方法访问
+        Trace.print("Year: " + year);  // 可以访问，因为是protected
+        Trace.print("Color: " + color);  // 可以访问，因为是public
+        Trace.print("Doors: " + doors);
+    }
+}
+
+public fun main(args as string) {
+    var myCar = new Car("Toyota", 2022, "Blue", 4);
+    myCar.displayInfo();
+
+    var v as Vehicle = myCar;
+    Trace.print(v.getBrand());
+}

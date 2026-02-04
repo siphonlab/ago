@@ -1,0 +1,39 @@
+fun sum(){
+    Trace.print('task1')
+
+    fun subTask1(){
+        Trace.print('subtask 1')
+        sleep(100);
+        Trace.print('subtask 1 done')
+    }
+
+    fun subTask2(){
+        Trace.print('subtask 2')
+        sleep(200);
+        Trace.print('subtask 2 done')
+    }
+
+    fun subTask3(){
+        Trace.print('subtask 3')
+        sleep(300);
+        Trace.print('subtask 3 done')
+    }
+
+    fork subTask1()
+    fork subTask2()
+    fork subTask3()         // will wait all subTasks done
+}
+
+fun main(){
+//    sum()
+
+    var s = spawn sum()
+    Trace.print('have a rest')
+    sleep(100)
+    s.runspace.pause()       // all subtasks pause
+
+    sleep(2000)
+    Trace.print('move on')
+    s.runspace.resume()
+    sleep(3000)     // wait `sum` done
+}

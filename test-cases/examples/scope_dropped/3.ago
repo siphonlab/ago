@@ -1,0 +1,54 @@
+package my.test;
+
+public class A {
+    public static a_v_s as int;
+
+    public static fun a_ms() {
+        a_v_s = a_v_s + 1
+        print("A.a_ms:" + a_v_s);
+    }
+
+    public static class A1 {
+        public a1_v as int
+        public static a1_v_s as int
+
+        public fun a1_m() {
+            a1_v = a_v_s + 1000
+            a1_v_s = a_v_s + 2000
+        }
+
+        public static fun a1_ms() {
+            a1_v_s = a1_v_s + 3000
+        }
+        
+        public static class A11 {
+            public a11_v as int
+            public static a11_v_s as int
+    
+            public fun a11_m() {
+                a11_v = A1.a1_v_s + A.a_v_s + 10000
+                a11_v_s = A1.a1_v_s + A.a_v_s + 20000
+            }
+    
+            public static fun a11_ms() {
+                a11_v_s = A1.a1_v_s + A.a_v_s + 30000
+            }
+
+            public static fun a11_ms2() {
+                a11_ms()
+                a1_ms()
+                a_ms()
+            }
+        }
+    }
+
+}
+
+public class B{
+    public static fun main(args as string[]) {
+        A.a_v_s = 2024;
+        A.A1.A11.a11_ms();
+        my.test.A.A1.A11.a11_ms2();
+        print(A.A1.A11.a11_v_s)
+    }
+}

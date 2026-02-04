@@ -1,0 +1,13 @@
+class Test{
+    metaclass{
+        fun main(args as string){
+            var obj = new Object()
+            Trace.print(obj)
+        }
+    }
+}
+
+//fun main(){
+//    var obj = new Object()
+//    Trace.print(obj.getClass())
+//}

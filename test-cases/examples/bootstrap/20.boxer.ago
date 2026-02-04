@@ -1,0 +1,29 @@
+class VarChar from String{
+    metaclass{
+        maxLength as int
+        fun new(maxLength as int){
+            this.maxLength = maxLength
+        }
+    }
+    //TODO validation
+}
+
+class Contact{
+    name as VarChar::(200)
+    phone as VarChar::(20)
+}
+
+fun main(){
+    var c = new Contact()
+    c.name = "Tom"
+    c.phone = "13333334444"
+
+    var s as string = c.name
+    Trace.print("name:" + s)
+
+    var str as String = s;
+    Trace.print("str:" + str)
+
+    var v as VarChar::(300) = str
+    Trace.print("v:" + v)
+}

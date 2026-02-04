@@ -1,0 +1,15 @@
+package my.test;
+
+public class A {
+    public static a_v_s as int;
+    public a_v as int
+
+    public static fun a_ms() {
+        this.a_v_s = this.a_v_s + 1;    // should throw compile error
+    }
+}
+
+public class B{
+    public static fun main(args as string[]) {
+    }
+}

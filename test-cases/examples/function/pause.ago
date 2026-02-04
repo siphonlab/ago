@@ -1,0 +1,13 @@
+fun main(){
+    var f = new work(fun.this);
+    spawn f()
+
+    Trace.print("pause")
+    await;
+    Trace.print("done")
+}
+
+fun work(caller as Function<_>){
+    Trace.print('resume caller')
+    caller.notify()
+}

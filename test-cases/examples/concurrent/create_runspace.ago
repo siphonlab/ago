@@ -1,0 +1,17 @@
+fun main() {
+    fun test(){
+        Trace.print("test");
+    }
+    fun add(a as int, b as int) as int{
+        return a + b
+    }
+
+    var r = runspace.create();
+
+    r.runAsync(new test())
+    sleep(100)
+
+    var c = r.run(new add(1, 2));
+    Trace.print(c)
+
+}

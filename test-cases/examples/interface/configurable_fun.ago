@@ -1,0 +1,44 @@
+interface Config{
+    metaclass{
+        timeout as int
+        fun setTimeout(timeout as int){
+            this.timeout = timeout
+        }
+    }
+}
+
+interface Config2{
+    metaclass{
+        timeout as int
+        env as string
+        fun new(env as string){
+            this.env = env;
+        }
+        fun setTimeout(timeout as int){
+            this.timeout = timeout
+        }
+    }
+}
+
+
+fun test() with Config{
+    Trace.print(timeout)
+}
+
+fun test2() with Config2::('prod'){
+    Trace.print(env + ':' + timeout)
+}
+
+fun test3() with Config2::('dev'){
+    Trace.print(env + ':' + timeout)
+}
+
+fun main(){
+    Config.setTimeout(200)
+    test()
+
+    Config2::('dev').setTimeout(3000)
+    Config2::('prod').setTimeout(1000)
+    test2()
+    test3()
+}

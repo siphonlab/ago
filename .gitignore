@@ -1,3 +1,4 @@
-/gen/
-/target/
-/output/
+**/gen/
+**/target/
+**/output/
+*.agoc

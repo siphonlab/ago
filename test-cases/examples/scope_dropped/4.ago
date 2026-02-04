@@ -1,0 +1,34 @@
+package my.test;
+
+public class A {
+    public a_v as int
+    public static a_vs as int
+
+    public class A1 {
+        public fun a1_m(){
+            a_v = 1000;
+            print(a_v);
+        }
+    }
+
+    public fun a1_m(){
+        return new A1();
+    }
+
+    public fun a_m1(){
+        return A1;
+    }
+
+}
+
+public class B{
+    public static fun main(args as string[]) {
+        var a = new A();
+        var a1 as A.A1 = a.a1_m();
+        a1.a1_m();
+
+        var a1_class = a_m1()
+        var a1_2 = new a1_class();
+        a1_2.a1_m();
+    }
+}
