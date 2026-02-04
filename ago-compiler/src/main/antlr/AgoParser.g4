@@ -271,7 +271,7 @@ setter:
 
 variableInitializer:
       '=' expression
-    | AS NEW creator
+    | AS creator
 ;
 
 typeArgument
@@ -400,7 +400,7 @@ statement
     | switchExpression eos                  # SwitchExprStmt    // Java17
     | expressionStatement                   # ExpressionStmt
     | AWAIT                                 # AwaitStmt
-    | (SPAWN | FORK) expression             # AsyncInvokeFunctorStmt
+    | (SPAWN | FORK) expression viaForkContext?    # AsyncInvokeFunctorStmt
     ;
 
 label: identifier ':';
@@ -459,9 +459,14 @@ parExpression
 
 expressionList: expression (',' expression)*;
 
-methodCall: invokeMode? namePath arguments;
+methodCall
+    : namePath arguments      # NormalInvoke
+    | invokeMode namePath viaForkContext?      # AsyncInvoke
+;
 
 invokeMode: SPAWN | FORK | AWAIT;
+
+viaForkContext: VIA forkContext=expression;
 
 postWith : WITH {withDepth++;} statement {withDepth--;};
 
@@ -488,7 +493,7 @@ expression:
 //    | typeType '::' (typeArguments? identifier | NEW)
 //    | classType '::' typeArguments? NEW
     | switchExpression  # SwitchExpr // Java17
-    | AWAIT expression             # AwaitFunctor
+    | AWAIT expression viaForkContext?             # AwaitFunctor
 
     // Level 15 Post-increment/decrement operators
     | expression postfix = ('++' | '--')        # IncDecExpr
@@ -501,7 +506,7 @@ expression:
 //    | '(' typeType ('&' typeType)* ')' expression
 // java support `Object aTest = (String & CharSequence) "test";` https://stackoverflow.com/questions/51070344/strange-java-cast-syntax-using
     | expression (AS | '|') variableType                    # CastTypeExpr      // `1|double` or `1 as double`
-    | NEW creator                                           # CreatorExpr
+    | creator                                           # CreatorExpr
 
     // Level 12 to 1, Remaining operators
     | expression bop = ('*' | '/' | '%') expression          # MultiDivModExpr // Level 12, Multiplicative operators
@@ -596,8 +601,9 @@ switchRuleOutcome
 
 creator
     //: nonWildcardTypeArguments? createdName classCreatorRest        # NormalCreator     // new <Animal>Dog
-    : declarationType classCreatorRest                             #NormalCreator    // TODO exclude primitiveType
-    | declarationType ('[' expression ']') ('[' expression? ']')*  #ArrayCreator
+    : NEW declarationType classCreatorRest                             #NormalCreator    // TODO exclude primitiveType
+    | declarationType '.' NEW classCreatorRest                         #ChainingNormalCreator
+    | NEW declarationType ('[' expression ']') ('[' expression? ']')*  #ArrayCreator
     ;
 
 /*
