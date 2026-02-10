@@ -13,11 +13,13 @@ public class FunctionApply extends ExpressionBase{
 
     private final Invoke.InvokeMode invokeMode;
     private final Expression functionInstance;
+    private final Expression forkContext;
     private final FunctionDef functionDef;
 
-    public FunctionApply(Invoke.InvokeMode invokeMode, Expression functionInstance) throws CompilationError {
+    public FunctionApply(Invoke.InvokeMode invokeMode, Expression functionInstance, Expression forkContext) throws CompilationError {
         this.invokeMode = invokeMode;
         this.functionInstance = functionInstance.transform();
+        this.forkContext = forkContext;
         this.sourceLocation = functionInstance.getSourceLocation();
         if(!(functionInstance.inferType() instanceof FunctionDef functionDef)){
             throw new TypeMismatchError("a function instance expected",sourceLocation);

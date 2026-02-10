@@ -254,31 +254,43 @@ public class AgoRunSpace implements Runnable{
     }
 
     public void fork(CallFrame<?> frame) {
-        var space = createChildRunSpace();
+        fork(frame, null);
+    }
+
+    public void spawn(CallFrame<?> frame) {
+        spawn(frame, null);
+    }
+
+    public void await(CallFrame<?> frame) {
+        await(frame, null);
+    }
+
+    public void fork(CallFrame<?> frame, ForkContext forkContext) {
+        var space = createChildRunSpace(forkContext);
         frame.setRunSpace(space);
         space.start(new EntranceCallFrame<>(frame));
         logger.info(this + " fork " + space + ", got " + forkedSpaces.size());
     }
 
-    public AgoRunSpace createChildRunSpace() {
-        var space = agoEngine.createRunSpace(runSpaceHost);
-        this.forkedSpaces.add(space);
-        space.setParent(this);
-        return space;
-    }
-
-    public void spawn(CallFrame<?> frame) {
+    public void spawn(CallFrame<?> frame, ForkContext forkContext) {
         var space = agoEngine.createRunSpace(runSpaceHost);
         frame.setRunSpace(space);
         space.start(new EntranceCallFrame<>(frame));        // for spawn runspace don't set parent
         logger.info(this + " spawn " + space);
     }
 
-    public void await(CallFrame<?> frame) {
-        var space = createChildRunSpace();
+    public void await(CallFrame<?> frame, ForkContext forkContext) {
+        var space = createChildRunSpace(forkContext);
         frame.setRunSpace(space);
         space.start(new AsyncEntranceCallFrame<>(frame));
         this.waitResult();
+    }
+
+    public AgoRunSpace createChildRunSpace(ForkContext forkContext) {
+        var space = agoEngine.createRunSpace(runSpaceHost);
+        this.forkedSpaces.add(space);
+        space.setParent(this);
+        return space;
     }
 
     public void setParent(AgoRunSpace parent) {

@@ -247,7 +247,13 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     public void resume() {
         this.setSuspended(false);
-        this.getRunSpace().resumeByAcceptResult();
+        // may enter a new frame and fall in pausing
+        AgoRunSpace runSpace = this.getRunSpace();
+        CallFrame<?> currentCallFrame = runSpace.getCurrentCallFrame();
+        if(currentCallFrame != this){
+            currentCallFrame.setSuspended(false);
+        }
+        runSpace.resumeByAcceptResult();
     }
 
     public void interrupt(){

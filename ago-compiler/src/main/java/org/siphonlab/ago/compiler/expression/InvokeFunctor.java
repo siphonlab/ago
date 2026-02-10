@@ -11,6 +11,7 @@ public class InvokeFunctor extends ExpressionBase{
     private final Invoke.InvokeMode invokeMode;
 
     private final Expression functor;
+    private final Expression forkContext;
 
     @Override
     public ClassDef inferType() throws CompilationError {
@@ -26,11 +27,26 @@ public class InvokeFunctor extends ExpressionBase{
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         try {
             blockCompiler.enter(this);
+            blockCompiler.lockRegister(localVar);
             Var.LocalVar instance = (Var.LocalVar) functor.visit(blockCompiler);
+            blockCompiler.lockRegister(instance);
+
+            Var.LocalVar forkContextVar = null;
+            if(forkContext != null){
+                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
+            }
             if (invokeMode.isAsync()) {
-                blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot());
+                if(forkContext != null){
+                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot(), forkContextVar.getVariableSlot());
+                } else {
+                    blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot());
+                }
             } else {
-                blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
+                if(invokeMode == Invoke.InvokeMode.Await && forkContext != null){
+                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
+                } else {
+                    blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
+                }
 
                 if (localVar.getVariableSlot().getTypeCode() == TypeCode.OBJECT
                         && localVar.getVariableSlot().getClassDef() == blockCompiler.getFunctionDef().getRoot().getAnyClass()) {
@@ -43,6 +59,8 @@ public class InvokeFunctor extends ExpressionBase{
                 // release the register after invoke if it's a temp var
                 Assign.to(instance, new NullLiteral(functor.inferType())).termVisit(blockCompiler);
             }
+            blockCompiler.releaseRegister(instance);
+            blockCompiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
         } finally {
@@ -55,12 +73,24 @@ public class InvokeFunctor extends ExpressionBase{
         try {
             blockCompiler.enter(this);
             Var.LocalVar instance = (Var.LocalVar) functor.visit(blockCompiler);
+            blockCompiler.lockRegister(instance);
 
-            blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
+            Var.LocalVar forkContextVar = null;
+            if(forkContext != null){
+                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
+            }
+
+            if(forkContext != null){
+                blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
+            } else {
+                blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
+            }
+
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
                 Assign.to(instance, new NullLiteral(functor.inferType())).termVisit(blockCompiler);
             }
+            blockCompiler.releaseRegister(instance);
         } catch(CompilationError e){
             throw e;
         } finally{
@@ -68,9 +98,10 @@ public class InvokeFunctor extends ExpressionBase{
         }
     }
 
-    public InvokeFunctor(Invoke.InvokeMode invokeMode, Expression functor){
+    public InvokeFunctor(Invoke.InvokeMode invokeMode, Expression functor, Expression forkContext){
         this.invokeMode = invokeMode;
         this.functor = functor;
+        this.forkContext = forkContext;
         functor.setParent(this);
     }
 

@@ -34,6 +34,7 @@
 
 parser grammar AgoParser;
 @header {
+    // output to gen/org/siphonlab/ago/compiler/parser, for maven `antlr4-maven-plugin` need package name
     package org.siphonlab.ago.compiler.parser;
 }
 options {
@@ -461,7 +462,7 @@ expressionList: expression (',' expression)*;
 
 methodCall
     : namePath arguments      # NormalInvoke
-    | invokeMode namePath viaForkContext?      # AsyncInvoke
+    | invokeMode namePath arguments viaForkContext?      # AsyncInvoke
 ;
 
 invokeMode: SPAWN | FORK | AWAIT;
@@ -602,7 +603,7 @@ switchRuleOutcome
 creator
     //: nonWildcardTypeArguments? createdName classCreatorRest        # NormalCreator     // new <Animal>Dog
     : NEW declarationType classCreatorRest                             #NormalCreator    // TODO exclude primitiveType
-    | declarationType '.' NEW classCreatorRest                         #ChainingNormalCreator
+    | declarationType '.' NEW POST_IDENTIFIER? classCreatorRest        #ChainingNormalCreator
     | NEW declarationType ('[' expression ']') ('[' expression? ']')*  #ArrayCreator
     ;
 

@@ -44,6 +44,7 @@ public class Root extends Namespace<Package> {
     private ClassDef ITERABLE_INTERFACE;
     private ClassDef ITERATOR_INTERFACE;
     private ClassDef VIA_OBJECT_INTERFACE;
+    private ClassDef FORK_CONTEXT_INTERFACE;
 
 
     private ClassDef NULL_CLASS = new ClassDef(TypeCode.NULL.toString()) {
@@ -369,6 +370,12 @@ public class Root extends Namespace<Package> {
         if (VIA_OBJECT_INTERFACE != null)
             return VIA_OBJECT_INTERFACE;
         return VIA_OBJECT_INTERFACE = findByFullname("lang.ViaObject");
+    }
+
+    public ClassDef getForkContextInterface() {
+        if (FORK_CONTEXT_INTERFACE != null)
+            return FORK_CONTEXT_INTERFACE;
+        return FORK_CONTEXT_INTERFACE = findByFullname("lang.ForkContext");
     }
 
     public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {

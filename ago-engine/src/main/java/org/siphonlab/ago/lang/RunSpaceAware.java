@@ -3,7 +3,6 @@ package org.siphonlab.ago.lang;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
-import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
@@ -51,7 +50,7 @@ public class RunSpaceAware {
     // fun create() as RunSpace
     public static void createRunSpace(NativeFrame nativeFrame){
         var runSpace = getAgoRunSpace(nativeFrame);
-        var newRunSpace = runSpace.createChildRunSpace();
+        var newRunSpace = runSpace.createChildRunSpace(null);
 
         AgoEngine agoEngine = runSpace.getAgoEngine();
         NativeInstance runspaceObj = (NativeInstance) agoEngine.createNativeInstance(null, agoEngine.getRunSpaceClass(), nativeFrame);

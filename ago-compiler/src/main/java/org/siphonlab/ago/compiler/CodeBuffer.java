@@ -384,6 +384,30 @@ public class CodeBuffer {
         slot(functionInstanceSlot);
     }
 
+    public void invokeAsyncViaContext(InvokeMode mode, SlotDef functionInstanceSlot, SlotDef resultSlot, SlotDef forkContext) {
+        var op = switch (mode){
+            case Spawn -> Invoke.spawnc_vvo;
+            case Fork -> Invoke.forkc_vvo;
+            default -> throw new IllegalStateException("Unexpected value: " + mode);
+        };
+        ls.addInt(op);
+        slot(functionInstanceSlot);
+        slot(resultSlot);
+        slot(forkContext);
+    }
+
+    public void invokeAsyncViaContext(InvokeMode mode, SlotDef functionInstanceSlot, SlotDef forkContext) {
+        var op = switch (mode) {
+            case Spawn -> Invoke.spawnc_vo;
+            case Fork -> Invoke.forkc_vo;
+            case Await -> Invoke.awaitc_vo;
+            default -> throw new IllegalStateException("Unexpected value: " + mode);
+        };
+        ls.addInt(op);
+        slot(functionInstanceSlot);
+        slot(forkContext);
+    }
+
     public void return_v(SlotDef slot) {
         ls.addInt(Return.return_v | (slot.getTypeCode().getValue() << 16));
         slot(slot);

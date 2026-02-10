@@ -1,7 +1,7 @@
 package org.siphonlab.ago;
 
 import org.apache.commons.lang3.StringUtils;
-import org.siphonlab.ago.opcode.*;
+import org.siphonlab.ago.native_.NativeInstance;import org.siphonlab.ago.opcode.*;
 import org.siphonlab.ago.opcode.compare.*;
 import org.siphonlab.ago.opcode.logic.*;
 import org.siphonlab.ago.opcode.arithmetic.*;
@@ -161,11 +161,31 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 self.getSlots().setObject(code[pc++], frame);
                 runSpace.fork(frame);
                 return false;
+
+            case Invoke.spawnc_vo:
+                runSpace.spawn(frame, extractForkContext(self.getSlots().getObject(code[pc++])));
+                return false;
+            case Invoke.forkc_vo:
+                runSpace.fork(frame, extractForkContext(self.getSlots().getObject(code[pc++])));
+                return false;
+            case Invoke.awaitc_vo:
+                runSpace.await(frame, extractForkContext(self.getSlots().getObject(code[pc++])));
+                return true;
+            case Invoke.spawnc_vvo:
+                self.getSlots().setObject(code[pc++], frame);
+                runSpace.spawn(frame,extractForkContext(self.getSlots().getObject(code[pc++])));
+                return false;
+            case Invoke.forkc_vvo:
+                self.getSlots().setObject(code[pc++], frame);
+                runSpace.fork(frame,extractForkContext(self.getSlots().getObject(code[pc++])));
+                return false;
         }
         throw new UnsupportedOperationException("unknow instruction " + OpCode.getName(instruction));
     }
 
-
+    private ForkContext extractForkContext(Instance<?> forkContext) {
+        return (ForkContext)((NativeInstance) forkContext).getNativePayload();
+    }
 
     /**
      *

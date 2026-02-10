@@ -14,7 +14,9 @@ import org.siphonlab.ago.compiler.generic.GenericTypeCode;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class Creator extends ExpressionBase{
 
@@ -23,14 +25,19 @@ public class Creator extends ExpressionBase{
     private final Expression scope;
     private final ClassDef classDef;
     private boolean invokeConstructor = true;
+    private final String constructorName;
 
     public Creator(Expression typeExpr, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
+        this(typeExpr, arguments, sourceLocation, null);
+    }
+    public Creator(Expression typeExpr, List<Expression> arguments, SourceLocation sourceLocation, String constructorName) throws CompilationError {
         this.sourceLocation = sourceLocation;
         List<Expression> transformedArguments = new ArrayList<>(arguments.size());
         for (Expression argument : arguments) {
             transformedArguments.add(argument.transform().setParent(this));
         }
         this.arguments = transformedArguments;
+        this.constructorName = constructorName;
 
         ClassDef classDef;
         if(typeExpr.inferType() instanceof ScopedClassIntervalClassDef scopedClassIntervalClassDef){
@@ -145,7 +152,15 @@ public class Creator extends ExpressionBase{
                 }
             }
             if(invokeConstructor) {
-                ConstructorDef constructor = this.classDef.getConstructor();
+                ConstructorDef constructor;
+                if(constructorName != null){
+                    constructor = (ConstructorDef) this.classDef.getChild(constructorName);
+                    if(constructor == null){
+                        throw new ResolveError("constructor '%s' not found".formatted(constructorName), typeExpr.getSourceLocation());
+                    }
+                } else {
+                    constructor = this.classDef.getConstructor();
+                }
                 beforeInvokeConstructor(localVar, blockCompiler);
                 if (constructor != null) {
                     blockCompiler.lockRegister(localVar);
@@ -168,7 +183,11 @@ public class Creator extends ExpressionBase{
 
     protected Expression makeConstructorInvocation(Var.LocalVar localVar, ConstructorDef constructor) throws CompilationError {
         var c = ClassUnder.create(localVar, constructor);
-        c.setCandidates(this.classDef.getConstructors());
+        if(this.constructorName == null) {
+            c.setCandidates(this.classDef.getConstructors());
+        } else {
+            c.setCandidates(Collections.singleton(constructor));
+        }
         var constructorInvocation = new Invoke(Invoke.InvokeMode.Invoke, c, this.arguments, this.sourceLocation).setSourceLocation(this.getSourceLocation()).transform();
         return constructorInvocation;
     }

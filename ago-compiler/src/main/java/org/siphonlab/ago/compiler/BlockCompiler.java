@@ -619,6 +619,17 @@ public class BlockCompiler {
             } else {
                 return create(expr, creator, null);
             }
+        } else if(creator instanceof ChainingNormalCreatorContext chainingNormalCreator){
+            var expr = unit.parseType(functionDef, chainingNormalCreator.declarationType(), true, true);
+            Compiler.processClassTillStage(extractTypeIfPossible(expr), CompilingStage.AllocateSlots);
+            var rest = chainingNormalCreator.classCreatorRest();
+            TerminalNode postIdentifier = chainingNormalCreator.POST_IDENTIFIER();
+            String id = postIdentifier == null ? null : "new" + postIdentifier.getText();
+            if (rest != null) {
+                return create(expr, creator, rest.arguments(), id);
+            } else {
+                return create(expr, creator, null, id);
+            }
         } else if(creator instanceof ArrayCreatorContext arrayCreator) {
             var elementType = unit.parseTypeName(functionDef, arrayCreator.declarationType().namePath(), false);
             Compiler.processClassTillStage(elementType, CompilingStage.AllocateSlots);
@@ -749,7 +760,17 @@ public class BlockCompiler {
     }
 
     private Expression methodCall(Expression left, MethodCallContext methodCall) throws CompilationError {
-        var namePath = methodCall.namePath();
+        NamePathContext namePath;
+        ArgumentsContext arguments;
+        if(methodCall instanceof NormalInvokeContext normalInvokeContext){
+            namePath = normalInvokeContext.namePath();
+            arguments = normalInvokeContext.arguments();
+        } else if(methodCall instanceof AsyncInvokeContext asyncInvokeContext){
+            namePath = asyncInvokeContext.namePath();
+            arguments = asyncInvokeContext.arguments();
+        } else {
+            throw unit.syntaxError(methodCall, "unexpected method call");
+        }
         if(!(namePath instanceof FormalNamePathContext)){
             throw unit.syntaxError(namePath, "illegal token '%s' for method call, function expected".formatted(namePath.getText()));
         }
@@ -761,18 +782,19 @@ public class BlockCompiler {
         }
 
         Expression invocation = resolver.resolve();
+        Expression forkContext = extractForkContext(methodCall);
         if(invocation instanceof MaybeFunction maybeFunction && maybeFunction.isFunction()) {
-            return invoke(maybeFunction, methodCall, methodCall.arguments());
+            return invoke(maybeFunction, methodCall, arguments);
         } else {
             ClassDef inferType = invocation.inferType();
             if(inferType instanceof FunctionDef) {   // a function instance
-                return new FunctionApply(extractInvokeMode(methodCall), invocation);
+                return new FunctionApply(extractInvokeMode(methodCall), invocation, forkContext);
             } else if(functionDef.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(inferType)){  // Function<R>
-                return new InvokeFunctor(Invoke.InvokeMode.Invoke, invocation);
+                return new InvokeFunctor(Invoke.InvokeMode.Invoke, invocation, forkContext);
             } else if(inferType instanceof ClassIntervalClassDef classIntervalClassDef) {   // `var v as [SomeFunction] = f; f()`, that means
                 var lBound = classIntervalClassDef.getLBoundClass();
                 if (lBound.isThatOrDerivedFromThat(lBound.getRoot().getFunctionBaseOfAnyClass())) {
-                    return new InvokeExpression(this.functionDef, extractInvokeMode(methodCall), invocation, valueExpressions(methodCall.arguments()), unit.sourceLocation(methodCall));
+                    return new InvokeExpression(this.functionDef, extractInvokeMode(methodCall), invocation, valueExpressions(arguments), forkContext, unit.sourceLocation(methodCall));
                 }
             }
         }
@@ -783,22 +805,46 @@ public class BlockCompiler {
         List<Expression> values = valueExpressions(arguments);
         Invoke.InvokeMode invokeMode = extractInvokeMode(methodCall);
         var invoke = new Invoke(invokeMode, this.functionDef, resolved, values, unit.sourceLocation(methodCall));
+        invoke.setForkContext(extractForkContext(methodCall));
         return invoke;
     }
 
     private static Invoke.InvokeMode extractInvokeMode(MethodCallContext methodCall) {
-        InvokeModeContext invokeModeContext = methodCall.invokeMode();
-        if(invokeModeContext == null) return Invoke.InvokeMode.Invoke;
+        if(methodCall instanceof NormalInvokeContext){
+            return Invoke.InvokeMode.Invoke;
+        }
 
-        if (invokeModeContext.AWAIT() != null) {
-            return Invoke.InvokeMode.Await;
-        } else if (invokeModeContext.FORK() != null) {
-            return Invoke.InvokeMode.Fork;
-        } else if(invokeModeContext.SPAWN() != null) {
-            return Invoke.InvokeMode.Spawn;
+        if(methodCall instanceof AsyncInvokeContext asyncInvokeContext) {
+            InvokeModeContext invokeModeContext = asyncInvokeContext.invokeMode();
+            if (invokeModeContext.AWAIT() != null) {
+                return Invoke.InvokeMode.Await;
+            } else if (invokeModeContext.FORK() != null) {
+                return Invoke.InvokeMode.Fork;
+            } else if (invokeModeContext.SPAWN() != null) {
+                return Invoke.InvokeMode.Spawn;
+            }
         }
         return Invoke.InvokeMode.Invoke;
     }
+
+    private Expression extractForkContext(MethodCallContext methodCall) throws CompilationError {
+        if(methodCall instanceof NormalInvokeContext){
+            return null;
+        }
+
+        if(methodCall instanceof AsyncInvokeContext asyncInvokeContext) {
+            ViaForkContextContext viaForkContext = asyncInvokeContext.viaForkContext();
+            if(viaForkContext != null) {
+                Expression r = this.expression(viaForkContext.forkContext);
+                if(!r.inferType().isDeriveFrom(this.functionDef.getRoot().getForkContextInterface())){
+                    throw unit.typeError(viaForkContext.forkContext, "'lang.ForkContext' expected");
+                }
+                return r;
+            }
+        }
+        return null;
+    }
+
 
     private List<Expression> valueExpressions(ArgumentsContext arguments) throws CompilationError {
         List<ExpressionContext> valueExprs;
@@ -816,11 +862,16 @@ public class BlockCompiler {
         return values;
     }
 
-    private Expression create(Expression typeExpr, CreatorContext creatorContext, ArgumentsContext arguments) throws CompilationError {
+    private Expression create(Expression typeExpr, CreatorContext creatorContext, ArgumentsContext arguments, String constructorName) throws CompilationError {
         List<Expression> values = valueExpressions(arguments);
 
-        return new Creator(typeExpr, values, unit.sourceLocation(creatorContext)).transform();
+        return new Creator(typeExpr, values, unit.sourceLocation(creatorContext), constructorName).transform();
     }
+
+    private Expression create(Expression typeExpr, CreatorContext creatorContext, ArgumentsContext arguments) throws CompilationError {
+        return create(typeExpr, creatorContext, arguments, null);
+    }
+
 
     private Map<Expression, Var.LocalVar> reusableTempVariables = new HashMap<>();
     public static boolean isReusableExpression(Expression expression){
@@ -1174,10 +1225,18 @@ public class BlockCompiler {
 
     private Expression invokeFunctor(AwaitFunctorContext invokeFunctorContext) throws CompilationError {
         var f = expression(invokeFunctorContext.expression()).transform();
+        ViaForkContextContext viaForkContext = invokeFunctorContext.viaForkContext();
+        Expression forkContextExpr = null;
+        if(viaForkContext != null) {
+            forkContextExpr = this.expression(viaForkContext.forkContext);
+            if(!forkContextExpr.inferType().isDeriveFrom(this.functionDef.getRoot().getForkContextInterface())){
+                throw unit.typeError(viaForkContext.forkContext, "'lang.ForkContext' expected");
+            }
+        }
         if (!functionDef.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(f.inferType())) {
             throw new TypeMismatchError("functor expected", f.getSourceLocation());
         }
-        return new InvokeFunctor(Invoke.InvokeMode.Await, f);
+        return new InvokeFunctor(Invoke.InvokeMode.Await, f, forkContextExpr);
     }
 
     public List<ClassDef> getHandledExceptions() {

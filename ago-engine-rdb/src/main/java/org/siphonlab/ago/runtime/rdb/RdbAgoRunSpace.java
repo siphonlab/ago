@@ -141,8 +141,8 @@ public class RdbAgoRunSpace extends AgoRunSpace {
     }
 
     @Override
-    public AgoRunSpace createChildRunSpace() {
-        var r = super.createChildRunSpace();
+    public AgoRunSpace createChildRunSpace(ForkContext forkContext) {
+        var r = super.createChildRunSpace(forkContext);
         rdbAdapter.updateRunSpace(this);        // add forkedRunSpace
         return r;
     }

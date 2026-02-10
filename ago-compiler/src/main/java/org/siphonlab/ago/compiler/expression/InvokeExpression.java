@@ -23,15 +23,17 @@ public class InvokeExpression extends ExpressionBase{
     private final List<Expression> arguments;
     private final ClassDef scopeClass;
     private final Invoke.InvokeMode invokeMode;
+    private final Expression forkContext;
     private final Expression scopedFunctionExpr;
 
     private ClassDef resultType;
     private final ClassDef accordingFunction;
     private List<ClassDef> parameterTypes;
 
-    public InvokeExpression(ClassDef scopeClass, Invoke.InvokeMode invokeMode, Expression scopedFunctionExpr, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
+    public InvokeExpression(ClassDef scopeClass, Invoke.InvokeMode invokeMode, Expression scopedFunctionExpr, List<Expression> arguments, Expression forkContext, SourceLocation sourceLocation) throws CompilationError {
         this.scopeClass = scopeClass;
         this.invokeMode = invokeMode;
+        this.forkContext = forkContext;
         this.sourceLocation = sourceLocation;
         List<Expression> transformedArguments = new ArrayList<>(arguments.size());
         for (Expression argument : arguments) {
@@ -89,11 +91,28 @@ public class InvokeExpression extends ExpressionBase{
         try {
             blockCompiler.enter(this);
 
+            blockCompiler.lockRegister(localVar);
+
             var instance = prepareInvocation(blockCompiler);
+            blockCompiler.lockRegister(instance);
+
+            Var.LocalVar forkContextVar = null;
+            if(forkContext != null){
+                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
+            }
+
             if (invokeMode.isAsync()) {
-                blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot());
+                if(forkContext != null){
+                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot(), forkContextVar.getVariableSlot());
+                } else {
+                    blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot());
+                }
             } else {
-                blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
+                if(invokeMode == Invoke.InvokeMode.Await && forkContext != null){
+                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
+                } else {
+                    blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
+                }
 
                 if (localVar.getVariableSlot().getTypeCode() == TypeCode.OBJECT
                         && localVar.getVariableSlot().getClassDef() == blockCompiler.getFunctionDef().getRoot().getAnyClass()) {
@@ -106,6 +125,8 @@ public class InvokeExpression extends ExpressionBase{
                 // release the register after invoke if it's a temp var
                 Assign.to(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
             }
+            blockCompiler.releaseRegister(instance);
+            blockCompiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
         } finally {
@@ -120,13 +141,25 @@ public class InvokeExpression extends ExpressionBase{
             blockCompiler.enter(this);
 
             var instance = prepareInvocation(blockCompiler);
+            blockCompiler.lockRegister(instance);
 
-            blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());        // the returned value needn't accepted
+            Var.LocalVar forkContextVar = null;
+            if(forkContext != null){
+                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
+            }
+
+            if(forkContext != null){
+                blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
+            } else {
+                blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
+            }
 
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
                 Assign.to(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
             }
+
+            blockCompiler.releaseRegister(instance);
         } catch (CompilationError e) {
             throw e;
         } finally {

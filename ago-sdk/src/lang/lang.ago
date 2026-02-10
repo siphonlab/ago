@@ -303,6 +303,11 @@ interface Iterable<+T> {
     fun iterator() as Iterator<T>;
 }
 
+// in fork|await ... via forkContext, to identify the RunSpace type for forking
+interface ForkContext{
+
+}
+
 class Trace{
     metaclass{
         final fun print#int(number as int) native "org.siphonlab.ago.lang.Trace.print_int";
