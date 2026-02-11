@@ -45,5 +45,10 @@ public class ConcurrentTests {
         assertTrue(Trace.outputted("have a rest", "task1", "subtask 1", "subtask 2", "subtask 3", "move on", "subtask 2 done", "subtask 3 done", "subtask 1 done"));
     }
 
+    @Test
+    public void forkContext() throws IOException, CompilationError, InterruptedException {
+        runInVertxSpace("concurrent/fork_context.ago", "main#");
+    }
+
 
 }

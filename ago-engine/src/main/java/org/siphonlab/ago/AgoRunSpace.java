@@ -269,7 +269,11 @@ public class AgoRunSpace implements Runnable{
         var space = createChildRunSpace(forkContext);
         frame.setRunSpace(space);
         space.start(new EntranceCallFrame<>(frame));
-        logger.info(this + " fork " + space + ", got " + forkedSpaces.size());
+        if(forkContext != null){
+            logger.info(this + " fork " + space + " via " + forkContext + ", got " + forkedSpaces.size());
+        } else {
+            logger.info(this + " fork " + space + ", got " + forkedSpaces.size());
+        }
     }
 
     // spawn semantic as below:

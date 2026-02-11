@@ -1,5 +1,10 @@
 package lang;
 
+// in fork|await ... via forkContext, to identify the RunSpace type for forking
+interface ForkContext{
+
+}
+
 fun sleep(milliseconds as int) native "org.siphonlab.ago.lang.RunSpaceAware.sleep";
 
 native class RunSpace {

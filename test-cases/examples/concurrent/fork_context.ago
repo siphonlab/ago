@@ -1,0 +1,28 @@
+native class MyForkContext with ForkContext{
+
+    fun new(){
+        this.init();
+    }
+
+    private fun init() native "org.siphonlab.ago.lang.RunSpaceAware.forkContextSample"
+}
+
+fun test() as string{
+    Trace.print("test")
+    return "hello"
+}
+
+fun main(){
+    var t = fork test() via MyForkContext.new();
+    Trace.print(t);
+
+    var s = await test() via MyForkContext.new();
+    Trace.print(s)
+
+    var f = new test();
+    t = fork test() via MyForkContext.new();
+    Trace.print(t);
+
+    s = await t() via MyForkContext.new();
+    Trace.print(s)
+}
