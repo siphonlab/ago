@@ -272,11 +272,14 @@ public class AgoRunSpace implements Runnable{
         logger.info(this + " fork " + space + ", got " + forkedSpaces.size());
     }
 
+    // spawn semantic as below:
+    //      for child runspace, it redirects parent to fork, otherwise fork as its child
     public void spawn(CallFrame<?> frame, ForkContext forkContext) {
-        var space = agoEngine.createRunSpace(runSpaceHost);
-        frame.setRunSpace(space);
-        space.start(new EntranceCallFrame<>(frame));        // for spawn runspace don't set parent
-        logger.info(this + " spawn " + space);
+        if(this.parent != null) {
+            this.parent.fork(frame, forkContext);
+        } else {
+            this.fork(frame, forkContext);
+        }
     }
 
     public void await(CallFrame<?> frame, ForkContext forkContext) {
