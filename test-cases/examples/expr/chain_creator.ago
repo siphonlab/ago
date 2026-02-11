@@ -24,7 +24,6 @@ fun main(){
     dog.bark();
 
     Dog.new().bark();
-
     Dog.new#1('George').bark();
 
     dog.Mouth.new().eat()

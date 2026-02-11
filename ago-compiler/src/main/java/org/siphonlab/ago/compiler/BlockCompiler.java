@@ -30,6 +30,7 @@ import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.ibm.icu.text.PluralRules.Operand.i;
 import static org.siphonlab.ago.compiler.ClassDef.findCommonType;
 import static org.siphonlab.ago.compiler.Unit.extractType;
 import static org.siphonlab.ago.compiler.Unit.extractTypeIfPossible;
@@ -398,8 +399,10 @@ public class BlockCompiler {
                 default -> throw new UnsupportedOperationException("'%s' not supported".formatted(equalsExpr.bop));
             };
             return new Equals(expression(equalsExpr.expression(0)), expression(equalsExpr.expression(1)), type).setSourceLocation(unit.sourceLocation(expression));
-        } else if(expression instanceof CreatorExprContext creatorExpr){
+        } else if(expression instanceof CreatorExprContext creatorExpr) {
             return creator(creatorExpr);
+        } else if(expression instanceof ChainCreatorExprContext chainCreatorExpr){
+            return creator(chainCreatorExpr);
         } else if(expression instanceof AssignExprContext assignExpr){
             return assign(assignExpr);
         } else if(expression instanceof CastTypeExprContext castTypeExprContext){
@@ -622,35 +625,16 @@ public class BlockCompiler {
                 return create(expr, creator, null);
             }
         } else if(creator instanceof ChainingCreatorContext chainingCreator){
-            Expression current = null;
-            List<ParseTree> children = chainingCreator.children;
-            for (int i = 0; i < children.size(); i++) {
-                ParseTree child = children.get(i);
-                if (child instanceof MethodCallContext methodCallContext) {
-                    current = this.methodCall(current, methodCallContext);
-                } else if (child instanceof ChainCreatorContext chainingNormalCreator) {
-                    var expr = unit.parseType(current == null ? functionDef : current.inferType(), chainingNormalCreator.declarationType(), true, true);
-                    if (current != null) {
-                        if (expr instanceof ClassUnder.ClassUnderScope classUnderScope) {     // if it's under scope, expr.Class
-                            assert ((Scope) classUnderScope.getScope()).getDepth() == 0;
-                            expr = ClassUnder.create(current, classUnderScope.getClassDef());
-                        } else {
-                            // i.e. class under meta, class under meta of scope
-                            throw new ResolveError("illegal expression for '%s'".formatted(chainingNormalCreator.declarationType().getText()), unit.sourceLocation((ParserRuleContext) children.getFirst(), (ParserRuleContext) children.get(i - 1)));
-                        }
-                    }
-                    Compiler.processClassTillStage(extractTypeIfPossible(expr), CompilingStage.AllocateSlots);
-                    var rest = chainingNormalCreator.classCreatorRest();
-                    TerminalNode postIdentifier = chainingNormalCreator.POST_IDENTIFIER();
-                    String id = postIdentifier == null ? null : "new" + postIdentifier.getText();
-                    if (rest != null) {
-                        current = create(expr, creator, rest.arguments(), id);
-                    } else {
-                        current = create(expr, creator, null, id);
-                    }
-                }
+            ChainCreatorContext chainCreator = chainingCreator.chainCreator();
+            var expr = unit.parseType(functionDef, chainCreator.declarationType(), true, true);
+            Compiler.processClassTillStage(extractTypeIfPossible(expr), CompilingStage.AllocateSlots);
+            var rest = chainCreator.classCreatorRest();
+            if (rest != null) {
+                // if want support anonymous inner class like java did, the class declaration should be handled in {Unit.parseClassDef}, not here
+                return create(expr, creator, rest.arguments());
+            } else {
+                return create(expr, creator, null);
             }
-            return current;
         } else if(creator instanceof ArrayCreatorContext arrayCreator) {
             var elementType = unit.parseTypeName(functionDef, arrayCreator.declarationType().namePath(), false);
             Compiler.processClassTillStage(elementType, CompilingStage.AllocateSlots);
@@ -676,6 +660,28 @@ public class BlockCompiler {
             return expr;
         } else {
             throw new UnsupportedOperationException("unknown creator type " + creator);
+        }
+    }
+
+    private Expression creator(ChainCreatorExprContext chainCreatorExpr) throws CompilationError {
+        var current = this.expression(chainCreatorExpr.expression());
+        ChainCreatorContext chainCreator = chainCreatorExpr.chainCreator();
+        var expr = unit.parseType(current.inferType(), chainCreator.declarationType(), true, true);
+        if (expr instanceof ClassUnder.ClassUnderScope classUnderScope) {     // if it's under scope, expr.Class
+            assert ((Scope) classUnderScope.getScope()).getDepth() == 0;
+            expr = ClassUnder.create(current, classUnderScope.getClassDef());
+        } else {
+            // i.e. class under meta, class under meta of scope
+            throw new ResolveError("illegal expression for '%s' creator".formatted(chainCreator.declarationType().getText()), unit.sourceLocation(chainCreatorExpr.expression()));
+        }
+        Compiler.processClassTillStage(extractTypeIfPossible(expr), CompilingStage.AllocateSlots);
+        var rest = chainCreator.classCreatorRest();
+        TerminalNode postIdentifier = chainCreator.POST_IDENTIFIER();
+        String id = postIdentifier == null ? null : "new" + postIdentifier.getText();
+        if (rest != null) {
+            return create(expr, chainCreatorExpr, rest.arguments(), id);
+        } else {
+            return create(expr, chainCreatorExpr, null, id);
         }
     }
 
@@ -883,13 +889,13 @@ public class BlockCompiler {
         return values;
     }
 
-    private Expression create(Expression typeExpr, CreatorContext creatorContext, ArgumentsContext arguments, String constructorName) throws CompilationError {
+    private Expression create(Expression typeExpr, ParserRuleContext creatorContext, ArgumentsContext arguments, String constructorName) throws CompilationError {
         List<Expression> values = valueExpressions(arguments);
 
         return new Creator(typeExpr, values, unit.sourceLocation(creatorContext), constructorName).transform();
     }
 
-    private Expression create(Expression typeExpr, CreatorContext creatorContext, ArgumentsContext arguments) throws CompilationError {
+    private Expression create(Expression typeExpr, ParserRuleContext creatorContext, ArgumentsContext arguments) throws CompilationError {
         return create(typeExpr, creatorContext, arguments, null);
     }
 

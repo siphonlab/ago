@@ -507,7 +507,8 @@ expression:
 //    | '(' typeType ('&' typeType)* ')' expression
 // java support `Object aTest = (String & CharSequence) "test";` https://stackoverflow.com/questions/51070344/strange-java-cast-syntax-using
     | expression (AS | '|') variableType                    # CastTypeExpr      // `1|double` or `1 as double`
-    | creator                                           # CreatorExpr
+    | creator                                               # CreatorExpr
+    | expression '.' chainCreator                           # ChainCreatorExpr
 
     // Level 12 to 1, Remaining operators
     | expression bop = ('*' | '/' | '%') expression          # MultiDivModExpr // Level 12, Multiplicative operators
@@ -603,7 +604,7 @@ switchRuleOutcome
 creator
     //: nonWildcardTypeArguments? createdName classCreatorRest        # NormalCreator     // new <Animal>Dog
     : NEW declarationType classCreatorRest                             #NormalCreator    // TODO exclude primitiveType
-    | ((methodCall | chainCreator) '.') * chainCreator                 #ChainingCreator
+    | chainCreator                                                     #ChainingCreator
     | NEW declarationType ('[' expression ']') ('[' expression? ']')*  #ArrayCreator
     ;
 
