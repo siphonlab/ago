@@ -1,0 +1,33 @@
+class Dog{
+    name as string = 'a dog';
+
+    fun bark(){
+        Trace.print(name + " woof")
+    }
+
+    class Mouth{
+        fun eat(){
+            Trace.print(name + " yum")
+        }
+    }
+
+    fun new#0(){
+    }
+
+    fun new#1(field name as string){
+        Trace.print('Dog name ' + name)
+    }
+}
+
+fun main(){
+    var dog = Dog.new()
+    dog.bark();
+
+    Dog.new().bark();
+
+    Dog.new#1('George').bark();
+
+    dog.Mouth.new().eat()
+
+    Dog.new#1('George').Mouth.new().eat()
+}

@@ -161,4 +161,9 @@ public class ExprTest {
         assertTrue(Trace.outputted("20"));
     }
 
+    @Test
+    public void chain_creator() throws CompilationError, IOException {
+        run("expr/chain_creator.ago");
+        assertTrue(Trace.outputted("a dog woof", "a dog woof", "Dog name George", "George woof", "a dog yum", "Dog name George", "George yum"));
+    }
 }

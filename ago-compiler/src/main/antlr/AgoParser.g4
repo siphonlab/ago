@@ -603,9 +603,11 @@ switchRuleOutcome
 creator
     //: nonWildcardTypeArguments? createdName classCreatorRest        # NormalCreator     // new <Animal>Dog
     : NEW declarationType classCreatorRest                             #NormalCreator    // TODO exclude primitiveType
-    | declarationType '.' NEW POST_IDENTIFIER? classCreatorRest        #ChainingNormalCreator
+    | ((methodCall | chainCreator) '.') * chainCreator                 #ChainingCreator
     | NEW declarationType ('[' expression ']') ('[' expression? ']')*  #ArrayCreator
     ;
+
+chainCreator:   declarationType '.' NEW POST_IDENTIFIER? classCreatorRest;
 
 /*
     var staff = new Staff ("Tom") TomStaff with AnInterface{

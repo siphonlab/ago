@@ -818,6 +818,10 @@ public class Unit {
         return new SourceLocation(filename, ast);
     }
 
+    public SourceLocation sourceLocation(ParserRuleContext from, ParserRuleContext toInclude) {
+        return new SourceLocation(filename, from, toInclude);
+    }
+
     public SourceLocation sourceLocation(TerminalNode ast) {
         if (ast == null)
             return SourceLocation.UNKNOWN;

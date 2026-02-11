@@ -1,5 +1,7 @@
 package org.siphonlab.ago.compiler;
 
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -619,17 +621,36 @@ public class BlockCompiler {
             } else {
                 return create(expr, creator, null);
             }
-        } else if(creator instanceof ChainingNormalCreatorContext chainingNormalCreator){
-            var expr = unit.parseType(functionDef, chainingNormalCreator.declarationType(), true, true);
-            Compiler.processClassTillStage(extractTypeIfPossible(expr), CompilingStage.AllocateSlots);
-            var rest = chainingNormalCreator.classCreatorRest();
-            TerminalNode postIdentifier = chainingNormalCreator.POST_IDENTIFIER();
-            String id = postIdentifier == null ? null : "new" + postIdentifier.getText();
-            if (rest != null) {
-                return create(expr, creator, rest.arguments(), id);
-            } else {
-                return create(expr, creator, null, id);
+        } else if(creator instanceof ChainingCreatorContext chainingCreator){
+            Expression current = null;
+            List<ParseTree> children = chainingCreator.children;
+            for (int i = 0; i < children.size(); i++) {
+                ParseTree child = children.get(i);
+                if (child instanceof MethodCallContext methodCallContext) {
+                    current = this.methodCall(current, methodCallContext);
+                } else if (child instanceof ChainCreatorContext chainingNormalCreator) {
+                    var expr = unit.parseType(current == null ? functionDef : current.inferType(), chainingNormalCreator.declarationType(), true, true);
+                    if (current != null) {
+                        if (expr instanceof ClassUnder.ClassUnderScope classUnderScope) {     // if it's under scope, expr.Class
+                            assert ((Scope) classUnderScope.getScope()).getDepth() == 0;
+                            expr = ClassUnder.create(current, classUnderScope.getClassDef());
+                        } else {
+                            // i.e. class under meta, class under meta of scope
+                            throw new ResolveError("illegal expression for '%s'".formatted(chainingNormalCreator.declarationType().getText()), unit.sourceLocation((ParserRuleContext) children.getFirst(), (ParserRuleContext) children.get(i - 1)));
+                        }
+                    }
+                    Compiler.processClassTillStage(extractTypeIfPossible(expr), CompilingStage.AllocateSlots);
+                    var rest = chainingNormalCreator.classCreatorRest();
+                    TerminalNode postIdentifier = chainingNormalCreator.POST_IDENTIFIER();
+                    String id = postIdentifier == null ? null : "new" + postIdentifier.getText();
+                    if (rest != null) {
+                        current = create(expr, creator, rest.arguments(), id);
+                    } else {
+                        current = create(expr, creator, null, id);
+                    }
+                }
             }
+            return current;
         } else if(creator instanceof ArrayCreatorContext arrayCreator) {
             var elementType = unit.parseTypeName(functionDef, arrayCreator.declarationType().namePath(), false);
             Compiler.processClassTillStage(elementType, CompilingStage.AllocateSlots);
