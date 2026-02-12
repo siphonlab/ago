@@ -273,9 +273,13 @@ class ArrayIterator<T> with Iterator<T>{
 
 abstract class Enum<T>{
     metaclass{
-        abstract fun valueOf(t as T) as Enum<T>;
+        fun valueOf(t as T) as Enum<T>{     // metaclass cannot be abstract, even the instance class is abstract
+            return null;
+        }
 
-        abstract fun parse(s as string) as Enum<T>;
+        fun parse(s as string) as Enum<T>{
+            return null;
+        }
     }
 
     fun new(field value as T,field name as string){}
