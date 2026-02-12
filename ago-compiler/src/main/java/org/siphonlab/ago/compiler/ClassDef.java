@@ -520,12 +520,7 @@ public class ClassDef extends ClassContainer {
                     if (children.containsKey(f.getName())) {  // overridden, skip this function
                         //TODO check whether visibility lower than super
                     } else {
-                        if(this.isClass() && this.isAbstract() && f.isAbstract()){
-                            //this.implementAbstractMethod(f);
-                            this.addChild(f);
-                        } else {
-                            this.addChild(f);
-                        }
+                        this.addChild(f);
                     }
                 }
             } else {
@@ -537,36 +532,6 @@ public class ClassDef extends ClassContainer {
         }
     }
 
-    private void implementAbstractMethod(FunctionDef functionDef) throws CompilationError {
-        var implemented = new FunctionDef(functionDef.getName(), functionDef.getMethodDecl(), functionDef.modifiers | AgoClass.OVERRIDE);
-        this.addChild(implemented);
-        implemented.setGenericSource(functionDef.getGenericSource());
-        implemented.setUnit(functionDef.getUnit());
-        implemented.setSourceLocation(functionDef.getSourceLocation());
-        implemented.setNativeEntrance(functionDef.getNativeEntrance());
-        implemented.setCommonName(functionDef.getCommonName());
-        implemented.setThrowsExceptions(functionDef.getThrowsExceptions());
-        implemented.setCompilingStage(functionDef.getCompilingStage());
-
-        implemented.setNativeResultSlot(functionDef.getNativeResultSlot());
-        implemented.setResultType(functionDef.getResultType());
-        for (Parameter parameter : functionDef.getParameters()) {
-            var p = new Parameter(parameter.name, parameter.parameterContext);
-            p.setType(parameter.getType());
-            p.setModifiers(parameter.getModifiers());
-            p.setSourceLocation(parameter.getSourceLocation());
-//            p.setInitializer();
-            implemented.addParameter(p);
-        }
-
-        List<ClassDef> ls = new ArrayList<>();
-        for (ClassDef funInterface : functionDef.getInterfaces()) {
-            if(funInterface.isThatOrDerivedFromThat(getRoot().getFunctionInterface(functionDef.getParameters().size()))) continue;
-            ls.add(funInterface);
-        }
-        implemented.setInterfaces(ls);
-        implemented.createFunctionInterface();
-    }
 
     public SlotsAllocator getSlotsAllocator() {
         return slotsAllocator;
