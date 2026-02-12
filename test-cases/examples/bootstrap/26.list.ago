@@ -3,27 +3,27 @@ interface Collection<T> from Iterable<T>{
     fun isReadOnly() as boolean;
     fun add(item as T);
     fun clear();
-    fun contains(item as T);
+    fun contains(item as T) as boolean;
     fun copyTo(array as T[], arrayIndex as int);
     fun remove(item as T) as boolean;
 }
 
-interface ReadOnlyCollection<T+> from Iterable<T>{
+interface ReadOnlyCollection<+T> from Iterable<T>{
     fun count#get() as int;
     fun isReadOnly() as boolean;
     fun add(item as T);
     fun clear();
-    fun contains(item as T);
+    fun contains(item as T) as boolean;
     fun copyTo(array as T[], arrayIndex as int);
     fun remove(item as T) as boolean;
 }
 
 interface ReadWriteList<T> from Collection<T>, Iterable<T>{
     fun get#index(index as int) as T;
-    fun set#index(index as T)
+    fun set#index(index as int, value as T);
 }
 
-interface ReadOnlyList<T+> from ReadOnlyCollection<T>{
+interface ReadOnlyList<+T> from ReadOnlyCollection<T>{
     fun get#index(index as int) as T;
 }
 
@@ -35,7 +35,37 @@ native class LinkedList<E> from List<E>{
     fun new(){
         init()
     }
-    fun init() native "org.siphonlab.ago.lang.LinkList.LinkList_create";
 
+    private fun init() native "org.siphonlab.ago.lang.LinkedList.create";
 
+    override count#get() as int native "org.siphonlab.ago.lang.LinkedList.getCount";
+    override isReadOnly() as boolean native "org.siphonlab.ago.lang.LinkedList.isReadOnly";
+    override add(item as E) native "org.siphonlab.ago.lang.LinkedList.add";
+    override clear() native "org.siphonlab.ago.lang.LinkedList.clear";
+    override contains(item as E) as boolean native "org.siphonlab.ago.lang.LinkedList.contains";
+    override copyTo(array as E[], arrayIndex as int) native "org.siphonlab.ago.lang.LinkedList.copyTo";
+    override remove(item as E) as boolean native "org.siphonlab.ago.lang.LinkedList.remove";
+
+    override get#index(index as int) as E native "org.siphonlab.ago.lang.LinkedList.getAtIndex";
+    override set#index(index as int, value as E) native "org.siphonlab.ago.lang.LinkedList.setAtIndex";
+
+    native class ListIterator with Iterator<E> {
+        fun new() {create()}
+        private fun create() native "org.siphonlab.ago.lang.LinkedList.Iterator_create";
+        override hasNext() as boolean native "org.siphonlab.ago.lang.LinkedList.Iterator_hasNext";
+        override next() as E native "org.siphonlab.ago.lang.LinkedList.Iterator_next";
+    }
+
+    override iterator() as ListIterator{
+        return new ListIterator();
+    }
+}
+
+fun main(){
+    var ls = new LinkedList<int>();
+    ls.add(1)
+    ls.add(2)
+    ls.add(3)
+
+    Trace.print(ls.get(1))
 }

@@ -81,11 +81,10 @@ public class ArrayTypeHeader extends ClassHeader {
             arrayBase.resolveHierarchicalClasses(headers);
         }
         var instantiation = arrayBase.resolveTemplateInstantiation(headers, new GenericTypeArguments(arrayBase, new TypeDesc[]{this.elementType}, headers));
-        this.setFunctionIndex(arrayBase.functionIndex);
         this.setSuperClass(instantiation.fullname);
         this.setChildren(instantiation.getChildren());
         this.setMethods(instantiation.methods.stream().map(
-                m -> new MethodDesc(m.distanceToSuperClass() + 1,m.name())
+                m -> new MethodDesc(m.getName(),m.getFullname())
                 ).toList());
         this.strings = arrayBase.strings;
         this.setMetaClass(arrayBase.getMetaClass());

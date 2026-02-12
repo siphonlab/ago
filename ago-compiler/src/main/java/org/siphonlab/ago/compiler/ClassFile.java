@@ -184,10 +184,12 @@ public class ClassFile {
         if(LOGGER.isDebugEnabled()) LOGGER.debug("    methods (" + functions.size() +") :" + buff.position());
         buff.putInt(functions.size());
         for (ClassDef function : functions) {
-            int distanceToSuperClass = classDef.distanceToSuperClass((ClassDef) function.getParent());
-            assert distanceToSuperClass != -1;
-            buff.putInt(distanceToSuperClass);
-            buff.putPrefixedString(function.getName(), encoder);
+//            int distanceToSuperClass = classDef.distanceToSuperClass((ClassDef) function.getParent());
+//            assert distanceToSuperClass != -1;
+//            buff.putInt(distanceToSuperClass);
+//            buff.putPrefixedString(function.getName(), encoder);
+            buff.putInt(classDef.simpleNameOfFunction((FunctionDef) function));
+            buff.putInt(classDef.idOfKnownClass(function));
         }
 
         // children names
@@ -432,7 +434,7 @@ public class ClassFile {
                 } else {
                     buffer.putPrefixedString("", encoder);
                 }
-                List<ClassDef> interfaces = classDef.getInterfaces();
+                var interfaces = classDef.getAllInterfaces();       // put all interfaces include interface of interface
                 if(CollectionUtils.isNotEmpty(interfaces)) {
                     buffer.putInt(interfaces.size());
                     for (ClassDef interface_ : interfaces) {

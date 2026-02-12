@@ -77,12 +77,13 @@ public class CodeTransformer {
 
         String methodName = strings[codeBuffer.getInt()];       // with postfix
         var clazz = classLoader.getClass(methodClass.fullname);
-        var method = methodClass.findMethod(methodName, headers);
-        int p = method.functionIndex;
+        var methodDesc = methodClass.findMethod(methodName, headers);
+        int p = methodDesc.getMethodIndex();
+        var method = headers.get(methodDesc.getFullname());
         assert clazz.getMethod(p) == method.agoClass;
         if(method.isInGenericTemplate(headers) && this.header.genericSource != null){
             method = method.resolveTemplateInstantiation(headers, this.header.genericSource.typeArguments());
-            p = method.functionIndex;
+            p = methodDesc.getMethodIndex();
             assert clazz.getMethod(p).getName().equals(method.agoClass.getName());
         }
         assert p != -1;

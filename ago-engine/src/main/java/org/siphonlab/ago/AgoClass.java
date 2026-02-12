@@ -64,7 +64,7 @@ public class AgoClass extends Instance<MetaClass>{
     private AgoClass parameterizedBaseClass;
     private ConcreteTypeInfo concreteTypeInfo;
 
-    // interface id -> interface method id -> method in here
+    // interface id -> interface method id -> method id in me
     private Int2ObjectHashMap<int[]> interfacesMethods;
     private SourceLocation sourceLocation;
 

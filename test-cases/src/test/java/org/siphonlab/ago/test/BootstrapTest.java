@@ -3,6 +3,7 @@ package org.siphonlab.ago.test;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.siphonlab.ago.test.Util.run;
 
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
@@ -188,6 +189,11 @@ public class BootstrapTest {
     public void iterable_test() throws CompilationError, IOException {
         Util.run("bootstrap/25.iterable.ago");
         assertTrue(Trace.outputted("1", "3", "5", "7", "9", "0", "2", "4", "6", "8"));
+    }
+
+    @Test @Tag("generic")
+    public void list_test() throws CompilationError, IOException {
+        run("bootstrap/26.list.ago");
     }
 
 }

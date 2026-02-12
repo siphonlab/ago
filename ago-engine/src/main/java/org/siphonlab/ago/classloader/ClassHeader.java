@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.siphonlab.ago.AgoClass.*;
 import static org.siphonlab.ago.TypeCode.OBJECT;
@@ -47,10 +48,9 @@ public class ClassHeader {
     public AgoClass agoClass;       // built class
     protected SlotDesc[] slotDescs;
 
-    int functionIndex = -1;      // for function
-    public int nextFunIndex = 0;        // for container of function
-    public boolean functionIndexLocked = false;
-    Map<String, Integer> givenFunctionIndexes = new HashMap<>();
+    // function name -> id, not full name
+    Map<String, Integer> nonPrivateFunctionIndexes = new HashMap<>();
+    Map<String, MethodDesc> methodsByName = new HashMap<>();
 
     GenericTypeDesc[] genericTypeParamDescs;
 
@@ -94,12 +94,11 @@ public class ClassHeader {
 
     public void setMethods(List<MethodDesc> methods) {
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s set methods to %s".formatted(this, methods));
-        this.methods = new ArrayList<>(methods){
-            @Override
-            public boolean add(MethodDesc methodDesc) {
-                return super.add(methodDesc);
-            }
-        };
+        this.methods = new ArrayList<>(methods);
+        this.methodsByName.clear();
+        for (MethodDesc methodDesc : methods) {
+            this.methodsByName.put(methodDesc.getName(), methodDesc);
+        }
     }
 
     public String getSuperClass() {
@@ -187,36 +186,6 @@ public class ClassHeader {
         return blobOffset == -1 ? this.parent.getBlobOffset() : this.blobOffset;
     }
 
-    public void setFunctionIndex(int functionIndex) {
-        this.functionIndex = functionIndex;
-    }
-
-    public int getFunctionIndex() {
-        return functionIndex;
-    }
-
-    public int getFunIndex(ClassHeader fun, Map<String, ClassHeader> headers) {
-        // even the parent of this fun is me, it may override some fun of my superclass
-        for (var superName = this.superClass; superName != null; ) {
-            var sp = headers.get(superName);
-            var idx = sp.givenFunctionIndexes.get(fun.name);
-            if (idx != null) {
-                this.givenFunctionIndexes.put(fun.name, idx);
-                if (idx > this.nextFunIndex) this.nextFunIndex = idx;
-                return idx;
-            }
-            superName = sp.superClass;
-            if(sp.fullname.equals(superName)) break;
-        }
-        if (this.givenFunctionIndexes.containsKey(fun.name)) {
-            return this.givenFunctionIndexes.get(fun.name);
-        }
-        if (functionIndexLocked) throw new RuntimeException("methods of '%s' already solved");
-        int idx = this.nextFunIndex++;
-        this.givenFunctionIndexes.put(fun.name, idx);
-        return idx;
-    }
-
     public boolean instantiateFunctionFamily(Map<String, ClassHeader> headers) {
         if (this.loadingStage != InstantiateFunctionFamily)
             return true;
@@ -300,7 +269,6 @@ public class ClassHeader {
     }
     protected void copyToClone(ClassHeader inst, Map<String, ClassHeader> headers){
         inst.strings = this.strings;
-        inst.setMethods(this.methods);
         inst.genericTypeParamDescs = this.genericTypeParamDescs;
         inst.setSuperClass(this.superClass);
         inst.setPermitClass(this.permitClass);
@@ -312,7 +280,6 @@ public class ClassHeader {
             inst.functionResultType = this.functionResultType;
             inst.functionParams = this.functionParams;
             inst.functionVariables = this.functionVariables;
-            inst.setFunctionIndex(this.functionIndex);
             inst.nativeFunctionEntrance = this.nativeFunctionEntrance;
         }
 
@@ -323,6 +290,7 @@ public class ClassHeader {
         inst.setSourceHeader(this);
         if (this.children != null) {
             inst.setChildren(new ArrayList<>(this.children.stream().map(c -> c.clone(inst, headers)).toList()));
+            inst.setMethods(mapMethods(this.methods, this.children, inst.children));
         }
     }
 
@@ -394,13 +362,13 @@ public class ClassHeader {
     }
 
     void registerFunctionInstantiation(ClassHeader inst, Map<String, ClassHeader> headers) {
-        MethodDesc methodDesc = new MethodDesc(0, inst.name);
+        MethodDesc methodDesc = new MethodDesc(inst.name, inst.fullname);
         this.addMethod(methodDesc);
         assert this.findMethod(methodDesc, headers) != null;
     }
 
     private void addMethod(MethodDesc methodDesc) {
-        if(this.methods.stream().noneMatch(m -> m.name().equals(methodDesc.name()))) {      //TODO speed up
+        if(this.methods.stream().noneMatch(m -> m.getName().equals(methodDesc.getName()))) {      //TODO speed up
             if (LOGGER.isDebugEnabled()) LOGGER.debug("%s add method %s".formatted(this, methodDesc));
             this.methods.add(methodDesc);
         }
@@ -448,7 +416,7 @@ public class ClassHeader {
                     newFun.tryInstantiate(sub, headers, typeArguments);
                 } else {
                     newFun = instantiationOfThis;       // won't add child to sub, only save to methods
-                    parent.addMethod(new MethodDesc(depth, instantiationOfThis.name));
+                    parent.addMethod(new MethodDesc(instantiationOfThis.name, instantiationOfThis.fullname));
                 }
                 broadcastSubInstantiationMethod(sub,newFun,depth + 1, headers,typeArguments);
             }
@@ -547,8 +515,6 @@ public class ClassHeader {
         inst.strings = this.strings;
         inst.parent = newParent;
         if (newParent != null) newParent.addChild(inst);
-        inst.setMethods(this.methods);
-        inst.setFunctionIndex(this.functionIndex);
         inst.genericTypeParamDescs = this.genericTypeParamDescs;
         // create slots later
         inst.setSuperClass(this.superClass);
@@ -559,9 +525,27 @@ public class ClassHeader {
         if (this.children != null) {
             ClassHeader finalInst = inst;
             inst.setChildren(new ArrayList<>(this.children.stream().map(c -> c.tryInstantiate(finalInst, headers, typeArguments)).toList()));
+            inst.setMethods(mapMethods(this.methods, this.children, inst.children));
+        } else {
+            inst.setMethods(this.methods);
         }
         inst.setLoadingStage(ResolveHierarchicalClasses);
         return inst;
+    }
+
+    private List<MethodDesc> mapMethods(List<MethodDesc> methods, List<ClassHeader> children, List<ClassHeader> newChildren) {
+        if(children.isEmpty()) return methods;
+
+        Map<String, String> map = new HashMap<>();
+        for (int i = 0; i < children.size(); i++) {
+            ClassHeader child = children.get(i);
+            map.put(child.fullname, newChildren.get(i).fullname);
+        }
+        var ls = new ArrayList<MethodDesc>(methods.size());
+        for (MethodDesc method : methods) {
+            ls.add(new MethodDesc(method.getName(), map.getOrDefault(method.getFullname(), method.getFullname())));
+        }
+        return ls;
     }
 
     private GenericVMCodeTransformer genericVMCodeTransformer = new GenericVMCodeTransformer(this);
@@ -575,17 +559,10 @@ public class ClassHeader {
     }
 
     public ClassHeader findMethod(MethodDesc methodDesc, Map<String, ClassHeader> headers) {
-        ClassHeader header = this;
-        for (int i = 0; i < methodDesc.distanceToSuperClass(); i++) {
-            var superClass = header.getSuperClass();
-            header = headers.get(superClass);
-        }
-        for (ClassHeader child : getChildrenIncludeSuperInterface(header, headers)) {
-            if(child.name.equals(methodDesc.name()) && child.isFunction()){
-                return child;
-            }
-        }
-        throw new RuntimeException("'%s' not found in '%s'".formatted(methodDesc.name(), header));
+        var r = headers.get(methodDesc.getFullname());
+        if(r == null)
+            throw new RuntimeException("'%s' not found, its fullname is '%s'".formatted(methodDesc.getName(), methodDesc.getFullname()));
+        return r;
     }
 
     private static List<ClassHeader> getChildrenIncludeSuperInterface(ClassHeader header, Map<String, ClassHeader> headers) {
@@ -604,13 +581,17 @@ public class ClassHeader {
         return header.getChildren();
     }
 
-    public ClassHeader findMethod(String methodName, Map<String, ClassHeader> headers) {
-        Optional<MethodDesc> methodDesc = this.methods.stream().filter(c -> c.name().equals(methodName)).findFirst();
-        if(methodDesc.isEmpty()) {
-            throw new RuntimeException("'%s' not found in '%s'".formatted(methodName, this));
-        } else {
-            return findMethod(methodDesc.get(),headers);
-        }
+    private boolean isAbstract() {
+        return (this.modifiers & AgoClass.ABSTRACT) == AgoClass.ABSTRACT;
+    }
+    public int getVisibility() {
+        return this.modifiers & 0b111;
+    }
+
+    public MethodDesc findMethod(String methodName, Map<String, ClassHeader> headers) {
+        var r = this.methodsByName.get(methodName);
+        if (r != null) return r;
+        throw new RuntimeException("'%s' not found in '%s'".formatted(methodName, this));
     }
 
 
@@ -1043,9 +1024,11 @@ public class ClassHeader {
         if(this.methods != null) {
             for (var method : this.methods) {
                 var f = this.findMethod(method, headers);
-                int functionIndex = f.getFunctionIndex();
+                method.setFunctionClassHeader(f);
+                int functionIndex = method.getMethodIndex();
                 if (functionIndex <= methods.size() - 1) {
                     if (methods.get(functionIndex) != null) {
+                        this.findMethod(method, headers);
                         throw new RuntimeException("funId collision");
                     }
                     methods.set(functionIndex, (AgoFunction) f.agoClass);
@@ -1091,20 +1074,19 @@ public class ClassHeader {
                     interfaceHeader = interfaceHeader.genericSource.sourceTemplate();
                 }
                 int[] map = new int[interfaceHeader.methods.size()];
-                AgoFunction[] agoClassMethods = interfaceHeader.agoClass.getMethods();
-                for (int j = 0; j < agoClassMethods.length; j++) {
-                    var interfaceMethod = agoClassMethods[j];
-                    int pos = -1;
-                    AgoFunction[] methods = this.agoClass.getMethods();
-                    for (int i = 0; i < methods.length; i++) {
-                        var method = methods[i];
-                        if (method != null && method.getName().equals(interfaceMethod.getName())) {
-                            pos = i;
-                            break;
-                        }
+
+                List<MethodDesc> methodDescs = interfaceHeader.methods;
+                for (int i = 0; i < methodDescs.size(); i++) {
+                    MethodDesc interfaceMethod = methodDescs.get(i);
+                    var index = this.nonPrivateFunctionIndexes.get(interfaceMethod.getName());
+                    if (index == null) {
+                        if (!this.isAbstract()) throw new NullPointerException("'%s' not found in '%s'".formatted(interfaceMethod.getName()));
+                        map[i] = -1;
+                    } else {
+                        map[i] = index;
                     }
-                    map[j] = pos;
                 }
+
                 int classId = interfaceHeader.classId;
                 if(maxClassId < classId) maxClassId = classId;
                 interfaceMethods.put(classId, map);

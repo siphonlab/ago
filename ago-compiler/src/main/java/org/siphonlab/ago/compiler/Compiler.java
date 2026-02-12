@@ -295,14 +295,14 @@ public class Compiler {
         }
     }
 
-    void validateFunctions() throws SyntaxError {
+    void validateFunctions() throws CompilationError {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
             if(classDef.getCompilingStage() != CompilingStage.ValidateNewFunctions) continue;
             validateFunction(classDef);
         }
     }
 
-    private static void validateFunction(ClassDef classDef) throws SyntaxError {
+    private static void validateFunction(ClassDef classDef) throws CompilationError {
         for (ClassDef child : classDef.getDirectChildren()) {
             if (child instanceof FunctionDef functionDef) {
                 classDef.validateNewFunction(functionDef);

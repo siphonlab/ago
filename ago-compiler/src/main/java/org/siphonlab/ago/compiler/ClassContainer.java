@@ -19,7 +19,10 @@ public class ClassContainer extends Namespace<ClassDef>{
         super(name, parent);
     }
 
-    public void validateNewFunction(FunctionDef newFun) throws SyntaxError {
+    public void validateNewFunction(FunctionDef newFun) throws CompilationError {
+        if(newFun.getCompilingStage().lt(CompilingStage.InheritsFields)) {
+            Compiler.processClassTillStage(newFun, CompilingStage.InheritsFields);
+        }
         var unit = newFun.getUnit();
         var existed = getSameSignatureFunction(newFun);
         if (existed == null) {

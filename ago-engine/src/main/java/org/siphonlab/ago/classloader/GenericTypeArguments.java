@@ -172,7 +172,7 @@ public class GenericTypeArguments {
     private boolean isIntermediateArg(TypeDesc typeDesc, Map<String, ClassHeader> headers){
         if(typeDesc.getTypeCode() != TypeCode.OBJECT) return false;
         var header = headers.get(typeDesc.className);
-        if(!(typeDesc instanceof GenericTypeDesc) && header.genericSource != null){
+        if(!(typeDesc instanceof GenericTypeDesc) && header != null && header.genericSource != null){
             var instantiationArguments = header.genericSource.typeArguments();
             return instantiationArguments.isIntermediate || instantiationArguments.hasIntermediateArgs;
         }

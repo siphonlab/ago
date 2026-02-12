@@ -27,7 +27,7 @@ public class MetaClassDef extends ClassDef{
         this.unit = instanceClassDef.unit;
         this.classType = TYPE_METACLASS;
         this.modifiers = instanceClassDef.getVisibility();
-        if(instanceClassDef.isAbstract()) this.modifiers |= AgoClass.ABSTRACT;
+//        if(instanceClassDef.isAbstract()) this.modifiers |= AgoClass.ABSTRACT;
         if(instanceClassDef.isFinal()) this.modifiers |= AgoClass.FINAL;
     }
 

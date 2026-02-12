@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 import static java.lang.String.format;
@@ -321,7 +320,7 @@ public class AgoClassLoader implements ClassManager{
         cnt = buffer.getInt();
         MethodDesc[] methods = new MethodDesc[cnt];
         for (int i = 0; i < cnt; i++) {
-            methods[i] = new MethodDesc(buffer.getInt(), buffer.getPrefixedString(decoder));
+            methods[i] = new MethodDesc(strings[buffer.getInt()], strings[buffer.getInt()]);
         }
 
         ClassHeader header;
@@ -909,12 +908,11 @@ public class AgoClassLoader implements ClassManager{
     private void resolveFunctionIndex(ClassHeader header){
         if(header.loadingStage != LoadingStage.ResolveFunctionIndex) return;
 
+        ClassHeader superHeader = null;
         if(header.superClass != null && !header.fullname.equals(header.superClass)){
-            var superHeader = headers.get(header.superClass);
+            superHeader = headers.get(header.superClass);
             if(superHeader.loadingStage == LoadingStage.ResolveFunctionIndex)
                 resolveFunctionIndex(superHeader);
-            header.nextFunIndex = superHeader.nextFunIndex;
-            superHeader.functionIndexLocked = true;
         }
 
         if(header instanceof GenericInstantiationClassHeader genericInstantiationClassHeader){
@@ -922,14 +920,39 @@ public class AgoClassLoader implements ClassManager{
             if(templateHeader.loadingStage == LoadingStage.ResolveFunctionIndex)
                 resolveFunctionIndex(templateHeader);
         }
-
+        //TODO for interfaces, the methods is not required
         if(header.methods != null) {
+            if(superHeader != null) {
+                header.nonPrivateFunctionIndexes.putAll(superHeader.nonPrivateFunctionIndexes);
+            }
+            // non-private methods
             for (var methodDesc : header.methods) {
                 var f = header.findMethod(methodDesc, headers);
-                if (f == null)
-                    throw new RuntimeException("method '%s' not found".formatted(methodDesc.name()));
-                if (f.functionIndex == -1) {      // never set, if not -1 that was set by superclass who has this function too
-                    f.functionIndex = header.getFunIndex(f, headers);
+                if((f.getVisibility() & PRIVATE) != PRIVATE){   // PUBLIC or PROTECTED
+                    var index = header.nonPrivateFunctionIndexes.get(methodDesc.getName());
+                    if(index == null){
+                        methodDesc.setMethodIndex(header.nonPrivateFunctionIndexes.size());
+                        header.nonPrivateFunctionIndexes.put(methodDesc.getName(), methodDesc.getMethodIndex());
+                    } else {
+                        // inherits
+                        assert superHeader != null && Objects.equals(superHeader.nonPrivateFunctionIndexes.get(methodDesc.getName()), index);
+                        methodDesc.setMethodIndex(index);
+                    }
+                }
+            }
+            // private methods
+            int publicMethodIndexEnd = header.nonPrivateFunctionIndexes.size();
+            var privateFunctionIndexes = new HashMap<String, Integer>();
+            for (var methodDesc : header.methods) {
+                var f = header.findMethod(methodDesc, headers);
+                if((f.getVisibility() & PRIVATE) == PRIVATE){
+                    var index = privateFunctionIndexes.get(methodDesc.getName());
+                    if(index == null){
+                        methodDesc.setMethodIndex(publicMethodIndexEnd + header.nonPrivateFunctionIndexes.size());
+                        privateFunctionIndexes.put(methodDesc.getName(), methodDesc.getMethodIndex());
+                    } else {
+                        throw new RuntimeException("'%s' duplicated in '%s'".formatted(methodDesc.getName(), header));
+                    }
                 }
             }
         }
