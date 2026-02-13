@@ -15,4 +15,20 @@ fun main(){
     for(var item in ls){
         Trace.print(item)
     }
+
+    var a = new ArrayList<int>();
+    a.add(8)
+    a.add(4)
+    a.add(2)
+    Trace.print(a.get(1))
+
+    Trace.print(a[2])
+
+    a[2] += a[1]
+
+    Trace.print(a[2])
+
+    for(var item in a){
+        Trace.print(item)
+    }
 }
