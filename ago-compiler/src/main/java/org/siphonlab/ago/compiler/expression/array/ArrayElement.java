@@ -9,10 +9,11 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
 
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
+import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
 
 import java.util.Objects;
 
-public class ArrayElement extends ExpressionBase implements Assign.Assignee {
+public class ArrayElement extends ExpressionBase implements Assign.Assignee, CollectionElement {
 
     private final Expression array;
     private final Expression indexExpr;
@@ -90,12 +91,17 @@ public class ArrayElement extends ExpressionBase implements Assign.Assignee {
         return "(ArrayElement %s[%s])".formatted(this.array, this.indexExpr);
     }
 
-    public Var.LocalVar getProcessedArray() {
+    public Var.LocalVar getProcessedCollection() {
         return processedArray;
     }
 
     public TermExpression getProcessedIndex() {
         return processedIndex;
+    }
+
+    @Override
+    public Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value) throws CompilationError {
+        return new ArrayPut(processedCollection, processedIndex, value);
     }
 
     @Override

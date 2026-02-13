@@ -15,6 +15,7 @@ import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.ArrayCreate;
 import org.siphonlab.ago.compiler.expression.array.ArrayElement;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
+import org.siphonlab.ago.compiler.expression.array.ListElement;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
 import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
@@ -413,10 +414,13 @@ public class BlockCompiler {
         } else if(expression instanceof ElementExprContext elementExpr){
             var obj = expression(elementExpr.expression(0));
             var index = expression(elementExpr.expression(1));
-            if(functionDef.getRoot().getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())){
+            Root root = functionDef.getRoot();
+            if(root.getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())) {
                 return new ArrayElement(obj, index).setSourceLocation(unit.sourceLocation(expression));
+            } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())){
+                return new ListElement(obj, index).setSourceLocation(unit.sourceLocation(expression));
             } else {
-                throw new TypeMismatchError("array or indexable type expected", unit.sourceLocation(elementExpr));
+                throw new TypeMismatchError("an array, a List or a Map expected", unit.sourceLocation(elementExpr));
             }
         } else if(expression instanceof ClassExprContext classExpr){
 

@@ -8,10 +8,8 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
-import org.siphonlab.ago.compiler.expression.array.ArrayElement;
-import org.siphonlab.ago.compiler.expression.array.ArrayPut;
+import org.siphonlab.ago.compiler.expression.array.CollectionElement;
 import org.siphonlab.ago.opcode.arithmetic.Multiply;
-import org.siphonlab.ago.compiler.expression.*;
 
 import java.util.Objects;
 
@@ -130,7 +128,7 @@ public class SelfArithmetic extends ExpressionBase {
                         expr.outputToLocalVar(var, blockCompiler);
                         break;
                 }
-            } else if (site instanceof ArrayElement arrayElement) {
+            } else if (site instanceof CollectionElement collectionElement) {
                 ArithmeticExpr expr;
                 Var.LocalVar arr = null;
                 TermExpression index = null;
@@ -140,30 +138,30 @@ public class SelfArithmetic extends ExpressionBase {
                     case SelfMulti:
                     case SelfDiv:
                     case SelfMod:
-                        TermExpression old = arrayElement.visit(blockCompiler);
-                        arr = arrayElement.getProcessedArray();
+                        TermExpression old = collectionElement.visit(blockCompiler);
+                        arr = collectionElement.getProcessedCollection();
                         blockCompiler.lockRegister(arr);
-                        index = arrayElement.getProcessedIndex();
+                        index = collectionElement.getProcessedIndex();
                         blockCompiler.lockRegister(index);
 
                         expr = new ArithmeticExpr(ArithmeticExpr.Type.of(this.type.op), old, change).setSourceLocation(this.sourceLocation);
-                        var v = new ArrayPut(arr, index, expr).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
+                        var v = collectionElement.toPutElement(arr, index, expr).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
                         if (localVar != null) {
                             Assign.to(localVar, v).termVisit(blockCompiler);
                         }
                         break;
                     case IncPost:
                     case DecPost:
-                        Var.LocalVar temp = localVar != null ? localVar : blockCompiler.acquireTempVar(arrayElement);
+                        Var.LocalVar temp = localVar != null ? localVar : blockCompiler.acquireTempVar(collectionElement);
 
-                        arrayElement.outputToLocalVar(temp, blockCompiler);
-                        arr = arrayElement.getProcessedArray();
+                        collectionElement.outputToLocalVar(temp, blockCompiler);
+                        arr = collectionElement.getProcessedCollection();
                         blockCompiler.lockRegister(arr);
-                        index = arrayElement.getProcessedIndex();
+                        index = collectionElement.getProcessedIndex();
                         blockCompiler.lockRegister(index);
 
                         expr = new ArithmeticExpr(ArithmeticExpr.Type.of(this.type.op), temp, change).setSourceLocation(this.sourceLocation);
-                        new ArrayPut(arr, index, expr).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                        collectionElement.toPutElement(arr, index, expr).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                         break;
                 }
 

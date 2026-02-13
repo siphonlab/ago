@@ -4,8 +4,7 @@ import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import org.siphonlab.ago.compiler.expression.*;
-import org.siphonlab.ago.compiler.expression.array.ArrayElement;
-import org.siphonlab.ago.compiler.expression.array.ArrayPut;
+import org.siphonlab.ago.compiler.expression.array.CollectionElement;
 
 
 public abstract class SelfOpExpr extends ExpressionBase {
@@ -38,15 +37,15 @@ public abstract class SelfOpExpr extends ExpressionBase {
                 if (localVar != null && localVar != var) {
                     Assign.to(localVar, var).termVisit(blockCompiler);
                 }
-            } else if (site instanceof ArrayElement arrayElement) {
-                var old = arrayElement.visit(blockCompiler);
-                var arr = arrayElement.getProcessedArray();
+            } else if (site instanceof CollectionElement collectionElement) {
+                var old = collectionElement.visit(blockCompiler);
+                var arr = collectionElement.getProcessedCollection();
                 blockCompiler.lockRegister(arr);
-                var index = arrayElement.getProcessedIndex();
+                var index = collectionElement.getProcessedIndex();
                 blockCompiler.lockRegister(index);
                 var expr = expr(old, value);
                 var r = expr.setSourceLocation(this.sourceLocation).visit(blockCompiler);
-                new ArrayPut(arr, index, r).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                collectionElement.toPutElement(arr, index, r).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                 blockCompiler.releaseRegister(arr);
                 blockCompiler.releaseRegister(index);
                 if (localVar != null) {

@@ -46,6 +46,12 @@ public class Root extends Namespace<Package> {
     private ClassDef VIA_OBJECT_INTERFACE;
     private ClassDef FORK_CONTEXT_INTERFACE;
 
+    private ClassDef READONLY_LIST_CLASS;
+    private ClassDef ANY_READONLY_LIST_CLASS;
+    private ClassDef READWRITE_LIST_CLASS;
+    private ClassDef ANY_READWRITE_LIST_CLASS;
+    private ClassDef MAP_CLASS;
+    private ClassDef ANY_MAP_CLASS;
 
     private ClassDef NULL_CLASS = new ClassDef(TypeCode.NULL.toString()) {
         {
@@ -355,12 +361,11 @@ public class Root extends Namespace<Package> {
             throw new RuntimeException(e);
         }
     }
-
     public ClassDef getIteratorInterface() {
         if (ITERATOR_INTERFACE != null) return ITERATOR_INTERFACE;
-        ClassDef iterableInterface = findByFullname("lang.Iterator");
+        ClassDef iterator = findByFullname("lang.Iterator");
         try {
-            return ITERATOR_INTERFACE = iterableInterface.instantiate(new InstantiationArguments(iterableInterface.typeParamsContext, new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}), null);
+            return ITERATOR_INTERFACE = iterator.instantiate(new InstantiationArguments(iterator.typeParamsContext, new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -392,4 +397,61 @@ public class Root extends Namespace<Package> {
     public List<ParameterizedClassDef.PlaceHolder> getParameterizedClassDefPlaceHolders() {
         return parameterizedClassDefPlaceHolders;
     }
+
+    public synchronized ClassDef getReadonlyListClass(){
+        if(READONLY_LIST_CLASS != null) return READONLY_LIST_CLASS;
+        return READONLY_LIST_CLASS = findByFullname("lang.ReadOnlyList");
+    }
+
+    public ClassDef getAnyReadonlyList() {
+        if (ANY_READONLY_LIST_CLASS != null) return ANY_READONLY_LIST_CLASS;
+        try {
+            return ANY_READONLY_LIST_CLASS = getReadonlyListClass().instantiate(
+                    new InstantiationArguments(READONLY_LIST_CLASS.typeParamsContext,
+                            new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}),
+                    null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public synchronized ClassDef getReadwriteListClass(){
+        if(READWRITE_LIST_CLASS != null) return READWRITE_LIST_CLASS;
+        return READWRITE_LIST_CLASS = findByFullname("lang.ReadWriteList");
+    }
+
+    public ClassDef getAnyReadwriteList() {
+        if (ANY_READWRITE_LIST_CLASS != null) return ANY_READWRITE_LIST_CLASS;
+        try {
+            return ANY_READWRITE_LIST_CLASS = getReadwriteListClass().instantiate(
+                    new InstantiationArguments(READWRITE_LIST_CLASS.typeParamsContext,
+                            new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}),
+                    null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public synchronized ClassDef getMapClass(){
+        if(MAP_CLASS != null) return MAP_CLASS;
+        return MAP_CLASS = findByFullname("lang.Map");
+    }
+
+    public ClassDef getAnyMap() {
+        if (ANY_MAP_CLASS != null) return ANY_MAP_CLASS;
+        try {
+            // Map has two type parameters: key and value
+            InstantiationArguments args = new InstantiationArguments(
+                    MAP_CLASS.typeParamsContext,
+                    new ClassRefLiteral[]{
+                            new ClassRefLiteral(this.getAnyClass()),   // key type
+                            new ClassRefLiteral(this.getAnyClass())    // value type
+                    });
+            return ANY_MAP_CLASS = MAP_CLASS.instantiate(args, null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
 }
