@@ -672,7 +672,9 @@ public class AgoClassLoader implements ClassManager{
             if(!header.isInGenericTemplate(headers)) {
                 agoFunction.setCode(new CodeTransformer(this, header, headers).transformCode());
             } else {
-//                agoFunction.setCode(header.compiledCode);
+                int[] arr = new int[header.compiledCode.remaining() / 4];
+                header.compiledCode.duplicate().asIntBuffer().get(arr);
+                agoFunction.setCode(arr);
             }
             agoFunction.setSourceMap(header.sourceMap);
             // switch table
