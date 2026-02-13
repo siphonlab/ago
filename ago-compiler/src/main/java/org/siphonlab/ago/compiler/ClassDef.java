@@ -946,6 +946,10 @@ public class ClassDef extends ClassContainer {
 //                return this.asAssignableFrom(lBound);
 //            }
 //        }
+        if(anotherClass.getGenericSource() != null && this.isGenericTemplate()){        // Template -> GenericSource
+            return this.asThatOrSuperOfThat(anotherClass.getTemplateClass());
+        }
+        
         if(anotherClass instanceof ParameterizedClassDef p){
             return this.asThatOrSuperOfThat(p.baseClass, visited);          // if this is ParameterizedClassDef too, see ParameterizedClassDef.asAssignableFrom
         }
@@ -976,17 +980,19 @@ public class ClassDef extends ClassContainer {
     }
 
     public Set<ClassDef> getAllInterfaces() {
-        if(this.implementedInterfaces == null) return null;
-
         Set<ClassDef> interfaces = new HashSet<>();
-        var stack = new ArrayDeque<>(this.implementedInterfaces);
-        while(!stack.isEmpty()){
-            var el = stack.pop();
-            if(!interfaces.contains(el)){
-                interfaces.add(el);
-                if(el.implementedInterfaces != null)
-                    stack.addAll(el.implementedInterfaces);
+        for(var cls = this; cls != null; cls = cls.superClass){
+            if(cls.implementedInterfaces == null) continue;
+            var stack = new ArrayDeque<>(cls.implementedInterfaces);
+            while(!stack.isEmpty()){
+                var el = stack.pop();
+                if(!interfaces.contains(el)){
+                    interfaces.add(el);
+                    if(el.implementedInterfaces != null)
+                        stack.addAll(el.implementedInterfaces);
+                }
             }
+            if(cls == cls.superClass) break;
         }
         return interfaces;
     }

@@ -188,6 +188,10 @@ public class AgoClass extends Instance<MetaClass>{
 //                return this.asAssignableFrom(lBound);
 //            }
 //        }
+        if(this.isGenericTemplate() && anotherClass.getConcreteTypeInfo() instanceof GenericArgumentsInfo gi){
+            return this.asThatOrSuperOfThat(gi.getTemplateClass());
+        }
+
         if(anotherClass.concreteTypeInfo instanceof ParameterizedClassInfo p){
             return this.asThatOrSuperOfThat(p.getParameterizedBaseClass(), visited);
         }
