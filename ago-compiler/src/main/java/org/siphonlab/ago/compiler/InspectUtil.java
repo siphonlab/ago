@@ -4,6 +4,8 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Modifier;
 import org.siphonlab.ago.opcode.OpCode;
 
+import java.util.stream.Collectors;
+
 public class InspectUtil {
 
     public static String inspect(Root root){
@@ -45,6 +47,9 @@ public class InspectUtil {
         }
         if(classDef.superClass != null && classDef.superClass != classDef.getRoot().getObjectClass()) {
             sb.append(" from ").append(classDef.superClass.getFullname());
+        }
+        if(classDef.getInterfaces() != null && !classDef.getInterfaces().isEmpty()){
+            sb.append(" with ").append(classDef.getInterfaces().stream().map(Namespace::getFullname).collect(Collectors.joining(",")));
         }
         if(classDef instanceof FunctionDef functionDef){
             sb.append("()").append(" as ").append(functionDef.getResultType().getFullname()).append(':').append(functionDef.getNativeResultSlot());

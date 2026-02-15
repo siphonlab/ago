@@ -3,22 +3,67 @@ class KeyValuePair<Key, Value>{
     public value as Value {get;}
 }
 
-interface ReadWriteMap<Key,Value> with Collection<KeyValuePair<Key, Value>{
+interface ReadWriteMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
     fun get#key(index as Key) as Value;
-    fun put#key(index as Key, value as Value);
+    fun put(index as Key, value as Value);
     fun keys#get() as ReadOnlyCollection<Key>;
     fun values#get() as ReadOnlyCollection<Value>;
     fun containsKey(key as Key) as boolean;
     fun remove(key as Key) as boolean;
+
+    fun count#get() as int;
+    fun isReadOnly() as boolean;
+    fun clear();
 }
 
-interface ReadOnlyMap<Key,Value> with Collection<KeyValuePair<Key, Value>{
+interface ReadOnlyMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
     fun get#key(index as Key) as Value;
     fun keys#get() as ReadOnlyCollection<Key>;
     fun values#get() as ReadOnlyCollection<Value>;
     fun containsKey(key as Key) as boolean;
+
+    fun count#get() as int;
+    fun isReadOnly() as boolean;
+    fun clear();
 }
 
-abstract Map<Key, Value> from ReadWriteMap<T>, ReadOnlyMap<T>{
+abstract class Map<Key, Value> with ReadWriteMap<Key, Value>, ReadOnlyMap<Key, Value>{
 
+}
+
+native class HashMap<Key, Value> from Map<Key, Value>{
+    fun new(){
+        init()
+    }
+
+    private fun init() native "org.siphonlab.ago.lang.AgoHashMap.create";
+
+    override count#get() as int native "org.siphonlab.ago.lang.AgoHashMap.getCount";
+    override isReadOnly() as boolean native "org.siphonlab.ago.lang.AgoHashMap.isReadOnly";
+    override clear() native "org.siphonlab.ago.lang.AgoHashMap.clear";
+
+    override get#key(index as Key) as Value native "org.siphonlab.ago.lang.AgoHashMap$Get.get";
+    override put(index as Key, value as Value) native "org.siphonlab.ago.lang.AgoHashMap$Put.put";
+    override keys#get() as ReadOnlyCollection<Key> native "org.siphonlab.ago.lang.AgoHashMap.keys";
+    override values#get() as ReadOnlyCollection<Value> native "org.siphonlab.ago.lang.AgoHashMap.values";
+    override containsKey(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.containsKey";
+    override remove(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.removeByKey";
+
+    native class HashMapIterator with Iterator<KeyValuePair<Key, Value>> {
+        fun new() {create()}
+        private fun create() native "org.siphonlab.ago.lang.AgoHashMap.Iterator_create";
+        override hasNext() as boolean native "org.siphonlab.ago.lang.AgoHashMap.Iterator_hasNext";
+        override next() as KeyValuePair<Key, Value> native "org.siphonlab.ago.lang.AgoHashMap.Iterator_next";
+    }
+
+    override iterator() as Iterator<KeyValuePair<Key, Value>>{
+        return new HashMapIterator();
+    }
+}
+
+fun main(){
+    var m = new HashMap<int, string>();
+    m.put(1, 'John')
+    m.put(100, 'Jack')
+    Trace.print(m.get(100))
 }

@@ -196,4 +196,9 @@ public class BootstrapTest {
         run("bootstrap/26.list.ago");
     }
 
+    @Test @Tag("generic")
+    public void map_test() throws CompilationError, IOException {
+        run("bootstrap/27.map.ago");
+    }
+
 }

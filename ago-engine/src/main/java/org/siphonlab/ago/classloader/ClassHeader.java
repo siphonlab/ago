@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static org.siphonlab.ago.AgoClass.*;
 import static org.siphonlab.ago.TypeCode.OBJECT;
@@ -299,8 +298,8 @@ public class ClassHeader {
         if (this.parent != null && !this.fullname.startsWith(this.parent.fullname)) {  // inherited child
             return this;
         }
-        if(!typeArguments.isAffected(this, headers)){
-            typeArguments.isAffected(this, headers);
+        if(!typeArguments.canApplyToTemplate(this, headers)){
+            typeArguments.canApplyToTemplate(this, headers);
             return this;
         }
         var existed = this.findInstantiatedClass(typeArguments);
@@ -617,7 +616,7 @@ public class ClassHeader {
     }
 
     public boolean isAffectedBy(Map<String, ClassHeader> headers, GenericTypeArguments genericTypeArguments){
-        return genericTypeArguments.isAffected(this, headers);
+        return genericTypeArguments.canApplyToTemplate(this, headers);
     }
 
     /**
@@ -657,14 +656,42 @@ public class ClassHeader {
                 return existedArgs;
             }
         }
-        if(!args.isAffected(this,headers)) return null;
+        var remappedValue = false;
+        if(existedArgs.valuesMatch(args, headers)){
+            existedArgs = mapTypeValues(existedArgs, args, headers);
+            remappedValue = true;
+        }
+        if(!args.canApplyToTemplate(this,headers)) {
+            if(remappedValue) return existedArgs;
+            return null;
+        }
         if(args.sourceTemplate.belongsTo(existedArgs.sourceTemplate)){
             return existedArgs.applyChild(args, headers);
         } else if(existedArgs.sourceTemplate.belongsTo(args.sourceTemplate)){
             return args.applyChild(existedArgs, headers);
         } else {
+            if(remappedValue) return existedArgs;
             return existedArgs.size() >= args.size() ? existedArgs : args;
         }
+    }
+
+    private GenericTypeArguments mapTypeValues(GenericTypeArguments existedTypeArguments, GenericTypeArguments instantiationArguments, Map<String, ClassHeader> headers) {
+        var typeArgumentsArray = existedTypeArguments.getTypeArgumentsArray();
+        var newArray = new TypeDesc[typeArgumentsArray.length];
+        for (int i = 0; i < typeArgumentsArray.length; i++) {
+            var typeDesc = typeArgumentsArray[i];
+            var c = headers.get(typeDesc.getClassName());
+            var b = false;
+            if (c.genericSource != null) {
+                var innerArgs = c.genericSource.typeArguments();
+                if (instantiationArguments.canApplyToTemplate(c, headers) || innerArgs.valuesMatch(instantiationArguments, headers)) {
+                    b = true;
+                    newArray[i] = typeDesc.applyTemplate(headers, instantiationArguments);
+                }
+            }
+            if(!b) newArray[i] = typeDesc;
+        }
+        return new GenericTypeArguments(existedTypeArguments.getSourceTemplate(), newArray, headers);
     }
 
     private ClassHeader findOrCreateInstantiation(Map<String, ClassHeader> headers, GenericTypeArguments typeArguments){

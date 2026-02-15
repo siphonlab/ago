@@ -225,20 +225,35 @@ public class InstantiationArguments {
         return this.typeMapping.size();
     }
 
-    public boolean isAffected(ClassDef classDef) {
-        if(classDef.getGenericSource() != null){
-            return isAffected(classDef.getGenericSource().originalTemplate());
+    /**
+     * determine whether this arguments may apply to given templateClass.
+     * @param templateClass
+     * @return true - there are some args can apply to type param of the template class
+     */
+    public boolean canApplyToTemplate(ClassDef templateClass) {
+        if(templateClass.getGenericSource() != null){
+            GenericSource genericSource = templateClass.getGenericSource();
+            if(canApplyToTemplate(genericSource.originalTemplate())) return true;
+            InstantiationArguments a = genericSource.instantiationArguments();
+            if(a.intermediateClass != null && canApplyToTemplate(a.intermediateClass)) return true;
         }
-        if(classDef == this.sourceTemplate || classDef.belongsTo(this.getSourceTemplate())){
+        if(templateClass == this.sourceTemplate || templateClass.belongsTo(this.getSourceTemplate())){
             return true;
         }
         if(this.otherTemplates != null){
             for (var template : this.otherTemplates) {
-                if(classDef == template || classDef.belongsTo(template)){
+                if(templateClass == template || templateClass.belongsTo(template)){
                     return true;
                 }
             }
         }
+//        for (ClassRefLiteral classRefLiteral : this.getTypeArgumentsArray()) {
+//            GenericSource genericSource = classRefLiteral.getClassDefValue().getGenericSource();
+//            if(genericSource != null && genericSource.instantiationArguments().isAffectedToTemplate(templateClass)){
+//                return true;
+//            }
+//        }
+
         return false;
     }
 
@@ -259,5 +274,17 @@ public class InstantiationArguments {
             }
         }
         return null;
+    }
+
+    public boolean valuesMatch(InstantiationArguments args) {
+        for (ClassRefLiteral classRefLiteral : this.getTypeArgumentsArray()) {
+            var c = classRefLiteral.getClassDefValue();
+            if(c.getGenericSource() != null) {
+                InstantiationArguments innerArgs = c.getGenericSource().instantiationArguments();
+                if(args.canApplyToTemplate(c)) return true;
+                if(innerArgs.valuesMatch(args)) return true;
+            }
+        }
+        return false;
     }
 }

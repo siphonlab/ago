@@ -369,7 +369,7 @@ public class ClassDef extends ClassContainer {
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: inherit child classes".formatted(this));
 
         createConstructorForFieldsInitializers();
-        createGetterAndSetter();
+        if(this.getGenericSource() == null) createGetterAndSetter();
 
         var superClass = this.superClass;
         if(superClass != null && this.superClass != this) {
@@ -949,7 +949,7 @@ public class ClassDef extends ClassContainer {
         if(anotherClass.getGenericSource() != null && this.isGenericTemplate()){        // Template -> GenericSource
             return this.asThatOrSuperOfThat(anotherClass.getTemplateClass());
         }
-        
+
         if(anotherClass instanceof ParameterizedClassDef p){
             return this.asThatOrSuperOfThat(p.baseClass, visited);          // if this is ParameterizedClassDef too, see ParameterizedClassDef.asAssignableFrom
         }
@@ -1449,7 +1449,11 @@ public class ClassDef extends ClassContainer {
         var instantiationArguments = this.getGenericSource().instantiationArguments();
         List<ClassDef> list = new ArrayList<>();
         for (ClassDef i : templ.getInterfaces()) {
-            ClassDef instantiate = i.instantiate(instantiationArguments, null);
+            var existed = new MutableBoolean();
+            ClassDef instantiate = i.instantiate(instantiationArguments, existed);
+            if(existed.isFalse() && instantiate instanceof GenericConcreteType genericConcreteType){
+                this.registerConcreteType(genericConcreteType);
+            }
             list.add(instantiate);
         }
         this.setInterfaces(list);        // TODO parameterized interfaces
@@ -1692,7 +1696,7 @@ public class ClassDef extends ClassContainer {
     }
 
     public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
-        return instantiationArguments.isAffected(this);
+        return instantiationArguments.canApplyToTemplate(this);
     }
 
     /**
@@ -1727,10 +1731,15 @@ public class ClassDef extends ClassContainer {
         return null;
     }
 
-    public InstantiationArguments mixInstantiationArgs(InstantiationArguments args) {
+    public InstantiationArguments mixInstantiationArgs(InstantiationArguments args) throws CompilationError {
         assert (this.getGenericSource() != null);
         var existedArgs = this.getGenericSource().instantiationArguments();
         ClassDef mySourceTmpl = this.getGenericSource().originalTemplate();
+        var remappedValue = false;
+        if(existedArgs.valuesMatch(args)){
+            existedArgs = mapTypeValues(existedArgs, args);
+            remappedValue = true;
+        }
         if(existedArgs.getSourceTemplate() == mySourceTmpl){
             if(existedArgs.isIntermediate()) {
                 existedArgs = existedArgs.applyIntermediate(args);
@@ -1748,8 +1757,28 @@ public class ClassDef extends ClassContainer {
         } else if(existedArgs.getSourceTemplate().belongsTo(args.getSourceTemplate())){
             return args.applyChild(existedArgs);
         } else {
+            if(remappedValue) return existedArgs;
             return existedArgs.size() >= args.size() ? existedArgs : args;
         }
+    }
+
+    private InstantiationArguments mapTypeValues(InstantiationArguments existedTypeArguments, InstantiationArguments instantiationArguments) throws CompilationError {
+        ClassRefLiteral[] typeArgumentsArray = existedTypeArguments.getTypeArgumentsArray();
+        ClassRefLiteral[] newArray = new ClassRefLiteral[typeArgumentsArray.length];
+        for (int i = 0; i < typeArgumentsArray.length; i++) {
+            ClassRefLiteral classRefLiteral = typeArgumentsArray[i];
+            var c = classRefLiteral.getClassDefValue();
+            var b = false;
+            if (c.getGenericSource() != null) {
+                InstantiationArguments innerArgs = c.getGenericSource().instantiationArguments();
+                if (instantiationArguments.canApplyToTemplate(c) || innerArgs.valuesMatch(instantiationArguments)) {
+                    b = true;
+                    newArray[i] = new ClassRefLiteral(c.instantiate(instantiationArguments, null));
+                }
+            }
+            if(!b) newArray[i] = classRefLiteral;
+        }
+        return new InstantiationArguments(existedTypeArguments.getSourceTemplate().getTypeParamsContext(), newArray);
     }
 
     // compile fields initializer codes

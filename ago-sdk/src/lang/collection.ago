@@ -63,32 +63,32 @@ native class LinkedList<E> from List<E>{
     }
 }
 
-native class ArrayList<E> from List<E>{
-    fun new(){
-        init()
+    native class ArrayList<E> from List<E>{
+        fun new(){
+            init()
+        }
+
+        private fun init() native "org.siphonlab.ago.lang.ArrayList.create";
+
+        override count#get() as int native "org.siphonlab.ago.lang.ArrayList.getCount";
+        override isReadOnly() as boolean native "org.siphonlab.ago.lang.ArrayList.isReadOnly";
+        override add(item as E) native "org.siphonlab.ago.lang.ArrayList.add";
+        override clear() native "org.siphonlab.ago.lang.ArrayList.clear";
+        override contains(item as E) as boolean native "org.siphonlab.ago.lang.ArrayList.contains";
+        override copyTo(array as E[], arrayIndex as int) native "org.siphonlab.ago.lang.ArrayList.copyTo";
+        override remove(item as E) as boolean native "org.siphonlab.ago.lang.ArrayList.remove";
+
+        override get#index(index as int) as E native "org.siphonlab.ago.lang.ArrayList.getAtIndex";
+        override set#index(index as int, value as E) native "org.siphonlab.ago.lang.ArrayList.setAtIndex";
+
+        native class ListIterator with Iterator<E> {
+            fun new() {create()}
+            private fun create() native "org.siphonlab.ago.lang.ArrayList.Iterator_create";
+            override hasNext() as boolean native "org.siphonlab.ago.lang.ArrayList.Iterator_hasNext";
+            override next() as E native "org.siphonlab.ago.lang.ArrayList.Iterator_next";
+        }
+
+        override iterator() as ListIterator{
+            return new ListIterator();
+        }
     }
-
-    private fun init() native "org.siphonlab.ago.lang.ArrayList.create";
-
-    override count#get() as int native "org.siphonlab.ago.lang.ArrayList.getCount";
-    override isReadOnly() as boolean native "org.siphonlab.ago.lang.ArrayList.isReadOnly";
-    override add(item as E) native "org.siphonlab.ago.lang.ArrayList.add";
-    override clear() native "org.siphonlab.ago.lang.ArrayList.clear";
-    override contains(item as E) as boolean native "org.siphonlab.ago.lang.ArrayList.contains";
-    override copyTo(array as E[], arrayIndex as int) native "org.siphonlab.ago.lang.ArrayList.copyTo";
-    override remove(item as E) as boolean native "org.siphonlab.ago.lang.ArrayList.remove";
-
-    override get#index(index as int) as E native "org.siphonlab.ago.lang.ArrayList.getAtIndex";
-    override set#index(index as int, value as E) native "org.siphonlab.ago.lang.ArrayList.setAtIndex";
-
-    native class ListIterator with Iterator<E> {
-        fun new() {create()}
-        private fun create() native "org.siphonlab.ago.lang.ArrayList.Iterator_create";
-        override hasNext() as boolean native "org.siphonlab.ago.lang.ArrayList.Iterator_hasNext";
-        override next() as E native "org.siphonlab.ago.lang.ArrayList.Iterator_next";
-    }
-
-    override iterator() as ListIterator{
-        return new ListIterator();
-    }
-}

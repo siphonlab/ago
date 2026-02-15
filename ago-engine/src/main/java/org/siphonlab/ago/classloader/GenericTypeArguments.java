@@ -1,7 +1,6 @@
 package org.siphonlab.ago.classloader;
 
 import org.agrona.collections.Int2IntHashMap;
-import org.apache.mina.util.IdentityHashSet;
 import org.siphonlab.ago.TypeCode;
 
 import java.util.*;
@@ -291,18 +290,18 @@ public class GenericTypeArguments {
         return this.typeMapping.size();
     }
 
-    public boolean isAffected(ClassHeader classHeader, Map<String, ClassHeader> headers) {
-        if(classHeader.genericSource != null){
-            return isAffected(classHeader.genericSource.sourceTemplate(), headers);
+    public boolean canApplyToTemplate(ClassHeader templateClass, Map<String, ClassHeader> headers) {
+        if(templateClass.genericSource != null){
+            return canApplyToTemplate(templateClass.genericSource.sourceTemplate(), headers);
         }
-        if(classHeader == this.sourceTemplate || classHeader.belongsTo(this.sourceTemplate)){
+        if(templateClass == this.sourceTemplate || templateClass.belongsTo(this.sourceTemplate)){
             return true;
         }
         if(this.otherTemplates != null){
             for (String s : this.otherTemplates) {
                 var template = headers.get(s);
                 assert template != null;
-                if(classHeader == template || classHeader.belongsTo(template)){
+                if(templateClass == template || templateClass.belongsTo(template)){
                     return true;
                 }
             }
@@ -334,6 +333,20 @@ public class GenericTypeArguments {
             }
         }
         return null;
+    }
+
+    public boolean valuesMatch(GenericTypeArguments args, Map<String, ClassHeader> headers) {
+        for (var typeDesc : this.getTypeArgumentsArray()) {
+            if(typeDesc.getTypeCode() == TypeCode.OBJECT) {
+                var c = headers.get(typeDesc.getClassName());
+                if (c.genericSource != null) {
+                    var innerArgs = c.genericSource.typeArguments();
+                    if (args.canApplyToTemplate(c, headers)) return true;
+                    if (innerArgs.valuesMatch(args, headers)) return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

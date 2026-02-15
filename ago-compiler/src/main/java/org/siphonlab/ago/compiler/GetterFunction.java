@@ -23,7 +23,6 @@ public class GetterFunction extends FunctionDef{
         //this.setGenericSource(getter.getGenericSource());
         int visibility = Compiler.commonVisibility(unit, getterContext.commonVisiblility(), Compiler.ModifierTarget.Method);
         this.setModifiers(visibility | AgoClass.GETTER);
-        this.setResultType(field.getType());
         this.setSourceLocation(unit.sourceLocation(getterContext));
         this.setCompilingStage(CompilingStage.ParseFields);
     }
@@ -43,6 +42,7 @@ public class GetterFunction extends FunctionDef{
             return true;
         }
 
+        this.setResultType(field.getType());
         this.createFunctionInterface();
         this.createFieldsOfTrait();
 
