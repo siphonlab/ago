@@ -13,8 +13,9 @@ import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 public class ArrayPut extends ExpressionBase {
 
     private final Expression array;
-    private final Expression indexExpr;
-    private final Expression value;
+    private Expression indexExpr;
+    private Expression value;
+    private final ClassDef elementType;
 
     public ArrayPut(Expression array, Expression indexExpr, Expression value) throws CompilationError {
         array = array.transform().setParent(this);
@@ -24,8 +25,16 @@ public class ArrayPut extends ExpressionBase {
             throw new TypeMismatchError("'%s' is not an array".formatted(array), array.getSourceLocation());
         }
         this.array = array;
+        this.elementType = arrayType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+        this.indexExpr = indexExpr;
+        this.value = value;
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
         this.indexExpr = new Cast(indexExpr, PrimitiveClassDef.INT).transform().setParent(this);
-        this.value = value.transform().setParent(this);
+        this.value = new Cast(value, this.elementType).setParent(this).transform();
+        return this;
     }
 
     public ArrayPut(ArrayElement arrayElement, Expression value) throws CompilationError {
@@ -34,7 +43,7 @@ public class ArrayPut extends ExpressionBase {
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return value.inferType();
+        return elementType;
     }
 
     @Override

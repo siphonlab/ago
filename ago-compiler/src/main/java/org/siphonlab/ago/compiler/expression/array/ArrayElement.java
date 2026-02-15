@@ -16,7 +16,7 @@ import java.util.Objects;
 public class ArrayElement extends ExpressionBase implements Assign.Assignee, CollectionElement {
 
     private final Expression array;
-    private final Expression indexExpr;
+    private Expression indexExpr;
     private final ClassDef arrayType;
     private final ClassDef elementType;
     private Var.LocalVar processedArray;
@@ -34,7 +34,13 @@ public class ArrayElement extends ExpressionBase implements Assign.Assignee, Col
         } else {
             elementType = arrayType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
         }
+        this.indexExpr = indexExpr;
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
         this.indexExpr = new Cast(indexExpr.setParent(this).transform(), PrimitiveClassDef.INT).transform();
+        return this;
     }
 
     @Override

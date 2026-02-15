@@ -66,4 +66,8 @@ fun main(){
     m.put(1, 'John')
     m.put(100, 'Jack')
     Trace.print(m.get(100))
+
+    m[2] = "Sally"
+    m[3] = m[2] + ',' + m[1]
+    Trace.print(m[3])
 }

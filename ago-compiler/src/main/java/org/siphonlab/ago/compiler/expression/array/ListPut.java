@@ -15,9 +15,10 @@ import java.util.Objects;
 public class ListPut extends ExpressionBase {
 
     private final Expression list;
-    private final Expression indexExpr;
-    private final Expression value;
+    private Expression indexExpr;
+    private Expression value;
     private final FunctionDef accessor;
+    private final ClassDef elementType;
 
     public ListPut(Expression list, Expression indexExpr, Expression value) throws CompilationError {
         list = list.transform().setParent(this);
@@ -27,9 +28,17 @@ public class ListPut extends ExpressionBase {
             throw new SyntaxError("writable list expected", list.getSourceLocation());
         }
         this.list = list;
-        this.indexExpr = new Cast(indexExpr, PrimitiveClassDef.INT).transform().setParent(this);
-        this.value = value.transform().setParent(this);
+        this.elementType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+        this.indexExpr = indexExpr;
+        this.value = value;
         this.accessor = listType.findMethod("set#index");
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        this.indexExpr = new Cast(indexExpr, PrimitiveClassDef.INT).transform().setParent(this);
+        this.value = new Cast(value, this.elementType).setParent(this).transform();
+        return this;
     }
 
     public ListPut(ListElement listElement, Expression value) throws CompilationError {
@@ -38,7 +47,7 @@ public class ListPut extends ExpressionBase {
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return value.inferType();
+        return this.elementType;
     }
 
     @Override

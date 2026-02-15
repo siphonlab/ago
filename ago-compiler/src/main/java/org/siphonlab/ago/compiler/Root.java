@@ -50,8 +50,11 @@ public class Root extends Namespace<Package> {
     private ClassDef ANY_READONLY_LIST_CLASS;
     private ClassDef READWRITE_LIST_CLASS;
     private ClassDef ANY_READWRITE_LIST_CLASS;
-    private ClassDef MAP_CLASS;
-    private ClassDef ANY_MAP_CLASS;
+
+    private ClassDef READONLY_MAP_CLASS;
+    private ClassDef ANY_READONLY_MAP_CLASS;
+    private ClassDef READWRITE_MAP_CLASS;
+    private ClassDef ANY_READWRITE_MAP_CLASS;
 
     private ClassDef NULL_CLASS = new ClassDef(TypeCode.NULL.toString()) {
         {
@@ -432,26 +435,46 @@ public class Root extends Namespace<Package> {
         }
     }
 
-    public synchronized ClassDef getMapClass(){
-        if(MAP_CLASS != null) return MAP_CLASS;
-        return MAP_CLASS = findByFullname("lang.Map");
+    public synchronized ClassDef getReadonlyMapClass() {
+        if (READONLY_MAP_CLASS != null) return READONLY_MAP_CLASS;
+        return READONLY_MAP_CLASS = findByFullname("ReadOnlyMap");
     }
 
-    public ClassDef getAnyMap() {
-        if (ANY_MAP_CLASS != null) return ANY_MAP_CLASS;
+    public ClassDef getAnyReadonlyMap() {
+        if (ANY_READONLY_MAP_CLASS != null) return ANY_READONLY_MAP_CLASS;
         try {
-            // Map has two type parameters: key and value
-            InstantiationArguments args = new InstantiationArguments(
-                    MAP_CLASS.typeParamsContext,
-                    new ClassRefLiteral[]{
-                            new ClassRefLiteral(this.getAnyClass()),   // key type
-                            new ClassRefLiteral(this.getAnyClass())    // value type
-                    });
-            return ANY_MAP_CLASS = MAP_CLASS.instantiate(args, null);
+            return ANY_READONLY_MAP_CLASS = getReadonlyMapClass().instantiate(
+                    new InstantiationArguments(READONLY_MAP_CLASS.typeParamsContext,
+                            new ClassRefLiteral[]{
+                                    new ClassRefLiteral(this.getAnyClass()),   // K
+                                    new ClassRefLiteral(this.getAnyClass())    // V
+                            }),
+                    null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
     }
+
+    public synchronized ClassDef getReadwriteMapClass() {
+        if (READWRITE_MAP_CLASS != null) return READWRITE_MAP_CLASS;
+        return READWRITE_MAP_CLASS = findByFullname("ReadWriteMap");
+    }
+
+    public ClassDef getAnyReadwriteMap() {
+        if (ANY_READWRITE_MAP_CLASS != null) return ANY_READWRITE_MAP_CLASS;
+        try {
+            return ANY_READWRITE_MAP_CLASS = getReadwriteMapClass().instantiate(
+                    new InstantiationArguments(READWRITE_MAP_CLASS.typeParamsContext,
+                            new ClassRefLiteral[]{
+                                    new ClassRefLiteral(this.getAnyClass()),   // K
+                                    new ClassRefLiteral(this.getAnyClass())    // V
+                            }),
+                    null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
 
 }

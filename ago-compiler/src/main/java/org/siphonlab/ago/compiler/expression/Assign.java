@@ -5,10 +5,7 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
-import org.siphonlab.ago.compiler.expression.array.ArrayElement;
-import org.siphonlab.ago.compiler.expression.array.ArrayPut;
-import org.siphonlab.ago.compiler.expression.array.ListElement;
-import org.siphonlab.ago.compiler.expression.array.ListPut;
+import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 import java.util.Objects;
@@ -61,6 +58,8 @@ public abstract class Assign extends ExpressionBase {
             return new ArrayPut(arrayElement, value);
         } else if(assignee instanceof ListElement listElement){
             return new ListPut(listElement, value);
+        } else if(assignee instanceof MapValue mapValue){
+            return new MapPut(mapValue, value);
         } else {
             throw new UnsupportedOperationException();
         }

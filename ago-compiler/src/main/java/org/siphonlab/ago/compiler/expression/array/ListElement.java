@@ -14,7 +14,7 @@ import java.util.Objects;
 public class ListElement extends ExpressionBase implements Assign.Assignee, CollectionElement {
 
     private final Expression list;
-    private final Expression indexExpr;
+    private Expression indexExpr;
     private final ClassDef listType;
     private final ClassDef elementType;
     private final FunctionDef accessor;
@@ -30,8 +30,14 @@ public class ListElement extends ExpressionBase implements Assign.Assignee, Coll
         }
         this.listType = listType;
         elementType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
-        this.indexExpr = new Cast(indexExpr.setParent(this).transform(), PrimitiveClassDef.INT).transform();
+        this.indexExpr = indexExpr;
         this.accessor = this.listType.findMethod("get#index");
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        this.indexExpr = new Cast(indexExpr.setParent(this).transform(), PrimitiveClassDef.INT).transform();
+        return this;
     }
 
     @Override

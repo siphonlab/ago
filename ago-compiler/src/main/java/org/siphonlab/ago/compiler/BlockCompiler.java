@@ -12,10 +12,7 @@ import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
-import org.siphonlab.ago.compiler.expression.array.ArrayCreate;
-import org.siphonlab.ago.compiler.expression.array.ArrayElement;
-import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
-import org.siphonlab.ago.compiler.expression.array.ListElement;
+import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
 import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
@@ -417,8 +414,10 @@ public class BlockCompiler {
             Root root = functionDef.getRoot();
             if(root.getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())) {
                 return new ArrayElement(obj, index).setSourceLocation(unit.sourceLocation(expression));
-            } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())){
+            } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())) {
                 return new ListElement(obj, index).setSourceLocation(unit.sourceLocation(expression));
+            } else if(root.getAnyReadwriteMap().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyMap().isThatOrSuperOfThat(obj.inferType())){
+                return new MapValue(obj, index).setSourceLocation(unit.sourceLocation(expression));
             } else {
                 throw new TypeMismatchError("an array, a List or a Map expected", unit.sourceLocation(elementExpr));
             }
