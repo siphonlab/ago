@@ -3,6 +3,7 @@ package org.siphonlab.ago.compiler;
 
 
 import org.agrona.collections.IntHashSet;
+import org.agrona.collections.LongHashSet;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.SourceLocation;
@@ -56,8 +57,8 @@ public class EnumDef extends ClassDef{
         // append fields into metaclass
         var metaClass = this.getMetaClassDef();
         var enumConstants = enumDeclarationContext.enumConstants().enumConstant();
-        int index = 0;
-        IntHashSet values = new IntHashSet();
+        long index = 0;
+        LongHashSet values = new LongHashSet();
         for (AgoParser.EnumConstantContext enumConstant : enumConstants) {
             var enumName = enumConstant.identifier().getText();
             if(metaFields.containsKey(enumName)){
@@ -69,12 +70,29 @@ public class EnumDef extends ClassDef{
                 enumValues.put(enumName, literalValue = createLiteral(index, unit.sourceLocation(enumConstant)));
                 values.add(index++);
             } else {
-                var v = Literal.parseIntegerLiteral(integerLiteral);
-                if(values.contains(v.value)){
-                    throw new DuplicatedError("value '%d' duplicated".formatted(v.value), unit.sourceLocation(integerLiteral));
+                var l = Literal.parseIntegerLiteral(integerLiteral);
+                if(l.getTypeCode() != this.enumBasePrimitiveType.getTypeCode()){
+                    l = (Literal<?>) new Cast(l, this.enumBasePrimitiveType, true).transform();
                 }
-                enumValues.put(enumName, literalValue = createLiteral(v.value,v.getSourceLocation()));
-                index = v.value + 1;
+
+                long v;
+                if(l instanceof IntLiteral intLiteral){
+                    v = intLiteral.value;
+                } else if(l instanceof LongLiteral longLiteral){
+                    v = longLiteral.value;
+                } else if(l instanceof ShortLiteral shortLiteral){
+                    v = shortLiteral.value;
+                } else if(l instanceof ByteLiteral byteLiteral){
+                    v = byteLiteral.value;
+                } else {
+                    throw new UnsupportedOperationException("literal '%s' not supported".formatted(l));
+                }
+
+                if(values.contains(v)){
+                    throw new DuplicatedError("value '%d' duplicated".formatted(v), unit.sourceLocation(integerLiteral));
+                }
+                enumValues.put(enumName, literalValue = l);
+                index = v + 1;
             }
 
             // create a new field in the meta class

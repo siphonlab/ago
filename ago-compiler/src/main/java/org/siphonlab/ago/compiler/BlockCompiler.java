@@ -515,11 +515,11 @@ public class BlockCompiler {
                         newLineWSCount = 0;
                     }
                 }
-                sb.append(text);     //TODO parse escaped string
+                sb.append(text);
             }
         }
         if(!sb.isEmpty()){
-            expressions.add(new StringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
+            expressions.add(new StringLiteral(LiteralParser.parseJsStringLiteral(sb.toString())).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
         }
         if(expressions.isEmpty()) return new StringLiteral("").setSourceLocation(unit.sourceLocation(lTemplateString));
         if(expressions.size() == 1) return expressions.getFirst();

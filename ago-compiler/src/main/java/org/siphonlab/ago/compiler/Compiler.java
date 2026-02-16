@@ -10,6 +10,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.Literal;
+import org.siphonlab.ago.compiler.expression.LiteralParser;
 import org.siphonlab.ago.compiler.expression.literal.ByteLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
@@ -178,7 +179,7 @@ public class Compiler {
     }
 
     public static String parseStringLiteral(TerminalNode stringLiteral){
-        return StringEscapeUtils.unescapeJava(StringUtils.trimQuotations(stringLiteral.getText(), 1)); //TODO unescape quote
+        return LiteralParser.parseJsStringLiteral(stringLiteral.getText());
     }
 
     void parseFields() throws CompilationError {

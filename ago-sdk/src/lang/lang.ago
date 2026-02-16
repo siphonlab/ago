@@ -317,6 +317,14 @@ class Trace{
 
         final fun print#double(number as double) native "org.siphonlab.ago.lang.Trace.print_double";
 
+        final fun print#char(number as char) native "org.siphonlab.ago.lang.Trace.print_char";
+
+        final fun print#short(number as short) native "org.siphonlab.ago.lang.Trace.print_short";
+
+        final fun print#byte(number as byte) native "org.siphonlab.ago.lang.Trace.print_byte";
+
+        final fun print#float(number as float) native "org.siphonlab.ago.lang.Trace.print_float";
+
         final fun print#obj(obj as Object){
             if(obj == null)
                 print#str("null")

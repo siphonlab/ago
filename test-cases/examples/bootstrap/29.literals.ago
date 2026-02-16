@@ -1,0 +1,21 @@
+fun main(){
+    Trace.print(c'A');        // 'A'
+
+    Trace.print(c'\n');      // '\n'
+    Trace.print(c'\x41');     // 'A'
+    Trace.print(c'\u0041');   // 'A'
+    Trace.print(c'\u{61}');   // 'a'
+
+    Trace.print(123.45);          // 123.45d
+    Trace.print(6.02e23F);       // 6.02E23f (Float)
+    Trace.print(0x1.921fb54442d18p+1); // Double
+    Trace.print(0X1.FP-2d);      // 0.5d (Double)
+
+    Trace.print(123);          // 123   (decimal)
+    Trace.print(0x1A3F);       // 6719  (hex)
+    Trace.print(0777);         // 511   (octal)
+    Trace.print(0b1101_0010);  // 210   (binary)
+    Trace.print(123L);         // 123   (decimal with long suffix)
+
+    Trace.print(0x10b)          // 16   (hex, byte)
+}

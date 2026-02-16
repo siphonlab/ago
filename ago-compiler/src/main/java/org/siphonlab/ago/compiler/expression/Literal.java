@@ -33,34 +33,44 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
 
     private static Literal<?> parse(AgoParser.LiteralContext literal, Root root){
         if(literal instanceof AgoParser.LIntegerContext lInteger){
-            // TODO
             AgoParser.IntegerLiteralContext integerLiteral = lInteger.integerLiteral();
-            IntLiteral s = parseIntegerLiteral(integerLiteral);
-            if (s != null)
-                return s;
+            return parseIntegerLiteral(integerLiteral);
         } else if(literal instanceof AgoParser.LStringContext lString) {
             var s = lString.STRING_LITERAL();
             String s1 = Compiler.parseStringLiteral(s);
             return new StringLiteral(s1);
         } else if(literal instanceof AgoParser.LCharContext lChar){
-            return new CharLiteral(Compiler.parseStringLiteral(lChar.CHAR_LITERAL()).charAt(0));
+            return new CharLiteral(LiteralParser.parseCharLiteral(lChar.CHAR_LITERAL().getText()));
         } else if(literal instanceof AgoParser.LNullContext lNullContext){
             return root.createNullLiteral();
         } else if(literal instanceof AgoParser.LBoolContext lBoolContext){
             return new BooleanLiteral(Boolean.parseBoolean(lBoolContext.getText()));
         } else if(literal instanceof AgoParser.LFloatContext floatContext){
-            return new DoubleLiteral(Double.parseDouble(floatContext.getText()));
+            return parseFloatLiteral(floatContext.floatLiteral());
         }
         throw new UnsupportedOperationException();
     }
 
-    public static IntLiteral parseIntegerLiteral(AgoParser.IntegerLiteralContext integerLiteral) {
-        if(integerLiteral instanceof AgoParser.IDecContext dec){
-            var s = dec.DECIMAL_LITERAL();
-            return new IntLiteral(Integer.parseInt(s.getText()));
+    public static Literal<?> parseIntegerLiteral(AgoParser.IntegerLiteralContext integerLiteral) {
+        var n = LiteralParser.parseIntegerLiteral(integerLiteral.getText());
+        if(n instanceof Integer i){
+            return new IntLiteral(i);
+        } else if(n instanceof Long l){
+            return new LongLiteral(l);
+        } else {
+            return new ByteLiteral((Byte)n);
         }
-        return null;
     }
+
+    public static Literal<?> parseFloatLiteral(AgoParser.FloatLiteralContext floatLiteral) {
+        var n = LiteralParser.parseFloatLiteral(floatLiteral.getText());
+        if(n instanceof Double d){
+            return new DoubleLiteral(d);
+        } else {
+            return new FloatLiteral((Float) n);
+        }
+    }
+
 
     @Override
     public ClassDef inferType() {

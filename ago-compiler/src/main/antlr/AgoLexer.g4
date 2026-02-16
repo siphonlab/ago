@@ -164,7 +164,7 @@ HEX_FLOAT_LITERAL: '0' [xX] (HexDigits '.'? | HexDigits? '.' HexDigits) [pP] [+-
 
 BOOL_LITERAL: 'true' | 'false';
 
-CHAR_LITERAL: '\'' (~['\\\r\n] | EscapeSequence) '\'';
+CHAR_LITERAL: 'c' '\'' (~['\\\r\n] | '\\' EscapeSequence) '\'';      // in ago, char must starts with 'c', c'h'
 
 //STRING_LITERAL: '"' (~["\\\r\n] | EscapeSequence)* '"';
 STRING_LITERAL:

@@ -210,9 +210,17 @@ public class BootstrapTest {
     @Test
     public void templ_string_test() throws CompilationError, IOException {
         Util.run("bootstrap/28.template_string.ago");
+        Trace.printOutput();
         assertTrue(Trace.outputted(
                 "a + b =",
-                "    3"));
+                "    3",
+                "\"Hello", "World! AB\""));
     }
 
+    @Test
+    public void literal_test() throws CompilationError, IOException {
+        Util.run("bootstrap/29.literals.ago");
+        //Trace.printOutput();
+        assertTrue(Trace.outputted("A", "\n", "A", "A", "a", "123.45", "6.02E23", "3.141592653589793", "0.484375", "123", "6719", "511", "210", "123", "16"));
+    }
 }

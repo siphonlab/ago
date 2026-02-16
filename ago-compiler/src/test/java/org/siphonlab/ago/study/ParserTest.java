@@ -169,7 +169,7 @@ public class ParserTest {
         //parse("examples/bootstrap/6.array.ago");
         //parse("examples/bootstrap/9.parameterized_class.ago");
 
-        parse("../test-cases/examples/bootstrap/28.template_string.ago");
+        parse("../test-cases/examples/bootstrap/29.literals.ago");
     }
 
     private static void showAstTreeview(AgoParser parser, ParserRuleContext ast) throws InterruptedException, ExecutionException {

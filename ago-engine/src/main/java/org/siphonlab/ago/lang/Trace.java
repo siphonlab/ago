@@ -42,6 +42,30 @@ public class Trace {
         frame.finishVoid();
     }
 
+    public static void print_float(NativeFrame frame, float number){
+        lines.add(String.valueOf(number));
+        System.err.println(number);
+        frame.finishVoid();
+    }
+
+    public static void print_byte(NativeFrame frame, byte number){
+        lines.add(String.valueOf(number));
+        System.err.println(number);
+        frame.finishVoid();
+    }
+
+    public static void print_short(NativeFrame frame, short number){
+        lines.add(String.valueOf(number));
+        System.err.println(number);
+        frame.finishVoid();
+    }
+
+    public static void print_char(NativeFrame frame, char c){
+        lines.add(String.valueOf(c));
+        System.err.println(c);
+        frame.finishVoid();
+    }
+
     public static void print_classref(NativeFrame frame, int classRef){
         AgoClass agoClass = frame.getAgoEngine().getClass(classRef);
         lines.add(String.valueOf( agoClass));

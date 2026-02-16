@@ -4,5 +4,13 @@ fun main(){
 
     var s = `a + b =
                  ${a+b}`
+
     Trace.print(s)
+
+    var literal = "\"Hello\nWorld! \u0041\x42\"";
+    Trace.print(literal);
+    // Prints:
+    // Hello
+    // World! AB
+
 }
