@@ -1,7 +1,6 @@
 package org.siphonlab.ago.compiler;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -14,6 +13,7 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
+import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
 import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
 import org.siphonlab.ago.compiler.expression.math.Neg;
@@ -28,7 +28,6 @@ import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.ibm.icu.text.PluralRules.Operand.i;
 import static org.siphonlab.ago.compiler.ClassDef.findCommonType;
 import static org.siphonlab.ago.compiler.Unit.extractType;
 import static org.siphonlab.ago.compiler.Unit.extractTypeIfPossible;
@@ -363,12 +362,7 @@ public class BlockCompiler {
                     .setSourceLocation(unit.sourceLocation(expression));
         } else if (expression instanceof PrimaryExprContext primaryExprContext){
             if(primaryExprContext.primaryExpression() instanceof LiteralExprContext literalExpr) {
-                LiteralContext literal = literalExpr.literal();
-                if(literal instanceof LArrayContext larr) {
-                    return arrayLiteral(larr, null, null);
-                } else {
-                    return Literal.parse(literal, unit.getRoot(), unit.sourceLocation(literalExpr));
-                }
+                return literalExpr(literalExpr);
             } else if(primaryExprContext.primaryExpression() instanceof NamePathExprContext namePath){
                 return unit.resolveNamePath(this.functionDef, namePath.namePath(), NamePathResolver.ResolveMode.ForValue);
             }
@@ -469,6 +463,49 @@ public class BlockCompiler {
             return invokeFunctor(invokeFunctorContext);
         }
         throw new UnsupportedOperationException(expression.getText());
+    }
+
+    private Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
+        LiteralContext literal = literalExpr.literal();
+        if(literal instanceof LArrayContext larr) {
+            return arrayLiteral(larr, null, null);
+        } else if(literal instanceof LTemplateStringContext lTemplateString){
+            return templateString(lTemplateString);
+        } else {
+            return Literal.parse(literal, unit.getRoot(), unit.sourceLocation(literalExpr));
+        }
+    }
+
+    private Expression templateString(LTemplateStringContext lTemplateString) throws CompilationError {
+        List<Expression> expressions = new ArrayList<>();
+        var sb = new StringBuilder();
+        TemplateStringAtomContext startAtom = null, endAtom = null;
+        for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
+            ExpressionContext atomExpr = atom.expression();
+            if(atomExpr != null){
+                if(!sb.isEmpty()){
+                    expressions.add(new StringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
+                    sb.setLength(0);
+                    startAtom = null;
+                }
+                expressions.add(this.expression(atomExpr));
+            } else {
+                if(startAtom == null) startAtom = atom;
+                endAtom = atom;
+                sb.append(atom.TemplateStringAtom().getText());     //TODO parse escaped string
+            }
+        }
+        if(!sb.isEmpty()){
+            expressions.add(new StringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
+        }
+        if(expressions.isEmpty()) return new StringLiteral("").setSourceLocation(unit.sourceLocation(lTemplateString));
+        if(expressions.size() == 1) return expressions.getFirst();
+        var r = expressions.getFirst();
+        for (int j = 1; j < expressions.size(); j++) {
+            Expression expr = expressions.get(j);
+            r = new Concat(r, expr);
+        }
+        return r;
     }
 
 
@@ -691,7 +728,7 @@ public class BlockCompiler {
     Expression assignee(ExpressionContext expression) throws CompilationError {
         if (expression instanceof PrimaryExprContext primaryExprContext){
             if(primaryExprContext.primaryExpression() instanceof LiteralExprContext literalExpr) {
-                return Literal.parse(literalExpr.literal(), unit.getRoot(), unit.sourceLocation(literalExpr));
+                return literalExpr(literalExpr);
             } else if(primaryExprContext.primaryExpression() instanceof NamePathExprContext namePath){
                 return unit.resolveNamePath(this.functionDef, namePath.namePath(), NamePathResolver.ResolveMode.ForVariable);
             }

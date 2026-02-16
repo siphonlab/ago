@@ -5,6 +5,7 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
@@ -21,7 +22,10 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
         this.value = value;
     }
 
-    public static Literal<?> parse(AgoParser.LiteralContext literal, Root root, SourceLocation sourceLocation) {
+    public static Literal<?> parse(AgoParser.LiteralContext literal, Root root, SourceLocation sourceLocation) throws TypeMismatchError {
+        if(literal instanceof AgoParser.LTemplateStringContext){
+            throw new TypeMismatchError("template string not allowed for parameterized class and initializer", sourceLocation);
+        }
         var r = parse(literal, root);
         r.setSourceLocation(sourceLocation);
         return r;
@@ -34,10 +38,9 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
             IntLiteral s = parseIntegerLiteral(integerLiteral);
             if (s != null)
                 return s;
-        } else if(literal instanceof AgoParser.LStringContext lString){
+        } else if(literal instanceof AgoParser.LStringContext lString) {
             var s = lString.STRING_LITERAL();
             String s1 = Compiler.parseStringLiteral(s);
-
             return new StringLiteral(s1);
         } else if(literal instanceof AgoParser.LCharContext lChar){
             return new CharLiteral(Compiler.parseStringLiteral(lChar.CHAR_LITERAL()).charAt(0));

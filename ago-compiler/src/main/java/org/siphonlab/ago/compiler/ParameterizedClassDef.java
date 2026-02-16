@@ -126,7 +126,8 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                     if(expression instanceof AgoParser.PrimaryExprContext primaryExpr){
                         if(primaryExpr.primaryExpression() instanceof AgoParser.LiteralExprContext literalExpr){
                             isLiteral = true;
-                            literalArguments[i] = Literal.parse(literalExpr.literal(), getRoot(), unit.sourceLocation(literalExpr));
+                            AgoParser.LiteralContext literalContext = literalExpr.literal();
+                            literalArguments[i] = Literal.parse(literalContext, getRoot(), unit.sourceLocation(literalExpr));
                         } else if (primaryExpr.primaryExpression() instanceof AgoParser.NamePathExprContext namePath) {
                             var v = unit.resolveNamePath(this, namePath.namePath(), NamePathResolver.ResolveMode.ForValue);
                             if(v instanceof EnumValue enumValue) {

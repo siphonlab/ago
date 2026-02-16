@@ -207,4 +207,9 @@ public class BootstrapTest {
                 "Sally", "Sally,John", "John", "Jack"));
     }
 
+    @Test
+    public void templ_string_test() throws CompilationError, IOException {
+        Util.run("bootstrap/28.template_string.ago");
+    }
+
 }
