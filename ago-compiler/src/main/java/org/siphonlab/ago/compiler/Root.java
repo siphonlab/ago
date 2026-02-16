@@ -174,7 +174,7 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyArrayClass() {
         if (ANY_ARRAY_CLASS != null) return ANY_ARRAY_CLASS;
         try {
-            return ANY_ARRAY_CLASS = ARRAY_CLASS.instantiate(new InstantiationArguments(ARRAY_CLASS.typeParamsContext, new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}), null);
+            return ANY_ARRAY_CLASS = getArrayClass().instantiate(new InstantiationArguments(getArrayClass().typeParamsContext, new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -269,12 +269,11 @@ public class Root extends Namespace<Package> {
         }
         ArrayClassDef arrayClassDef = new ArrayClassDef(this, elementType);
         knownArrayTypes.put(name, arrayClassDef);
-        if(this.ARRAY_CLASS != null){
+        if(this.getArrayClass() != null){
             this.ARRAY_CLASS.getParent().addChild(arrayClassDef);
-        } else {
-            if (this.getCompilingStage().getValue() > arrayClassDef.getCompilingStage().getValue()) {
-                Compiler.processClassTillStage(arrayClassDef, this.getCompilingStage());
-            }
+        }
+        if (this.getCompilingStage().getValue() > arrayClassDef.getCompilingStage().getValue()) {
+            Compiler.processClassTillStage(arrayClassDef, this.getCompilingStage());
         }
         return arrayClassDef;
     }

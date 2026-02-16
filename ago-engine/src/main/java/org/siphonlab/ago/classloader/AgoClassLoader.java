@@ -950,7 +950,7 @@ public class AgoClassLoader implements ClassManager{
                 if((f.getVisibility() & PRIVATE) == PRIVATE){
                     var index = privateFunctionIndexes.get(methodDesc.getName());
                     if(index == null){
-                        methodDesc.setMethodIndex(publicMethodIndexEnd + header.nonPrivateFunctionIndexes.size());
+                        methodDesc.setMethodIndex(publicMethodIndexEnd + privateFunctionIndexes.size());
                         privateFunctionIndexes.put(methodDesc.getName(), methodDesc.getMethodIndex());
                     } else {
                         throw new RuntimeException("'%s' duplicated in '%s'".formatted(methodDesc.getName(), header));

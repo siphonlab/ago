@@ -51,7 +51,8 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
 
     @Override
     public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
-        return (ClassDef) this.findAssignableGenericInstantiationClass(anotherClass, visited);
+//        return (ClassDef) this.findAssignableGenericInstantiationClass(anotherClass, visited);
+        return super.asThatOrSuperOfThat(anotherClass, visited);
     }
 
     @Override

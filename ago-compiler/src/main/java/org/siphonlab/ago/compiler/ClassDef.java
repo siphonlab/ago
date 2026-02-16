@@ -925,7 +925,9 @@ public class ClassDef extends ClassContainer {
     }
 
     public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited){
-        if(this == anotherClass) return anotherClass;
+        if(this == anotherClass) {
+            return this;
+        }
 
         if (visited != null) {
             if (visited.contains(anotherClass)) {
@@ -935,7 +937,13 @@ public class ClassDef extends ClassContainer {
         }
 
 //        ClassDef anyClass = getRoot().getAnyClass();      // any class only works in ClassBound
-        if(this == getRoot().getObjectClass()) return anotherClass;
+        if(this == getRoot().getObjectClass()) return this;
+
+        if(anotherClass instanceof GenericConcreteType && this instanceof GenericConcreteType){        // Template -> GenericSource
+            if(anotherClass.getTemplateClass() == this.getTemplateClass() && isTypeArgumentsMatch(anotherClass)){
+                return anotherClass;
+            }
+        }
 
         // the value of ClassBound is classref, not an object
 //        if(anotherClass instanceof ClassBound classBound){  // for class interval, we can only determine it by lBound
@@ -946,12 +954,12 @@ public class ClassDef extends ClassContainer {
 //                return this.asAssignableFrom(lBound);
 //            }
 //        }
-        if(anotherClass.getGenericSource() != null && this.isGenericTemplate()){        // Template -> GenericSource
-            return this.asThatOrSuperOfThat(anotherClass.getTemplateClass());
-        }
-
         if(anotherClass instanceof ParameterizedClassDef p){
-            return this.asThatOrSuperOfThat(p.baseClass, visited);          // if this is ParameterizedClassDef too, see ParameterizedClassDef.asAssignableFrom
+            // if this is ParameterizedClassDef too, see ParameterizedClassDef.asAssignableFrom
+            var r = this.asThatOrSuperOfThat(p.baseClass, visited);
+            if(r != null){
+                return r;
+            }
         }
 
         if(anotherClass.superClass != null && anotherClass.superClass != anotherClass){    // solve derived class in recursive
@@ -966,7 +974,7 @@ public class ClassDef extends ClassContainer {
         if(this.isInterfaceOrTrait()) {
             for (ClassDef implementedInterface : anotherClass.implementedInterfaces) {
                 ClassDef i = this.asThatOrSuperOfThat(implementedInterface, visited == null ? new LinkedHashSet<>() : visited);
-                if (i != null) {
+                if(i != null){
                     return i;
                 }
             }
@@ -979,8 +987,8 @@ public class ClassDef extends ClassContainer {
         return implementedInterfaces;
     }
 
-    public Set<ClassDef> getAllInterfaces() {
-        Set<ClassDef> interfaces = new HashSet<>();
+    public List<ClassDef> getAllInterfaces() {
+        List<ClassDef> interfaces = new ArrayList<>();
         for(var cls = this; cls != null; cls = cls.superClass){
             if(cls.implementedInterfaces == null) continue;
             var stack = new ArrayDeque<>(cls.implementedInterfaces);
@@ -1578,35 +1586,41 @@ public class ClassDef extends ClassContainer {
     // this is an instantiation class
     // i.e. this is Producer<Animal>, another is Producer<Cat>
     // and this is lang.Function<lang.Any>, another is lang.Function2<int|int|int>
+    @Deprecated
     public GenericConcreteType findAssignableGenericInstantiationClass(ClassDef anotherClass, Set<ClassDef> visited) {
         if(this == anotherClass) return (GenericConcreteType) this;
 
-        ClassDef myTempl = this.getTemplateClass();
-        for(var b = anotherClass; b != null; b = b.getSuperClass()) {
-            if (b instanceof GenericConcreteType gb) {
-                ClassDef bTempl = b.getTemplateClass();
-                if(myTempl.isThatOrSuperOfThat(bTempl, visited) && isTypeArgumentsMatch(b)) return gb;
-                if(bTempl.isInterfaceOrTrait()){
-                    ClassDef bTemplPermitClass = bTempl.getPermitClass();
-                    if(bTemplPermitClass instanceof ConcreteType gbt){
-                        // PermitClass is generic typed, handle it separate
-                        if(myTempl.isThatOrSuperOfThat(bTemplPermitClass.getTemplateClass(), visited == null ? new LinkedHashSet<>() : visited)
-                                    && isTypeArgumentsMatch(bTemplPermitClass))
-                            return gb;
-                    }
-                }
-            }
-            if(myTempl.isInterfaceOrTrait()) {
-                for (ClassDef i : b.getInterfaces()) {
-                    if (i instanceof GenericConcreteType gi
-                            && myTempl.isThatOrSuperOfThat(i.getTemplateClass(), visited == null ? new LinkedHashSet<>() : visited) && isTypeArgumentsMatch(i)) {
-                        return gi;
-                    }
-                }
-            }
-            if(b == b.getSuperClass()) break;
+        ClassDef r = this.getTemplateClass().asThatOrSuperOfThat(anotherClass, visited);
+        if(r != null && r instanceof GenericConcreteType == false){
+            this.getTemplateClass().asThatOrSuperOfThat(anotherClass, visited);
         }
-        return null;
+        return (GenericConcreteType) r;
+//        ClassDef myTempl = this.getTemplateClass();
+//        for(var b = anotherClass; b != null; b = b.getSuperClass()) {
+//            if (b instanceof GenericConcreteType gb) {
+//                ClassDef bTempl = b.getTemplateClass();
+//                if(myTempl.isThatOrSuperOfThat(bTempl, visited) && isTypeArgumentsMatch(b)) return gb;
+//                if(bTempl.isInterfaceOrTrait()){
+//                    ClassDef bTemplPermitClass = bTempl.getPermitClass();
+//                    if(bTemplPermitClass instanceof ConcreteType gbt){
+//                        // PermitClass is generic typed, handle it separate
+//                        if(myTempl.isThatOrSuperOfThat(bTemplPermitClass.getTemplateClass(), visited == null ? new LinkedHashSet<>() : visited)
+//                                    && isTypeArgumentsMatch(bTemplPermitClass))
+//                            return gb;
+//                    }
+//                }
+//            }
+//            if(myTempl.isInterfaceOrTrait()) {
+//                for (ClassDef i : b.getInterfaces()) {
+//                    if (i instanceof GenericConcreteType gi
+//                            && myTempl.isThatOrSuperOfThat(i.getTemplateClass(), visited == null ? new LinkedHashSet<>() : visited) && isTypeArgumentsMatch(i)) {
+//                        return gi;
+//                    }
+//                }
+//            }
+//            if(b == b.getSuperClass()) break;
+//        }
+//        return null;
     }
 
     private boolean isTypeArgumentsMatch(ClassDef anotherClass) {

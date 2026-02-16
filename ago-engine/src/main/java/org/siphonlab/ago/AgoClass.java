@@ -179,6 +179,12 @@ public class AgoClass extends Instance<MetaClass>{
             visited.add(anotherClass);
         }
 
+        if(anotherClass.isGenericInstantiation() && this.isGenericInstantiation()){        // Template -> GenericSource
+            if(anotherClass.getConcreteTypeInfoAsGenericArguments().getTemplateClass() == this.getConcreteTypeInfoAsGenericArguments().getTemplateClass() && isTypeArgumentsMatch(anotherClass)){
+                return anotherClass;
+            }
+        }
+
         // the value of ClassBound is classref, not an object
 //        if(anotherClass instanceof ClassBound classBound){  // for class interval, we can only determine it by lBound
 //            ClassDef lBound = classBound.getLBoundClass();
@@ -188,9 +194,6 @@ public class AgoClass extends Instance<MetaClass>{
 //                return this.asAssignableFrom(lBound);
 //            }
 //        }
-        if(this.isGenericTemplate() && anotherClass.getConcreteTypeInfo() instanceof GenericArgumentsInfo gi){
-            return this.asThatOrSuperOfThat(gi.getTemplateClass());
-        }
 
         if(anotherClass.concreteTypeInfo instanceof ParameterizedClassInfo p){
             return this.asThatOrSuperOfThat(p.getParameterizedBaseClass(), visited);
@@ -227,34 +230,6 @@ public class AgoClass extends Instance<MetaClass>{
                     return null;    // the arguments must be same, if same it matched (anotherClass == this)
                 }
             }
-        }
-        // generic instance, org.siphonlab.ago.compile.ClassDef.findAssignableGenericInstantiationClass
-        if(this.concreteTypeInfo instanceof GenericArgumentsInfo genericArgumentsInfo){
-            var myTempl = genericArgumentsInfo.getTemplateClass();
-            for(var b = anotherClass; b != null; b = b.getSuperClass()) {
-                if (b.concreteTypeInfo instanceof GenericArgumentsInfo gb) {
-                    AgoClass bTempl = gb.getTemplateClass();
-                    if(myTempl.isThatOrSuperOfThat(bTempl, visited) && isTypeArgumentsMatch(b)) return b;
-                    if(bTempl.isInterfaceOrTrait()){
-                        var bTemplPermitClass = bTempl.getPermitClass();
-                        if(bTemplPermitClass != null && bTemplPermitClass.concreteTypeInfo instanceof GenericArgumentsInfo gbt){
-                            // PermitClass is generic typed, handle it separate
-                            if(myTempl.isThatOrSuperOfThat(gbt.getTemplateClass(), visited == null ? new LinkedHashSet<>() : visited) && isTypeArgumentsMatch(bTemplPermitClass)){
-                                return b;
-                            }
-                        }
-                    }
-                }
-                if(myTempl.isInterfaceOrTrait()) {
-                    for (var i : b.getInterfaces()) {
-                        if (i.concreteTypeInfo instanceof GenericArgumentsInfo gi && myTempl.isThatOrSuperOfThat(gi.getTemplateClass(), visited == null ? new LinkedHashSet<>() : visited) && isTypeArgumentsMatch(i)) {
-                            return i;
-                        }
-                    }
-                }
-                if(b == b.getSuperClass()) break;
-            }
-            return null;
         }
 
         if(anotherClass.superClass != null && anotherClass.superClass != anotherClass){    // solve derived class in recursive
@@ -373,6 +348,11 @@ public class AgoClass extends Instance<MetaClass>{
         return concreteTypeInfo;
     }
 
+    public GenericArgumentsInfo getConcreteTypeInfoAsGenericArguments() {
+        if(concreteTypeInfo == null) return null;
+        return (GenericArgumentsInfo)concreteTypeInfo;
+    }
+
     public void setConcreteTypeInfo(ConcreteTypeInfo concreteTypeInfo) {
         this.concreteTypeInfo = concreteTypeInfo;
     }
@@ -442,6 +422,11 @@ public class AgoClass extends Instance<MetaClass>{
     public boolean isGenericTemplate() {
         return (this.modifiers & AgoClass.GENERIC_TEMPLATE) !=0;
     }
+
+    public boolean isGenericInstantiation() {
+        return (this.modifiers & AgoClass.GENERIC_INSTANTIATION) !=0;
+    }
+
 
     public String getFullname() {
         return fullname;

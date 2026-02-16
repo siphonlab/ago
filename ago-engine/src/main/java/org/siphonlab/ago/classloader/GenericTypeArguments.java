@@ -180,7 +180,6 @@ public class GenericTypeArguments {
     }
 
     public boolean resolveIntermediateClass(Map<String, ClassHeader> headers){
-        if(!this.isIntermediate) return true;
         ClassHeader intermediateClass = null;
         for (TypeDesc typeDesc : this.typeArgumentsArray) {
             if(typeDesc instanceof GenericTypeDesc g){
@@ -292,7 +291,13 @@ public class GenericTypeArguments {
 
     public boolean canApplyToTemplate(ClassHeader templateClass, Map<String, ClassHeader> headers) {
         if(templateClass.genericSource != null){
-            return canApplyToTemplate(templateClass.genericSource.sourceTemplate(), headers);
+            var genericSource = templateClass.genericSource;
+            if(canApplyToTemplate(genericSource.sourceTemplate(), headers)) return true;
+            var a = genericSource.typeArguments();
+            if(a.isIntermediate) {
+                if (a.intermediateClass == null) a.resolveIntermediateClass(headers);
+            }
+            if(a.intermediateClass != null && canApplyToTemplate(a.intermediateClass, headers)) return true;
         }
         if(templateClass == this.sourceTemplate || templateClass.belongsTo(this.sourceTemplate)){
             return true;

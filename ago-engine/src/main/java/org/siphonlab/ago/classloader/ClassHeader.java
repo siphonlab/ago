@@ -179,6 +179,9 @@ public class ClassHeader {
     public void addChild(ClassHeader child){
         if(children.contains(child)) return;
         children.add(child);
+        if(child.isFunction() && !this.methodsByName.containsKey(child.name)){
+            this.addMethod(new MethodDesc(child.name, child.fullname));
+        }
     }
 
     public int getBlobOffset() {
@@ -367,10 +370,11 @@ public class ClassHeader {
     }
 
     private void addMethod(MethodDesc methodDesc) {
-        if(this.methods.stream().noneMatch(m -> m.getName().equals(methodDesc.getName()))) {      //TODO speed up
-            if (LOGGER.isDebugEnabled()) LOGGER.debug("%s add method %s".formatted(this, methodDesc));
-            this.methods.add(methodDesc);
-        }
+        if(this.methodsByName.containsKey(methodDesc.getName())) return;
+        if (LOGGER.isDebugEnabled()) LOGGER.debug("%s add method %s".formatted(this, methodDesc));
+        if(this.methods == null) this.methods = new ArrayList<>();
+        this.methods.add(methodDesc);
+        this.methodsByName.put(methodDesc.getName(), methodDesc);
     }
 
     void instantiateFunctionFamily(ClassHeader parent, ClassHeader instantiationOfThis, int depth, Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
@@ -517,7 +521,7 @@ public class ClassHeader {
         inst.genericTypeParamDescs = this.genericTypeParamDescs;
         // create slots later
         inst.setSuperClass(this.superClass);
-        inst.setInterfaces(this.interfaces);
+        inst.setInterfaces(this.interfaces);    // apply instantiation for interface at resolveHierarchicalClasses, LN748
         inst.setPermitClass(this.permitClass);
         inst.setSlots(this.slotDescs);
         inst.fields = this.fields;
@@ -646,6 +650,11 @@ public class ClassHeader {
         ClassHeader mySourceTempl = this.genericSource.sourceTemplate();
         // not like compile time, generic source may be already set to child of intermediate class
         // ~~if(mySourceTempl == existedArgs.sourceTemplate())~~
+        var remappedValue = false;
+        if(existedArgs.valuesMatch(args, headers)){
+            existedArgs = mapTypeValues(existedArgs, args, headers);
+            remappedValue = true;
+        }
         if(existedArgs.isIntermediate()) {
             existedArgs = existedArgs.applyIntermediate(args, headers);
             if(mySourceTempl.belongsTo(args.sourceTemplate)){
@@ -655,11 +664,6 @@ public class ClassHeader {
             } else {
                 return existedArgs;
             }
-        }
-        var remappedValue = false;
-        if(existedArgs.valuesMatch(args, headers)){
-            existedArgs = mapTypeValues(existedArgs, args, headers);
-            remappedValue = true;
         }
         if(!args.canApplyToTemplate(this,headers)) {
             if(remappedValue) return existedArgs;
@@ -678,8 +682,13 @@ public class ClassHeader {
     private GenericTypeArguments mapTypeValues(GenericTypeArguments existedTypeArguments, GenericTypeArguments instantiationArguments, Map<String, ClassHeader> headers) {
         var typeArgumentsArray = existedTypeArguments.getTypeArgumentsArray();
         var newArray = new TypeDesc[typeArgumentsArray.length];
+        boolean set = false;
         for (int i = 0; i < typeArgumentsArray.length; i++) {
             var typeDesc = typeArgumentsArray[i];
+            if(typeDesc.typeCode != OBJECT) {
+                newArray[i] = typeDesc;
+                continue;
+            }
             var c = headers.get(typeDesc.getClassName());
             var b = false;
             if (c.genericSource != null) {
@@ -690,7 +699,9 @@ public class ClassHeader {
                 }
             }
             if(!b) newArray[i] = typeDesc;
+            if(b) set = true;
         }
+        if(!set) return existedTypeArguments;
         return new GenericTypeArguments(existedTypeArguments.getSourceTemplate(), newArray, headers);
     }
 
@@ -762,6 +773,25 @@ public class ClassHeader {
                 }
                 this.setInterfaces(applied);
             }
+            if(this.methods != null) {
+                List<MethodDesc> methodDescs = this.methods;
+                boolean changed = false;
+                for (int i = 0; i < methodDescs.size(); i++) {
+                    MethodDesc methodDesc = methodDescs.get(i);
+                    var m = headers.get(methodDesc.getFullname());
+                    if (m.parent != this) {       // inherited
+                        var mInst = m.resolveTemplateInstantiation(headers, typeArguments);
+                        if(mInst != m) {
+                            changed = true;
+                            methodDescs.set(i, new MethodDesc(mInst.getName(), mInst.fullname()));
+                        }
+                    }
+                }
+                if(changed){
+                    this.setMethods(new ArrayList<>(this.methods)); // update methods again
+                }
+            }
+
         } else {
             if (StringUtils.isNotEmpty(this.getMetaClass())) {
                 MetaClassHeader metaClassHeader = (MetaClassHeader) headers.get(this.getMetaClass());
@@ -1097,9 +1127,9 @@ public class ClassHeader {
             for (int k = 0; k < interfaces.length; k++) {
                 String interface_ = interfaces[k];
                 var interfaceHeader = headers.get(interface_);
-                if(interfaceHeader.genericSource != null){
-                    interfaceHeader = interfaceHeader.genericSource.sourceTemplate();
-                }
+//                if(interfaceHeader.genericSource != null){
+//                    interfaceHeader = interfaceHeader.genericSource.sourceTemplate();
+//                }
                 int[] map = new int[interfaceHeader.methods.size()];
 
                 List<MethodDesc> methodDescs = interfaceHeader.methods;

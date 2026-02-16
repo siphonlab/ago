@@ -1,6 +1,7 @@
 package org.siphonlab.ago.classloader;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.opcode.*;
 import org.siphonlab.ago.opcode.compare.Equals;
 import org.siphonlab.ago.opcode.compare.InstanceOf;
@@ -58,7 +59,13 @@ public class CodeTransformer {
                 return;
             }
             String className = strings[classNameId];
-            var classId = headers.get(className).classId;
+            ClassHeader classHeader = headers.get(className);
+//            if(classHeader.isInGenericTemplate(headers) && this.header.genericSource != null) {
+//                if (classHeader.type == AgoClass.TYPE_INTERFACE || classHeader.type == AgoClass.TYPE_TRAIT) {
+//                    classHeader = classHeader.tryInstantiate()
+//                }
+//            }
+            var classId = classHeader.classId;
             codeBuffer.skip(-4).putInt(classId);
         }
         codeBuffer.position(pos + size * 4);

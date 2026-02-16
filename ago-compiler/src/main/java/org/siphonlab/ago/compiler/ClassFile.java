@@ -115,7 +115,7 @@ public class ClassFile {
             buff.putInt(-1);
         }
         if(LOGGER.isDebugEnabled()) LOGGER.debug("    interfaces :" + buff.position());
-        List<ClassDef> interfaces = classDef.getInterfaces();
+        List<ClassDef> interfaces = classDef.getAllInterfaces();
         if(CollectionUtils.isNotEmpty(interfaces)) {
             buff.putInt(interfaces.size());
             for (ClassDef interface_ : interfaces) {
