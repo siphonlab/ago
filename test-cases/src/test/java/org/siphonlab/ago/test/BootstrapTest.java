@@ -210,6 +210,9 @@ public class BootstrapTest {
     @Test
     public void templ_string_test() throws CompilationError, IOException {
         Util.run("bootstrap/28.template_string.ago");
+        assertTrue(Trace.outputted(
+                "a + b =",
+                "    3"));
     }
 
 }

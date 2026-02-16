@@ -20,10 +20,10 @@ import org.siphonlab.ago.compiler.expression.math.Neg;
 import org.siphonlab.ago.compiler.expression.math.Pos;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
+import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.statement.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -480,6 +480,9 @@ public class BlockCompiler {
         List<Expression> expressions = new ArrayList<>();
         var sb = new StringBuilder();
         TemplateStringAtomContext startAtom = null, endAtom = null;
+        var offset = lTemplateString.getStart().getCharPositionInLine();
+        var newLine = false;
+        var newLineWSCount = 0;
         for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
             ExpressionContext atomExpr = atom.expression();
             if(atomExpr != null){
@@ -492,7 +495,27 @@ public class BlockCompiler {
             } else {
                 if(startAtom == null) startAtom = atom;
                 endAtom = atom;
-                sb.append(atom.TemplateStringAtom().getText());     //TODO parse escaped string
+                String text = atom.TemplateStringAtom().getText();
+                if(newLine){
+                    if(text.equals("\r")){
+                        sb.append(text);
+                        continue;
+                    } else if(text.equals(" ") || text.equals("\t")){
+                        newLineWSCount ++;
+                        if(newLineWSCount > offset){
+                            newLine = false;
+                        }
+                        continue;
+                    } else {
+                        newLine = false;
+                    }
+                } else {
+                    if(text.equals("\n")){
+                        newLine = true;
+                        newLineWSCount = 0;
+                    }
+                }
+                sb.append(text);     //TODO parse escaped string
             }
         }
         if(!sb.isEmpty()){
