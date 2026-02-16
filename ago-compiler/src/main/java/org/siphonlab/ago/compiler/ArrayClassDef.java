@@ -15,17 +15,7 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
         super(composeArrayTypeName(elementType));
         this.root = root;
         this.elementType = elementType;
-        ClassDef arrayClass = root.getArrayClass();
-        ClassDef arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{new ClassRefLiteral(elementType)}), null);
-        this.setSuperClass(arrayInstantiationType);
-        this.setSourceLocation(arrayClass.getSourceLocation());
-        this.registerConcreteType((ConcreteType) arrayInstantiationType);
-        this.compilingStage = CompilingStage.InheritsFields;
-        try {
-            Compiler.processClassTillStage(this,elementType.getCompilingStage());
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
-        }
+        this.compilingStage = CompilingStage.ResolveHierarchicalClasses;
     }
 
     public static String composeArrayTypeName(ClassDef componentType) {
@@ -46,6 +36,28 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     @Override
     public int hashCode() {
         return this.getFullname().hashCode();
+    }
+
+    @Override
+    public void resolveHierarchicalClasses() throws CompilationError {
+        if(this.compilingStage != CompilingStage.ResolveHierarchicalClasses) return;
+
+        ClassDef arrayClass = root.getArrayClass();
+        this.setSourceLocation(arrayClass.getSourceLocation());
+        ClassDef arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{new ClassRefLiteral(elementType)}), null);
+        this.setSuperClass(arrayInstantiationType);
+        this.registerConcreteType((ConcreteType) arrayInstantiationType);
+        this.setCompilingStage(CompilingStage.InheritsFields);
+        try {
+            Compiler.processClassTillStage(this,elementType.getCompilingStage());
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Root getRoot() {
+        return root;
     }
 
     @Override
