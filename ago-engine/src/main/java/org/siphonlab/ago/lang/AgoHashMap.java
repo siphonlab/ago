@@ -74,7 +74,7 @@ public class AgoHashMap {
             if (map instanceof Int2NullableObjectHashMap<?> hm) {
                 valObj = hm.get(key);
             } else {
-                valObj = map.get(key);          
+                valObj = map.get(key);
             }
 
             finish(callFrame, valObj);
@@ -88,10 +88,10 @@ public class AgoHashMap {
             @SuppressWarnings("unchecked")
             Map<?, ?> map = (Map<?, ?>) instance.getNativePayload();
 
-            if (map instanceof Long2NullableObjectHashMap<?> hm) {         
+            if (map instanceof Long2NullableObjectHashMap<?> hm) {
                 valObj = hm.get(key);
             } else {
-                valObj = map.get(key);                              
+                valObj = map.get(key);
             }
 
             finish(callFrame, valObj);
@@ -529,10 +529,52 @@ public class AgoHashMap {
         callFrame.finishVoid();
     }
 
-    public static void values(NativeFrame callFrame) {
-        callFrame.finishObject(null);   //TODO not implemented
-    }
+    public static void values(NativeFrame callFrame, Instance<?> arrayList) {
+        NativeInstance mapInst = (NativeInstance) callFrame.getParentScope();
+        Object payload = mapInst.getNativePayload();
 
+        var ls = (((NativeInstance)arrayList).getNativePayload());
+
+        GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
+        TypeInfo keyType = genericArgumentsInfo.getArguments()[0];
+        TypeInfo valueType = genericArgumentsInfo.getArguments()[1];
+
+        Map<?, ?> map = (Map<?, ?>) payload;
+        for (Object v : map.values()) {
+            switch (valueType.getTypeCode().value){
+                case INT_VALUE, CLASS_REF_VALUE:
+                    ((IntArrayList)ls).add((Integer)v);
+                    break;
+                case LONG_VALUE:
+                    ((LongArrayList)ls).add((Long)v);
+                    break;
+                case FLOAT_VALUE:
+                    ((FloatArrayList)ls).add(((Float) v));
+                    break;
+                case DOUBLE_VALUE:
+                    ((DoubleArrayList)ls).add(((Double) v));
+                    break;
+                case BOOLEAN_VALUE:
+                    ((BooleanArrayList)ls).add((Integer) v == 1);
+                    break;
+                case STRING_VALUE, OBJECT_VALUE:
+                    ((java.util.ArrayList<Object>)ls).add(v);
+                    break;
+                case SHORT_VALUE:
+                    ((ShortArrayList)ls).add(((Integer)v).shortValue());
+                    break;
+                case BYTE_VALUE:
+                    ((ByteArrayList)ls).add(((Integer)v).byteValue());
+                    break;
+                case CHAR_VALUE:
+                    ((CharArrayList)ls).add((char)((Integer)v).intValue());
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported key type: " + valueType.getTypeCode());
+            }
+        }
+        callFrame.finishVoid();
+    }
     /* ---------- Iterator ---------------- */
     public static void Iterator_create(NativeFrame callFrame) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope().getParentScope();

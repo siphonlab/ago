@@ -68,15 +68,4 @@ public class GenericTest {
         assertTrue(Trace.outputted("3", "10.1", "6.28", "4", "1", "-8", "now i is 0", "eq false", "neq true", "gt false", "ge false", "lt true", "le true", "now i is 1", "eq true", "neq false", "gt false", "ge true", "lt false", "le true"));
     }
 
-    @Test @Disabled
-    public void native_map_test() throws CompilationError, IOException {
-        // it's impossible to implement `hashCode`
-        // we can only have a Map like below:
-        //      for primitive instances, call it hashCode
-        //      for boxer instances, unbox it and got hashCode
-        //      for Object instances, if it's DbRef, return the DbRef.hashCode, otherwise the hashCode of the instance
-        //      it's impossible to provide a hashCode function in ago language
-        run("generic/native_map.ago");
-    }
-
 }

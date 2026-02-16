@@ -31,6 +31,13 @@ abstract class Map<Key, Value> with ReadWriteMap<Key, Value>, ReadOnlyMap<Key, V
 
 }
 
+/**
+a typed Map, for key type int, short, byte boolean, classref, float, char, use Int2NullableObjectHashMap in backend
+for key type, long, double, use  Long2NullableObjectHashMap in backend
+for string and object, HashMap<Object, Object>.
+
+TODO if the key is Object, should invoke hashCode() to put, and `get` to
+**/
 native class HashMap<Key, Value> from Map<Key, Value>{
     fun new(){
         init()
@@ -53,9 +60,11 @@ native class HashMap<Key, Value> from Map<Key, Value>{
     private fun nativeKeys(ls as ArrayList<Key>) native "org.siphonlab.ago.lang.AgoHashMap.keys";
 
     override values#get() as ReadOnlyCollection<Value> {
-        return this.nativeValues();
+        var ls = new ArrayList<Value>();
+        this.nativeValues(ls);
+        return ls;
     }
-    private fun nativeValues() as ArrayList<Value> native "org.siphonlab.ago.lang.AgoHashMap.values";
+    private fun nativeValues(ls as ArrayList<Value>) native "org.siphonlab.ago.lang.AgoHashMap.values";
 
     override containsKey(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.containsKey";
     override remove(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.removeByKey";
@@ -89,4 +98,9 @@ fun main(){
     for(var key in m.keys){
         Trace.print(key);
     }
+
+
+    for(var key in m.values){
+            Trace.print(key);
+        }
 }
