@@ -64,6 +64,7 @@ public class RunSpaceAware {
     public static void run(NativeFrame frame, Instance<?> runnerFrame) throws InterruptedException {
         var runSpace = getAgoRunSpace(frame);   // the RunSpace within scope of run<R>
         CallFrame<?> runner = (CallFrame<?>) runnerFrame;
+        runner.setCaller(frame);
         frame.beginAsync();
         runSpace.addCompleteListener(()-> {
             ResultSlots resultSlots = runSpace.getResultSlots();
@@ -95,6 +96,7 @@ public class RunSpaceAware {
         var runSpace = getAgoRunSpace(frame);   // the RunSpace within scope of run<R>
         CallFrame<?> runner = (CallFrame<?>) runnerFrame;
         runner.setRunSpace(runSpace);
+        runner.setCaller(frame);
         runSpace.start(new EntranceCallFrame<>(runner));
         frame.finishVoid();
     }
