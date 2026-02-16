@@ -194,11 +194,15 @@ public class BootstrapTest {
     @Test @Tag("generic")
     public void list_test() throws CompilationError, IOException {
         run("bootstrap/26.list.ago");
+        assertTrue(Trace.outputted("2", "3", "5", "1", "2", "5", "4", "2", "6", "8", "4", "6"));
     }
 
     @Test @Tag("generic")
     public void map_test() throws CompilationError, IOException {
         run("bootstrap/27.map.ago");
+        assertTrue(Trace.outputted("Jack", "Sally,John",
+                "2 = Sally", "3 = Sally,John", "1 = John", "100 = Jack",
+                "2", "3", "1", "100"));
     }
 
 }

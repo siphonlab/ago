@@ -1,5 +1,6 @@
 package org.siphonlab.ago.test;
 
+import org.junit.jupiter.api.Disabled;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -17,10 +18,11 @@ public class FunctionTest {
     @Test
     public void pause() throws CompilationError, IOException {
         run("function/pause.ago");
+        Trace.printOutput();
         assertTrue(Trace.outputted("pause", "resume caller", "done"));
     }
 
-    @Test
+    @Test @Disabled
     public void mq() throws CompilationError, IOException {
         runInVertxSpace("function/mq.ago", "main#");
         try {

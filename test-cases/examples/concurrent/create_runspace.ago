@@ -6,7 +6,7 @@ fun main() {
         return a + b
     }
 
-    var r = runspace.create();
+    var r = runspace.create();      // TODO runspace shouldn't submit tasks, if wan't preserve runspaces within same context, use `fork|await ... via ForkContext`
 
     r.runAsync(new test())
     sleep(100)

@@ -40,8 +40,8 @@ public class ConcurrentTests {
     @Test
     public void structured() throws IOException, CompilationError, InterruptedException {
         runInVertxSpace("concurrent/structured.ago", "main#");
-        Trace.printOutput();
         Thread.sleep(200);
+        Trace.printOutput();
         assertTrue(Trace.outputted("have a rest", "task1", "subtask 1", "subtask 2", "subtask 3", "move on", "subtask 2 done", "subtask 3 done", "subtask 1 done"));
     }
 

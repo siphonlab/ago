@@ -1,6 +1,6 @@
 class KeyValuePair<Key, Value>{
-    public key as Key {get;}
-    public value as Value {get;}
+    key as Key {public get;}
+    value as Value {public get;}
 }
 
 interface ReadWriteMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
@@ -44,8 +44,19 @@ native class HashMap<Key, Value> from Map<Key, Value>{
 
     override get#key(index as Key) as Value native "org.siphonlab.ago.lang.AgoHashMap$Get.get";
     override put(index as Key, value as Value) native "org.siphonlab.ago.lang.AgoHashMap$Put.put";
-    override keys#get() as ReadOnlyCollection<Key> native "org.siphonlab.ago.lang.AgoHashMap.keys";
-    override values#get() as ReadOnlyCollection<Value> native "org.siphonlab.ago.lang.AgoHashMap.values";
+
+    override keys#get() as ReadOnlyCollection<Key>{
+        var ls = new ArrayList<Key>();
+        this.nativeKeys(ls);
+        return ls;
+    }
+    private fun nativeKeys(ls as ArrayList<Key>) native "org.siphonlab.ago.lang.AgoHashMap.keys";
+
+    override values#get() as ReadOnlyCollection<Value> {
+        return this.nativeValues();
+    }
+    private fun nativeValues() as ArrayList<Value> native "org.siphonlab.ago.lang.AgoHashMap.values";
+
     override containsKey(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.containsKey";
     override remove(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.removeByKey";
 
@@ -70,4 +81,12 @@ fun main(){
     m[2] = "Sally"
     m[3] = m[2] + ',' + m[1]
     Trace.print(m[3])
+
+    for(var entry in m){
+        Trace.print(entry.key + " = " + entry.value)
+    }
+
+    for(var key in m.keys){
+        Trace.print(key);
+    }
 }

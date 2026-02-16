@@ -1,13 +1,12 @@
 package org.siphonlab.ago.lang;
 
 import org.agrona.collections.Int2NullableObjectHashMap;
+import org.agrona.collections.Int2NullableObjectHashMap;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2NullableObjectHashMap;
 import org.eclipse.collections.api.iterator.*;
 import org.eclipse.collections.impl.list.mutable.primitive.*;
-import org.siphonlab.ago.GenericArgumentsInfo;
-import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.TypeCode;
-import org.siphonlab.ago.TypeInfo;
+import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 
@@ -26,7 +25,7 @@ public class AgoHashMap {
         TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];     // Key
 
         var map = switch (typeInfo.getTypeCode().value){
-            case INT_VALUE, SHORT_VALUE, BYTE_VALUE, BOOLEAN_VALUE, CLASS_REF_VALUE, FLOAT_VALUE, CHAR_VALUE -> new Int2NullableObjectHashMap<>();  // float stored with Float.floatToIntBits
+            case INT_VALUE, SHORT_VALUE, BYTE_VALUE, BOOLEAN_VALUE, CLASS_REF_VALUE, FLOAT_VALUE, CHAR_VALUE -> new Int2NullableObjectHashMap<>();  // float stored with Float.floatToIntBits; boolean, true->1, false -> 0;
             case LONG_VALUE, DOUBLE_VALUE -> new Long2NullableObjectHashMap<>();    // double stored with Double.doubleToLongBits
 
             default -> new java.util.HashMap<>();
@@ -483,71 +482,237 @@ public class AgoHashMap {
     }
 
 
-    public static void keys(NativeFrame callFrame) {
-        callFrame.finishObject(null);   // 目前不实现
+    public static void keys(NativeFrame callFrame, Instance<?> arrayList) {
+        NativeInstance mapInst = (NativeInstance) callFrame.getParentScope();
+        Object payload = mapInst.getNativePayload();
+
+        var ls = (((NativeInstance)arrayList).getNativePayload());
+
+        GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
+        TypeInfo keyType = genericArgumentsInfo.getArguments()[0];
+        TypeInfo valueType = genericArgumentsInfo.getArguments()[1];
+
+        Map<?, ?> map = (Map<?, ?>) payload;
+        for (Object v : map.keySet()) {
+            switch (keyType.getTypeCode().value){
+                case INT_VALUE, CLASS_REF_VALUE:
+                    ((IntArrayList)ls).add((Integer)v);
+                    break;
+                case LONG_VALUE:
+                    ((LongArrayList)ls).add((Long)v);
+                    break;
+                case FLOAT_VALUE:
+                    ((FloatArrayList)ls).add(Float.intBitsToFloat((Integer) v));
+                    break;
+                case DOUBLE_VALUE:
+                    ((DoubleArrayList)ls).add(Double.longBitsToDouble((Long) v));
+                    break;
+                case BOOLEAN_VALUE:
+                    ((BooleanArrayList)ls).add((Integer) v == 1);
+                    break;
+                case STRING_VALUE, OBJECT_VALUE:
+                    ((java.util.ArrayList<Object>)ls).add(v);
+                    break;
+                case SHORT_VALUE:
+                    ((ShortArrayList)ls).add(((Integer)v).shortValue());
+                    break;
+                case BYTE_VALUE:
+                    ((ByteArrayList)ls).add(((Integer)v).byteValue());
+                    break;
+                case CHAR_VALUE:
+                    ((CharArrayList)ls).add((char)((Integer)v).intValue());
+                    break;
+                default:
+                    throw new IllegalStateException("Unsupported key type: " + keyType.getTypeCode());
+            }
+        }
+        callFrame.finishVoid();
     }
 
     public static void values(NativeFrame callFrame) {
-        callFrame.finishObject(null);   // 目前不实现
+        callFrame.finishObject(null);   //TODO not implemented
     }
 
     /* ---------- Iterator ---------------- */
-
-    public static class HashMapIterator implements Iterator<Map.Entry<Object, Object>> {
-
-        private final Iterator<Map.Entry<Object, Object>> it;
-
-        public HashMapIterator(Iterator<Map.Entry<Object, Object>> it) {
-            this.it = it;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return it.hasNext();
-        }
-
-        @Override
-        public Map.Entry<Object, Object> next() {
-            return it.next();
-        }
-    }
-
     public static void Iterator_create(NativeFrame callFrame) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope().getParentScope();
         Object payload = instance.getNativePayload();
 
-        HashMap<?, ?> map = (HashMap<?, ?>) payload;
-        var it = map.entrySet().iterator();
+        Map<?, ?> map = (Map<?, ?>) payload;
+        Iterator<? extends Map.Entry<?, ?>> it = map.entrySet().iterator();
+        if(map instanceof Int2NullableObjectHashMap<?> || map instanceof Long2NullableObjectHashMap<?>) {
+            it = map.entrySet().iterator();       // Int2ObjectHashMap has some bug, the position place at last
+        }
 
         NativeInstance iteratorInstance = (NativeInstance) callFrame.getParentScope();
-        // 直接使用 Java 的 Iterator
         iteratorInstance.setNativePayload(it);
         callFrame.finishVoid();
     }
 
     public static void Iterator_hasNext(NativeFrame callFrame) {
         NativeInstance iteratorInstance = (NativeInstance) callFrame.getParentScope();
-        Object itObj = iteratorInstance.getNativePayload();
-
-        boolean has;
-        if (itObj instanceof Iterator<?> iter) {
-            has = iter.hasNext();
-        } else {
-            // 保险
-            has = ((Iterator<?>) itObj).hasNext();
-        }
-        callFrame.finishBoolean(has);
+        Iterator<?> iter = (Iterator<?>) iteratorInstance.getNativePayload();
+        callFrame.finishBoolean(iter.hasNext());
     }
 
     public static void Iterator_next(NativeFrame callFrame) {
-        NativeInstance iteratorInstance = (NativeInstance) callFrame.getParentScope();
-        Object itObj = iteratorInstance.getNativePayload();
+        NativeInstance mapInst = (NativeInstance) callFrame.getParentScope().getParentScope();
 
-        @SuppressWarnings("unchecked")
-        Iterator<Map.Entry<Object, Object>> iter = (Iterator<Map.Entry<Object, Object>>) itObj;
-        Map.Entry<Object, Object> entry = iter.next();
+        NativeInstance iterInst = (NativeInstance) callFrame.getParentScope();
+        Object itObj = iterInst.getNativePayload();
+        var IteratorKeyValuePairType = iterInst.getAgoClass().getInterfaces()[0];          // Iterator<KeyValuePair<Key, Value>>
+        var KeyValuePairType =((GenericArgumentsInfo)IteratorKeyValuePairType.getConcreteTypeInfo()).getArguments()[0].getAgoClass();
 
-        // 直接返回 Java 的 Entry，满足 Ago 中 key/value 属性的访问
-//        callFrame.finishObject(entry);
+        GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
+        TypeInfo keyType = genericArgumentsInfo.getArguments()[0];
+        TypeInfo valueType = genericArgumentsInfo.getArguments()[1];
+
+        AgoEngine agoEngine = callFrame.getAgoEngine();
+        var r = agoEngine.createInstance(KeyValuePairType, callFrame);
+        Slots slots = r.getSlots();
+
+        switch (keyType.getTypeCode().value) {
+
+            case INT_VALUE, CLASS_REF_VALUE: {
+                @SuppressWarnings("unchecked")
+                Int2NullableObjectHashMap<Object>.EntryIterator iterator =
+                        (Int2NullableObjectHashMap<Object>.EntryIterator) itObj;
+                iterator.next();
+                slots.setInt(0, iterator.getIntKey());
+                writeValue(slots, 1, valueType, iterator.getValue());
+                break;
+            }
+            case LONG_VALUE: {
+                @SuppressWarnings("unchecked")
+                Long2NullableObjectHashMap<Object>.EntryIterator iterator =
+                        (Long2NullableObjectHashMap<Object>.EntryIterator) itObj;
+                iterator.next();
+                slots.setLong(0, iterator.getLongKey());
+                writeValue(slots, 1, valueType, iterator.getValue());
+                break;
+            }
+            case FLOAT_VALUE: {
+                @SuppressWarnings("unchecked")
+                Int2NullableObjectHashMap<Object>.EntryIterator iterator =
+                        (Int2NullableObjectHashMap<Object>.EntryIterator) itObj;
+                iterator.next();
+                int   bits = iterator.getIntKey();
+                float key  = Float.intBitsToFloat(bits);
+                slots.setFloat(0, key);
+                writeValue(slots, 1, valueType, iterator.getValue());
+                break;
+            }
+            case DOUBLE_VALUE: {
+                @SuppressWarnings("unchecked")
+                Long2NullableObjectHashMap<Object>.EntryIterator iterator =
+                        (Long2NullableObjectHashMap<Object>.EntryIterator) itObj;
+                iterator.next();
+                long  bits = iterator.getLongKey();
+                double key = Double.longBitsToDouble(bits);
+                slots.setDouble(0, key);
+                writeValue(slots, 1, valueType, iterator.getValue());
+                break;
+            }
+            case BOOLEAN_VALUE: {
+                @SuppressWarnings("unchecked")
+                Int2NullableObjectHashMap<Object>.EntryIterator iterator =
+                        (Int2NullableObjectHashMap<Object>.EntryIterator) itObj;
+                iterator.next();
+                boolean key = iterator.getIntKey() != 0;
+                slots.setBoolean(0, key);
+                writeValue(slots, 1, valueType, iterator.getValue());
+                break;
+            }
+            case CHAR_VALUE: {
+                @SuppressWarnings("unchecked")
+                Int2NullableObjectHashMap<Object>.EntryIterator iterator =
+                        (Int2NullableObjectHashMap<Object>.EntryIterator) itObj;
+                iterator.next();
+                char key = (char) iterator.getIntKey();
+                slots.setChar(0, key);
+                writeValue(slots, 1, valueType, iterator.getValue());
+                break;
+            }
+            case SHORT_VALUE: {
+                @SuppressWarnings("unchecked")
+                Int2NullableObjectHashMap<Object>.EntryIterator iterator =
+                        (Int2NullableObjectHashMap<Object>.EntryIterator) itObj;
+                iterator.next();
+                short key = (short) iterator.getIntKey();
+                slots.setShort(0, key);
+                writeValue(slots, 1, valueType, iterator.getValue());
+                break;
+            }
+            case BYTE_VALUE: {
+                @SuppressWarnings("unchecked")
+                Int2NullableObjectHashMap<Object>.EntryIterator iterator =
+                        (Int2NullableObjectHashMap<Object>.EntryIterator) itObj;
+                iterator.next();
+                byte key = (byte) iterator.getIntKey();
+                slots.setByte(0, key);
+                writeValue(slots, 1, valueType, iterator.getValue());
+                break;
+            }
+
+            case STRING_VALUE:
+            case OBJECT_VALUE: {
+                @SuppressWarnings("unchecked")
+                var entry = ((Iterator<Map.Entry<Object, Object>>)itObj).next();
+                Object keyObj = entry.getKey();
+                switch (keyType.getTypeCode().value) {
+                    case STRING_VALUE:
+                        slots.setString(0, (String) keyObj);
+                        break;
+                    case OBJECT_VALUE:
+                        slots.setObject(0, (Instance<?>)keyObj);
+                        break;
+                }
+                writeValue(slots, 1, valueType, entry.getValue());
+                break;
+            }
+
+            default:
+                throw new IllegalStateException("Unsupported key type: " + keyType.getTypeCode());
+        }
+        callFrame.finishObject(r);
     }
+
+    private static void writeValue(Slots slots, int index, TypeInfo valueType, Object val) {
+        switch (valueType.getTypeCode().value) {
+            case INT_VALUE:
+                slots.setInt(index, (Integer) val);
+                break;
+            case LONG_VALUE:
+                slots.setLong(index, (Long) val);
+                break;
+            case FLOAT_VALUE:
+                slots.setFloat(index, (Float) val);
+                break;
+            case DOUBLE_VALUE:
+                slots.setDouble(index, (Double) val);
+                break;
+            case BOOLEAN_VALUE:
+                slots.setBoolean(index, (Boolean) val);
+                break;
+            case STRING_VALUE:
+                slots.setString(index, (String) val);
+                break;
+            case SHORT_VALUE:
+                slots.setShort(index, (Short) val);
+                break;
+            case BYTE_VALUE:
+                slots.setByte(index, (Byte) val);
+                break;
+            case CHAR_VALUE:
+                slots.setChar(index, (Character) val);
+                break;
+            case OBJECT_VALUE:
+                slots.setObject(index, (Instance<?>) val);
+                break;
+            case CLASS_REF_VALUE:
+                slots.setClassRef(index, (Integer) val);
+                break;
+        }
+    }
+
 }
