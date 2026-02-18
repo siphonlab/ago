@@ -480,7 +480,7 @@ public class BlockCompiler {
         List<Expression> expressions = new ArrayList<>();
         var sb = new StringBuilder();
         TemplateStringAtomContext startAtom = null, endAtom = null;
-        var offset = lTemplateString.getStart().getCharPositionInLine();
+        var offset = lTemplateString.getStart().getCharPositionInLine() + 2;
         var newLine = false;
         var newLineWSCount = 0;
         for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
@@ -496,26 +496,29 @@ public class BlockCompiler {
                 if(startAtom == null) startAtom = atom;
                 endAtom = atom;
                 String text = atom.TemplateStringAtom().getText();
-                if(newLine){
-                    if(text.equals("\r")){
-                        sb.append(text);
-                        continue;
-                    } else if(text.equals(" ") || text.equals("\t")){
-                        newLineWSCount ++;
-                        if(newLineWSCount > offset){
+                for(var i=0; i<text.length(); i++){
+                    var c = text.charAt(i);
+                    if(newLine){
+                        if(c == '\r'){
+                            sb.append(c);
+                            continue;
+                        } else if(c == ' ' || c == '\t'){
+                            newLineWSCount ++;
+                            if(newLineWSCount >= offset){
+                                newLine = false;
+                            }
+                            continue;
+                        } else {
                             newLine = false;
                         }
-                        continue;
                     } else {
-                        newLine = false;
+                        if(c == '\n'){
+                            newLine = true;
+                            newLineWSCount = 0;
+                        }
                     }
-                } else {
-                    if(text.equals("\n")){
-                        newLine = true;
-                        newLineWSCount = 0;
-                    }
+                    sb.append(c);
                 }
-                sb.append(text);
             }
         }
         if(!sb.isEmpty()){

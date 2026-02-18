@@ -2,8 +2,8 @@ fun main(){
     var a = 1;
     var b = 2;
 
-    var s = `a + b =
-                 ${a+b}`
+    var s = $"a + b =  `the result`
+                  ${a+b}"$
 
     Trace.print(s)
 

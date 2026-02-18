@@ -212,7 +212,7 @@ public class BootstrapTest {
         Util.run("bootstrap/28.template_string.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
-                "a + b =",
+                "a + b =  `the result`",
                 "    3",
                 "\"Hello", "World! AB\""));
     }
