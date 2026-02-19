@@ -193,17 +193,12 @@ class Animal{
             Trace.print("Animal.foo")
         }
     }
-    fun bark(){
-    }
 }
 class Cat from Animal{
     metaclass{
         override foo(){
             Trace.print("Cat.foo")
         }
-    }
-    override bark(){
-        Trace.print("meow")
     }
 }
 class Dog from Animal{
@@ -213,30 +208,51 @@ class Dog from Animal{
 }
 
 fun main(){
-    var T as [Animal to _]
-    T = Cat     // T got ScopedClassInterval::(Animal, _)(value=Cat, scope=assign Scope)
-    T.foo()     // Invoke(ClassUnder.Instance(Cast(LocalVar(T), Meta@Animal), "foo#")
+    var t as classref = Cat
+    Trace.print(t)
+    
+    var T as [Animal to _]      // ScopedClassInterval::(Animal, Any), classref 的装箱类
+    T = Cat     
+    T.foo()     
 
     var U like Animal
     U = Dog
     U.foo()
-
-//    var c = new T()     // exception, lBound != uBound
-//    c.bark()
-    var T2 as [Cat to Cat] = Cat
-    var c = new T2()
-    c.bark()
-
-    Trace.print(T == Cat)
-    Trace.print(Dog != T)
-}
-fun main(){
-    var t as classref = Cat
-    Trace.print(t)
 }
 ```
 
-`like add` selects the `FunctionN<int,int>` interface – a type‑interval that matches any function with two `int` arguments.
+## Callback via Function Class
+
+```ago
+fun add(a as int, b as int) as int  { return a + b }
+
+fun add2(a as int, b as int) as int { return a + b + a + b }
+fun test(op like add, a as int, b as int){      // what's `like add`, see the explation below
+    Trace.print(op(a, b))
+}
+
+class C{
+    i as int
+    fun new(i as int){
+        this.i = i;
+    }
+    fun add(a as int, b as int) as int{ return this.i + a + b }
+
+    fun add2(a as int, b as int) as int{ return i + a + b + a + b }
+}
+
+fun main(){
+    test(add, 1, 2)     // 3
+    test(add2, 1, 2)    // 6
+
+    var c = new C(100);
+    test(c.add, 1, 2)   // 103
+    test(c.add2, 1, 2)  // 106
+}
+```
+`like Class` 是 `as [Class to Any]` 的语法糖。
+对函数来说，ago 编译器总为函数生成一个和参数列表、返回值对应的接口 `FunctionN<Arg1,Arg2,...>`，`like` 总是得到以该接口为起点的 ScopedClassInterval。
+因此 `like add` 相当于 `as [Function2<int,int,int> to _]`，能与上面的 `add` `add2` 等匹配。
 
 ### 5. Overloading & Attributes
 
@@ -257,9 +273,10 @@ The compiler resolves calls based on argument count/types; explicit `f#2(1,2)` c
 
 `ago-engine-rdb` 项目提供了完整的用 PG 持久化各类 ago 对象的实现，含 ago_class, ago_function, runspace, instances, call_frames 等，并用 JSON 实现了对 Slots 的映射。
 
-这些实现使 ago 程序无需做任何修改就可以以数据库为持久化后台运行。 见 `test-cases/src/test/java/org/siphonlab/ago/test/Util.java`。
+这些实现使 ago 程序无需做任何修改就可以以数据库为持久化后台运行。 例如，test-cases 中的 run 函数就是这样设计的：
 
 ```java
+    // test-cases/src/test/java/org/siphonlab/ago/test/Util.java
     public static void run(String filename, String entrance) throws CompilationError, IOException {
         var selectedEngine = parseEngine();
         switch (selectedEngine){
@@ -302,11 +319,8 @@ The compiler resolves calls based on argument count/types; explicit `f#2(1,2)` c
 
 ## Contributing
 
-1. Fork the repo, create a branch (`feature/<name>` or `bugfix/<name>`).
-2. Run `mvn clean test` to ensure existing tests pass.
-3. Add new features/tests and submit a pull request.
-
-Please adhere to the style guidelines in `docs/style.md`.
+ago 语言开拓了一个新的领域，这里还有很多有趣的事物需要探索，非常欢迎你的加入。目前急需编译器、游戏引擎、流程引擎、低代码等等各方面的帮助，LLM 应用也将是 ago 的一个方向。
+现在还处于贡献者报名期，欢迎在 issues 里报名。
 
 ---
 
@@ -315,7 +329,3 @@ Please adhere to the style guidelines in `docs/style.md`.
 ago is released under the **Apache‑2.0** license – see [LICENSE](LICENSE).
 
 For questions or support, open an issue on GitHub.
-
---- 
-
-Happy coding! 🚀
