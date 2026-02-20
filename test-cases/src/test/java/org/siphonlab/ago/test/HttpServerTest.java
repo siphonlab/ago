@@ -24,7 +24,9 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.web.RestfulService;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.zip.ZipInputStream;
 
 @Disabled
 public class HttpServerTest {
@@ -45,7 +47,8 @@ public class HttpServerTest {
 
         AgoEngine engine = new AgoEngine();
         AgoClassLoader agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/", "output/%s".formatted(filename));
+        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+        agoClassLoader.loadClasses("output/%s".formatted(filename));
 
         engine.load(agoClassLoader);
 

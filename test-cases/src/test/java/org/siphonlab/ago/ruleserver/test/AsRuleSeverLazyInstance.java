@@ -38,10 +38,12 @@ import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 import org.siphonlab.ago.test.Util;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.zip.ZipInputStream;
 
 public class AsRuleSeverLazyInstance {
 
@@ -82,7 +84,7 @@ public class AsRuleSeverLazyInstance {
 
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
+        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         agoClassLoader.loadClasses("output/ruleserver/mq");
 
 //        var agoClassLoader = new JsonAgoClassLoader(new MetaClass(), slotsCreatorFactory);
@@ -104,7 +106,7 @@ public class AsRuleSeverLazyInstance {
     public void runWithPG(String output) throws IOException {
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
+        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         agoClassLoader.loadClasses(output);
 
         PostgresPlatform platform = new PostgresPlatform();
@@ -133,7 +135,7 @@ public class AsRuleSeverLazyInstance {
 
     private void generateDDL(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
+        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         agoClassLoader.loadClasses(output);
 
         PostgresPlatform platform = new PostgresPlatform();

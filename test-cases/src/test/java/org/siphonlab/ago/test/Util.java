@@ -37,10 +37,12 @@ import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
+import java.util.zip.ZipInputStream;
 
 public class Util {
 
@@ -69,7 +71,11 @@ public class Util {
         Compiler compiler = new Compiler();
         Collection<ClassDef> rtClasses = null;
         AgoClassLoader agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("../ago-sdk/compiled/lang/");
+        if(new File("../ago-sdk/compiled/lang/").exists()) {
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/");
+        } else {
+            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+        }
 
         rtClasses = compiler.load(agoClassLoader);
         Unit[] units = compiler.compile(new File[]{new File("examples/%s".formatted(filename))}, rtClasses.toArray(new ClassDef[0]));
@@ -108,7 +114,12 @@ public class Util {
         AgoEngine engine = new AgoEngine();
         AgoClassLoader agoClassLoader = new AgoClassLoader();
 
-        agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
+        if(new File("../ago-sdk/compiled/lang/").exists()) {
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
+        } else {
+            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadClasses("output/%s".formatted(filename));
+        }
 
         engine.load(agoClassLoader);
 
@@ -120,7 +131,12 @@ public class Util {
 
         AgoEngine engine = new AgoEngine(new VertxRunSpaceHost(Vertx.vertx()));
         AgoClassLoader agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
+        if(new File("../ago-sdk/compiled/lang/").exists()) {
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
+        } else {
+            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadClasses("output/%s".formatted(filename));
+        }
 
         engine.load(agoClassLoader);
 
@@ -135,8 +151,12 @@ public class Util {
 
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
-        agoClassLoader.loadClasses("../ago-sdk/compiled/lang/");
-        agoClassLoader.loadClasses("output/%s".formatted(filename));
+        if(new File("../ago-sdk/compiled/lang/").exists()) {
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
+        } else {
+            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadClasses("output/%s".formatted(filename));
+        }
 
         BasicDataSource ds = new BasicDataSource();
         ds.setDriverClassName("org.postgresql.Driver");

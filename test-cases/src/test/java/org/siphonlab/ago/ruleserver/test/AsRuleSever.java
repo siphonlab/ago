@@ -33,8 +33,10 @@ import org.siphonlab.ago.runtime.rdb.json.PGJsonDDLGenerator;
 import org.siphonlab.ago.test.Util;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.zip.ZipInputStream;
 
 public class AsRuleSever {
 
@@ -54,7 +56,7 @@ public class AsRuleSever {
     public void runWithPG(String output) throws IOException {
         ReactiveJsonSlotsCreatorFactory slotsCreatorFactory = new ReactiveJsonSlotsCreatorFactory(null);
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
+        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         agoClassLoader.loadClasses(output);
 
         PostgresPlatform platform = new PostgresPlatform();
@@ -81,7 +83,7 @@ public class AsRuleSever {
 
     private void generateDDL(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses("../ago-sdk/src/compiled/lang/");
+        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         agoClassLoader.loadClasses(output);
 
         PostgresPlatform platform = new PostgresPlatform();
