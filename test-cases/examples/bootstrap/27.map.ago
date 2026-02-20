@@ -1,36 +1,3 @@
-class KeyValuePair<Key, Value>{
-    key as Key {public get;}
-    value as Value {public get;}
-}
-
-interface ReadWriteMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
-    fun get#key(index as Key) as Value;
-    fun put(index as Key, value as Value);
-    fun keys#get() as ReadOnlyCollection<Key>;
-    fun values#get() as ReadOnlyCollection<Value>;
-    fun containsKey(key as Key) as boolean;
-    fun remove(key as Key) as boolean;
-
-    fun count#get() as int;
-    fun isReadOnly() as boolean;
-    fun clear();
-}
-
-interface ReadOnlyMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
-    fun get#key(index as Key) as Value;
-    fun keys#get() as ReadOnlyCollection<Key>;
-    fun values#get() as ReadOnlyCollection<Value>;
-    fun containsKey(key as Key) as boolean;
-
-    fun count#get() as int;
-    fun isReadOnly() as boolean;
-    fun clear();
-}
-
-abstract class Map<Key, Value> with ReadWriteMap<Key, Value>, ReadOnlyMap<Key, Value>{
-
-}
-
 /**
 a typed Map, for key type int, short, byte boolean, classref, float, char, use Int2NullableObjectHashMap in backend
 for key type, long, double, use  Long2NullableObjectHashMap in backend
