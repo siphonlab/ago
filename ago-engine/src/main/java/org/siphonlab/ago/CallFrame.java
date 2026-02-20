@@ -25,7 +25,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     protected CallFrame<?> caller;
 
-    protected AgoRunSpace runSpace;
+    protected RunSpace runSpace;
 
     protected CallFrameStateHandler<?> stateHandler;
     protected boolean suspended = false;
@@ -51,7 +51,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     public abstract SourceLocation resolveSourceLocation();
 
-    public AgoRunSpace getRunSpace() {
+    public RunSpace getRunSpace() {
         return runSpace;
     }
 
@@ -70,8 +70,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) stateHandler.complete(null);
 
         CallFrame<?> caller = getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -89,8 +89,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<Byte>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if(callerRunSpace != runSpace){
             runSpace.setCurrCallFrame(null);
         }
@@ -101,8 +101,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<Short>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -113,8 +113,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<Integer>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -125,8 +125,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<Long>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -137,8 +137,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<Float>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -149,8 +149,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<Double>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -161,8 +161,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<Character>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -173,8 +173,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<Instance<?>>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -185,8 +185,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<String>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -197,8 +197,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) stateHandler.complete(null);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -209,8 +209,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) ((CallFrameStateHandler<AgoClass>) stateHandler).complete(result);
 
         var caller = this.getCaller();
-        AgoRunSpace callerRunSpace = caller.getRunSpace();
-        AgoRunSpace runSpace = getRunSpace();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
@@ -250,7 +250,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         return false;
     }
 
-    public void setRunSpace(AgoRunSpace runSpace) {
+    public void setRunSpace(RunSpace runSpace) {
         this.runSpace = runSpace;
     }
 
@@ -263,7 +263,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     public void resume() {
         this.setSuspended(false);
         // may enter a new frame and fall in pausing
-        AgoRunSpace runSpace = this.getRunSpace();
+        RunSpace runSpace = this.getRunSpace();
         CallFrame<?> currentCallFrame = runSpace.getCurrentCallFrame();
         if(currentCallFrame != this){
             currentCallFrame.setSuspended(false);

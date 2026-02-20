@@ -109,13 +109,13 @@ public class ExpandableCallFrame<T extends AgoFunction> extends CallFrame<T>
 
 
     @Override
-    public void setRunSpace(AgoRunSpace runSpace) {
+    public void setRunSpace(RunSpace runSpace) {
         if(logger.isDebugEnabled()) logger.debug("%s set runspace %s".formatted(this, runSpace));
         expand().setRunSpace(runSpace);
     }
 
     @Override
-    public AgoRunSpace getRunSpace() {
+    public RunSpace getRunSpace() {
         return expand().getRunSpace();
     }
 

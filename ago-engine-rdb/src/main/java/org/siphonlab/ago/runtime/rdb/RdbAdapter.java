@@ -18,7 +18,6 @@ package org.siphonlab.ago.runtime.rdb;
 import io.ebeaninternal.dbmigration.migration.Column;
 import io.ebeaninternal.dbmigration.migration.CreateTable;
 import org.agrona.collections.Int2ObjectHashMap;
-import org.agrona.collections.LongHashSet;
 import org.agrona.concurrent.IdGenerator;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
@@ -355,11 +354,11 @@ public abstract class RdbAdapter {
         saveInstance(instance, new HashSet<>());
     }
 
-    public void saveRunSpace(RdbAgoRunSpace runSpace) {
+    public void saveRunSpace(RdbRunSpace runSpace) {
         throw new NotImplementedException("not implemented yet");
     }
 
-    public void updateRunSpace(RdbAgoRunSpace runSpace) {
+    public void updateRunSpace(RdbRunSpace runSpace) {
         throw new NotImplementedException("not implemented yet");
     }
 

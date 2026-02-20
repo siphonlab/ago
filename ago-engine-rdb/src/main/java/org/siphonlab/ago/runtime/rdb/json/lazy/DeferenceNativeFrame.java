@@ -23,8 +23,6 @@ import org.siphonlab.ago.runtime.rdb.lazy.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine.toObjectRefCallFrame;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
 
@@ -85,7 +83,7 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceCallFr
     }
 
     @Override
-    public void setRunSpace(AgoRunSpace runSpace) {
+    public void setRunSpace(RunSpace runSpace) {
         super.setRunSpace(runSpace);
         state.setSaveRequired();
     }

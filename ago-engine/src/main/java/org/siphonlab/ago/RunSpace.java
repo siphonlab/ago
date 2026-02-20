@@ -27,7 +27,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-public class AgoRunSpace implements Runnable{
+public class RunSpace implements Runnable{
 
     public static class RunningState{
         public static final byte PENDING                = 1;
@@ -50,7 +50,7 @@ public class AgoRunSpace implements Runnable{
         }
     }
 
-    private final static Logger logger = LoggerFactory.getLogger(AgoRunSpace.class);
+    private final static Logger logger = LoggerFactory.getLogger(RunSpace.class);
 
     protected final AgoEngine agoEngine;
     protected final RunSpaceHost runSpaceHost;
@@ -60,10 +60,10 @@ public class AgoRunSpace implements Runnable{
     protected ResultSlots resultSlots = new ResultSlots();
 
     protected byte runningState = RunningState.PENDING;
-    protected final Set<AgoRunSpace> pausingParents = new ConcurrentHashSet<>();
+    protected final Set<RunSpace> pausingParents = new ConcurrentHashSet<>();
 
-    protected Set<AgoRunSpace> forkedSpaces = new ConcurrentHashSet<>();
-    protected AgoRunSpace parent;
+    protected Set<RunSpace> forkedSpaces = new ConcurrentHashSet<>();
+    protected RunSpace parent;
 
     protected Exception unhandledException;
 
@@ -77,7 +77,7 @@ public class AgoRunSpace implements Runnable{
         return agoEngine;
     }
 
-    public AgoRunSpace(AgoEngine agoEngine, RunSpaceHost runSpaceHost) {
+    public RunSpace(AgoEngine agoEngine, RunSpaceHost runSpaceHost) {
         this.agoEngine = agoEngine;
         this.runSpaceHost = runSpaceHost;
     }
@@ -117,7 +117,7 @@ public class AgoRunSpace implements Runnable{
         runSpaceHost.execute(this);    // see this.run()
     }
 
-    protected void removeForkedSpace(AgoRunSpace forkedRunSpace){
+    protected void removeForkedSpace(RunSpace forkedRunSpace){
         this.forkedSpaces.remove(forkedRunSpace);
     }
 
@@ -177,7 +177,7 @@ public class AgoRunSpace implements Runnable{
         pauseByParent(null);
     }
 
-    protected void pauseByParent(AgoRunSpace parent) {
+    protected void pauseByParent(RunSpace parent) {
         logger.info("pause " + this);
         synchronized (this.pausingParents) {
             if (this.getRunningState() == RunningState.WAITING_RESULT) {
@@ -188,17 +188,17 @@ public class AgoRunSpace implements Runnable{
             }
             if(parent != null) addPausingParent(parent);
 
-            for (AgoRunSpace childSpace : this.forkedSpaces) {
+            for (RunSpace childSpace : this.forkedSpaces) {
                 childSpace.pauseByParent(parent == null ? this : parent);
             }
         }
     }
 
-    protected void addPausingParent(AgoRunSpace parent) {
+    protected void addPausingParent(RunSpace parent) {
         pausingParents.add(parent);
     }
 
-    protected boolean removePausingParent(AgoRunSpace parent) {
+    protected boolean removePausingParent(RunSpace parent) {
         return pausingParents.remove(parent);
     }
 
@@ -209,7 +209,7 @@ public class AgoRunSpace implements Runnable{
             }   //TODO cannot stop native frame
         }
         this.setRunningState(RunningState.INTERRUPTED);
-        for (AgoRunSpace forkedSpace : this.forkedSpaces) {
+        for (RunSpace forkedSpace : this.forkedSpaces) {
             forkedSpace.interrupt();
         }
         for (CompleteListener completeListener : this.completeListeners) {
@@ -217,7 +217,7 @@ public class AgoRunSpace implements Runnable{
         }
     }
 
-    public void resumeByParentResume(AgoRunSpace parent){
+    public void resumeByParentResume(RunSpace parent){
         if (parent != null && !this.removePausingParent(parent)) return;
 
         if((this.getRunningState() & RunningState.PAUSE) == RunningState.PAUSE){
@@ -230,7 +230,7 @@ public class AgoRunSpace implements Runnable{
                         this.setRunningState((byte) (this.getRunningState() & RunningState.DE_PAUSE_MASK));    // remove pause
                     }
                 }
-                for (AgoRunSpace childSpace : this.forkedSpaces) {
+                for (RunSpace childSpace : this.forkedSpaces) {
                     childSpace.resumeByParentResume(parent == null ? this : parent);
                 }
             }
@@ -308,18 +308,18 @@ public class AgoRunSpace implements Runnable{
         this.waitResult();
     }
 
-    public AgoRunSpace createChildRunSpace(ForkContext forkContext) {
+    public RunSpace createChildRunSpace(ForkContext forkContext) {
         var space = agoEngine.createRunSpace(runSpaceHost);
         this.forkedSpaces.add(space);
         space.setParent(this);
         return space;
     }
 
-    public void setParent(AgoRunSpace parent) {
+    public void setParent(RunSpace parent) {
         this.parent = parent;
     }
 
-    public AgoRunSpace getParent() {
+    public RunSpace getParent() {
         return parent;
     }
 

@@ -42,7 +42,7 @@ public class SimplePublisher implements org.reactivestreams.Publisher<HttpObject
     public static void create(AgoEngine agoEngine, CallFrame<?> callFrame, Instance<?> instance, Instance<?> scopedPublishFun) {
         SimplePublisher simplePublisher = new SimplePublisher();
         ((NativeInstance) instance).setNativePayload(simplePublisher);
-        AgoRunSpace runSpace = callFrame.getRunSpace();
+        RunSpace runSpace = callFrame.getRunSpace();
         CallFrame<?> frame = (CallFrame<?>) agoEngine.createInstanceFromScopedClass((AgoClass) scopedPublishFun, callFrame, runSpace);
         simplePublisher.publisher = () -> runSpace.fork(frame);
     }

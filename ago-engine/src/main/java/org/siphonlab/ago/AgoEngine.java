@@ -51,7 +51,7 @@ public class AgoEngine implements ClassManager{
     protected AgoClass PRIMITIVE_TYPE;
     protected AgoClass PRIMITIVE_NUMBER_TYPE;
 
-    private AgoRunSpace runSpace;
+    private RunSpace runSpace;
     private BoxTypes boxTypes;
 
     protected ObjectMapper defaultObjectMapper;
@@ -121,12 +121,12 @@ public class AgoEngine implements ClassManager{
         this.runSpaceHost = runSpaceHost;
     }
 
-    protected AgoRunSpace createRunSpace(RunSpaceHost runSpaceHost) {
+    protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
         return createRunSpaceInner(runSpaceHost);
     }
 
-    protected AgoRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
-        return new AgoRunSpace(this, runSpaceHost);
+    protected RunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
+        return new RunSpace(this, runSpaceHost);
     }
 
 
@@ -291,7 +291,7 @@ public class AgoEngine implements ClassManager{
         return classes[classId];
     }
 
-    public Instance<?> createInstance(Instance<?> parentScope, int classId, CallFrame<?> creator, AgoRunSpace runSpace) {
+    public Instance<?> createInstance(Instance<?> parentScope, int classId, CallFrame<?> creator, RunSpace runSpace) {
         return createInstance(parentScope,classes[classId], creator);
     }
 
@@ -329,12 +329,12 @@ public class AgoEngine implements ClassManager{
         return scopedClassInterval;
     }
 
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, AgoRunSpace runSpace){
+    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace){
         // after getClass(scopedClass.classId), the ScopedClass restore to the original class
         return createInstance(scopedClass.getParentScope(), getClass(scopedClass.classId), creator);
     }
 
-    public AgoRunSpace getRunSpace() {
+    public RunSpace getRunSpace() {
         return runSpace;
     }
 

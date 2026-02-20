@@ -29,18 +29,18 @@ import java.util.concurrent.Future;
 
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.*;
 
-public class RdbAgoRunSpace extends AgoRunSpace {
+public class RdbRunSpace extends RunSpace {
 
-    private final static Logger logger = LoggerFactory.getLogger(RdbAgoRunSpace.class);
+    private final static Logger logger = LoggerFactory.getLogger(RdbRunSpace.class);
 
     private final RdbAdapter rdbAdapter;
     private final long id;
 
-    public RdbAgoRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
+    public RdbRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
         this(agoEngine, rdbAdapter, runSpaceHost, rdbAdapter.nextId());
     }
 
-    public RdbAgoRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost, long id) {
+    public RdbRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost, long id) {
         super(agoEngine, runSpaceHost);
         this.rdbAdapter = rdbAdapter;
         this.id = id;
@@ -124,7 +124,7 @@ public class RdbAgoRunSpace extends AgoRunSpace {
 
     @Override
     public Object awaitTillComplete(CallFrame<?> frame) {
-        if(frame.getRunSpace() instanceof RdbAgoRunSpace rdbAgoRunSpace){
+        if(frame.getRunSpace() instanceof RdbRunSpace rdbAgoRunSpace){
             rdbAgoRunSpace.save(frame);
         }
         return super.awaitTillComplete(frame);
@@ -134,36 +134,36 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         ((RdbEngine)getAgoEngine()).saveInstance(instance);
     }
 
-    public Set<AgoRunSpace> getPausingParents() {
+    public Set<RunSpace> getPausingParents() {
         return pausingParents;
     }
 
-    public Set<AgoRunSpace> getForkedSpaces() {
+    public Set<RunSpace> getForkedSpaces() {
         return forkedSpaces;
     }
 
     @Override
-    protected void addPausingParent(AgoRunSpace parent) {
+    protected void addPausingParent(RunSpace parent) {
         super.addPausingParent(parent);
         rdbAdapter.updateRunSpace(this);
     }
 
     @Override
-    protected boolean removePausingParent(AgoRunSpace parent) {
+    protected boolean removePausingParent(RunSpace parent) {
         var r = super.removePausingParent(parent);
         rdbAdapter.updateRunSpace(this);
         return r;
     }
 
     @Override
-    public AgoRunSpace createChildRunSpace(ForkContext forkContext) {
+    public RunSpace createChildRunSpace(ForkContext forkContext) {
         var r = super.createChildRunSpace(forkContext);
         rdbAdapter.updateRunSpace(this);        // add forkedRunSpace
         return r;
     }
 
     @Override
-    protected void removeForkedSpace(AgoRunSpace forkedRunSpace) {
+    protected void removeForkedSpace(RunSpace forkedRunSpace) {
         super.removeForkedSpace(forkedRunSpace);
         rdbAdapter.updateRunSpace(this);
     }
@@ -261,8 +261,8 @@ public class RdbAgoRunSpace extends AgoRunSpace {
         }
     }
 
-    public void restore(byte runningState, CallFrame<?> currCallFrame, AgoRunSpace parent,
-                        List<AgoRunSpace> forkedRunspaces, List<AgoRunSpace> pausingParents,
+    public void restore(byte runningState, CallFrame<?> currCallFrame, RunSpace parent,
+                        List<RunSpace> forkedRunspaces, List<RunSpace> pausingParents,
                         Instance<?> exception, ResultSlots resultSlots) {
         this.runningState = runningState;
         this.currCallFrame = currCallFrame;

@@ -43,12 +43,12 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     }
 
     @Override
-    public AgoRunSpace getRunSpace() {
+    public RunSpace getRunSpace() {
         return inner.getRunSpace();
     }
 
     @Override
-    public void setRunSpace(AgoRunSpace runSpace) {
+    public void setRunSpace(RunSpace runSpace) {
         inner.setRunSpace(runSpace);
     }
 

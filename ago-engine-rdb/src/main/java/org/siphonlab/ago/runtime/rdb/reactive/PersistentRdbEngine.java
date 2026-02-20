@@ -23,7 +23,7 @@ import org.apache.mina.util.IdentityHashSet;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
-import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace;
+import org.siphonlab.ago.runtime.rdb.RdbRunSpace;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
 
@@ -39,7 +39,7 @@ import java.util.Set;
  */
 public class PersistentRdbEngine extends RdbEngine {
 
-    protected Long2ObjectHashMap<AgoRunSpace> runspaces = new Long2ObjectHashMap<>();
+    protected Long2ObjectHashMap<RunSpace> runspaces = new Long2ObjectHashMap<>();
 
     public PersistentRdbEngine(RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
         super(rdbAdapter, runSpaceHost);
@@ -105,7 +105,7 @@ public class PersistentRdbEngine extends RdbEngine {
     }
 
     @Override
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, AgoRunSpace runSpace) {
+    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace) {
         var inst = super.createInstanceFromScopedClass(scopedClass, creator, runSpace);
         saveInstance(inst);
         return inst;
@@ -116,9 +116,9 @@ public class PersistentRdbEngine extends RdbEngine {
     }
 
     @Override
-    protected AgoRunSpace createRunSpace(RunSpaceHost runSpaceHost) {
+    protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
         var r = super.createRunSpace(runSpaceHost);
-        if(r instanceof RdbAgoRunSpace rdbAgoRunSpace){
+        if(r instanceof RdbRunSpace rdbAgoRunSpace){
             this.runspaces.put(rdbAgoRunSpace.getId(), rdbAgoRunSpace);
         }
         return r;
@@ -128,11 +128,11 @@ public class PersistentRdbEngine extends RdbEngine {
         this.runspaces.remove(id);
     }
 
-    public AgoRunSpace getRunSpace(long id) {
+    public RunSpace getRunSpace(long id) {
         return this.runspaces.get(id);
     }
 
-    Set<AgoRunSpace> getRunSpaces(){
+    Set<RunSpace> getRunSpaces(){
         return new IdentityHashSet<>(this.runspaces.values());
     }
 }

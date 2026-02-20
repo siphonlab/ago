@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.regex.Pattern;
 
 import static org.apache.commons.dbcp2.Utils.closeQuietly;
 
@@ -163,15 +162,15 @@ public class RdbEngine extends AgoEngine {
     }
 
     @Override
-    protected AgoRunSpace createRunSpace(RunSpaceHost runSpaceHost) {
+    protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
         var r = createRunSpaceInner(runSpaceHost);
         this.rdbAdapter.saveRunSpace(r);
         return r;
     }
 
     @Override
-    protected RdbAgoRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
-        return new RdbAgoRunSpace(this, rdbAdapter, runSpaceHost);
+    protected RdbRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
+        return new RdbRunSpace(this, rdbAdapter, runSpaceHost);
     }
 
     @Override
@@ -204,7 +203,7 @@ public class RdbEngine extends AgoEngine {
     }
 
     @Override
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, AgoRunSpace runSpace) {
+    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace) {
         var inst = super.createInstanceFromScopedClass(scopedClass, creator, runSpace);
 //        ((RdbAgoSpace) runSpace).collectInstance(inst);
         return inst;

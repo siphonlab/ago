@@ -24,9 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> implements ObjectRefObject, ObjectRefOwner, ReferenceCounter {
@@ -153,14 +151,14 @@ public class ObjectRefCallFrame<F extends AgoFunction> extends CallFrame<F> impl
     }
 
     @Override
-    public void setRunSpace(AgoRunSpace runSpace) {
+    public void setRunSpace(RunSpace runSpace) {
         recomposeAsCallFrame().setRunSpace(runSpace);
     }
 
     @Override
-    public AgoRunSpace getRunSpace() {
-        AgoRunSpace r = super.getRunSpace();
-        if (r != null) return ((AgoRunSpace) (r));
+    public RunSpace getRunSpace() {
+        RunSpace r = super.getRunSpace();
+        if (r != null) return ((RunSpace) (r));
         return recomposeAsCallFrame().getRunSpace();
     }
 

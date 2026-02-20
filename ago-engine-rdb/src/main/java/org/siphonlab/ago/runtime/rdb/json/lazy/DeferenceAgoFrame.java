@@ -15,12 +15,10 @@
  */
 package org.siphonlab.ago.runtime.rdb.json.lazy;
 
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.opcode.Load;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceCallFrame;
-import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
 import org.slf4j.Logger;
@@ -42,7 +40,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
     }
 
     @Override
-    public void setRunSpace(AgoRunSpace runSpace) {
+    public void setRunSpace(RunSpace runSpace) {
         super.setRunSpace(runSpace);
         this.state.setSaveRequired();
     }

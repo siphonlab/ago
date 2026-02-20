@@ -15,13 +15,9 @@
  */
 package org.siphonlab.ago.runtime.vertx;
 
-import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import org.siphonlab.ago.AgoRunSpace;
+import org.siphonlab.ago.RunSpace;
 import org.siphonlab.ago.RunSpaceHost;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 public class VertxRunSpaceHost implements RunSpaceHost {
     private final Vertx vertx;
@@ -30,7 +26,7 @@ public class VertxRunSpaceHost implements RunSpaceHost {
         this.vertx = vertx;
     }
     @Override
-    public void execute(AgoRunSpace runSpace) {
+    public void execute(RunSpace runSpace) {
         vertx.runOnContext(event -> runSpace.run());
     }
 

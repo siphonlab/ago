@@ -30,7 +30,7 @@ import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.native_.NativeInstance
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
 import org.siphonlab.ago.runtime.rdb.RdbAdapter
-import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace
+import org.siphonlab.ago.runtime.rdb.RdbRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbEngine
 import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.RdbType
@@ -39,7 +39,6 @@ import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame
-import org.siphonlab.ago.runtime.rdb.lazy.ExpandableSlots
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonCallFrame
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
@@ -169,11 +168,11 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 creator_id        : creatorObjectRef?.id(),
                 creator_class     : creatorObjectRef?.className(),
                 pc                : 0,
-                state             : AgoRunSpace.RunningState.PENDING,
+                state             : RunSpace.RunningState.PENDING,
                 suspended         : false,
                 exception_id      : null,
                 exception_class   : null,
-                runspace          : (agoFrame.getRunSpace() as RdbAgoRunSpace)?.id,
+                runspace          : (agoFrame.getRunSpace() as RdbRunSpace)?.id,
                 slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
         ]
 
@@ -201,11 +200,11 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 creator_id        : creatorObjectRef?.id(),
                 creator_class     : creatorObjectRef?.className(),
                 pc                : 0,
-                state             : AgoRunSpace.RunningState.PENDING,
+                state             : RunSpace.RunningState.PENDING,
                 suspended         : false,
                 exception_id      : null,
                 exception_class   : null,
-                runspace          : (agoFrame.getRunSpace() as RdbAgoRunSpace)?.id,
+                runspace          : (agoFrame.getRunSpace() as RdbRunSpace)?.id,
                 slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
         ]
 
@@ -238,7 +237,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var map = [
                 "id"       : objectRef.id() as Object,
                 "suspended": callFrame.suspended,
-                "runspace" : (callFrame.runSpace as RdbAgoRunSpace)?.id,
+                "runspace" : (callFrame.runSpace as RdbRunSpace)?.id,
         ]
         if(runningState != (byte)-1) map["state"] = runningState
 
@@ -531,7 +530,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         )
     }
 
-    void saveRunSpace(RdbAgoRunSpace runSpace){
+    void saveRunSpace(RdbRunSpace runSpace){
         sql.executeInsert(toMap(runSpace),
             """insert into ago_runspace (
                     id, application, native_host_class, curr_frame_table, curr_frame_id, result_slots, running_state, exception_id, pausing_parents, forked_runspaces, parent_runspace
@@ -542,7 +541,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 """);
     }
 
-    void updateRunSpace(RdbAgoRunSpace runSpace){
+    void updateRunSpace(RdbRunSpace runSpace){
         sql.executeUpdate(toUpdateMap(runSpace),
             """UPDATE ago_runspace
                 SET
@@ -556,7 +555,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 WHERE id = :id""")
     }
 
-    Map<String, Object> toMap(RdbAgoRunSpace runSpace){
+    Map<String, Object> toMap(RdbRunSpace runSpace){
         RdbEngine rdbEngine = this.classManager as RdbEngine
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
         return [
@@ -568,12 +567,12 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
-                "pausing_parents"  : runSpace.pausingParents.collect { ((RdbAgoRunSpace) it).id }.toArray(new Long[0]),
-                "forked_runspaces" : runSpace.forkedSpaces.collect { ((RdbAgoRunSpace) it).id }.toArray(new Long[0]), "parent": ((RdbAgoRunSpace) runSpace.getParent())?.id
+                "pausing_parents"  : runSpace.pausingParents.collect { ((RdbRunSpace) it).id }.toArray(new Long[0]),
+                "forked_runspaces" : runSpace.forkedSpaces.collect { ((RdbRunSpace) it).id }.toArray(new Long[0]), "parent": ((RdbRunSpace) runSpace.getParent())?.id
         ];      // UnhandledException
     }
 
-    Map<String, Object> toUpdateMap(RdbAgoRunSpace runSpace) {
+    Map<String, Object> toUpdateMap(RdbRunSpace runSpace) {
         RdbEngine rdbEngine = this.classManager as RdbEngine
 
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
@@ -584,8 +583,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
-                "pausing_parents"  : runSpace.pausingParents.collect { ((RdbAgoRunSpace) it).id}.toArray(new Long[0]),
-                "forked_runspaces" : runSpace.forkedSpaces.collect { ((RdbAgoRunSpace) it).id}.toArray(new Long[0]),
+                "pausing_parents"  : runSpace.pausingParents.collect { ((RdbRunSpace) it).id}.toArray(new Long[0]),
+                "forked_runspaces" : runSpace.forkedSpaces.collect { ((RdbRunSpace) it).id}.toArray(new Long[0]),
         ];
     }
 

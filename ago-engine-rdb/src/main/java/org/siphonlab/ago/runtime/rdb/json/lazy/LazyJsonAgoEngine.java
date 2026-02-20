@@ -24,7 +24,6 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
-import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.json.*;
@@ -215,7 +214,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     }
 
     @Override
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, AgoRunSpace runSpace) {
+    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace) {
         var inst = super.createInstanceFromScopedClass(scopedClass, creator, runSpace);
         return inst;
     }
@@ -225,9 +224,9 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         LazyJsonPGAdapter adapter = (LazyJsonPGAdapter) this.getRdbAdapter();
         List<RunSpaceDesc> runSpaceDescs = adapter.loadResumableRunSpaces();
 
-        Long2ObjectHashMap<RdbAgoRunSpace> runspaces = new Long2ObjectHashMap<>();
+        Long2ObjectHashMap<RdbRunSpace> runspaces = new Long2ObjectHashMap<>();
         for (RunSpaceDesc runSpaceDesc : runSpaceDescs) {
-            var r  = new RdbAgoRunSpace(this, adapter, this.runSpaceHost, runSpaceDesc.getId()); //TODO multiple runSpaceHost
+            var r  = new RdbRunSpace(this, adapter, this.runSpaceHost, runSpaceDesc.getId()); //TODO multiple runSpaceHost
             runspaces.put(runSpaceDesc.getId(),r);
         }
         this.runspaces.putAll(runspaces);
@@ -238,16 +237,16 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
             if(currCallFrame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
                 currCallFrame = (CallFrame<?>) objectRefCallFrame.recomposeAsCallFrame();
             }
-            List<AgoRunSpace> forkedRunspaces = runSpaceDesc.getForkedRunSpaces() == null ? null : runSpaceDesc.getForkedRunSpaces().stream().map(d -> (AgoRunSpace) runspaces.get(d.getId())).toList();
-            AgoRunSpace parent = runSpaceDesc.getParentRunSpace() == null ? null : runspaces.get(runSpaceDesc.getParentRunSpace().getId());
-            List<AgoRunSpace> pausingParents = runSpaceDesc.getPausingParents() == null ? null : runSpaceDesc.getPausingParents().stream().map(d -> (AgoRunSpace)runspaces.get(d.getId())).toList();
+            List<RunSpace> forkedRunspaces = runSpaceDesc.getForkedRunSpaces() == null ? null : runSpaceDesc.getForkedRunSpaces().stream().map(d -> (RunSpace) runspaces.get(d.getId())).toList();
+            RunSpace parent = runSpaceDesc.getParentRunSpace() == null ? null : runspaces.get(runSpaceDesc.getParentRunSpace().getId());
+            List<RunSpace> pausingParents = runSpaceDesc.getPausingParents() == null ? null : runSpaceDesc.getPausingParents().stream().map(d -> (RunSpace)runspaces.get(d.getId())).toList();
             byte runningState = runSpaceDesc.getRunningState();
             Instance<?> exception = adapter.restoreInstance(runSpaceDesc.getException());
             r.restore(runningState, currCallFrame, parent, forkedRunspaces, pausingParents, exception, runSpaceDesc.getResultSlots());
         }
 
-        for (RdbAgoRunSpace runSpace : runspaces.values()) {
-            if(runSpace.getRunningState() == AgoRunSpace.RunningState.RUNNING){
+        for (RdbRunSpace runSpace : runspaces.values()) {
+            if(runSpace.getRunningState() == RunSpace.RunningState.RUNNING){
                 runSpace.resumeByRestore();
             }
         }

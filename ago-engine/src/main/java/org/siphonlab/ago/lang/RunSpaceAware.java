@@ -35,7 +35,7 @@ public class RunSpaceAware {
 
     public static void getRunSpace(NativeFrame nativeFrame) {
         CallFrame<?> fun = (CallFrame<?>) nativeFrame.getParentScope();       // Function<R>
-        AgoRunSpace runSpace = fun.getRunSpace();
+        RunSpace runSpace = fun.getRunSpace();
 
         AgoEngine agoEngine = runSpace.getAgoEngine();
         NativeInstance runspaceObj = (NativeInstance) agoEngine.createNativeInstance(null, agoEngine.getRunSpaceClass(), nativeFrame);
@@ -116,9 +116,9 @@ public class RunSpaceAware {
         frame.finishVoid();
     }
 
-    private static AgoRunSpace getAgoRunSpace(NativeFrame nativeFrame) {
+    private static RunSpace getAgoRunSpace(NativeFrame nativeFrame) {
         NativeInstance runSpaceInstance = (NativeInstance) nativeFrame.getParentScope();
-        AgoRunSpace runSpace = (AgoRunSpace) runSpaceInstance.getNativePayload();
+        RunSpace runSpace = (RunSpace) runSpaceInstance.getNativePayload();
         return runSpace;
     }
 

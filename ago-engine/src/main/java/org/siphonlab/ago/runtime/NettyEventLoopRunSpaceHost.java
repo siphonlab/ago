@@ -17,8 +17,7 @@ package org.siphonlab.ago.runtime;
 
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
-import io.netty.util.concurrent.Future;
-import org.siphonlab.ago.AgoRunSpace;
+import org.siphonlab.ago.RunSpace;
 import org.siphonlab.ago.RunSpaceHost;
 
 import java.util.concurrent.TimeUnit;
@@ -33,7 +32,7 @@ public class NettyEventLoopRunSpaceHost implements RunSpaceHost {
     }
 
     @Override
-    public void execute(AgoRunSpace runSpace) {
+    public void execute(RunSpace runSpace) {
         this.eventLoop.execute(runSpace);
     }
 

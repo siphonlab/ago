@@ -62,7 +62,7 @@ public class Instance<C extends AgoClass>  {
     public Object invokeMethod(CallFrame<?> caller, AgoFunction method, Object... arguments) {
         return invokeMethod(caller,caller.getRunSpace(),method, arguments);
     }
-    public Object invokeMethod(CallFrame<?> caller, AgoRunSpace runSpace, AgoFunction method, Object... arguments){
+    public Object invokeMethod(CallFrame<?> caller, RunSpace runSpace, AgoFunction method, Object... arguments){
         CallFrame<?> callFrame = runSpace.getAgoEngine().createFunctionInstance(this, method, caller, caller);
         for (int i = 0; i < arguments.length; i++) {
             Object argument = arguments[i];

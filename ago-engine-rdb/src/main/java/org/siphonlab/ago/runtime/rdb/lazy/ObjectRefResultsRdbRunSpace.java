@@ -15,13 +15,12 @@
  */
 package org.siphonlab.ago.runtime.rdb.lazy;
 
-import org.siphonlab.ago.AgoRunSpace;
 import org.siphonlab.ago.RunSpaceHost;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
-import org.siphonlab.ago.runtime.rdb.RdbAgoRunSpace;
+import org.siphonlab.ago.runtime.rdb.RdbRunSpace;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 
-public class ObjectRefResultsRdbRunSpace extends RdbAgoRunSpace {
+public class ObjectRefResultsRdbRunSpace extends RdbRunSpace {
 
     public ObjectRefResultsRdbRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
         super(agoEngine, rdbAdapter, runSpaceHost);
