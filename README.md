@@ -103,19 +103,24 @@ fun main(){
 Compile & run:
 
 ```bash
-java -cp target/ago-<ver>.jar org.inshua.ago.compiler.Compiler hello.ago
-# The compiler writes bytecode to hello.bin
+# create sdk
+cd ago-sdk/src/
+java -jar ../../ago-compiler/target/ago-compiler-<ver>.jar -i lang/lang.ago lang/atomic.ago lang/collection.ago lang/runspace.ago -o ../lang.agopkg
 
-java -cp target/ago-<ver>.jar org.inshua.ago.runtime.AgoRuntime hello.bin
+# compile
+cd -
+java -cp path/to/ago-compiler-<ver>.jar -i hello.ago
+
+# run
+java -jar ago-engine/target/ago-engine-1.0-SNAPSHOT.jar -agocp ago-sdk/lang.agopkg ./
 ```
 
 You should see:
-
 ```
 Hello, ago!
 ```
 
-> **Tip:** The compiler and runtime are bundled together in the same JAR; you can also use them as libraries inside a larger Java application.
+> **Tip:** You can also embed ago engine as libraries inside your Java application.
 
 ---
 

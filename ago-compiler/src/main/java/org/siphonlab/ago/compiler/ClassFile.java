@@ -533,7 +533,13 @@ public class ClassFile {
     public static byte[] createBinaryPackage(Unit[] units) throws IOException, TypeMismatchError {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        try (ZipOutputStream zos = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
+        createPackage(units, baos);
+
+        return baos.toByteArray();
+    }
+
+    public static void createPackage(Unit[] units, OutputStream outputStream) throws IOException, TypeMismatchError {
+        try (ZipOutputStream zos = new ZipOutputStream(outputStream, StandardCharsets.UTF_8)) {
             for (Unit unit : units) {
                 for (ClassDef classDef : unit.getTopClasses()) {
                     if (classDef instanceof MetaClassDef) continue;  // write metaclass with class
@@ -546,7 +552,5 @@ public class ClassFile {
                 }
             }
         }
-
-        return baos.toByteArray();
     }
 }
