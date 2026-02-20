@@ -1,4 +1,12 @@
 /*
+SPDX-License-Identifier: BSD-3-Clause
+
+Copyright (c) 2022-2026 Inshua(inshua@gmail.com)
+----------------------------------------------------------------------
+The original Java grammar, https://github.com/antlr/grammars-v4/tree/master/antlr/antlr4/examples/grammars-v4/java/java
+and some features come from js, https://github.com/antlr/grammars-v4/blob/master/antlr/antlr4/examples/grammars-v4/javascript/javascript/
+----------------------------------------------------------------------
+
  [The "BSD licence"]
  Copyright (c) 2013 Terence Parr, Sam Harwell
  Copyright (c) 2017 Ivan Kochurkin (upgrade to Java 8)
@@ -27,7 +35,7 @@
  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 
 // $antlr-format alignTrailingComments true, columnLimit 150, minEmptyLines 1, maxEmptyLinesToKeep 1, reflowComments false, useTab false
 // $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
