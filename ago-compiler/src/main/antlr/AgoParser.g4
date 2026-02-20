@@ -37,12 +37,13 @@ and some features come from js, https://github.com/antlr/grammars-v4/blob/master
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+// outputdir gen/org/siphonlab/ago/compiler/parser
 // $antlr-format alignTrailingComments true, columnLimit 150, minEmptyLines 1, maxEmptyLinesToKeep 1, reflowComments false, useTab false
 // $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
 
 parser grammar AgoParser;
 @header {
-    // output to gen/org/siphonlab/ago/compiler/parser, for maven `antlr4-maven-plugin` need package name
+    // for IDEA plugin, output to gen/org/siphonlab/ago/compiler/parserm, don't set package name, due the `antlr4-maven-plugin` need package name
     package org.siphonlab.ago.compiler.parser;
 }
 options {
