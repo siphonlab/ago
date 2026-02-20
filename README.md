@@ -4,24 +4,23 @@
 
 ## Overview
 
-ago 是基于“函数是类，CallFrame是函数的实例”思想设计的面向对象静态编程语言，赋予了函数和函数调用这两个核心而常见的程序语言要素对现实世界的“动作”的语义建模能力。
+ago is an object-oriented static programming language designed around the idea that *"Function is Class, and CallFrame is its Instance"*, enabling functions and their invocations—the two core, ubiquitous elements of programming languages—to semantically model real‑world Actions.
 
-受 **Process Philosophy** 的启发，`ago` 认为现实世界的“动作”应当具有完整的生命周期状态——既包含起点也保留终点和中间过程。
-传统的编程模型将 `CallFrame（调用帧）` 绑定在底层栈结构上且不可见、不支持持久化。而 ago 将其抽象为面向对象的概念：
-*   **Function is Class**：函数是类。函数被提升为一等公民，具有生命周期属性和方法字段；
-*   **Call Frame is its Instance**：CallFrame 是函数的实例。每一个函数调用，产生一个 Call Frame 实例。
+Inspired by Process Philosophy, ago believes that real‑world “actions” should have a complete lifecycle state—containing both start and end points as well as intermediate processes. Traditional programming models bind the CallFrame to an underlying stack structure, making it invisible and far from programmer. ago abstracts it as an object‑oriented concept:
+*   **Function is Class**: Functions become classes. They are first-class citizens with lifecycle properties and method fields.
+*   **Call Frame is its Instance**: CallFrames materialize as heap-based objects when functions execute.
 
 This design gives you:
 
-* **Asynchronous actions** – function invocations can suspend and resume like coroutines, but are just normal objects.
-* **Full persistence** – every call frame is a heap object; its state can be stored in any database or key‑value store and recovered after a crash.
-* **Distributed execution** – because frames are objects they can be shipped across nodes.
-* **Object‑oriented semantics everywhere** – closures, generics, traits, meta‑classes, and parameterized classes all live in the same type system.
+* **Asynchronous actions** – Function invocations can suspend and resume like coroutines, but remain ordinary objects.
+* **Full persistence** – Every call frame is a heap object; its state can be stored in any database or key-value store and recovered after a crash.
+* **Distributed execution** – Because frames are objects they can be shipped across nodes.
+* **Object-oriented semantics everywhere** – Closures, generics, traits, meta-classes, and parameterized classes all live in the same type system.
 
-ago is developed with Java 22, you can embed it into any Java application or run it as a standalone interpreter.
+ago is implemented with Java 22. You can embed it into any Java application or run it as a standalone interpreter.
 
 > **Why use ago?**  
-> When your business logic involves long‑running, event‑driven workflows (e.g. approvals, payment processing, game animation), traditional languages force you to mix callbacks, state machines, or external workflow engines. ago lets you write those flows *directly* as ordinary functions, with built‑in suspension, resumption, and persistence.
+> When your business logic involves long-running, event-driven workflows (e.g., approvals, payment processing, game animation), traditional languages force you to mix callbacks, state machines, or external workflow engines. ago lets you write those flows *directly* as ordinary functions with built-in suspension, resumption, and persistence.
 
 ---
 
@@ -29,17 +28,16 @@ ago is developed with Java 22, you can embed it into any Java application or run
 
 | Feature                                  | What it gives you                                                                                                       |
 |------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| **Function = Class**                     | Functions are classes; every function derive from `Function<R>`, you can implement interfaces/traits, add fields.       |
-| **CallFrame = Instance**                 | Every invocation is an ordinal object on the heap – suspendable, serializable, interruptible.                           |
-| **Meta‑classes & Parameterized Classes** | Embed constant values in types (e.g., `VarChar::(200)`).                                                                |
-| **Scalarized ClassRefs (`classref`)**    | Treat classes as first‑class values; use them as generic type parameters or runtime checks.                             |
-| **Extended Boxing**                      | Boxing works on subclass of `Boxer<T>`, `name as VarChar::(200) = 'John'` allowed.                                      |
+| **Function = Class**                     | Functions are classes; every function derives from `Function<R>`, you can implement interfaces/traits, add fields.       |
+| **CallFrame = Instance**                 | Every invocation is an ordinary object on the heap – suspendable, serializable, interruptible.                           |
+| **Meta-classes & Parameterized Classes** | Embed constant values in types (e.g., `VarChar::(200)`).                                                                |
+| **Scalarized ClassRefs (`classref`)**    | Treat classes as first-class values; use them as generic type parameters or runtime checks.                             |
+| **Extended Boxing**                      | Boxing works on subclasses of `Boxer<T>`, syntax like `name as VarChar::(200) = 'John'` is allowed.                                      |
 | **Overloading at Invocation**            | Use `f#1`, `f#2` etc. – the compiler resolves at call time by argument types.                                           |
 | **Attributes (getter/setter)**           | Declared as two overloads of a shared name (`name#get`, `name#set`).                                                    |
 | **Structured concurrency primitives**    | `fork`, `await`, `race()`, `awaitMany()` – all built on CallFrames.                                                     |
 | **RunSpace abstraction**                 | One RunSpace per "thread" of execution; can be backed by thread pools, event loops, or virtual threads.                 |
 | **Persistence hooks**                    | Implement `Slots` to store state in PostgreSQL JSON columns, NoSQL, or even a blockchain.                               |
-| **Extensible VM**                        | Add native functions, transform bytecode into Java bytecode or LLVM IR, or run on a stack‑based engine for performance. |
 
 ---
 
@@ -62,15 +60,14 @@ ago is developed with Java 22, you can embed it into any Java application or run
   execute on JVM
 ```
 
-* **`Instance`** – base for all objects. Holds a reference to its class (`agoClass`) and a `Slots` implementation.
-* **`AgoClass` / `MetaClass`** – ordinary classes and meta‑classes. Functions are subclasses of `AgoClass`.
-* **`CallFrame`** – runtime frame; stores local variables, program counter (`pc`), caller reference, etc. All frames are heap objects.
-* **`RunSpace`** – owns the *current* call frame. When a function yields (via `await`) it changes its state to *WAITING_RESULT*, freeing the thread for another task.
+* **`Instance`** – Base for all ago objects. Holds a reference to its class (`agoClass`) and a `Slots` implementation.
+* **`AgoClass` / `MetaClass`** – Ordinary classes and meta-classes. Functions are subclasses of `AgoClass`.
+* **`CallFrame`** – Runtime frame; stores local variables, program counter (`pc`), caller reference, etc. All frames are heap objects.
+* **`RunSpace`** – Owns the *current* call frame. When a function yields (via `await`) it changes its state to *WAITING_RESULT*, freeing the thread for another task.
 
-Because everything is an object, you can:
-
-1. Persist a frame by serializing its slots.
-2. Transfer a frame across processes by sending its serialized form.
+Because everything is an object:
+1. You can persist a frame by serializing its slots.
+2. Transfer a frame across processes using serialized form.
 3. Resume execution in any JVM that knows how to interpret the bytecode.
 
 ---
@@ -79,15 +76,15 @@ Because everything is an object, you can:
 
 ### Prerequisites
 
-* JDK 22 or newer.
-* Maven 3.6+ (for building from source) – optional if you just run the pre‑built jar.
+* JDK 22 or newer.
+* Maven 3.6+ (for building from source).
 
 ### Build
 
 ```bash
 git clone https://github.com/inshua/ago.git
 cd ago
-mvn clean package -DskipTests   # produces target/ago-<ver>.jar
+mvn clean package -DskipTests 
 ```
 
 ### Run a Sample Program
@@ -103,16 +100,11 @@ fun main(){
 Compile & run:
 
 ```bash
-# create sdk
-cd ago-sdk/src/
-java -jar ../../ago-compiler/target/ago-compiler-<ver>.jar -i lang/lang.ago lang/atomic.ago lang/collection.ago lang/runspace.ago -o ../lang.agopkg
-
 # compile
-cd -
-java -cp path/to/ago-compiler-<ver>.jar -i hello.ago
+java -cp path/to/ago-compiler/target/ago-compiler-<ver>.jar -agocp ago-sdk/lang.agopkg -i hello.ago
 
 # run
-java -jar ago-engine/target/ago-engine-1.0-SNAPSHOT.jar -agocp ago-sdk/lang.agopkg ./
+java -jar path/to/ago-engine/target/ago-engine-1.0-SNAPSHOT.jar -agocp ago-sdk/lang.agopkg ./
 ```
 
 You should see:
@@ -152,7 +144,7 @@ fun f(){
 
 fun main(){
     var c = fork f();   // start child RunSpace, get its CallFrame
-    sleep(2000);        // built‑in native function (async)
+    sleep(2000);        // built-in native function (async)
     c.notify();         // resume the child
     // auto wait all children runspaces done    
 }
@@ -169,7 +161,7 @@ The library also provides:
 | `awaitMany(count as int)` | Suspends until *count* child tasks complete. |
 
 
-### 3. Meta‑class & Parameterized Class
+### 3. Meta-class & Parameterized Class
 
 ```ago
 class VarChar from String{
@@ -187,7 +179,7 @@ fun main(){
 }
 ```
 
-`VarChar::(200)` creates a concrete class with the field `maxLength = 200`.
+`VarChar::(200)` creates a `parameterized class` with the field `maxLength = 200`.
 
 ### 4. Generics via ClassRef
 
@@ -216,7 +208,7 @@ fun main(){
     var t as classref = Cat
     Trace.print(t)
     
-    var T as [Animal to _]      // ScopedClassInterval::(Animal, Any), classref 的装箱类
+    var T as [Animal to _]      // ScopedClassInterval::(Animal, Any), a boxing class of classref
     T = Cat     
     T.foo()     
 
@@ -232,7 +224,7 @@ fun main(){
 fun add(a as int, b as int) as int  { return a + b }
 
 fun add2(a as int, b as int) as int { return a + b + a + b }
-fun test(op like add, a as int, b as int){      // what's `like add`, see the explation below
+fun test(op like add, a as int, b as int){      // what's `like add`, see the explanation below
     Trace.print(op(a, b))
 }
 
@@ -255,9 +247,9 @@ fun main(){
     test(c.add2, 1, 2)  // 106
 }
 ```
-`like Class` 是 `as [Class to Any]` 的语法糖。
-对函数来说，ago 编译器总为函数生成一个和参数列表、返回值对应的接口 `FunctionN<Arg1,Arg2,...>`，`like` 总是得到以该接口为起点的 ScopedClassInterval。
-因此 `like add` 相当于 `as [Function2<int,int,int> to _]`，能与上面的 `add` `add2` 等匹配。
+`like Class` is syntactic sugar for `as [Class to Any]`.  
+For functions, the ago compiler generates an interface `FunctionN<Arg1,Arg2,...>` corresponding to parameter lists and result types. The `like` always gets a ScopedClassInterval starting from this interface.  
+Thus `like add` is equivalent to `as [Function2<int,int,int> to _]`, which can match the above `add`, `add2`, etc., even with scope.
 
 ### 5. Overloading & Attributes
 
@@ -274,11 +266,9 @@ class Person{
 
 The compiler resolves calls based on argument count/types; explicit `f#2(1,2)` can be used to disambiguate.
 
-### Persistence 
+### Persistence
 
-`ago-engine-rdb` 项目提供了完整的用 PG 持久化各类 ago 对象的实现，含 ago_class, ago_function, runspace, instances, call_frames 等，并用 JSON 实现了对 Slots 的映射。
-
-这些实现使 ago 程序无需做任何修改就可以以数据库为持久化后台运行。 例如，test-cases 中的 run 函数就是这样设计的：
+`ago-engine-rdb` provides a complete implementation of persisting various ago objects using PostgreSQL, including `ago_class`, `ago_function`, `runspace`, `instances`, `call_frames`, etc., and maps Slots via JSON. These implementations allow ago programs to run with a database as the persistence backend without any modifications. For example, the `run` function in `test-cases` is designed like this:
 
 ```java
     // test-cases/src/test/java/org/siphonlab/ago/test/Util.java
@@ -301,22 +291,9 @@ The compiler resolves calls based on argument count/types; explicit `f#2(1,2)` c
     }
 ```
 
-## Extending the Runtime
-
-* **Custom Engines** – subclass `AgoEngine` or implement `RunSpaceHost` for your own scheduling policy.
-* **Different Back‑Ends** – swap `Slots` implementations: in‑memory map, Redis hash, Cassandra column family, etc.
-* **Ahead‑of‑time Compilation** – translate the VM bytecode into Java bytecode (`org.inshua.ago.compiler.AgoToJVM`) or LLVM IR for native execution.
-
 ---
 
 ## Examples
-
-| Example | Description |
-|---------|-------------|
-| **AnimationRunSpace** | Re‑implements Cocos2d `Action` hierarchy using `fork`, `awaitNextFrame()`. |
-| **Leave‑Request Workflow** | Each form submission is a suspended CallFrame; persistence guarantees recovery after crash. |
-| **Bank Transfer (Distributed Transaction)** | Uses `TransactionRunSpace`; child runs are committed/rolled back atomically. |
-| **Saga Pattern** | Implements compensating actions via `with SagaTransaction` interface and `rollback()` method. |
 
 > All example `.ago` files live in the `examples/` directory of the repository.
 
@@ -324,13 +301,13 @@ The compiler resolves calls based on argument count/types; explicit `f#2(1,2)` c
 
 ## Contributing
 
-ago 语言开拓了一个新的领域，这里还有很多有趣的事物需要探索，非常欢迎你的加入。目前急需编译器、游戏引擎、流程引擎、低代码等等各方面的帮助，LLM 应用也将是 ago 的一个方向。
-现在还处于贡献者报名期，欢迎在 issues 里报名。
+The ago language opens a new domain; there are many interesting things to explore, and your participation is warmly welcomed. We urgently need help with compilers, game engines, workflow engines, low‑code platforms, and other areas; LLM applications will also be a direction for ago. 
+The project is currently in the contributor sign‑up phase—feel free to register via an issue.
 
 ---
 
 ## License
 
-ago is released under the **Apache‑2.0** license – see [LICENSE](LICENSE).
+ago is released under the **Apache-2.0** license – see [LICENSE](LICENSE).
 
 For questions or support, open an issue on GitHub.
