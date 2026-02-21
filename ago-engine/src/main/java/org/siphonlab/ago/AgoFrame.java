@@ -1454,6 +1454,15 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Cast.B2s : slots.setShort(code[pc++], (short)(slots.getBoolean(code[pc++]) ? 1 : 0)); break;
 
             case Cast.S2B: slots.setBoolean(code[pc++], StringUtils.isNotEmpty(slots.getString(code[pc++]))); break;
+            case Cast.S2S: slots.setString(code[pc++], slots.getString(code[pc++])); break;
+            case Cast.S2c : slots.setChar(code[pc++], stringToChar(slots.getString(code[pc++]))); break;
+            case Cast.S2f : slots.setFloat(code[pc++], Float.parseFloat(slots.getString(code[pc++]))); break;
+            case Cast.S2i : slots.setInt(code[pc++], Integer.parseInt(slots.getString(code[pc++]))); break;
+            case Cast.S2l : slots.setLong(code[pc++], Long.parseLong(slots.getString(code[pc++]))); break;
+            case Cast.S2d : slots.setDouble(code[pc++], Double.parseDouble(slots.getString(code[pc++]))); break;
+            case Cast.S2b : slots.setByte(code[pc++], Byte.parseByte(slots.getString(code[pc++]))); break;
+            case Cast.S2s : slots.setShort(code[pc++], Short.parseShort(slots.getString(code[pc++]))); break;
+
             case Cast.o2B: slots.setBoolean(code[pc++], slots.getObject(code[pc++])  != null); break;
 
             case Cast.C2S: slots.setString(code[pc++], String.valueOf(engine.getClass(slots.getClassRef(code[pc++])))); break;
@@ -1566,6 +1575,11 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         exception.invokeMethod(this, runSpace, ExceptionClass.findMethod("new#message"), message);
         if(!this.handleException(exception))
             this.pc = code.length;
+    }
+
+    private char stringToChar(String s){
+        if(s.length() == 0) return '\0';
+        return s.charAt(0);
     }
 
     private void castPrimitiveToPrimitive(Slots slots, int targetIndex, int targetTypeCode, int srcIndex, int srcTypeCode) {
@@ -1793,7 +1807,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                         slots.setChar(targetIndex, (char)slots.getInt(srcIndex));
                         return;
                     case STRING_VALUE:
-                        slots.setChar(targetIndex, slots.getString(srcIndex).charAt(0));
+                        slots.setChar(targetIndex, stringToChar(slots.getString(srcIndex)));
                         return;
                     case LONG_VALUE:
                         slots.setChar(targetIndex, (char)slots.getLong(srcIndex));

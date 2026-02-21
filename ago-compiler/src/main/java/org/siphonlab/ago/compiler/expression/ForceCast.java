@@ -80,6 +80,7 @@ class ForceCast extends ExpressionBase{
     private void castLiteral(Literal<?> literal, Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         switch (this.castMode){
             case PrimitiveCast:
+                assert localVar.inferType().getTypeCode() == literal.getTypeCode();
                 Assign.to(localVar, literal).termVisit(blockCompiler);
                 break;
             case CastToBoolean:

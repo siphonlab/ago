@@ -527,6 +527,9 @@ public class CastStrategy {
         TypeCode toTypeCode = toType.getTypeCode();
         if(toTypeCode != BOOLEAN){
             if(fromType.getTypeCode() == STRING){
+                if(toType.isNumber() || toTypeCode == CHAR){
+                    return new ForceCast(expression, toType, ForceCast.CastMode.PrimitiveCast);
+                }
                 throw new TypeMismatchError("'%s' can't cast to '%s'".formatted(fromType.getFullname(), toType.getFullname()), expression.getSourceLocation());
             }
             if (fromType.getTypeCode() == CLASS_REF) {
@@ -671,6 +674,28 @@ public class CastStrategy {
                     return new ShortLiteral(l.value.shortValue());
                 case INT_VALUE:
                     return new IntLiteral(l.value.intValue());
+            }
+        } else if (literal instanceof StringLiteral s) {
+            String str = s.getString();
+            switch (toTypeCode.value) {
+                case CHAR_VALUE:
+                    if(str.isEmpty())
+                        return new CharLiteral('\0');
+                    else if(str.length() == 1){
+                        return new CharLiteral(str.charAt(0));
+                    }
+                case FLOAT_VALUE:
+                    return new FloatLiteral(Float.parseFloat(str));
+                case DOUBLE_VALUE:
+                    return new DoubleLiteral(Double.parseDouble(str));
+                case BYTE_VALUE:
+                    return new ByteLiteral(Byte.parseByte(str));
+                case SHORT_VALUE:
+                    return new ShortLiteral(Short.parseShort(str));
+                case INT_VALUE:
+                    return new IntLiteral(Integer.parseInt(str));
+                case LONG_VALUE:
+                    return new LongLiteral(Long.parseLong(str));
             }
         }
         throw new TypeMismatchError(literal.inferType().getTypeCode() + " cannot cast to " + toTypeCode, sourceLocation);

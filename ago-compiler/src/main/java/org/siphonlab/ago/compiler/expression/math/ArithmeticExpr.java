@@ -80,8 +80,9 @@ public class ArithmeticExpr extends BiExpression {
 
     @Override
     public Expression transformInner() throws CompilationError {
-        if(left.inferType().getUnboxedTypeCode() == TypeCode.STRING
-                || right.inferType().getUnboxedTypeCode() == TypeCode.STRING){
+        if(this.type == Type.Add &&
+                (left.inferType().getUnboxedTypeCode() == TypeCode.STRING
+                || right.inferType().getUnboxedTypeCode() == TypeCode.STRING)){
             return new Concat(left, right).setSourceLocation(this.getSourceLocation()).transformInner();
         }
         return super.transformInner();

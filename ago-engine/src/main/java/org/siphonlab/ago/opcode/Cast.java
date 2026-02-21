@@ -107,6 +107,15 @@ public class Cast implements GenericOpCode {
     public static final int C2S = 0x07_0c_03_02;
 
     public static final int S2B = 0x07_03_04_02;
+    public static final int S2c = 0x07_03_05_02;
+    public static final int S2f = 0x07_03_06_02;
+    public static final int S2d = 0x07_03_07_02;
+    public static final int S2b = 0x07_03_08_02;
+    public static final int S2s = 0x07_03_09_02;
+    public static final int S2i = 0x07_03_0a_02;
+    public static final int S2l = 0x07_03_0b_02;
+    public static final int S2S = 0x07_03_03_02;
+
     public static final int o2B = 0x07_01_04_02;
 
     // cast object with type validation
