@@ -1,14 +1,14 @@
 # ago Programming Language
 
-> **Function is Class, and CallFrame is its Instance**
+> **FUNCTION IS CLASS, and CALLFRAME IS INSTANCE**
 
 ## Overview
 
-ago is an object-oriented static programming language designed around the idea that *"Function is Class, and CallFrame is its Instance"*, enabling functions and their invocations—the two core, ubiquitous elements of programming languages—to semantically model real‑world Actions.
+ago is an object-oriented static programming language designed around the idea that *"FUNCTION IS CLASS, and CALLFRAME IS INSTANCE"*, enabling functions and their invocations—the two core, ubiquitous elements of programming languages—to semantically model real‑world Actions.
 
 Inspired by Process Philosophy, ago believes that real‑world “actions” should have a complete lifecycle state—containing both start and end points as well as intermediate processes. Traditional programming models bind the CallFrame to an underlying stack structure, making it invisible and far from programmer. ago abstracts it as an object‑oriented concept:
-*   **Function is Class**: Functions become classes. They are first-class citizens with lifecycle properties and method fields.
-*   **Call Frame is its Instance**: CallFrames materialize as heap-based objects when functions execute.
+*   **FUNCTION IS CLASS**: Functions become classes. They are first-class citizens with lifecycle properties and method fields.
+*   **CALLFRAME IS INSTANCE**: CallFrames materialize as heap-based objects when functions creator and execute.
 
 This design gives you:
 

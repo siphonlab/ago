@@ -119,7 +119,7 @@ public class TypeDesc {
         return new TypeInfo(this.typeCode, cls);
     }
 
-    public TypeInfo toGenericParameterTypeInfo(String parameterName, AgoClass sharedGenericTypeParameterClass, Map<String, ClassHeader> headers){
+    public GenericParameterTypeInfo toGenericParameterTypeInfo(String parameterName, AgoClass sharedGenericTypeParameterClass, Map<String, ClassHeader> headers){
         AgoClass cls;
         if (this.typeCode == TypeCode.OBJECT) {
             cls = headers.get(this.className).agoClass;

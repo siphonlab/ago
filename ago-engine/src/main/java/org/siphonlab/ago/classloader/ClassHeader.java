@@ -1129,7 +1129,7 @@ public class ClassHeader {
         if(this.isGenericTemplate() && this.genericSource == null){
             var parameters = Arrays.stream(this.genericTypeParamDescs).map(p ->
                     p.toGenericParameterTypeInfo(p.name, headers.get(p.getClassName()).agoClass, headers)
-            ).toArray(TypeInfo[]::new);
+            ).toArray(GenericParameterTypeInfo[]::new);
             agoClass.setConcreteTypeInfo(new GenericTypeParametersInfo(parameters));
         }
     }

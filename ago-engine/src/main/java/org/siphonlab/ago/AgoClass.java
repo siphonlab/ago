@@ -277,7 +277,7 @@ public class AgoClass extends Instance<MetaClass>{
         var params = paramsContext.getGenericParameters();
         var any = classLoader.getLangClasses().getAnyClass();
         for (int i = 0; i < typeArgumentsArray.length; i++) {
-            GenericParameterTypeInfo p = (GenericParameterTypeInfo) params[i];
+            GenericParameterTypeInfo p = params[i];
             Variance variance = ClassBound.getVariance(p.getSharedGenericTypeParameterClass());        // SharedGenericTypeParameterClassDef
             var a1 = typeArgumentsArray[i].getAgoClass();
             if (any.equals(a1)) return true;

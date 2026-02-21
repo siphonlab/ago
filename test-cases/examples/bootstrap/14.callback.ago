@@ -36,4 +36,6 @@ fun main(){
     Trace.print(f(3, 4))
 
     test(f, 10, 20)
+
+//    test((fun f1(a as int, b as int) as int{return c.add(a, b) + 1000}), 30, 40)       //TODO
 }

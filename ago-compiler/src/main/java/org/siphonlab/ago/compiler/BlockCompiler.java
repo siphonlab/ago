@@ -391,9 +391,8 @@ public class BlockCompiler {
                return this.methodCall(left, methodCall);
             } else {
                 var namePath = memberAccessExpr.namePath();
-                if (namePath != null) {
-                    throw new UnsupportedOperationException();      // already covered by namePath
-                }
+                var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, left.inferType(),left, (FormalNamePathContext) namePath).resolve();
+                return right;
             }
         } else if(expression instanceof QuotedExprContext quotedExpr){
             return expression(quotedExpr.expression());

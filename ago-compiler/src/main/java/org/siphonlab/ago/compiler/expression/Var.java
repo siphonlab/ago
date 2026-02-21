@@ -44,7 +44,7 @@ public abstract class Var extends ExpressionBase implements Assign.Assignee {
     }
 
     @Override
-    public abstract Var transformInner();
+    public abstract Var transformInner() throws CompilationError;
 
     @Override
     public Var transform() throws CompilationError {
@@ -162,11 +162,17 @@ public abstract class Var extends ExpressionBase implements Assign.Assignee {
         }
 
         @Override
-        public Var transformInner() {
+        public Var transformInner() throws CompilationError {
+//TODO cast to trait and read its field
+//            if(!(this.instance instanceof Scope || this.instance instanceof ReusingLocalVar) && this.instance.inferType().isTrait()){
+//                throw new CompilationError("cannot access field of trait outside of trait or its permit class", this.getSourceLocation());
+//            }
             if(this.instance instanceof Scope scope && scope.getDepth() == 0){      // LocalVar
                 return new LocalVar(variable, LocalVar.VarMode.Existed);
-            } else if (!(this.instance instanceof LocalVarResultExpression)) {
-                this.instance = new PipeToTempVar(instance);
+            } else {
+                if (!(this.instance instanceof LocalVarResultExpression)) {
+                    this.instance = new PipeToTempVar(instance);
+                }
             }
             return this;
         }

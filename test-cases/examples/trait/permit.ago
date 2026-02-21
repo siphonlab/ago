@@ -1,5 +1,5 @@
 trait Config for Worker{
-    timeout as int = 2000
+    public timeout as int = 2000
 
     fun getTimeout() as int{
         return this.timeout
@@ -23,6 +23,9 @@ class Worker with Config{
 fun main(){
     var worker = new Worker()
     worker.setTimeout(1000);
+
+//    Trace.print(worker.timeout)  cannot access
+//    Trace.print((worker|Config).timeout)   //not allowed too, TODO throw compliant error
 
     var c as Config = worker;
     c.setTimeout(3000)

@@ -650,8 +650,7 @@ public class AgoClassParser {
         if(concreteTypeInfo instanceof GenericTypeParametersInfo genericTypeParametersInfo){
             classDef.shiftToTemplate();
             TypeParamsContext typeParamsContext = classDef.getTypeParamsContext();
-            for (TypeInfo typeInfo : genericTypeParametersInfo.getGenericParameters()) {
-                GenericParameterTypeInfo genericParameterTypeInfo = (GenericParameterTypeInfo) typeInfo;
+            for (var genericParameterTypeInfo : genericTypeParametersInfo.getGenericParameters()) {
                 var sharedGenericTypeParameterClass = genericParameterTypeInfo.getSharedGenericTypeParameterClass();
 
                 ParameterizedClassInfo sp = (ParameterizedClassInfo) sharedGenericTypeParameterClass.getConcreteTypeInfo();

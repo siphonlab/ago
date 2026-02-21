@@ -271,7 +271,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
             return new GenericArgumentsInfo(getClass((String)json.get("templateClass")), Arrays.stream(arguments).map(this::loadTypeInfo).toArray(TypeInfo[]::new));
         } else if("GenericTypeParametersInfo".equals(type)){
             Map<String, Object>[] genericParameters = ((List<Object>) json.get("genericParameters")).stream().map(o -> (Map<String, Object>) o).toArray(Map[]::new);
-            return new GenericTypeParametersInfo(Arrays.stream(genericParameters).map(this::loadTypeInfo).toArray(TypeInfo[]::new));
+            return new GenericTypeParametersInfo(Arrays.stream(genericParameters).map(this::loadTypeInfo).toArray(GenericParameterTypeInfo[]::new));
         } else if("ParameterizedClassInfo".equals(type)){
             return new ParameterizedClassInfo(getClass((String) json.get("parameterizedBaseClass")), (AgoFunction) getClass((String) json.get("parameterizedConstructor")),
                     objectListToArray((List<Object>) json.get("arguments")));

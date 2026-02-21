@@ -16,13 +16,13 @@
 package org.siphonlab.ago;
 
 public class GenericTypeParametersInfo extends ConcreteTypeInfo{
-    private TypeInfo[] genericParameters;
+    private GenericParameterTypeInfo[] genericParameters;
 
-    public GenericTypeParametersInfo(TypeInfo[] genericParameters) {
+    public GenericTypeParametersInfo(GenericParameterTypeInfo[] genericParameters) {
         this.genericParameters = genericParameters;
     }
 
-    public TypeInfo[] getGenericParameters() {
+    public GenericParameterTypeInfo[] getGenericParameters() {
         return genericParameters;
     }
 }

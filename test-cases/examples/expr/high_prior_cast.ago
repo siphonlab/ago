@@ -20,9 +20,22 @@ class Dog from Animal{
     }
 }
 fun main(){
-    var a as Animal = new Dog();
-    a|Dog .bark()
-    a as Dog .bark()
+    var i = "222"
+    Trace.print(i * 3)
 
-    a as Dog.friend() as Cat .bark();
+    var j as int = "222"
+    Trace.print(j)
+
+    var k as int = i;
+    f(k);
+
+    var s as string = '222'
+    f#2(s)
+}
+
+fun f#1(s as string){
+    Trace.print('hello string')
+}
+fun f#2(i as int){
+    Trace.print('hello int');
 }
