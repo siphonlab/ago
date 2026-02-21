@@ -98,11 +98,15 @@ public class ControlTest{
     }
 
     @Test
-    @Disabled
+    public void with_test() throws CompilationError, IOException {
+        run("control/with.ago");
+        assertTrue(Trace.outputted("John", "20", "Tom", "21"));
+    }
+
+    @Test
     public void via_test() throws CompilationError, IOException {
         run("control/via.ago");
         assertTrue(Trace.outputted("open file sample.txt", "read file content from sample.txt", "close file sample.txt"));
     }
-
 
 }

@@ -1,0 +1,28 @@
+class Animal{
+    fun bark(){
+    }
+    fun friend() as Animal{}
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+    override friend() as Animal{
+        return new Dog()
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+    override friend() as Animal{
+        return new Cat()
+    }
+}
+fun main(){
+    var a as Animal = new Dog();
+    a|Dog .bark()
+    a as Dog .bark()
+
+    a as Dog.friend() as Cat .bark();
+}

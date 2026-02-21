@@ -131,9 +131,16 @@ public class FunctionInvocationResolver {
                 } else if(parameterType instanceof VarArgs varArgs){
                     // fold rest arguments to array
                     ClassDef eleType = null;
-                    for(var j = i; j<arguments.size(); j++){    //TODO only match the first argument
+                    for(var j = i; j<arguments.size(); j++){
                         ClassDef t = arguments.get(j).inferType();
-                        eleType = ClassDef.findCommonType(eleType, t);      // Function<R> and FunctionN<> will match Function<R>
+                        if(eleType == null){
+                            eleType = indicateGenericType(varArgs.getElementType(),t, resolveResult);
+                        } else {
+                            if(!eleType.isThatOrSuperOfThat(t)){
+                                resolveResult.error = new ResolveError("'%s' not match type '%s'".formatted(t.getFullname(), eleType.getFullname()), arguments.get(i).getSourceLocation());
+                                return resolveResult;
+                            }
+                        }
                         argTypesPreserveVarArgs.add(t);
                         argPos++;
                     }
@@ -141,8 +148,7 @@ public class FunctionInvocationResolver {
                         resolveResult.error = new ResolveError("common type of params array not found", sourceLocation);
                         return resolveResult;
                     }
-                    var commonElementType = indicateGenericType(varArgs.getElementType(),eleType,resolveResult);
-                    parameterTypes[i] = argType = new VarArgs(functionDef.getRoot(), commonElementType);
+                    parameterTypes[i] = argType = new VarArgs(functionDef.getRoot(), eleType);
                 } else {
                     argType = arguments.get(i).inferType();
                     argPos++;

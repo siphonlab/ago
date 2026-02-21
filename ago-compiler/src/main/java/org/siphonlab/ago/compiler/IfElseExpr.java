@@ -32,24 +32,11 @@ public class IfElseExpr extends ExpressionBase {
     public IfElseExpr(Expression ifPart, Expression condition, Expression elsePart) throws CompilationError {
         this.ifPart = ifPart.setParent(this).transform();
         this.condition = condition.setParent(this).transform();
-        this.elsePart = elsePart.setParent(this).transform();
+        this.elsePart = new Cast(elsePart, this.ifPart.inferType()).transform();
     }
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        var type1 = this.ifPart.inferType();
-        var type2 = this.elsePart.inferType();
-        if(type1 != type2) {
-            var commonType = ClassDef.findCommonType(type1, type2);
-            if(commonType == null){
-                throw new TypeMismatchError("no common type found for '%s' and '%s'".formatted(type1, type2), this.getSourceLocation());
-            }
-            if((type1 != commonType) || (type2 != commonType)) {
-                var ip = commonType != type1 ? new Cast(ifPart, commonType) : ifPart;
-                var ep = commonType != type2 ? new Cast(elsePart, commonType) : elsePart;
-                return new IfElseExpr(ip, condition, ep);
-            }
-        }
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isTrue(literal)){
                 return ifPart;

@@ -412,11 +412,21 @@ public class BlockCompiler {
             return creator(chainCreatorExpr);
         } else if(expression instanceof AssignExprContext assignExpr){
             return assign(assignExpr);
-        } else if(expression instanceof CastTypeExprContext castTypeExprContext){
+        } else if(expression instanceof CastTypeExprContext castTypeExprContext) {
             var type = unit.parseType(functionDef, castTypeExprContext.variableType(), false, false);
             ClassDef t = extractType(type);
             Compiler.processClassTillStage(t, CompilingStage.AllocateSlots);
             return new Cast(expression(castTypeExprContext.expression()), t, true);
+//        } else if(expression instanceof HighPriorCastTypeExprContext highPriorCastTypeExprContext) {
+//            ClassDef type;
+//            if(highPriorCastTypeExprContext.primitiveType() != null){
+//                type = PrimitiveClassDef.fromPrimitiveTypeAst(highPriorCastTypeExprContext.primitiveType());
+//            } else {
+//                Expression expr = new NamePathResolver(NamePathResolver.ResolveMode.ForTypeExpr, unit, this.functionDef, highPriorCastTypeExprContext.identifierAllowPostfix()).resolve();
+//                type = extractType(expr);
+//                Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);
+//            }
+//            return new Cast(expression(highPriorCastTypeExprContext.expression()), type, true);
         } else if(expression instanceof ElementExprContext elementExpr){
             var obj = expression(elementExpr.expression(0));
             var index = expression(elementExpr.expression(1));
@@ -655,9 +665,13 @@ public class BlockCompiler {
                 if (valueType.getTypeCode() != TypeCode.OBJECT && !valueType.isClass()) {
                     throw new TypeMismatchError("object type expected", value.getSourceLocation());
                 }
-                var commonType = ClassDef.findCommonType(assigneeType,valueType);
-                if (commonType == null || !commonType.isClass() || commonType == functionDef.getRoot().getObjectClass()) {
-                    throw new TypeMismatchError("no common type between '%s' and '%s'".formatted(assigneeType.getFullname(), valueType.getFullname()), value.getSourceLocation());
+                ClassDef commonType;
+                if(assigneeType.isThatOrDerivedFromThat(valueType)){
+                    commonType = valueType;
+                } else if(assigneeType.isThatOrSuperOfThat(valueType)){
+                    commonType = assigneeType;
+                } else {
+                    throw new TypeMismatchError("'%s' and '%s' has no explicit relation".formatted(assigneeType.getFullname(), valueType.getFullname()), value.getSourceLocation());
                 }
                 return new CopyAssign(assignee, value, commonType).setSourceLocation(unit.sourceLocation(assignExpr));
             case SET_VALUE:

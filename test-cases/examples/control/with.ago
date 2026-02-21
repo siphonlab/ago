@@ -1,0 +1,16 @@
+class Person{
+    fun new(field name as string, field age as int){}
+}
+
+fun main(){
+    with (new Person('Unknown', 0) with {.name = 'John'; .age = 20}){
+        Trace.print(.name);
+        Trace.print(.age);
+
+        .name = "Tom";
+        .age ++;
+
+        Trace.print(.name)
+        Trace.print(.age)
+    }
+}

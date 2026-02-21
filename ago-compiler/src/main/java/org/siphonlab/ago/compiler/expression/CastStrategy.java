@@ -191,17 +191,12 @@ public class CastStrategy {
     }
 
     private UnifyTypeResult unifyObjectTypes(Expression left, Expression right, ClassDef leftType, ClassDef rightType) throws CompilationError {
-        var commonType = ClassDef.findCommonType(leftType, rightType);
-        boolean changed = false;
-        if(leftType != commonType){
-            left = new ForceCast(left,commonType, ForceCast.CastMode.WearClassMask);
-            changed = true;
+        if(leftType.isThatOrSuperOfThat(rightType)){
+            var r = new ForceCast(right, leftType, ForceCast.CastMode.WearClassMask);
+            return new UnifyTypeResult(left, r, leftType,true);
+        } else {
+            throw new TypeMismatchError("cannot cast '%s' to '%s'".formatted(rightType.getFullname(), leftType.getFullname()), right.getSourceLocation());
         }
-        if(rightType != commonType){
-            right = new ForceCast(right,commonType, ForceCast.CastMode.WearClassMask);
-            changed = true;
-        }
-        return new UnifyTypeResult(left,right,commonType,changed);
     }
 
     private UnifyTypeResult throwTypeMismatchError(ClassDef originLeftType, ClassDef originRightType) throws TypeMismatchError {

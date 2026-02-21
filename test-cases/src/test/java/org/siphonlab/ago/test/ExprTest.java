@@ -181,4 +181,12 @@ public class ExprTest {
         run("expr/chain_creator.ago");
         assertTrue(Trace.outputted("a dog woof", "a dog woof", "Dog name George", "George woof", "a dog yum", "Dog name George", "George yum"));
     }
+
+    @Test
+    public void high_prior_cast() throws CompilationError, IOException {
+        run("expr/high_prior_cast.ago");
+//        assertTrue(Trace.outputted("woof"));
+        Trace.printOutput();
+    }
+
 }

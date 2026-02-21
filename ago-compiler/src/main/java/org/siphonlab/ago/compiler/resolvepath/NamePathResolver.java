@@ -99,20 +99,20 @@ public class NamePathResolver {
     private final Unit unit;
     private final ClassDef scopeClass;
     private final Expression head;
-    private final AgoParser.FormalNamePathContext namePath;
+    private final ParserRuleContext namePath;
     private final List<Id> ids;
     private int pos;
 
 
     private CompilationError error;
 
-    class Id{
+    static class Id{
         ParserRuleContext ast;
         SourceLocation sourceLocation;
 
-        public Id(ParserRuleContext ast) {
+        public Id(ParserRuleContext ast, SourceLocation sourceLocation) {
             this.ast = ast;
-            this.sourceLocation = unit.sourceLocation(ast);
+            this.sourceLocation = sourceLocation;
         }
         public String text(){
             return ast.getText();
@@ -124,22 +124,22 @@ public class NamePathResolver {
         }
     }
 
-    class Pronoun extends Id{
+    static class Pronoun extends Id{
         PronounType pronounType;
 
-        public Pronoun(AgoParser.PossibleNameContext ast, PronounType pronounType) {
-            super(ast);
+        public Pronoun(AgoParser.PossibleNameContext ast, PronounType pronounType, SourceLocation sourceLocation) {
+            super(ast, sourceLocation);
             this.pronounType = pronounType;
         }
     }
 
-    class ParameterizedClass extends Id{
+    static class ParameterizedClass extends Id{
         private final AgoParser.TypeArgumentsContext typeArguments;
         private final AgoParser.ClassCreatorArgumentsContext classCreatorArguments;
         private final AgoParser.TypeIdentifierContext typeIdentifier;
 
-        public ParameterizedClass(AgoParser.ParameterizedTypeContext ast) {
-            super(ast);
+        public ParameterizedClass(AgoParser.ParameterizedTypeContext ast,SourceLocation sourceLocation) {
+            super(ast, sourceLocation);
             this.typeIdentifier = ast.typeIdentifier();
             this.typeArguments = ast.typeArguments();
             this.classCreatorArguments = ast.classCreatorArguments();
@@ -151,12 +151,12 @@ public class NamePathResolver {
         }
     }
 
-    class PrimitiveType extends Id{
+    static class PrimitiveType extends Id{
 
         private final PrimitiveClassDef primitiveClassDef;
 
-        public PrimitiveType(ParserRuleContext ast, PrimitiveClassDef primitiveClassDef) {
-            super(ast);
+        public PrimitiveType(ParserRuleContext ast, PrimitiveClassDef primitiveClassDef, SourceLocation sourceLocation) {
+            super(ast, sourceLocation);
             this.primitiveClassDef = primitiveClassDef;
         }
     }
@@ -165,12 +165,47 @@ public class NamePathResolver {
         this(resolveMode, unit, scopeClass, null, namePath);
     }
 
+    public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, AgoParser.IdentifierAllowPostfixContext identifierAllowPostfixContext){
+        this(resolveMode, unit, scopeClass, null, identifierAllowPostfixContext, Collections.singletonList(new Id(identifierAllowPostfixContext, unit.sourceLocation(identifierAllowPostfixContext))));
+    }
+
     @Override
     public String toString() {
         return "(Resolve %s in %s)".formatted(this.namePath.getText(), this.scopeClass.getFullname());
     }
 
     public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, Expression head, AgoParser.FormalNamePathContext namePath){
+        this(resolveMode, unit, scopeClass, head, namePath, parseIds(namePath, unit));
+    }
+
+    private static List<Id> parseIds(AgoParser.FormalNamePathContext namePath, Unit unit) {
+        var possibleNames = namePath.possibleName();
+        List<Id> ids = new ArrayList<>(possibleNames.size());
+        for (AgoParser.PossibleNameContext possibleName : possibleNames) {
+            if(possibleName instanceof AgoParser.NameParameterizedClassTypeContext nameParameterizedClassType){
+                AgoParser.ParameterizedTypeContext parameterizedType = nameParameterizedClassType.parameterizedType();
+                if(parameterizedType.typeArguments() != null || parameterizedType.classCreatorArguments() != null){
+                    ids.add(new ParameterizedClass(parameterizedType, unit.sourceLocation(nameParameterizedClassType)));
+                } else {
+                    AgoParser.IdentifierAllowPostfixContext ast = parameterizedType.typeIdentifier().identifierAllowPostfix();
+                    ids.add(new Id(ast, unit.sourceLocation(ast)));
+                }
+            } else if(possibleName instanceof AgoParser.NameIdentifierContext nameIdentifier){
+                ids.add(new Id(nameIdentifier.identifier(), unit.sourceLocation(nameIdentifier)));
+            } else if(possibleName instanceof AgoParser.NamePronounContext namePronounContext){
+                AgoParser.PronounContext pronoun = namePronounContext.pronoun();
+                ids.add(new Pronoun(namePronounContext, pronounType(pronoun), unit.sourceLocation(pronoun)));
+            } else if(possibleName instanceof AgoParser.NamePrimitiveContext namePrimitive){
+                AgoParser.PrimitiveTypeContext primitiveType = namePrimitive.primitiveType();
+                ids.add(new PrimitiveType(primitiveType, PrimitiveClassDef.fromPrimitiveTypeAst(primitiveType), unit.sourceLocation(primitiveType)));
+            } else {
+                throw new RuntimeException();
+            }
+        }
+        return ids;
+    }
+
+    private NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, Expression head, ParserRuleContext namePath, List<Id> ids){
         this.resolveMode = resolveMode;
         this.unit = unit;
         this.scopeClass = scopeClass;
@@ -179,29 +214,7 @@ public class NamePathResolver {
 
         assert !(scopeClass instanceof ClassIntervalClassDef);
 
-        var possibleNames = namePath.possibleName();
         pos = 0;
-
-        List<Id> ids = new ArrayList<>(possibleNames.size());
-        for (AgoParser.PossibleNameContext possibleName : possibleNames) {
-            if(possibleName instanceof AgoParser.NameParameterizedClassTypeContext nameParameterizedClassType){
-                AgoParser.ParameterizedTypeContext parameterizedType = nameParameterizedClassType.parameterizedType();
-                if(parameterizedType.typeArguments() != null || parameterizedType.classCreatorArguments() != null){
-                    ids.add(new ParameterizedClass(parameterizedType));
-                } else {
-                    ids.add(new Id(parameterizedType.typeIdentifier().identifierAllowPostfix()));
-                }
-            } else if(possibleName instanceof AgoParser.NameIdentifierContext nameIdentifier){
-                ids.add(new Id(nameIdentifier.identifier()));
-            } else if(possibleName instanceof AgoParser.NamePronounContext namePronounContext){
-                ids.add(new Pronoun(namePronounContext, pronounType(namePronounContext.pronoun())));
-            } else if(possibleName instanceof AgoParser.NamePrimitiveContext namePrimitive){
-                AgoParser.PrimitiveTypeContext primitiveType = namePrimitive.primitiveType();
-                ids.add(new PrimitiveType(primitiveType, PrimitiveClassDef.fromPrimitiveTypeAst(primitiveType)));
-            } else {
-                throw new RuntimeException();
-            }
-        }
         this.ids = ids;
     }
 
@@ -1308,7 +1321,7 @@ public class NamePathResolver {
         return null;
     }
 
-    private PronounType pronounType(AgoParser.PronounContext pronoun) {
+    private static PronounType pronounType(AgoParser.PronounContext pronoun) {
         return switch (pronoun) {
             case AgoParser.ThisPrimaryContext thisPrimaryContext ->     PronounType.This;
             case AgoParser.SuperPrimaryContext superPrimaryContext ->   PronounType.Super;
