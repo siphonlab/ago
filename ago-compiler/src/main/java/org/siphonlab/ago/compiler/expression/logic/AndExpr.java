@@ -45,7 +45,11 @@ public class AndExpr extends ExpressionBase {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        if(left.inferType().getUnboxedTypeCode() == TypeCode.BOOLEAN || right.inferType().getUnboxedTypeCode() == TypeCode.BOOLEAN){
+        ClassDef leftType = left.inferType();
+        ClassDef rightType = right.inferType();
+        if(leftType.getTypeCode() == TypeCode.BOOLEAN || rightType.getTypeCode() == TypeCode.BOOLEAN
+                || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN
+                || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
             return new AndExpr(new Cast(left, BOOLEAN, false).transform(), new Cast(right, BOOLEAN, false));
         }
 
