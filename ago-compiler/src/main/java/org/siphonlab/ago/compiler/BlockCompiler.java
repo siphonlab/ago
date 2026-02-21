@@ -431,11 +431,21 @@ public class BlockCompiler {
                 throw new TypeMismatchError("an array, a List or a Map expected", unit.sourceLocation(elementExpr));
             }
         } else if(expression instanceof ClassExprContext classExpr){
-
+            //TODO
         } else if(expression instanceof WithMemberAccessExprContext withMemberAccessExprContext){
-
+            var left = this.getCurrentWithExpr();
+            NamePathContext namePathContext = withMemberAccessExprContext.namePath();
+            if(namePathContext != null){
+                var namePath = withMemberAccessExprContext.namePath();
+                NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, left.inferType(), left, ((FormalNamePathContext) namePath));
+                var r = namePathResolver.resolve();
+                return r;
+            } else {
+                MethodCallContext methodCallContext = withMemberAccessExprContext.methodCall();
+                return methodCall(left, methodCallContext);
+            }
         } else if(expression instanceof SwitchExprContext switchExprContext){
-
+            //TODO
         } else if(expression instanceof IncDecExprContext incDecExpr){
             return incDec(incDecExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof PrefixExprContext prefixExpr){
@@ -474,7 +484,7 @@ public class BlockCompiler {
 
         } else if(expression instanceof PostfixExprContext postfixExprContext){     //TODO need these?
 
-        } else if(expression instanceof AwaitFunctorContext invokeFunctorContext){
+        } else if(expression instanceof AwaitFunctorContext invokeFunctorContext) {
             return invokeFunctor(invokeFunctorContext);
         }
         throw new UnsupportedOperationException(expression.getText());
@@ -780,9 +790,9 @@ public class BlockCompiler {
                 throw new SyntaxError("left side is not assignable", unit.sourceLocation(methodCall));
             } else {
                 var namePath = memberAccessExpr.namePath();
-                if (namePath != null) {
-                    throw new UnsupportedOperationException("impossible");        // already covered by namePath
-                }
+                NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, left.inferType(), left, ((FormalNamePathContext) namePath));
+                var r = namePathResolver.resolve();
+                return r;
             }
         } else if(expression instanceof WithMemberAccessExprContext withMemberAccessExprContext){
             var left = this.getCurrentWithExpr();

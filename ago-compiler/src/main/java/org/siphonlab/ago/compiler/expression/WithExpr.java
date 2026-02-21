@@ -47,12 +47,10 @@ public class WithExpr extends ExpressionBase{
             blockCompiler.enterWith(expression);
             this.statement.termVisit(blockCompiler);
             blockCompiler.leaveWith(expression);
+            blockCompiler.leave(this);
         } catch (CompilationError e) {
             throw e;
-        } finally {
-            blockCompiler.leave(this);
         }
-
     }
 
     @Override

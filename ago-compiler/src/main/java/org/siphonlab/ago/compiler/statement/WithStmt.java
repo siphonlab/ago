@@ -41,10 +41,9 @@ public class WithStmt extends Statement{
             blockCompiler.enterWith(expression);
             statement.termVisit(blockCompiler);
             blockCompiler.leaveWith(expression);
+            blockCompiler.leave(this);
         } catch (CompilationError e) {
             throw e;
-        } finally {
-            blockCompiler.leave(this);
         }
 
     }
