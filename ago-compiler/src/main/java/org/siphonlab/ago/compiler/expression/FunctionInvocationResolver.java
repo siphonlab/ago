@@ -132,12 +132,15 @@ public class FunctionInvocationResolver {
                     // fold rest arguments to array
                     ClassDef eleType = null;
                     for(var j = i; j<arguments.size(); j++){
-                        ClassDef t = arguments.get(j).inferType();
+                        Expression arg = arguments.get(j);
+                        ClassDef t = arg.inferType();
                         if(eleType == null){
                             eleType = indicateGenericType(varArgs.getElementType(),t, resolveResult);
                         } else {
-                            if(!eleType.isThatOrSuperOfThat(t)){
-                                resolveResult.error = new ResolveError("'%s' not match type '%s'".formatted(t.getFullname(), eleType.getFullname()), arguments.get(i).getSourceLocation());
+                            try {
+                                new CastStrategy(arg.getSourceLocation(), false).castTo(arg, eleType);
+                            } catch (TypeMismatchError e){
+                                resolveResult.error = e;
                                 return resolveResult;
                             }
                         }
