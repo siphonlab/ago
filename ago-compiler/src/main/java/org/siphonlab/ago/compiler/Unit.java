@@ -669,7 +669,7 @@ public class Unit {
 
     Literal<?>[] parseTypeRange(AgoParser.TypeRangeContext typeRange, ClassDef scopeClass) throws CompilationError {
         var from = parseTypeName(scopeClass, typeRange.from.declarationType().namePath(), false);
-        var to = typeRange.to == null ? from : parseTypeName(scopeClass, typeRange.to.declarationType().namePath(),false);
+        var to = typeRange.to == null ? root.getAnyClass() : parseTypeName(scopeClass, typeRange.to.declarationType().namePath(),false);
         if(from instanceof FunctionDef){
             from = tryExtractFunctionInterfaceInstantiation(typeRange.from, from);
         }
