@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler.expression.logic;
 
+import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
@@ -43,6 +44,9 @@ public class OrExpr extends ExpressionBase {
 
     @Override
     protected Expression transformInner() throws CompilationError {
+        if(left.inferType().getUnboxedTypeCode() == TypeCode.BOOLEAN || right.inferType().getUnboxedTypeCode() == TypeCode.BOOLEAN){
+            return new AndExpr(new Cast(left, BOOLEAN, false).transform(), new Cast(right, BOOLEAN, false));
+        }
         CastStrategy.UnifyTypeResult result = new CastStrategy(this.getSourceLocation(), false).unifyTypes(this.left, this.right);
         if (result.changed() || result.left() != this.left || result.right() != this.right) {
             this.left = result.left();
