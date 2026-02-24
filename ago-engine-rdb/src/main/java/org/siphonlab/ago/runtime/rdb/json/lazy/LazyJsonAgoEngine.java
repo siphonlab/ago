@@ -213,12 +213,6 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         return inst;
     }
 
-    @Override
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace) {
-        var inst = super.createInstanceFromScopedClass(scopedClass, creator, runSpace);
-        return inst;
-    }
-
     public void resume(){
 
         LazyJsonPGAdapter adapter = (LazyJsonPGAdapter) this.getRdbAdapter();

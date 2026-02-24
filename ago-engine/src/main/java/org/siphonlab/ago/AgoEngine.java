@@ -334,6 +334,16 @@ public class AgoEngine implements ClassManager{
         return createInstance(scopedClass.getParentScope(), getClass(scopedClass.classId), creator);
     }
 
+    public Instance<?> createInstanceFromScopedClassInterval(Instance<?> scopedClass, CallFrame<?> creator){
+        assert !(scopedClass instanceof AgoClass);
+        // after getClass(scopedClass.classId), the ScopedClass restore to the original class
+        Slots slots = scopedClass.getSlots();
+        int classId = slots.getClassRef(0);
+        AgoClass agoClass = (AgoClass) slots.getObject(1);
+        Instance<?> scope = slots.getObject(2);
+        return createInstance(scope, agoClass, creator);
+    }
+
     public RunSpace getRunSpace() {
         return runSpace;
     }

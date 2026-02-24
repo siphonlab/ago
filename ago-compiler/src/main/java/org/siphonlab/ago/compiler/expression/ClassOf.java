@@ -168,6 +168,7 @@ public abstract class ClassOf extends ExpressionBase{
         }
     }
 
+    // obj.Method is ClassUnder.Instance. obj.ClassMethod present ClassOfInstance
     public static class ClassOfInstance extends ClassOf{
 
         private final Expression expression;
@@ -265,6 +266,10 @@ public abstract class ClassOf extends ExpressionBase{
         public ClassDef getClassDef() throws CompilationError {
             ScopedClassIntervalClassDef s = (ScopedClassIntervalClassDef) scopedClassIntervalInstance.inferType();
             return s.getLBoundClass();
+        }
+
+        public Expression getScopedClassIntervalInstance() {
+            return scopedClassIntervalInstance;
         }
 
         @Override

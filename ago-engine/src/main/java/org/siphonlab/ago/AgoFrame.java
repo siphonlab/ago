@@ -1156,7 +1156,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     break;
                 }
                 case New.new_vo: {
-                    slots.setObject(code[pc++], engine.createInstanceFromScopedClass((AgoClass)slots.getObject(code[pc++]),this, runSpace));
+                    slots.setObject(code[pc++], engine.createInstanceFromScopedClassInterval(slots.getObject(code[pc++]),this ));
                     break;
                 }
                 case New.new_method_voCm: {

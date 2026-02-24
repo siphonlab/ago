@@ -104,13 +104,6 @@ public class PersistentRdbEngine extends RdbEngine {
         return inst;
     }
 
-    @Override
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace) {
-        var inst = super.createInstanceFromScopedClass(scopedClass, creator, runSpace);
-        saveInstance(inst);
-        return inst;
-    }
-
     public void resume(){
         throw new NotImplementedException();
     }

@@ -50,10 +50,4 @@ public class ReactiveJsonAgoEngine extends PersistentRdbEngine {
         var inst = super.createInstance(parentScope, agoClass, creator);
         return inst;
     }
-
-    @Override
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace) {
-        var inst = super.createInstanceFromScopedClass(scopedClass, creator, runSpace);
-        return inst;
-    }
 }

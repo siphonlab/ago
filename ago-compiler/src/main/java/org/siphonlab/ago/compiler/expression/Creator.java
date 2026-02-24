@@ -150,8 +150,8 @@ public class Creator extends ExpressionBase{
         try {
             blockCompiler.enter(this);
 
-            if(typeExpr instanceof ClassOf.ClassOfScopedClassInterval){
-                Var.LocalVar r = (Var.LocalVar) typeExpr.visit(blockCompiler);
+            if(typeExpr instanceof ClassOf.ClassOfScopedClassInterval classOfScopedClassInterval){
+                Var.LocalVar r = (Var.LocalVar) classOfScopedClassInterval.getScopedClassIntervalInstance().visit(blockCompiler);
                 blockCompiler.lockRegister(r);
                 code.new_bound_class(localVar.getVariableSlot(), r.getVariableSlot());
                 blockCompiler.releaseRegister(r);

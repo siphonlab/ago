@@ -202,13 +202,6 @@ public class RdbEngine extends AgoEngine {
         return inst;
     }
 
-    @Override
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace) {
-        var inst = super.createInstanceFromScopedClass(scopedClass, creator, runSpace);
-//        ((RdbAgoSpace) runSpace).collectInstance(inst);
-        return inst;
-    }
-
     public void saveInstance(Instance<?> instance){
         rdbAdapter.saveInstance(instance);
     }

@@ -15,10 +15,16 @@
  */
 package org.siphonlab.ago.compiler.expression;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.CodeBuffer;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class CastToScopedClassRef extends ExpressionBase{
 
@@ -43,14 +49,25 @@ public class CastToScopedClassRef extends ExpressionBase{
         try {
             blockCompiler.enter(this);
 
-            CodeBuffer code = blockCompiler.getCode();
-            var fun = blockCompiler.getFunctionDef();
-            Var.LocalVar scopeBoundInstance = (Var.LocalVar) this.expression.visit(blockCompiler);
-            blockCompiler.lockRegister(scopeBoundInstance);
-            code.castScopeBoundClassToClassInterval(localVar.getVariableSlot(),
-                    fun.idOfClass(this.scopedClassIntervalClassDef),
-                    scopeBoundInstance.getVariableSlot());
-            blockCompiler.releaseRegister(scopeBoundInstance);
+            Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(this.expression, this.getSourceLocation());
+            Expression scope = pair.getLeft();
+            ClassDef classDef = pair.getRight();
+
+            blockCompiler.lockRegister(localVar);
+            new Box(new ClassRefLiteral(classDef), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);
+
+            ClassDef classInterval = blockCompiler.getFunctionDef().getRoot().getScopedClassInterval();
+            if (!localVar.inferType().isDeriveFrom(classInterval)) {
+                throw new TypeMismatchError("a ScopedClassInterval expression expected", this.getSourceLocation());
+            }
+
+            var fld = new Var.Field(localVar, classInterval.getVariable("scope"));
+
+            if(scope != null) {
+                Assign.to(fld, scope).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+            }
+
+            blockCompiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
         } finally {
