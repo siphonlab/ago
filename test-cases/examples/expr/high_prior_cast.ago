@@ -29,8 +29,8 @@ fun main(){
     var k as int = i;
     f(k);
 
-    var s as string = '222'
-    f#2(s)
+//    var s as string = '222'
+//    f#2(s)  //argument type mismatch, 'int' expected, 'string' found
 }
 
 fun f#1(s as string){
