@@ -46,10 +46,14 @@ public class OrExpr extends ExpressionBase {
     protected Expression transformInner() throws CompilationError {
         ClassDef leftType = left.inferType();
         ClassDef rightType = right.inferType();
-        if(leftType.getTypeCode() == TypeCode.BOOLEAN || rightType.getTypeCode() == TypeCode.BOOLEAN
-                || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN
+        if(leftType.getTypeCode() == TypeCode.BOOLEAN || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
+            if(!(rightType.getTypeCode() == TypeCode.BOOLEAN
+                    || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN)){
+                return new OrExpr(left, new Cast(right, BOOLEAN, false).transform()).transform();
+            }
+        } else if(rightType.getTypeCode() == TypeCode.BOOLEAN
                 || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
-            return new OrExpr(new Cast(left, BOOLEAN, false).transform(), new Cast(right, BOOLEAN, false));
+            return new OrExpr(new Cast(left, BOOLEAN, false).transform(), right).transform();
         }
         CastStrategy.UnifyTypeResult result = new CastStrategy(this.getSourceLocation(), false).unifyTypes(this.left, this.right);
         if (result.changed() || result.left() != this.left || result.right() != this.right) {

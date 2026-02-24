@@ -47,10 +47,14 @@ public class AndExpr extends ExpressionBase {
     protected Expression transformInner() throws CompilationError {
         ClassDef leftType = left.inferType();
         ClassDef rightType = right.inferType();
-        if(leftType.getTypeCode() == TypeCode.BOOLEAN || rightType.getTypeCode() == TypeCode.BOOLEAN
-                || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN
+        if(leftType.getTypeCode() == TypeCode.BOOLEAN || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
+            if(!(rightType.getTypeCode() == TypeCode.BOOLEAN
+                    || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN)){
+                return new AndExpr(left, new Cast(right, BOOLEAN, false).transform()).transform();
+            }
+        } else if(rightType.getTypeCode() == TypeCode.BOOLEAN
                 || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
-            return new AndExpr(new Cast(left, BOOLEAN, false).transform(), new Cast(right, BOOLEAN, false));
+            return new AndExpr(new Cast(left, BOOLEAN, false).transform(), right).transform();
         }
 
         CastStrategy.UnifyTypeResult result = new CastStrategy(this.getSourceLocation(), false).unifyTypes(this.left, this.right);
