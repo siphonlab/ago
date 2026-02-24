@@ -45,5 +45,5 @@ fun main(){
 
     f(1.0, 2, 4)
 
-    f(new Cat(), new Dog())
+    f(new Cat()|Animal, new Dog())
 }
