@@ -272,6 +272,12 @@ public class Invoke extends ExpressionBase{
                 ClassDef scopeClass = scope.inferType();
                 var n = Creator.NewProps.resolve(fun, scopeClass);
                 n.isInterfaceInvoke(isInterfaceInvoke(scopeClass));
+                if(isInterfaceInvoke(scopeClass)){
+                    if(scopeClass.getGenericSource() != null){
+                        // for Interface.method, we use the template interface as scope class
+                        n.setClassName(fun.idOfClass(scopeClass.getTemplateClass()));
+                    }
+                }
                 n.setTraitInScope(scopeClass instanceof TraitDefInScope);
                 code.new_method(resultSlot, result.getVariableSlot(), fun.simpleNameOfFunction(resolvedFunctionDef),
                         n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));

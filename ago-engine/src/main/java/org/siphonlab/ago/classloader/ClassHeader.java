@@ -1142,9 +1142,9 @@ public class ClassHeader {
             for (int k = 0; k < interfaces.length; k++) {
                 String interface_ = interfaces[k];
                 var interfaceHeader = headers.get(interface_);
-//                if(interfaceHeader.genericSource != null){
-//                    interfaceHeader = interfaceHeader.genericSource.sourceTemplate();
-//                }
+                if(interfaceHeader.genericSource != null){
+                    interfaceHeader = interfaceHeader.genericSource.sourceTemplate();
+                }
                 int[] map = new int[interfaceHeader.methods.size()];
 
                 List<MethodDesc> methodDescs = interfaceHeader.methods;
