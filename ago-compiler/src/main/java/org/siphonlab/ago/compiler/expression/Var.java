@@ -166,19 +166,7 @@ public abstract class Var extends ExpressionInFunctionBody implements Assign.Ass
         public Var transformInner() throws CompilationError {
             ClassDef instanceType = this.instance.inferType();
             if(instanceType.isTrait() && !(instanceType instanceof TraitDefInScope)){
-//                boolean valid = false;
-//                if(this.ownerFunction != null) {
-//                    for (ClassDef f = this.ownerFunction; f != null; f = f.getParentClass()) {
-//                        if (f.isThatOrDerivedFromThat(instanceType)) {
-//                            valid = true;
-//                            break;
-//                        }
-//                    }
-//                } else {
-//                    valid = true;
-//                }
-//                if(!valid)
-                    throw new CompilationError("cannot access field of trait outside of trait or its permit class", this.getSourceLocation());
+                throw new CompilationError("cannot access field of trait outside of trait or its permit class", this.getSourceLocation());
             }
             if(this.instance instanceof Scope scope && scope.getDepth() == 0){      // LocalVar
                 return new LocalVar(ownerFunction, variable, LocalVar.VarMode.Existed);
