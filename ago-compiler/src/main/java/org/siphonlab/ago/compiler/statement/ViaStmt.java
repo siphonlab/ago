@@ -31,7 +31,8 @@ public class ViaStmt extends Statement{
     private final Expression viaObject;
     private final Statement statement;
 
-    public ViaStmt(Expression viaObject, Statement statement) throws CompilationError {
+    public ViaStmt(FunctionDef ownerFunction, Expression viaObject, Statement statement) throws CompilationError {
+        super(ownerFunction);
         this.viaObject = viaObject.transform();
         this.statement = statement.transform();
     }
@@ -50,15 +51,15 @@ public class ViaStmt extends Statement{
 
             FunctionDef functionDef = blockCompiler.getFunctionDef();
             Root root = functionDef.getRoot();
-            Expression funThis = new Scope(0, functionDef).fromPronoun(NamePathResolver.PronounType.FunThis);
+            Expression funThis = new Scope(ownerFunction,0, functionDef).fromPronoun(NamePathResolver.PronounType.FunThis);
 
-            ClassUnder enterFun = (ClassUnder) ClassUnder.create(viaObject, viaObject.inferType().getChild("enter#")).setSourceLocation(viaObject.getSourceLocation()).setParent(this);
-            var invokeEnterFun = new Invoke(Invoke.InvokeMode.Invoke, functionDef, enterFun, Collections.singletonList(funThis), viaObject.getSourceLocation());
+            ClassUnder enterFun = (ClassUnder) ClassUnder.create(ownerFunction, viaObject, viaObject.inferType().getChild("enter#")).setSourceLocation(viaObject.getSourceLocation()).setParent(this);
+            var invokeEnterFun = new Invoke(ownerFunction, Invoke.InvokeMode.Invoke, enterFun, Collections.singletonList(funThis), viaObject.getSourceLocation());
 
-            ClassUnder leaveFun = (ClassUnder) ClassUnder.create(viaObject, viaObject.inferType().getChild("exit#")).setSourceLocation(viaObject.getSourceLocation()).setParent(this);
-            var invokeLeaveFun = new Invoke(Invoke.InvokeMode.Invoke, functionDef, leaveFun, Collections.singletonList(funThis), viaObject.getSourceLocation());
+            ClassUnder leaveFun = (ClassUnder) ClassUnder.create(ownerFunction, viaObject, viaObject.inferType().getChild("exit#")).setSourceLocation(viaObject.getSourceLocation()).setParent(this);
+            var invokeLeaveFun = new Invoke(ownerFunction, Invoke.InvokeMode.Invoke, leaveFun, Collections.singletonList(funThis), viaObject.getSourceLocation());
 
-            TryCatchFinallyStmt tryCatchFinallyStmt = new TryCatchFinallyStmt(new BlockStmt(Arrays.asList(new ExpressionStmt(invokeEnterFun), statement)), null, new BlockStmt(Collections.singletonList(new ExpressionStmt(invokeLeaveFun))));
+            TryCatchFinallyStmt tryCatchFinallyStmt = new TryCatchFinallyStmt(ownerFunction, functionDef.blockStmt(Arrays.asList(ownerFunction.expressionStmt(invokeEnterFun), statement)), null, ownerFunction.blockStmt(Collections.singletonList(ownerFunction.expressionStmt(invokeLeaveFun))));
             tryCatchFinallyStmt.termVisit(blockCompiler);
         } catch (CompilationError e) {
             throw e;

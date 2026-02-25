@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.Literal;
@@ -30,8 +31,8 @@ public class WhileStmt extends LoopStmt {
     private Expression condition;
     private final Statement body;
 
-    public WhileStmt(String label, Expression condition, Statement body) throws CompilationError {
-        super(label);
+    public WhileStmt(FunctionDef ownerFunction, String label, Expression condition, Statement body) throws CompilationError {
+        super(ownerFunction, label);
         this.condition = condition.setParent(this).transform();
         this.body = body.setParent(this).transform();
     }
@@ -40,7 +41,7 @@ public class WhileStmt extends LoopStmt {
     protected Expression transformInner() throws CompilationError {
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isFalse(literal)){    // always false
-                return new EmptyStmt().setSourceLocation(this.getSourceLocation());
+                return new EmptyStmt(ownerFunction).setSourceLocation(this.getSourceLocation());
             }
         }
         return this;

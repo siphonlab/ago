@@ -117,7 +117,8 @@ public class SwitchCaseStmt extends Statement{
     }
 
     List<Label> cases = new ArrayList<>();
-    public SwitchCaseStmt(Expression condition, List<SwitchGroup> groups) throws CompilationError {
+    public SwitchCaseStmt(FunctionDef ownerFunction, Expression condition, List<SwitchGroup> groups) throws CompilationError {
+        super(ownerFunction);
         this.condition = condition.transform();
         if(condition instanceof EnumValue enumValue){
             this.condition = enumValue.toLiteral();
@@ -200,7 +201,7 @@ public class SwitchCaseStmt extends Statement{
                                 if (typeCode.isHigherThan(TypeCode.INT)) {
                                     errors.add(new TypeMismatchError("only int value allowed", cs.sourceLocation));
                                 } else {
-                                    var value = (IntLiteral) new Cast(literal, PrimitiveClassDef.INT).setSourceLocation(cs.sourceLocation).transform();
+                                    var value = (IntLiteral) ownerFunction.cast(literal, PrimitiveClassDef.INT).setSourceLocation(cs.sourceLocation).transform();
                                     cs.expression = value;
                                     intCasesMap.put(value.value, cs.group);
                                 }
@@ -235,7 +236,7 @@ public class SwitchCaseStmt extends Statement{
             this.switchTableFirstKey = min;
             this.switchTableLastKey = max;
             this.intCasesMap = intCasesMap;
-            this.condition = new Cast(this.condition,PrimitiveClassDef.INT).transform();
+            this.condition = ownerFunction.cast(this.condition,PrimitiveClassDef.INT).transform();
         } else {
             if(!errors.isEmpty()){
                 throw errors.get(0);
@@ -265,7 +266,7 @@ public class SwitchCaseStmt extends Statement{
                             group.visitActions(blockCompiler);
                         return;
                 }
-                var v = new PipeToTempVar(literal).visit(blockCompiler);
+                var v = new PipeToTempVar(ownerFunction,literal).visit(blockCompiler);
                 compileBranches(v, blockCompiler);
             } else {
                 Var.LocalVar v = (Var.LocalVar) r;
@@ -341,7 +342,7 @@ public class SwitchCaseStmt extends Statement{
         if(alwaysTrueBranch != null){
             if(alwaysTrueBranch.caseKind == CaseKind.TypeDispatch){
                 Var.LocalVar var = (Var.LocalVar) alwaysTrueBranch.expression;
-                Assign.to(var,conditionResult).termVisit(blockCompiler);
+                ownerFunction.assign(var,conditionResult).termVisit(blockCompiler);
             }
             alwaysTrueBranch.group.visitActions(blockCompiler);
             this.exitLabel.here();
@@ -364,9 +365,9 @@ public class SwitchCaseStmt extends Statement{
                 switch (cs.caseKind) {
                     case ConstExpression:
                     case EnumConst:
-                        var eq = new Equals(condition, new Cast(cs.expression, condition.inferType()).transform(), Equals.Type.Equals).transform().visit(blockCompiler);
+                        var eq = new Equals(ownerFunction, condition, ownerFunction.cast(cs.expression, condition.inferType()).transform(), Equals.Type.Equals).transform().visit(blockCompiler);
                         if(eq instanceof Literal<?>){
-                            r = new PipeToTempVar(eq).visit(blockCompiler);
+                            r = new PipeToTempVar(ownerFunction, eq).visit(blockCompiler);
                         } else {
                             r = (Var.LocalVar) eq;
                         }
@@ -374,9 +375,9 @@ public class SwitchCaseStmt extends Statement{
                         break;
                     case TypeDispatch:
                         Var.LocalVar typeDispatch = (Var.LocalVar) cs.expression;
-                        var instanceOF = new InstanceOf(conditionResult, typeDispatch.inferType(), typeDispatch).transform();
+                        var instanceOF = new InstanceOf(ownerFunction, conditionResult, typeDispatch.inferType(), typeDispatch).transform();
                         if(instanceOF instanceof Literal<?>){
-                            r = new PipeToTempVar(instanceOF).visit(blockCompiler);
+                            r = new PipeToTempVar(ownerFunction, instanceOF).visit(blockCompiler);
                         } else {
                             r = (Var.LocalVar) instanceOF;
                         }
@@ -414,7 +415,7 @@ public class SwitchCaseStmt extends Statement{
                 var lb = entry.getValue();
                 lb.here();
 
-                Assign.to(v, conditionResult).termVisit(blockCompiler);
+                ownerFunction.assign(v, conditionResult).termVisit(blockCompiler);
                 code.jump(cs.group.entranceLabel);
             }
         }

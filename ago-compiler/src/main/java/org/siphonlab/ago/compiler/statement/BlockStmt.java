@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.statement;
 import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import java.util.List;
@@ -26,7 +27,8 @@ public class BlockStmt extends Statement{
 
     private final List<Statement> statements;
 
-    public BlockStmt(List<Statement> statements){
+    public BlockStmt(FunctionDef ownerFunction, List<Statement> statements){
+        super(ownerFunction);
         this.statements = statements;
         for (Statement statement : this.statements) {
             statement.setParent(this);

@@ -24,11 +24,10 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
 
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
-import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
 
 import java.util.Objects;
 
-public class ArrayElement extends ExpressionBase implements Assign.Assignee, CollectionElement {
+public class ArrayElement extends ExpressionInFunctionBody implements Assign.Assignee, CollectionElement {
 
     private final Expression array;
     private Expression indexExpr;
@@ -37,7 +36,8 @@ public class ArrayElement extends ExpressionBase implements Assign.Assignee, Col
     private Var.LocalVar processedArray;
     private TermExpression processedIndex;
 
-    public ArrayElement(Expression array, Expression indexExpr) throws CompilationError {
+    public ArrayElement(FunctionDef ownerFunction, Expression array, Expression indexExpr) throws CompilationError {
+        super(ownerFunction);
         this.array = array.transform().setParent(this);
         ClassDef arrayType = array.inferType();
         if(!arrayType.getRoot().getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
@@ -54,7 +54,7 @@ public class ArrayElement extends ExpressionBase implements Assign.Assignee, Col
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.indexExpr = new Cast(indexExpr.setParent(this).transform(), PrimitiveClassDef.INT).transform();
+        this.indexExpr = ownerFunction.cast(indexExpr.setParent(this).transform(), PrimitiveClassDef.INT).transform();
         return this;
     }
 
@@ -121,8 +121,8 @@ public class ArrayElement extends ExpressionBase implements Assign.Assignee, Col
     }
 
     @Override
-    public Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value) throws CompilationError {
-        return new ArrayPut(processedCollection, processedIndex, value);
+    public Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value, FunctionDef ownerFunction) throws CompilationError {
+        return new ArrayPut(ownerFunction, processedCollection, processedIndex, value);
     }
 
     @Override

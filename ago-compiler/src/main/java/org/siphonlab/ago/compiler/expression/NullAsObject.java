@@ -21,7 +21,8 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 
-public class NullAsObject extends ExpressionBase implements LiteralResultExpression{
+@Deprecated
+public class NullAsObject implements LiteralResultExpression{
 
     private final NullLiteral nullLiteral;
     private final ClassDef type;
@@ -29,7 +30,6 @@ public class NullAsObject extends ExpressionBase implements LiteralResultExpress
     public NullAsObject(NullLiteral nullLiteral, ClassDef type){
         this.nullLiteral = nullLiteral;
         this.type = type;
-        this.sourceLocation = nullLiteral.getSourceLocation();
         this.setParent(nullLiteral.getParent());
         nullLiteral.setParent(this);
     }
@@ -45,8 +45,18 @@ public class NullAsObject extends ExpressionBase implements LiteralResultExpress
     }
 
     @Override
+    public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
+
+    }
+
+    @Override
     public Literal<?> visit(BlockCompiler blockCompiler) throws CompilationError {
         return this.nullLiteral;
+    }
+
+    @Override
+    public Expression transform() throws CompilationError {
+        return null;
     }
 
     public NullLiteral getNullLiteral() {
@@ -60,7 +70,22 @@ public class NullAsObject extends ExpressionBase implements LiteralResultExpress
 
     @Override
     public NullAsObject setSourceLocation(SourceLocation sourceLocation) {
-        super.setSourceLocation(sourceLocation);
+//        super.setSourceLocation(sourceLocation);
         return this;
+    }
+
+    @Override
+    public SourceLocation getSourceLocation() {
+        return null;
+    }
+
+    @Override
+    public Expression setParent(Expression expression) {
+        return null;
+    }
+
+    @Override
+    public Expression getParent() {
+        return null;
     }
 }

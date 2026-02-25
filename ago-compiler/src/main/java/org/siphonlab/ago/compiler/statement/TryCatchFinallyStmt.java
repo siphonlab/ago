@@ -66,7 +66,8 @@ public class TryCatchFinallyStmt extends Statement{
         }
     }
 
-    public TryCatchFinallyStmt(BlockStmt tryBlock, List<CatchCause> catchCauses, BlockStmt finallyBlock){
+    public TryCatchFinallyStmt(FunctionDef ownerFunction, BlockStmt tryBlock, List<CatchCause> catchCauses, BlockStmt finallyBlock){
+        super(ownerFunction);
         this.tryBlock = tryBlock;
         tryBlock.setParent(this);
         this.catchCauses = catchCauses;
@@ -163,7 +164,7 @@ public class TryCatchFinallyStmt extends Statement{
 
             finalEntrance.here();
             if (finallyBlock != null) {
-                var e = blockCompiler.acquireTempVar(new SomeInstance(langException));
+                var e = blockCompiler.acquireTempVar(new SomeInstance(ownerFunction, langException));
                 code.store_exception(e.getVariableSlot());
                 blockCompiler.lockRegister(e);
                 finallyBlock.termVisit(blockCompiler);

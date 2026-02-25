@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler.expression.logic;
 
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.UnaryExpression;
@@ -33,8 +34,8 @@ import java.util.Objects;
 
 public class BitNot extends UnaryExpression {
 
-    public BitNot(Expression value) throws CompilationError {
-        super(value);
+    public BitNot(FunctionDef ownerFunction, Expression value) throws CompilationError {
+        super(ownerFunction, value);
     }
 
     @Override

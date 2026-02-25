@@ -18,15 +18,17 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import java.util.Objects;
 
-public class SomeInstance extends ExpressionBase{
+public class SomeInstance extends ExpressionInFunctionBody{
 
     private final ClassDef classDef;
 
-    public SomeInstance(ClassDef classDef){
+    public SomeInstance(FunctionDef ownerFunction, ClassDef classDef){
+        super(ownerFunction);
         this.classDef = classDef;
     }
     @Override

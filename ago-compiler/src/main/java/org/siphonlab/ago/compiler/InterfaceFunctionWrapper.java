@@ -141,20 +141,20 @@ public class InterfaceFunctionWrapper extends FunctionDef{
         }
 
         var blockCompiler = new BlockCompiler(this.unit, this, null);
-        Var.Field fld = new Var.Field(new Scope(1, this.getParentClass()), field)
+        Var.Field fld = field(new Scope(1, this.getParentClass()), field)
                     .setSourceLocation(this.getParentClass().unit.sourceLocation(field.getDeclaration()));
         List<Expression> arguments = new ArrayList<>();
         for (Parameter parameter : getParameters()) {
-            var arg = Var.of(new Scope.Local(this), parameter);
+            var arg = Var.of(this, new Scope.Local(this), parameter);
             arguments.add(arg);
         }
-        var invoke = new Invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(fld, this.interfaceFun), arguments, fld.getSourceLocation());
+        var invoke = invoke(Invoke.InvokeMode.Invoke,classUnder(fld, this.interfaceFun), arguments, fld.getSourceLocation());
         Expression expr;
         if (this.getResultType() == PrimitiveClassDef.VOID) {
             expr = invoke;
-            blockCompiler.compileExpressions(List.of(new ExpressionStmt(expr), new Return()));
+            blockCompiler.compileExpressions(List.of(expressionStmt(expr), return_()));
         }  else {
-            expr = new Return(invoke);
+            expr = new Return(this, invoke);
             blockCompiler.compileExpressions(List.of(expr));
         }
 

@@ -26,7 +26,7 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import java.util.List;
 import java.util.Objects;
 
-public class MapPut extends ExpressionBase {
+public class MapPut extends ExpressionInFunctionBody {
 
     private final Expression map;
     private Expression keyExpr;
@@ -35,7 +35,8 @@ public class MapPut extends ExpressionBase {
     private final ClassDef keyType;
     private final ClassDef valueType;
 
-    public MapPut(Expression map, Expression keyExpr, Expression value) throws CompilationError {
+    public MapPut(FunctionDef ownerFunction,Expression map, Expression keyExpr, Expression value) throws CompilationError {
+        super(ownerFunction);
         map = map.transform().setParent(this);
         ClassDef mapType = map.inferType();
         Root root = mapType.getRoot();
@@ -55,13 +56,13 @@ public class MapPut extends ExpressionBase {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.keyExpr = new Cast(keyExpr, this.keyType).setParent(this).transform();
-        this.value = new Cast(value, this.valueType).setParent(this).transform();
+        this.keyExpr = ownerFunction.cast(keyExpr, this.keyType).setParent(this).transform();
+        this.value = ownerFunction.cast(value, this.valueType).setParent(this).transform();
         return this;
     }
 
-    public MapPut(MapValue mapValue, Expression value) throws CompilationError {
-        this(mapValue.getMap(), mapValue.getIndexExpr(), value);
+    public MapPut(FunctionDef ownerFunction, MapValue mapValue, Expression value) throws CompilationError {
+        this(ownerFunction, mapValue.getMap(), mapValue.getIndexExpr(), value);
     }
 
     @Override
@@ -98,7 +99,7 @@ public class MapPut extends ExpressionBase {
             var value = this.value.visit(blockCompiler);
             blockCompiler.lockRegister(value);
 
-            var invoke = new Invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(this.map, accessor), List.of(keyExpr, value), this.getSourceLocation());
+            var invoke = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(this.map, accessor), List.of(keyExpr, value), this.getSourceLocation());
             invoke.termVisit(blockCompiler);
 
             blockCompiler.releaseRegister(map);

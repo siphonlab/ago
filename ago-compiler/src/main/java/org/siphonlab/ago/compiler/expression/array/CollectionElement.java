@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler.expression.array;
 
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.TermExpression;
@@ -26,6 +27,6 @@ public interface CollectionElement extends Expression{
 
     TermExpression getProcessedIndex();
 
-    Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value) throws CompilationError;
+    Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value, FunctionDef ownerFunction) throws CompilationError;
 
 }

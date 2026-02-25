@@ -17,14 +17,16 @@ package org.siphonlab.ago.compiler.expression;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 
-public class CurrWithExpression extends ExpressionBase implements LocalVarResultExpression {
+public class CurrWithExpression extends ExpressionInFunctionBody implements LocalVarResultExpression {
 
     private final Expression base;
 
-    public CurrWithExpression(Expression base) throws CompilationError {
+    public CurrWithExpression(FunctionDef ownerFunction, Expression base) throws CompilationError {
+        super(ownerFunction);
         this.base = base.transform();
         this.sourceLocation = base.getSourceLocation();
         this.setParent(base.getParent());
@@ -62,7 +64,7 @@ public class CurrWithExpression extends ExpressionBase implements LocalVarResult
                 return this.localVar = l;
             } else {
                 var tempVar = blockCompiler.acquireTempVar(this.base);
-                Assign.to(tempVar,t).termVisit(blockCompiler);
+                ownerFunction.assign(tempVar,t).termVisit(blockCompiler);
                 return this.localVar = tempVar;
             }
         } else {

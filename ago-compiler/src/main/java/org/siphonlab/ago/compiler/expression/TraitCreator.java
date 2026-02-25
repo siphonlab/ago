@@ -19,6 +19,7 @@ import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.ConstructorDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 
@@ -28,8 +29,8 @@ public class TraitCreator extends Creator{
 
     private final Expression bindPermit;
 
-    public TraitCreator(Expression traitField, Expression bindPermit, SourceLocation sourceLocation) throws CompilationError {
-        super(traitField, new ArrayList<>(), sourceLocation);
+    public TraitCreator(FunctionDef ownerFunction,  Expression traitField, Expression bindPermit, SourceLocation sourceLocation) throws CompilationError {
+        super(ownerFunction, traitField, new ArrayList<>(), sourceLocation);
         this.bindPermit = bindPermit;
     }
 
@@ -57,9 +58,9 @@ public class TraitCreator extends Creator{
 
     @Override
     protected Expression makeConstructorInvocation(Var.LocalVar localVar, ConstructorDef constructor) throws CompilationError {
-        var c = ClassUnder.create(localVar, constructor);
+        var c = ClassUnder.create(ownerFunction, localVar, constructor);
         c.setCandidates(null);
-        var constructorInvocation = new Invoke(Invoke.InvokeMode.Invoke, c, this.arguments, this.sourceLocation).setSourceLocation(this.getSourceLocation());
+        var constructorInvocation = ownerFunction.invoke(Invoke.InvokeMode.Invoke, c, this.arguments, this.sourceLocation).setSourceLocation(this.getSourceLocation());
         return constructorInvocation.transform();
     }
 }

@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -29,8 +30,8 @@ import static org.siphonlab.ago.opcode.Concat.KIND_CONCAT;
 
 public class Concat extends BiExpression{
 
-    public Concat(Expression left, Expression right) throws CompilationError {
-        super(left.transform(), right.transform());
+    public Concat(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
+        super(ownerFunction, left.transform(), right.transform());
     }
 
     @Override
@@ -39,15 +40,15 @@ public class Concat extends BiExpression{
         var right = this.right;
 
         if(left.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-            left = new Cast(this.left, PrimitiveClassDef.STRING);
+            left = ownerFunction.cast(this.left, PrimitiveClassDef.STRING);
             if(right.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-                right = new Cast(this.right, PrimitiveClassDef.STRING);
+                right = ownerFunction.cast(this.right, PrimitiveClassDef.STRING);
             }
-            return new Concat(left, right).setSourceLocation(this.getSourceLocation()).transform();
+            return ownerFunction.concat(left, right).setSourceLocation(this.getSourceLocation()).transform();
         } else {
             if(right.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-                right = new Cast(right, PrimitiveClassDef.STRING);
-                return new Concat(left, right).setSourceLocation(this.getSourceLocation()).transform();
+                right = ownerFunction.cast(right, PrimitiveClassDef.STRING);
+                return ownerFunction.concat(left, right).setSourceLocation(this.getSourceLocation()).transform();
             }
         }
         return super.transformInner();
@@ -55,7 +56,7 @@ public class Concat extends BiExpression{
 
     @Override
     protected Expression transformUnboxed(Expression left, Expression right) throws CompilationError {
-        return new Concat(left, right).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
+        return ownerFunction.concat(left, right).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
     }
 
     @Override

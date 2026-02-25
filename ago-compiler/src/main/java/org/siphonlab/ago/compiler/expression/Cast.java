@@ -19,23 +19,25 @@ import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.CodeBuffer;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import java.util.Objects;
 
 import static org.siphonlab.ago.TypeCode.*;
 
-public class Cast extends ExpressionBase{
+public class Cast extends ExpressionInFunctionBody{
 
     private final Expression expression;
     private final boolean forceCast;
     public final ClassDef toType;
 
-    public Cast(Expression expression, ClassDef toType) throws CompilationError {
-        this(expression, toType, false);
+    public Cast(FunctionDef ownerFunction, Expression expression, ClassDef toType) throws CompilationError {
+        this(ownerFunction, expression, toType, false);
     }
 
-    public Cast(Expression expression, ClassDef toType, boolean forceCast) throws CompilationError {
+    public Cast(FunctionDef ownerFunction, Expression expression, ClassDef toType, boolean forceCast) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform();
         this.forceCast = forceCast;
         this.setParent(this.expression.getParent());
@@ -53,7 +55,7 @@ public class Cast extends ExpressionBase{
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        return new CastStrategy(this.getSourceLocation(), forceCast).castTo(this.expression, this.toType).transform();
+        return new CastStrategy(ownerFunction, this.getSourceLocation(), forceCast).castTo(this.expression, this.toType).transform();
     }
 
     //    @Override
@@ -103,7 +105,7 @@ public class Cast extends ExpressionBase{
 //                    return new NullAsObject(n,toType);
 //
 //                var r = new Box(literal, this.toType).transform();
-//                return r.inferType() == this.toType ? r : new Cast(r, this.toType);
+//                return r.inferType() == this.toType ? r : ownerFunction.cast(r, this.toType);
 //            }
 //
 //            // cast literal directly
@@ -220,7 +222,7 @@ public class Cast extends ExpressionBase{
 //        if(fromType.isPrimitiveFamily()){
 //            if(toTypeCode == TypeCode.OBJECT) {
 //                var r = new Box(expression, this.toType).setSourceLocation(this.getSourceLocation()).transform();
-//                return r.inferType() == this.toType ? r : new Cast(r, this.toType);
+//                return r.inferType() == this.toType ? r : ownerFunction.cast(r, this.toType);
 //            }
 //            if(this.toType.isPrimitiveFamily()){
 //                return this;
@@ -276,7 +278,7 @@ public class Cast extends ExpressionBase{
 //            var code = blockCompiler.getCode();
 //            if (expression instanceof LiteralResultExpression literalResultExpression) {
 //                var literal = literalResultExpression.visit(blockCompiler);
-//                Assign.to(localVar, new Cast(literal, toType).setSourceLocation(expression.getSourceLocation()).transform()).termVisit(blockCompiler);
+//                ownerFunction.assign(localVar, ownerFunction.cast(literal, toType).setSourceLocation(expression.getSourceLocation()).transform()).termVisit(blockCompiler);
 //            } else {
 //                castToLocalVar(localVar, (Var.LocalVar) expression.visit(blockCompiler), code);
 //            }

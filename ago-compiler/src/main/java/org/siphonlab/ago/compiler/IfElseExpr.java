@@ -22,17 +22,18 @@ import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
 import org.siphonlab.ago.compiler.statement.Label;
 
-public class IfElseExpr extends ExpressionBase {
+public class IfElseExpr extends ExpressionInFunctionBody {
 
 
     private final Expression ifPart;
     private final Expression condition;
     private final Expression elsePart;
 
-    public IfElseExpr(Expression ifPart, Expression condition, Expression elsePart) throws CompilationError {
+    public IfElseExpr(FunctionDef ownerFunction, Expression ifPart, Expression condition, Expression elsePart) throws CompilationError {
+        super(ownerFunction);
         this.ifPart = ifPart.setParent(this).transform();
         this.condition = condition.setParent(this).transform();
-        this.elsePart = new Cast(elsePart, this.ifPart.inferType()).transform();
+        this.elsePart = ownerFunction.cast(elsePart, this.ifPart.inferType()).transform();
     }
 
     @Override
@@ -69,10 +70,10 @@ public class IfElseExpr extends ExpressionBase {
                 Label elseEntrance = blockCompiler.createLabel();
                 Label exit = blockCompiler.createLabel();
                 code.jumpIfNot(((Var.LocalVar)term).getVariableSlot(), elseEntrance);
-                Assign.to(localVar, ifPart).setSourceLocation(ifPart.getSourceLocation()).termVisit(blockCompiler);
+                ownerFunction.assign(localVar, ifPart).setSourceLocation(ifPart.getSourceLocation()).termVisit(blockCompiler);
                 code.jump(exit);
                 elseEntrance.here();
-                Assign.to(localVar,elsePart).setSourceLocation(elsePart.getSourceLocation()).termVisit(blockCompiler);
+                ownerFunction.assign(localVar,elsePart).setSourceLocation(elsePart.getSourceLocation()).termVisit(blockCompiler);
                 exit.here();
             }
         } catch (CompilationError e){

@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.TermExpression;
@@ -25,7 +26,8 @@ public class ExpressionStmt extends Statement {
 
     protected Expression expression;
 
-    public ExpressionStmt(Expression expression) throws CompilationError {
+    public ExpressionStmt(FunctionDef ownerFunction, Expression expression) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform().setParent(this);
         this.setSourceLocation(expression.getSourceLocation());
     }

@@ -17,9 +17,14 @@ package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 public class EmptyStmt extends Statement{
+
+    public EmptyStmt(FunctionDef ownerFunction) {
+        super(ownerFunction);
+    }
 
     @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {

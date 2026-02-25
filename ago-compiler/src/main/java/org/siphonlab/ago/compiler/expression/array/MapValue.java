@@ -26,7 +26,7 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import java.util.List;
 import java.util.Objects;
 
-public class MapValue extends ExpressionBase implements Assign.Assignee, CollectionElement {
+public class MapValue extends ExpressionInFunctionBody implements Assign.Assignee, CollectionElement {
 
     private final Expression map;
     private Expression indexExpr;
@@ -37,7 +37,8 @@ public class MapValue extends ExpressionBase implements Assign.Assignee, Collect
     private Var.LocalVar processedMap;
     private TermExpression processedIndex;
 
-    public MapValue(Expression map, Expression indexExpr) throws CompilationError {
+    public MapValue(FunctionDef ownerFunction, Expression map, Expression indexExpr) throws CompilationError {
+        super(ownerFunction);
         this.map = map.transform().setParent(this);
         ClassDef mapType = map.inferType();
         Root root = mapType.getRoot();
@@ -59,7 +60,7 @@ public class MapValue extends ExpressionBase implements Assign.Assignee, Collect
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.indexExpr = new Cast(indexExpr.setParent(this).transform(), this.keyType).transform();
+        this.indexExpr = ownerFunction.cast(indexExpr.setParent(this).transform(), this.keyType).transform();
         return this;
     }
 
@@ -73,7 +74,7 @@ public class MapValue extends ExpressionBase implements Assign.Assignee, Collect
 
         blockCompiler.enter(this);
 
-        var invoke = new Invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(map, accessor), List.of(indexExpr), this.getSourceLocation());
+        var invoke = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(map, accessor), List.of(indexExpr), this.getSourceLocation());
         invoke.outputToLocalVar(localVar, blockCompiler);
 
         blockCompiler.leave(this);
@@ -115,8 +116,8 @@ public class MapValue extends ExpressionBase implements Assign.Assignee, Collect
     }
 
     @Override
-    public Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value) throws CompilationError {
-        return new MapPut(processedCollection, processedIndex, value);
+    public Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value, FunctionDef ownerFunction) throws CompilationError {
+        return new MapPut(ownerFunction, processedCollection, processedIndex, value);
     }
 
     @Override

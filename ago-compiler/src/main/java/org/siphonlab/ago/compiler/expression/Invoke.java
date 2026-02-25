@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class Invoke extends ExpressionBase{
+public class Invoke extends ExpressionInFunctionBody{
 
     private Expression forkContext;
 
@@ -56,11 +56,10 @@ public class Invoke extends ExpressionBase{
     protected final FunctionDef resolvedFunctionDef;
     protected final Expression scope;
     protected List<Expression> arguments;
-    private final ClassDef scopeClass;
     private final InvokeMode invokeMode;
 
-    public Invoke(InvokeMode invokeMode, ClassDef scopeClass, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
-        this.scopeClass = scopeClass;
+    public Invoke(FunctionDef ownerFunction, InvokeMode invokeMode, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
+        super(ownerFunction);
         this.sourceLocation = sourceLocation;
         this.maybeFunction = maybeFunction;
         this.invokeMode = invokeMode;
@@ -80,9 +79,6 @@ public class Invoke extends ExpressionBase{
         }
     }
 
-    public Invoke(InvokeMode invokeMode, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
-        this(invokeMode, null, maybeFunction, arguments, sourceLocation);
-    }
     @Override
     protected Expression transformInner() throws CompilationError {
         List<Expression> expressions = this.arguments;
@@ -95,13 +91,13 @@ public class Invoke extends ExpressionBase{
                 for (var j = i ; j < expressions.size(); j++) {
                     elements.add(expressions.get(j));
                 }
-                arg = new ArrayLiteral((ArrayClassDef) parameter.getType(),elements).transform();
+                arg = new ArrayLiteral(ownerFunction, (ArrayClassDef) parameter.getType(),elements).transform();
                 arguments.set(i, arg);
                 this.arguments = arguments.subList(0,i + 1);
                 break;
             } else{
                 arg = expressions.get(i);
-                arg = new Cast(arg, parameter.getType()).setSourceLocation(arg.getSourceLocation()).setParent(arg.getParent()).transform();
+                arg = ownerFunction.cast(arg, parameter.getType()).setSourceLocation(arg.getSourceLocation()).setParent(arg.getParent()).transform();
                 arguments.set(i, arg);
             }
         }
@@ -166,7 +162,7 @@ public class Invoke extends ExpressionBase{
             }
             if(instance.varMode == Var.LocalVar.VarMode.Temp){
                 // release the register after invoke if it's a temp var
-                Assign.to(instance,new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
+                ownerFunction.assign(instance,new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
             }
             blockCompiler.releaseRegister(instance);
             blockCompiler.releaseRegister(localVar);
@@ -205,7 +201,7 @@ public class Invoke extends ExpressionBase{
 
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
-                Assign.to(instance, new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
+                ownerFunction.assign(instance, new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
             }
 
         } catch (CompilationError e) {
@@ -231,7 +227,7 @@ public class Invoke extends ExpressionBase{
     private Var.LocalVar createInstance(BlockCompiler blockCompiler, Var.LocalVar receiverVar) throws CompilationError {
         var code = blockCompiler.getCode();
 
-        if(receiverVar == null) receiverVar = blockCompiler.acquireTempVar(new SomeInstance(resolvedFunctionDef).setSourceLocation(((Expression)maybeFunction).getSourceLocation()));
+        if(receiverVar == null) receiverVar = blockCompiler.acquireTempVar(new SomeInstance(ownerFunction, resolvedFunctionDef).setSourceLocation(((Expression)maybeFunction).getSourceLocation()));
         SlotDef resultSlot = receiverVar.getVariableSlot();
         var fun = blockCompiler.getFunctionDef();
         boolean resolvedFunctionDefGenericInstantiateRequired = resolvedFunctionDef.isGenericInstantiateRequiredForNew();
@@ -324,7 +320,7 @@ public class Invoke extends ExpressionBase{
         for (int i = 0; i < args.size(); i++) {
             Parameter parameter = parameters.get(i);
             var arg = args.get(i);
-            Assign.to(new Var.Field(instance, parameter), arg)
+            ownerFunction.assign(ownerFunction.field(instance, parameter), arg)
                         .setSourceLocation(arg.getSourceLocation()).setParent(arg.getParent()).termVisit(blockCompiler);
         }
         for (TermExpression arg : args) {
@@ -371,7 +367,7 @@ public class Invoke extends ExpressionBase{
             }
         }
         // resolve
-        var resolver = new FunctionInvocationResolver(method, candidates, values, sourceLocation);
+        var resolver = new FunctionInvocationResolver(ownerFunction, method, candidates, values, sourceLocation);
         var r = resolver.resolve(resolveResult -> {
             TypeParamsContext paramsContext = resolveResult.functionDef.getTypeParamsContext();
             if(paramsContext != null){
@@ -383,9 +379,9 @@ public class Invoke extends ExpressionBase{
         TypeParamsContext paramsContext = r.functionDef.getTypeParamsContext();
         if(paramsContext != null) {
             ClassRefLiteral[] typeArgs = r.toTypeArgs(paramsContext);
-            var pc = scopeClass.getOrCreateGenericInstantiationClassDef(r.functionDef, typeArgs, null);
-            scopeClass.registerConcreteType(pc);
-            scopeClass.idOfClass(r.functionDef);
+            var pc = ownerFunction.getOrCreateGenericInstantiationClassDef(r.functionDef, typeArgs, null);
+            ownerFunction.registerConcreteType(pc);
+            ownerFunction.idOfClass(r.functionDef);
             return (FunctionDef) pc;        // GenericInstantiationFunctionDef
         } else {
             return r.functionDef;

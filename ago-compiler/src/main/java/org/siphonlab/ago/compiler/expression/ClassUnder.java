@@ -23,12 +23,13 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import java.util.Collection;
 import java.util.Objects;
 
-public abstract class ClassUnder extends ExpressionBase implements MaybeFunction{
+public abstract class ClassUnder extends ExpressionInFunctionBody implements MaybeFunction{
 
     public final Expression object;
     public final ClassDef classDef;
 
-    protected ClassUnder(Expression object, ClassDef classDef) throws CompilationError {
+    protected ClassUnder(FunctionDef ownerFunction, Expression object, ClassDef classDef) throws CompilationError {
+        super(ownerFunction);
         this.object = object.transform();
         this.object.setParent(this);
         this.classDef = classDef;
@@ -47,12 +48,12 @@ public abstract class ClassUnder extends ExpressionBase implements MaybeFunction
         return classDef;
     }
 
-    public static ClassUnder create(Expression scopeExpr, ClassDef subclass) throws CompilationError {
+    public static ClassUnder create(FunctionDef ownerFunction, Expression scopeExpr, ClassDef subclass) throws CompilationError {
         scopeExpr = scopeExpr.transform();
         if(scopeExpr instanceof Scope scope){
-            return new ClassUnderScope(scope, subclass);
+            return new ClassUnderScope(ownerFunction, scope, subclass);
         } else {
-            return new ClassUnderInstance(scopeExpr, subclass);
+            return new ClassUnderInstance(ownerFunction, scopeExpr, subclass);
         }
     }
 
@@ -98,8 +99,8 @@ public abstract class ClassUnder extends ExpressionBase implements MaybeFunction
 
     public static class ClassUnderScope extends ClassUnder {
 
-        public ClassUnderScope(Scope object, ClassDef classDef) throws CompilationError {
-            super(object, classDef);
+        public ClassUnderScope(FunctionDef ownerFunction, Scope object, ClassDef classDef) throws CompilationError {
+            super(ownerFunction, object, classDef);
         }
 
         @Override
@@ -141,8 +142,8 @@ public abstract class ClassUnder extends ExpressionBase implements MaybeFunction
 
     public static class ClassUnderInstance extends ClassUnder{
 
-        protected ClassUnderInstance(Expression object, ClassDef classDef) throws CompilationError {
-            super(object, classDef);
+        protected ClassUnderInstance(FunctionDef ownerFunction, Expression object, ClassDef classDef) throws CompilationError {
+            super(ownerFunction, object, classDef);
         }
 
         @Override

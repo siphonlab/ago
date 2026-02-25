@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.expression.logic;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -38,7 +39,7 @@ import static org.siphonlab.ago.TypeCode.INT_VALUE;
 import static org.siphonlab.ago.TypeCode.LONG_VALUE;
 import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
 
-public class BitShiftExpr extends ExpressionBase {
+public class BitShiftExpr extends ExpressionInFunctionBody {
 
     private final Type type;
     private Expression right;
@@ -55,10 +56,11 @@ public class BitShiftExpr extends ExpressionBase {
         }
     }
 
-    public BitShiftExpr(Type type, Expression left, Expression right) throws CompilationError {
+    public BitShiftExpr(FunctionDef ownerFunction, Type type, Expression left, Expression right) throws CompilationError {
+        super(ownerFunction);
         this.type = type;
         this.left = left.transform().setParent(this);
-        this.right = new Cast(right, PrimitiveClassDef.INT).transform().setParent(this);
+        this.right = ownerFunction.cast(right, PrimitiveClassDef.INT).transform().setParent(this);
     }
 
     @Override
@@ -68,12 +70,12 @@ public class BitShiftExpr extends ExpressionBase {
             throw new TypeMismatchError("int family expression expected",this.getSourceLocation());
         }
         if(type.getTypeCode().isObject()){
-            this.left = new Unbox(this.left).setParent(this);
+            this.left = ownerFunction.unbox(this.left).setParent(this);
         }
         if(!right.inferType().getTypeCode().isIntFamily()){
             throw new TypeMismatchError("int family value expected", right.getSourceLocation());
         }
-        right = new Cast(right, PrimitiveClassDef.INT).transform();
+        right = ownerFunction.cast(right, PrimitiveClassDef.INT).transform();
         if(right instanceof IntLiteral r){
             if(r.value == 0) return left;
             if(r.value < 0) throw new IllegalExpressionError("illegal bits value", right.getSourceLocation());

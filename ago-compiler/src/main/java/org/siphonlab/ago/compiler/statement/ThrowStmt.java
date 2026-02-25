@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.expression.Expression;
@@ -27,7 +28,8 @@ public class ThrowStmt extends Statement{
 
     private final Expression expression;
 
-    public ThrowStmt(Expression expression) throws CompilationError {
+    public ThrowStmt(FunctionDef ownerFunction, Expression expression) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform();
         expression.setParent(this);
     }

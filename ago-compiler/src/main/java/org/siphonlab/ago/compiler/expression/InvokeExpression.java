@@ -33,7 +33,7 @@ import java.util.List;
 
 import static org.apache.commons.lang3.StringUtils.join;
 
-public class InvokeExpression extends ExpressionBase{
+public class InvokeExpression extends ExpressionInFunctionBody{
 
     private final List<Expression> arguments;
     private final ClassDef scopeClass;
@@ -45,8 +45,9 @@ public class InvokeExpression extends ExpressionBase{
     private final ClassDef accordingFunction;
     private List<ClassDef> parameterTypes;
 
-    public InvokeExpression(ClassDef scopeClass, Invoke.InvokeMode invokeMode, Expression scopedFunctionExpr, List<Expression> arguments, Expression forkContext, SourceLocation sourceLocation) throws CompilationError {
-        this.scopeClass = scopeClass;
+    public InvokeExpression(FunctionDef ownerFunction, Invoke.InvokeMode invokeMode, Expression scopedFunctionExpr, List<Expression> arguments, Expression forkContext, SourceLocation sourceLocation) throws CompilationError {
+        super(ownerFunction);
+        this.scopeClass = ownerFunction;
         this.invokeMode = invokeMode;
         this.forkContext = forkContext;
         this.sourceLocation = sourceLocation;
@@ -63,7 +64,7 @@ public class InvokeExpression extends ExpressionBase{
             } else {
                 this.accordingFunction = lBound;
             }
-            var expr = new ClassOf.ClassOfScopedClassInterval(scopedFunctionExpr, ScopedClassIntervalClassDef.getMetaOfLBoundClass(classIntervalClassDef));
+            var expr = new ClassOf.ClassOfScopedClassInterval(ownerFunction, scopedFunctionExpr, ScopedClassIntervalClassDef.getMetaOfLBoundClass(classIntervalClassDef));
             this.scopedFunctionExpr = expr.setParent(this).transform();
         } else {
             throw new ResolveError("class interval expected", scopedFunctionExpr.getSourceLocation());
@@ -91,7 +92,7 @@ public class InvokeExpression extends ExpressionBase{
         for (int i = 1; i < typeArguments.length; i++) {
             ClassRefLiteral typeArgument = typeArguments[i];
             Expression element = arguments.get(i - 1);
-            arguments.set(i-1, new Cast(element, typeArgument.getClassDefValue()).transform());
+            arguments.set(i-1, ownerFunction.cast(element, typeArgument.getClassDefValue()).transform());
             parameterTypes.add(typeArgument.getClassDefValue());
         }
         this.parameterTypes = parameterTypes;
@@ -138,7 +139,7 @@ public class InvokeExpression extends ExpressionBase{
             }
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
-                Assign.to(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
+                ownerFunction.assign(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
             }
             blockCompiler.releaseRegister(instance);
             blockCompiler.releaseRegister(localVar);
@@ -171,7 +172,7 @@ public class InvokeExpression extends ExpressionBase{
 
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
-                Assign.to(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
+                ownerFunction.assign(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
             }
 
             blockCompiler.releaseRegister(instance);
@@ -195,7 +196,7 @@ public class InvokeExpression extends ExpressionBase{
 
 
     private Var.LocalVar createInstance(BlockCompiler blockCompiler) throws CompilationError {
-        var temp = blockCompiler.acquireTempVar(new SomeInstance(this.scopedFunctionExpr.inferType()).setSourceLocation(scopedFunctionExpr.getSourceLocation()));
+        var temp = blockCompiler.acquireTempVar(new SomeInstance(ownerFunction, this.scopedFunctionExpr.inferType()).setSourceLocation(scopedFunctionExpr.getSourceLocation()));
         SlotDef resultSlot = temp.getVariableSlot();
         if(this.scopedFunctionExpr instanceof ClassOf.ClassOfScopedClassInterval scopedClassInterval){
             Var.LocalVar r = (Var.LocalVar) scopedClassInterval.getScopedClassIntervalInstance().visit(blockCompiler);
@@ -223,7 +224,7 @@ public class InvokeExpression extends ExpressionBase{
             slot.setIndex(i);       // assert parameters are at the head
             parameter.setSlot(slot);
 
-            Assign.to(new Var.Field(instance, parameter), arg)
+            ownerFunction.assign(new Var.Field(ownerFunction, instance, parameter), arg)
                     .setSourceLocation(arg.getSourceLocation()).setParent(arg.getParent()).termVisit(blockCompiler);
         }
         for (TermExpression arg : args) {

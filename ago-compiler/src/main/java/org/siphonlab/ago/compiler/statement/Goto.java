@@ -17,13 +17,15 @@ package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 public class Goto extends Statement{
 
     private final Label label;
 
-    public Goto(Label label) throws CompilationError {
+    public Goto(FunctionDef ownerFunction, Label label) throws CompilationError {
+        super(ownerFunction);
         this.label = label;
     }
 

@@ -22,10 +22,11 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import java.util.Objects;
 
-public class Unbox extends ExpressionBase{
+public class Unbox extends ExpressionInFunctionBody{
     private final Expression expression;
 
-    public Unbox(Expression expression){
+    public Unbox(FunctionDef ownerFunction,Expression expression){
+        super(ownerFunction);
         this.expression = expression;
 
         this.setParent(expression.getParent());
@@ -58,7 +59,6 @@ public class Unbox extends ExpressionBase{
         try {
             blockCompiler.enter(this);
 
-            var r = expression.visit(blockCompiler);
             var c = this.expression.visit(blockCompiler);
             CodeBuffer code = blockCompiler.getCode();
             if (c instanceof Literal<?> literal) {

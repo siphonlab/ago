@@ -24,14 +24,15 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 
-public class FunctionApply extends ExpressionBase{
+public class FunctionApply extends ExpressionInFunctionBody{
 
     private final Invoke.InvokeMode invokeMode;
     private final Expression functionInstance;
     private final Expression forkContext;
     private final FunctionDef functionDef;
 
-    public FunctionApply(Invoke.InvokeMode invokeMode, Expression functionInstance, Expression forkContext) throws CompilationError {
+    public FunctionApply(FunctionDef ownerFunction,Invoke.InvokeMode invokeMode, Expression functionInstance, Expression forkContext) throws CompilationError {
+        super(ownerFunction);
         this.invokeMode = invokeMode;
         this.functionInstance = functionInstance.transform();
         this.forkContext = forkContext;
@@ -73,7 +74,7 @@ public class FunctionApply extends ExpressionBase{
             }
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
-                Assign.to(instance, new NullLiteral(functionDef)).termVisit(blockCompiler);
+                ownerFunction.assign(instance, new NullLiteral(functionDef)).termVisit(blockCompiler);
             }
         } catch (CompilationError e) {
             throw e;
@@ -93,7 +94,7 @@ public class FunctionApply extends ExpressionBase{
 
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
-                Assign.to(instance, new NullLiteral(functionDef)).termVisit(blockCompiler);
+                ownerFunction.assign(instance, new NullLiteral(functionDef)).termVisit(blockCompiler);
             }
         } catch (CompilationError e) {
             throw e;

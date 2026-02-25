@@ -17,14 +17,16 @@ package org.siphonlab.ago.compiler.expression;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
-class ForceUnbox extends ExpressionBase{
+class ForceUnbox extends ExpressionInFunctionBody{
 
     private final Expression expression;
     private final ClassDef toType;
 
-    public ForceUnbox(Expression expression, ClassDef implicitOrExplicitPrimaryClass){
+    public ForceUnbox(FunctionDef ownerFunction, Expression expression, ClassDef implicitOrExplicitPrimaryClass){
+        super(ownerFunction);
         this.expression = expression;
         this.toType = implicitOrExplicitPrimaryClass;
     }

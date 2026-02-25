@@ -30,7 +30,7 @@ import java.util.Objects;
 
 // Box only created by cast, don't create it by yourself, use Cast(int, obj) instead
 //
-class Box extends ExpressionBase{
+public class Box extends ExpressionInFunctionBody{
 
     private final Expression expression;
 //    private final ClassDef expectedType;
@@ -43,7 +43,8 @@ class Box extends ExpressionBase{
         ForceBox
     }
 
-    public Box(Expression expression, ClassDef expectedType, BoxMode boxMode) throws CompilationError {
+    public Box(FunctionDef ownerFunction, Expression expression, ClassDef expectedType, BoxMode boxMode) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform();
         this.boxType = expectedType;
         this.boxMode = boxMode;
@@ -82,7 +83,7 @@ class Box extends ExpressionBase{
 //                if (boxToDown) {
 //                    this.boxType = this.expectedType;
 //                } else if (castToSuper) {
-//                    return new Cast(new Box(this.expression, this.boxType), expectedType).setSourceLocation(this.getSourceLocation()).transform();
+//                    return ownerFunction.cast(new Box(this.expression, this.boxType), expectedType).setSourceLocation(this.getSourceLocation()).transform();
 //                } else if (this.expectedType.isDerivedFrom(boxType)) {
 //                    this.boxType = this.expectedType;
 //                } else if (this.expectedType.isEnum()) {
@@ -91,7 +92,7 @@ class Box extends ExpressionBase{
 //                        this.boxType = expectedType;
 //                        return this;
 //                    } else if (enumDef.getEnumBasePrimitiveType().getTypeCode().isHigherThan(type.getTypeCode())) {
-//                        return new Box(new Cast(this.expression, enumDef.getEnumBasePrimitiveType()).transform(), enumDef);
+//                        return new Box(ownerFunction.cast(this.expression, enumDef.getEnumBasePrimitiveType()).transform(), enumDef);
 //                    }
 //                } else {
 //                    throw new TypeMismatchError("'%s' cannot cast to '%s'".formatted(this.boxType, expectedType), this.getSourceLocation());
@@ -149,7 +150,7 @@ class Box extends ExpressionBase{
                             code.box_classref(localVar.getVariableSlot(), literal, blockCompiler.getFunctionDef().idOfClass(this.boxType));
                             if(scopeVar != null){
                                 var field = boxType.getRoot().getScopedClassInterval().getVariable("scope");
-                                Assign.to(new Var.Field(localVar,field),scopeVar).termVisit(blockCompiler);
+                                ownerFunction.assign(new Var.Field(ownerFunction, localVar,field),scopeVar).termVisit(blockCompiler);
                             }
                         } else {
                             blockCompiler.getFunctionDef().idOfClass(this.boxType);
@@ -166,11 +167,11 @@ class Box extends ExpressionBase{
                         if (fld == null) {
                             throw new ResolveError("value '%d' not found in enum '%s'".formatted(literal, enumDef.getFullname()), this.getSourceLocation());
                         }
-                        Assign.to(localVar, Var.of(new ConstClass(boxType), fld)).termVisit(blockCompiler);
+                        ownerFunction.assign(localVar, Var.of(ownerFunction, new ConstClass(ownerFunction, boxType), fld)).termVisit(blockCompiler);
                         break;
                     case ForceBox:
                         var temp = blockCompiler.acquireTempVar(this);
-                        Assign.to(temp, literal).termVisit(blockCompiler);
+                        ownerFunction.assign(temp, literal).termVisit(blockCompiler);
                         code.box_any(localVar.getVariableSlot(), temp.getVariableSlot());
                         break;
                 }
@@ -193,8 +194,8 @@ class Box extends ExpressionBase{
                         }
                         break;
                     case BoxEnum:
-                        ClassUnder valueOf = ClassUnder.create(new ConstClass(boxType), boxType.getMetaClassDef().getChild("valueOf#"));
-                        new Invoke(Invoke.InvokeMode.Invoke, valueOf, List.of(v), null).transform().outputToLocalVar(localVar, blockCompiler);
+                        ClassUnder valueOf = ClassUnder.create(ownerFunction, new ConstClass(ownerFunction, boxType), boxType.getMetaClassDef().getChild("valueOf#"));
+                        ownerFunction.invoke(Invoke.InvokeMode.Invoke, valueOf, List.of(v), null).transform().outputToLocalVar(localVar, blockCompiler);
                         break;
                     case ForceBox:
                         code.box_any(localVar.getVariableSlot(), v.getVariableSlot());
@@ -239,12 +240,12 @@ class Box extends ExpressionBase{
     private void runCreator(Var.LocalVar target, Expression value, BlockCompiler blockCompiler) throws CompilationError {
         List<Expression> arguments = Collections.singletonList(value);
         if(boxType.isTop()) {
-            new Creator(new ConstClass(this.boxType), arguments, getSourceLocation())
+            new Creator(ownerFunction, new ConstClass(ownerFunction, this.boxType), arguments, getSourceLocation())
                     .outputToLocalVar(target, blockCompiler);
         } else {
             MetaClassDef metaClassDef = (MetaClassDef) boxType.getParent();
-            ClassUnder classUnder = ClassUnder.create(new ConstClass(metaClassDef.getInstanceClassDef()), boxType);
-            new Creator(classUnder, arguments, getSourceLocation())
+            ClassUnder classUnder = ClassUnder.create(ownerFunction, new ConstClass(ownerFunction, metaClassDef.getInstanceClassDef()), boxType);
+            new Creator(ownerFunction, classUnder, arguments, getSourceLocation())
                     .outputToLocalVar(target, blockCompiler);
         }
     }

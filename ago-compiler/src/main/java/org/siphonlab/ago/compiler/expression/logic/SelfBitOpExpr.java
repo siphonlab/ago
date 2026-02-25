@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.expression.logic;
 
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
@@ -49,10 +50,10 @@ public class SelfBitOpExpr extends SelfOpExpr {
         }
     }
 
-    public SelfBitOpExpr(Expression site, Expression change, Type type) throws CompilationError {
-        super(site, change);
+    public SelfBitOpExpr(FunctionDef ownerFunction, Expression site, Expression change, Type type) throws CompilationError {
+        super(ownerFunction, site, change);
         this.site = site.transform().setParent(this);
-        this.change = new Cast(change.setParent(this), site.inferType()).transform();
+        this.change = ownerFunction.cast(change.setParent(this), site.inferType()).transform();
         this.type = type;
     }
 
@@ -76,7 +77,7 @@ public class SelfBitOpExpr extends SelfOpExpr {
             throw new TypeMismatchError("type is higher than '%s'".formatted(this.site.inferType().getFullname()), this.change.getSourceLocation());
         }
         if(change.inferType().getTypeCode().isObject()){
-            this.change = new Unbox(change).transform();
+            this.change = ownerFunction.unbox(change).transform();
         }
 
         if(change instanceof Literal<?> literal){
@@ -99,11 +100,11 @@ public class SelfBitOpExpr extends SelfOpExpr {
     Expression expr(Expression left, Expression right) throws CompilationError {
         switch (type){
             case BitAnd:
-                return new BitOpExpr(BitOpExpr.Type.BitAnd, left, right);
+                return new BitOpExpr(ownerFunction, BitOpExpr.Type.BitAnd, left, right);
             case BitOr:
-                return new BitOpExpr(BitOpExpr.Type.BitOr, left, right);
+                return new BitOpExpr(ownerFunction, BitOpExpr.Type.BitOr, left, right);
             case BitXor:
-                return new BitOpExpr(BitOpExpr.Type.BitXor, left, right);
+                return new BitOpExpr(ownerFunction, BitOpExpr.Type.BitXor, left, right);
             default:
                 throw new IllegalStateException("Unexpected value: " + type);
         }

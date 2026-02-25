@@ -19,6 +19,7 @@ package org.siphonlab.ago.compiler.expression;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -51,8 +52,8 @@ public class Equals extends BiExpression{
         }
     }
 
-    public Equals(Expression left, Expression right, Type type) throws CompilationError {
-        super(left, right);
+    public Equals(FunctionDef ownerFunction, Expression left, Expression right, Type type) throws CompilationError {
+        super(ownerFunction, left, right);
         this.type = type;
     }
 
@@ -72,7 +73,7 @@ public class Equals extends BiExpression{
             right = new ClassRefLiteral(getClassOf(right));
             var leftType = left.inferType();
             if (leftType instanceof ScopedClassIntervalClassDef scopedClassIntervalClassDef) {
-                left = new Unbox(left).transformInner();
+                left = ownerFunction.unbox(left).transformInner();
                 return Pair.of(left, right);
             } else if (left instanceof ClassOf || left instanceof ClassUnder || left instanceof ConstClass) {
                 left = new ClassRefLiteral(getClassOf(left));
@@ -105,7 +106,7 @@ public class Equals extends BiExpression{
 
     @Override
     protected Expression transformUnboxed(Expression left, Expression right) throws CompilationError {
-        return new Equals(left,right,this.type);
+        return new Equals(this.ownerFunction, left,right,this.type);
     }
 
     @Override

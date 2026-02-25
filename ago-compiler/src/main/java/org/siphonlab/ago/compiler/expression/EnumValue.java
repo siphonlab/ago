@@ -19,6 +19,7 @@ import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.Field;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 public class EnumValue extends ExpressionBase{

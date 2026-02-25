@@ -19,6 +19,7 @@ import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import org.siphonlab.ago.compiler.expression.*;
@@ -31,11 +32,12 @@ import java.util.Objects;
 import static org.siphonlab.ago.compiler.PrimitiveClassDef.BOOLEAN;
 import static org.siphonlab.ago.opcode.logic.Or.KIND_OR;
 
-public class OrExpr extends ExpressionBase {
+public class OrExpr extends ExpressionInFunctionBody {
     public Expression left;
     public Expression right;
 
-    public OrExpr(Expression left, Expression right) throws CompilationError {
+    public OrExpr(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
+        super(ownerFunction);
         this.left = left.transform();
         this.right = right.transform();
         this.left.setParent(this);
@@ -49,13 +51,13 @@ public class OrExpr extends ExpressionBase {
         if(leftType.getTypeCode() == TypeCode.BOOLEAN || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
             if(!(rightType.getTypeCode() == TypeCode.BOOLEAN
                     || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN)){
-                return new OrExpr(left, new Cast(right, BOOLEAN, false).transform()).transform();
+                return new OrExpr(ownerFunction, left, ownerFunction.cast(right, BOOLEAN, false).transform()).transform();
             }
         } else if(rightType.getTypeCode() == TypeCode.BOOLEAN
                 || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
-            return new OrExpr(new Cast(left, BOOLEAN, false).transform(), right).transform();
+            return new OrExpr(ownerFunction, ownerFunction.cast(left, BOOLEAN, false).transform(), right).transform();
         }
-        CastStrategy.UnifyTypeResult result = new CastStrategy(this.getSourceLocation(), false).unifyTypes(this.left, this.right);
+        CastStrategy.UnifyTypeResult result = new CastStrategy(ownerFunction, this.getSourceLocation(), false).unifyTypes(this.left, this.right);
         if (result.changed() || result.left() != this.left || result.right() != this.right) {
             this.left = result.left();
             this.right = result.right();
@@ -80,9 +82,9 @@ public class OrExpr extends ExpressionBase {
             if (this.left instanceof LiteralResultExpression lre) {
                 Literal<?> literal = lre.visit(blockCompiler);
                 if (BooleanLiteral.isFalse(literal)) {
-                    Assign.to(localVar, this.right).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
+                    ownerFunction.assign(localVar, this.right).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
                 } else {
-                    Assign.to(localVar, literal).visit(blockCompiler);
+                    ownerFunction.assign(localVar, literal).visit(blockCompiler);
                 }
             } else {
                 this.left.outputToLocalVar(localVar, blockCompiler);

@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.expression.logic;
 
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -51,10 +52,10 @@ public class SelfBitShiftExpr extends SelfOpExpr {
         }
     }
 
-    public SelfBitShiftExpr(Expression site, Expression change, Type type) throws CompilationError {
-        super(site, change);
+    public SelfBitShiftExpr(FunctionDef ownerFunction, Expression site, Expression change, Type type) throws CompilationError {
+        super(ownerFunction, site, change);
         this.site = site.transform().setParent(this);
-        this.change = new Cast(change.setParent(this), site.inferType()).transform();
+        this.change = ownerFunction.cast(change.setParent(this), site.inferType()).transform();
         this.type = type;
     }
 
@@ -75,7 +76,7 @@ public class SelfBitShiftExpr extends SelfOpExpr {
         if(!change.inferType().getTypeCode().isIntFamily()){
             throw new TypeMismatchError("int family value expected", change.getSourceLocation());
         }
-        change = new Cast(change, PrimitiveClassDef.INT).transform();
+        change = ownerFunction.cast(change, PrimitiveClassDef.INT).transform();
         if(change instanceof IntLiteral r){
             if(r.value == 0) return site;
             if(r.value < 0) throw new IllegalExpressionError("illegal bits value", change.getSourceLocation());
@@ -86,11 +87,11 @@ public class SelfBitShiftExpr extends SelfOpExpr {
     Expression expr(Expression left, Expression right) throws CompilationError {
         switch (type){
             case LShift:
-                return new BitShiftExpr(BitShiftExpr.Type.LShift, new Unbox(left).transform(), right);
+                return new BitShiftExpr(ownerFunction, BitShiftExpr.Type.LShift, new Unbox(ownerFunction, left).transform(), right);
             case RShift:
-                return new BitShiftExpr(BitShiftExpr.Type.RShift, new Unbox(left).transform(), right);
+                return new BitShiftExpr(ownerFunction, BitShiftExpr.Type.RShift, new Unbox(ownerFunction, left).transform(), right);
             case URShift:
-                return new BitShiftExpr(BitShiftExpr.Type.URShift, new Unbox(left).transform(), right);
+                return new BitShiftExpr(ownerFunction, BitShiftExpr.Type.URShift, new Unbox(ownerFunction, left).transform(), right);
             default:
                 throw new IllegalStateException("Unexpected value: " + type);
         }

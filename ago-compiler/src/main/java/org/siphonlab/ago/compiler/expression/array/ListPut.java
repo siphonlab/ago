@@ -27,7 +27,7 @@ import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 import java.util.List;
 import java.util.Objects;
 
-public class ListPut extends ExpressionBase {
+public class ListPut extends ExpressionInFunctionBody {
 
     private final Expression list;
     private Expression indexExpr;
@@ -35,7 +35,8 @@ public class ListPut extends ExpressionBase {
     private final FunctionDef accessor;
     private final ClassDef elementType;
 
-    public ListPut(Expression list, Expression indexExpr, Expression value) throws CompilationError {
+    public ListPut(FunctionDef ownerFunction, Expression list, Expression indexExpr, Expression value) throws CompilationError {
+        super(ownerFunction);
         list = list.transform().setParent(this);
         ClassDef listType = list.inferType();
         Root root = listType.getRoot();
@@ -51,13 +52,13 @@ public class ListPut extends ExpressionBase {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.indexExpr = new Cast(indexExpr, PrimitiveClassDef.INT).transform().setParent(this);
-        this.value = new Cast(value, this.elementType).setParent(this).transform();
+        this.indexExpr = ownerFunction.cast(indexExpr, PrimitiveClassDef.INT).transform().setParent(this);
+        this.value = ownerFunction.cast(value, this.elementType).setParent(this).transform();
         return this;
     }
 
-    public ListPut(ListElement listElement, Expression value) throws CompilationError {
-        this(listElement.getList(), listElement.getIndexExpr(), value);
+    public ListPut(FunctionDef ownerFunction, ListElement listElement, Expression value) throws CompilationError {
+        this(ownerFunction, listElement.getList(), listElement.getIndexExpr(), value);
     }
 
     @Override
@@ -94,7 +95,7 @@ public class ListPut extends ExpressionBase {
             var value = this.value.visit(blockCompiler);
             blockCompiler.lockRegister(value);
 
-            var invoke = new Invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(list, accessor), List.of(indexExpr, value), this.getSourceLocation());
+            var invoke = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(list, accessor), List.of(indexExpr, value), this.getSourceLocation());
             invoke.termVisit(blockCompiler);
 
             blockCompiler.releaseRegister(array);

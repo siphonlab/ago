@@ -55,9 +55,9 @@ public class GenericInstantiationPlaceHolder extends ClassDef {
         return (ClassDef) pc;
     }
 
-    public ClassDef resolve(List<Expression> arguments) throws CompilationError {
+    public ClassDef resolve(FunctionDef ownerFunction, List<Expression> arguments) throws CompilationError {
         List<FunctionDef> constructors = templateClass.getConstructors();
-        var resolver = new FunctionInvocationResolver(templateClass.getConstructor(),
+        var resolver = new FunctionInvocationResolver(ownerFunction, templateClass.getConstructor(),
                 constructors.size() == 1 ? null : constructors,
                 arguments, sourceLocation);
         TypeParamsContext paramsContext = templateClass.getTypeParamsContext();

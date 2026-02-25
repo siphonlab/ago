@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
@@ -30,13 +31,13 @@ public class ForStmt extends LoopStmt{
     private final Statement updateStatement;
     private final Statement body;
 
-    public ForStmt(String label, Statement init, Expression condition, Statement updateStatement, Statement body) throws CompilationError {
-        super(label);
+    public ForStmt(FunctionDef ownerFunction, String label, Statement init, Expression condition, Statement updateStatement, Statement body) throws CompilationError {
+        super(ownerFunction, label);
         this.init = (init != null) ? init.setParent(this).transform(): null;
         Expression c ;
         if(condition != null) {
             condition.setParent(this);
-            c = new Cast(condition, PrimitiveClassDef.BOOLEAN).transform();
+            c = ownerFunction.cast(condition, PrimitiveClassDef.BOOLEAN).transform();
         } else {
             c = null;
         }
@@ -65,7 +66,7 @@ public class ForStmt extends LoopStmt{
                 } else if (this.condition instanceof LiteralResultExpression literalResultExpression) {
                     // condition already evaluated, and entranceLabel is no the condition evaluation
                     var tempVar = blockCompiler.acquireTempVar(this.condition).setSourceLocation(this.condition.getSourceLocation());
-                    Assign.to(tempVar, this.condition).visit(blockCompiler);
+                    ownerFunction.assign(tempVar, this.condition).visit(blockCompiler);
                     code.jumpIfNot(tempVar.getVariableSlot(), exitLabel);
                 } else {
                     Var.LocalVar r = (Var.LocalVar) this.condition.visit(blockCompiler);

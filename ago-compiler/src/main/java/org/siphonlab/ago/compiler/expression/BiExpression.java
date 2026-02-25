@@ -18,13 +18,15 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
-public abstract class BiExpression extends ExpressionBase {
+public abstract class BiExpression extends ExpressionInFunctionBody {
     public Expression left;
     public Expression right;
 
-    protected BiExpression(Expression left, Expression right) throws CompilationError {
+    protected BiExpression(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
+        super(ownerFunction);
         this.left = left.transform();
         this.right = right.transform();
         this.left.setParent(this);
@@ -36,7 +38,7 @@ public abstract class BiExpression extends ExpressionBase {
     public Expression transformInner() throws CompilationError {
         if(transformed) return this;
 
-        CastStrategy.UnifyTypeResult unifyTypeResult = new CastStrategy(getSourceLocation(), false).unifyTypes(left, right);
+        CastStrategy.UnifyTypeResult unifyTypeResult = new CastStrategy(ownerFunction, getSourceLocation(), false).unifyTypes(left, right);
         var l = unifyTypeResult.left();
         var r = unifyTypeResult.right();
 
@@ -81,8 +83,8 @@ public abstract class BiExpression extends ExpressionBase {
 //
 //            // unify type
 //            var resultType = t2.getTypeCode().isHigherThan(t1.getTypeCode()) ? unifyPrimitiveType(t1, t2) : unifyPrimitiveType(t2, t1);
-//            if(resultType != t1) l = new Cast(l, resultType);
-//            if(resultType != t2) r = new Cast(r, resultType);
+//            if(resultType != t1) l = ownerFunction.cast(l, resultType);
+//            if(resultType != t2) r = ownerFunction.cast(r, resultType);
 //            this.left = l.transform();
 //            this.right = r.transform();
 //            return processLiterals();

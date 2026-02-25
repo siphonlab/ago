@@ -18,15 +18,17 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
-public class CopyAssign extends ExpressionBase{
+public class CopyAssign extends ExpressionInFunctionBody{
 
     private final Expression assignee;
     private final Expression value;
     private final ClassDef commonType;
 
-    public CopyAssign(Expression assignee, Expression value, ClassDef commonType) throws CompilationError {
+    public CopyAssign(FunctionDef ownerFunction, Expression assignee, Expression value, ClassDef commonType) throws CompilationError {
+        super(ownerFunction);
         this.assignee = assignee.transform();
         this.value = value.transform();
         this.commonType = commonType;
@@ -51,7 +53,7 @@ public class CopyAssign extends ExpressionBase{
             Var.LocalVar v = (Var.LocalVar) value.visit(blockCompiler);
             blockCompiler.getCode().copyAssign(a.getVariableSlot(), v.getVariableSlot(), blockCompiler.getFunctionDef().idOfClass(commonType));
 
-            Assign.to(localVar,a).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+            ownerFunction.assign(localVar,a).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
         } catch (CompilationError e) {
             throw e;
         } finally {

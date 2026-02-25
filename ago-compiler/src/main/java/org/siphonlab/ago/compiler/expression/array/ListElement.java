@@ -21,12 +21,11 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
-import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
 
 import java.util.List;
 import java.util.Objects;
 
-public class ListElement extends ExpressionBase implements Assign.Assignee, CollectionElement {
+public class ListElement extends ExpressionInFunctionBody implements Assign.Assignee, CollectionElement {
 
     private final Expression list;
     private Expression indexExpr;
@@ -36,7 +35,8 @@ public class ListElement extends ExpressionBase implements Assign.Assignee, Coll
     private Var.LocalVar processedList;
     private TermExpression processedIndex;
 
-    public ListElement(Expression list, Expression indexExpr) throws CompilationError {
+    public ListElement(FunctionDef ownerFunction,Expression list, Expression indexExpr) throws CompilationError {
+        super(ownerFunction);
         this.list = list.transform().setParent(this);
         ClassDef listType = list.inferType();
         Root root = listType.getRoot();
@@ -51,7 +51,7 @@ public class ListElement extends ExpressionBase implements Assign.Assignee, Coll
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.indexExpr = new Cast(indexExpr.setParent(this).transform(), PrimitiveClassDef.INT).transform();
+        this.indexExpr = ownerFunction.cast(indexExpr.setParent(this).transform(), PrimitiveClassDef.INT).transform();
         return this;
     }
 
@@ -70,7 +70,7 @@ public class ListElement extends ExpressionBase implements Assign.Assignee, Coll
 
         blockCompiler.enter(this);
 
-        var invoke = new Invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(list, accessor), List.of(indexExpr), this.getSourceLocation());
+        var invoke = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(list, accessor), List.of(indexExpr), this.getSourceLocation());
         invoke.outputToLocalVar(localVar, blockCompiler);
 
         blockCompiler.leave(this);
@@ -112,8 +112,8 @@ public class ListElement extends ExpressionBase implements Assign.Assignee, Coll
     }
 
     @Override
-    public Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value) throws CompilationError {
-        return new ListPut(processedCollection, processedIndex, value);
+    public Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value, FunctionDef ownerFunction) throws CompilationError {
+        return new ListPut(ownerFunction, processedCollection, processedIndex, value);
     }
 
     @Override

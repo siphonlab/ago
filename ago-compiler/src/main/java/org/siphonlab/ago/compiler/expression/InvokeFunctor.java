@@ -18,10 +18,11 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 
-public class InvokeFunctor extends ExpressionBase{
+public class InvokeFunctor extends ExpressionInFunctionBody{
 
     private final Invoke.InvokeMode invokeMode;
 
@@ -72,7 +73,7 @@ public class InvokeFunctor extends ExpressionBase{
             }
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
-                Assign.to(instance, new NullLiteral(functor.inferType())).termVisit(blockCompiler);
+                ownerFunction.assign(instance, new NullLiteral(functor.inferType())).termVisit(blockCompiler);
             }
             blockCompiler.releaseRegister(instance);
             blockCompiler.releaseRegister(localVar);
@@ -103,7 +104,7 @@ public class InvokeFunctor extends ExpressionBase{
 
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
-                Assign.to(instance, new NullLiteral(functor.inferType())).termVisit(blockCompiler);
+                ownerFunction.assign(instance, new NullLiteral(functor.inferType())).termVisit(blockCompiler);
             }
             blockCompiler.releaseRegister(instance);
         } catch(CompilationError e){
@@ -113,7 +114,8 @@ public class InvokeFunctor extends ExpressionBase{
         }
     }
 
-    public InvokeFunctor(Invoke.InvokeMode invokeMode, Expression functor, Expression forkContext){
+    public InvokeFunctor(FunctionDef ownerFunction, Invoke.InvokeMode invokeMode, Expression functor, Expression forkContext){
+        super(ownerFunction);
         this.invokeMode = invokeMode;
         this.functor = functor;
         this.forkContext = forkContext;

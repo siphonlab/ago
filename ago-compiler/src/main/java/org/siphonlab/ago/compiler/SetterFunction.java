@@ -82,13 +82,13 @@ public class SetterFunction extends FunctionDef{
         }
 
         var blockCompiler = new BlockCompiler(this.unit, this, null);
-        Var.Field fld = new Var.Field(new Scope(1, this.getParentClass()), field)
+        Var.Field fld = this.field(new Scope(1, this.getParentClass()), field)
                     .setSourceLocation(this.getParentClass().unit.sourceLocation(field.getDeclaration()));
-        Var.LocalVar value = new Var.LocalVar(this.getParameters().getFirst(), Var.LocalVar.VarMode.Existed);
+        Var.LocalVar value = localVar(this.getParameters().getFirst(), Var.LocalVar.VarMode.Existed);
 
         blockCompiler.compileExpressions(List.of(
-            new ExpressionStmt(Assign.to(fld, value)),
-            new Return()
+            expressionStmt(assign(fld, value)),
+            return_()
         ));
 
         this.nextCompilingStage(CompilingStage.Compiled);

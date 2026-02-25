@@ -18,15 +18,17 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.statement.Statement;
 
-public class WithExpr extends ExpressionBase{
+public class WithExpr extends ExpressionInFunctionBody{
 
     private final CurrWithExpression expression;
     private final Statement statement;
 
-    public WithExpr(CurrWithExpression expression, Statement statement) throws CompilationError {
+    public WithExpr(FunctionDef ownerFunction, CurrWithExpression expression, Statement statement) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform();
         this.statement = statement.transform();
         statement.setParent(this);

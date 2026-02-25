@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 
@@ -23,7 +24,8 @@ public class ContinueStmt extends Statement{
 
     private final String loopLabel;     // the label of loop statement
 
-    public ContinueStmt(String loopLabel){
+    public ContinueStmt(FunctionDef ownerFunction, String loopLabel){
+        super(ownerFunction);
         this.loopLabel = loopLabel;
     }
 

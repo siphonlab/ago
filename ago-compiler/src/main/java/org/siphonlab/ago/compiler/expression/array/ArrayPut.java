@@ -25,14 +25,15 @@ import org.siphonlab.ago.compiler.expression.*;
 
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 
-public class ArrayPut extends ExpressionBase {
+public class ArrayPut extends ExpressionInFunctionBody {
 
     private final Expression array;
     private Expression indexExpr;
     private Expression value;
     private final ClassDef elementType;
 
-    public ArrayPut(Expression array, Expression indexExpr, Expression value) throws CompilationError {
+    public ArrayPut(FunctionDef ownerFunction, Expression array, Expression indexExpr, Expression value) throws CompilationError {
+        super(ownerFunction);
         array = array.transform().setParent(this);
         //if(!(array.inferType() instanceof ArrayClassDef)){
         ClassDef arrayType = array.inferType();
@@ -47,13 +48,13 @@ public class ArrayPut extends ExpressionBase {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.indexExpr = new Cast(indexExpr, PrimitiveClassDef.INT).transform().setParent(this);
-        this.value = new Cast(value, this.elementType).setParent(this).transform();
+        this.indexExpr = ownerFunction.cast(indexExpr, PrimitiveClassDef.INT).transform().setParent(this);
+        this.value = ownerFunction.cast(value, this.elementType).setParent(this).transform();
         return this;
     }
 
-    public ArrayPut(ArrayElement arrayElement, Expression value) throws CompilationError {
-        this(arrayElement.getArray(), arrayElement.getIndexExpr(), value);
+    public ArrayPut(FunctionDef ownerFunction, ArrayElement arrayElement, Expression value) throws CompilationError {
+        this(ownerFunction, arrayElement.getArray(), arrayElement.getIndexExpr(), value);
     }
 
     @Override

@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.Literal;
@@ -29,11 +30,13 @@ public class Return extends Statement {
 
     protected Expression value;
 
-    public Return(Expression value) throws CompilationError {
+    public Return(FunctionDef ownerFunction, Expression value) throws CompilationError {
+        super(ownerFunction);
         this.value = value.transform().setParent(this);
     }
 
-    public Return() throws CompilationError {
+    public Return(FunctionDef ownerFunction) throws CompilationError {
+        super(ownerFunction);
         this.value = new VoidLiteral();
     }
 

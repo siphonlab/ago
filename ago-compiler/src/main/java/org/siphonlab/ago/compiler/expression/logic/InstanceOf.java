@@ -15,23 +15,21 @@
  */
 package org.siphonlab.ago.compiler.expression.logic;
 
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.CodeBuffer;
-import org.siphonlab.ago.compiler.PrimitiveClassDef;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import org.siphonlab.ago.compiler.expression.*;
 
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
 
-public class InstanceOf extends ExpressionBase {
+public class InstanceOf extends ExpressionInFunctionBody {
 
     private final Expression expression;
     private final ClassDef type;
     private final Var.LocalVar receiverVar;
 
-    public InstanceOf(Expression expression, ClassDef right, Var.LocalVar receiverVar) throws CompilationError {
+    public InstanceOf(FunctionDef ownerFunction, Expression expression, ClassDef right, Var.LocalVar receiverVar) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform().setParent(this);
         this.type = right;
         this.receiverVar = receiverVar;
@@ -100,7 +98,7 @@ public class InstanceOf extends ExpressionBase {
                     10	jump_f_vc	3,40
                  */
                 code.jumpIfNot(localVar.getVariableSlot(), exitLabel);
-                Assign.to(receiverVar, expressionResult).termVisit(blockCompiler);
+                ownerFunction.assign(receiverVar, expressionResult).termVisit(blockCompiler);
                 exitLabel.here();
             }
         } catch (CompilationError e) {

@@ -19,6 +19,7 @@ package org.siphonlab.ago.compiler.expression;
 import org.apache.commons.lang3.ObjectUtils;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -55,14 +56,14 @@ public class Compare extends BiExpression{
     }
 
 
-    public Compare(Expression left, Expression right, Compare.Type type) throws CompilationError {
-        super(left, right);
+    public Compare(FunctionDef ownerFunction, Expression left, Expression right, Compare.Type type) throws CompilationError {
+        super(ownerFunction, left, right);
         this.type = type;
     }
 
     @Override
     protected Expression transformUnboxed(Expression left, Expression right) throws CompilationError {
-        return new Compare(left, right, this.type).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
+        return new Compare(ownerFunction, left, right, this.type).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
     }
 
     @Override

@@ -19,6 +19,7 @@ import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
@@ -32,11 +33,12 @@ import java.util.Objects;
 import static org.siphonlab.ago.compiler.PrimitiveClassDef.BOOLEAN;
 import static org.siphonlab.ago.opcode.logic.And.KIND_AND;
 
-public class AndExpr extends ExpressionBase {
+public class AndExpr extends ExpressionInFunctionBody {
     public Expression left;
     public Expression right;
 
-    public AndExpr(Expression left, Expression right) throws CompilationError {
+    public AndExpr(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
+        super(ownerFunction);
         this.left = left.transform();
         this.right = right.transform();
         this.left.setParent(this);
@@ -50,14 +52,14 @@ public class AndExpr extends ExpressionBase {
         if(leftType.getTypeCode() == TypeCode.BOOLEAN || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
             if(!(rightType.getTypeCode() == TypeCode.BOOLEAN
                     || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN)){
-                return new AndExpr(left, new Cast(right, BOOLEAN, false).transform()).transform();
+                return new AndExpr(ownerFunction, left, ownerFunction.cast(right, BOOLEAN, false).transform()).transform();
             }
         } else if(rightType.getTypeCode() == TypeCode.BOOLEAN
                 || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
-            return new AndExpr(new Cast(left, BOOLEAN, false).transform(), right).transform();
+            return new AndExpr(ownerFunction, ownerFunction.cast(left, BOOLEAN, false).transform(), right).transform();
         }
 
-        CastStrategy.UnifyTypeResult result = new CastStrategy(this.getSourceLocation(), false).unifyTypes(this.left, this.right);
+        CastStrategy.UnifyTypeResult result = new CastStrategy(ownerFunction, this.getSourceLocation(), false).unifyTypes(this.left, this.right);
         if(result.changed() || result.left() != this.left || result.right() != this.right){
             this.left = result.left();
             this.right = result.right();
@@ -85,9 +87,9 @@ public class AndExpr extends ExpressionBase {
             if (this.left instanceof LiteralResultExpression lre) {
                 Literal<?> literal = lre.visit(blockCompiler);
                 if (BooleanLiteral.isTrue(literal)) {
-                    Assign.to(localVar, this.right).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
+                    ownerFunction.assign(localVar, this.right).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
                 } else {
-                    Assign.to(localVar, literal).visit(blockCompiler);
+                    ownerFunction.assign(localVar, literal).visit(blockCompiler);
                 }
             } else {
                 this.left.outputToLocalVar(localVar, blockCompiler);

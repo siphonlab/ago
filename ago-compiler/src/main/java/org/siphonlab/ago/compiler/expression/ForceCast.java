@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
@@ -25,7 +26,7 @@ import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
 import static org.siphonlab.ago.TypeCode.BOOLEAN;
 
 // the result of Cast.transform, and
-class ForceCast extends ExpressionBase{
+class ForceCast extends ExpressionInFunctionBody{
 
     enum CastMode{
         PrimitiveCast,   // assume the expression is primitive
@@ -39,7 +40,8 @@ class ForceCast extends ExpressionBase{
     private final ClassDef toType;
     private final CastMode castMode;
 
-    public ForceCast(Expression expression, ClassDef toType, CastMode castMode) throws CompilationError {
+    public ForceCast(FunctionDef ownerFunction, Expression expression, ClassDef toType, CastMode castMode) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform();
         this.setSourceLocation(expression.getSourceLocation());
         this.toType = toType;
@@ -81,14 +83,14 @@ class ForceCast extends ExpressionBase{
         switch (this.castMode){
             case PrimitiveCast:
                 assert localVar.inferType().getTypeCode() == literal.getTypeCode();
-                Assign.to(localVar, literal).termVisit(blockCompiler);
+                ownerFunction.assign(localVar, literal).termVisit(blockCompiler);
                 break;
             case CastToBoolean:
-                Assign.to(localVar, new BooleanLiteral(BooleanLiteral.isTrue(literal)).setSourceLocation(expression.getSourceLocation()).transform()).termVisit(blockCompiler);
+                ownerFunction.assign(localVar, new BooleanLiteral(BooleanLiteral.isTrue(literal)).setSourceLocation(expression.getSourceLocation()).transform()).termVisit(blockCompiler);
                 break;
             case CastToAny:
                 var tempVar = blockCompiler.acquireTempVar(this);
-                Assign.to(tempVar,literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                ownerFunction.assign(tempVar,literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                 blockCompiler.getCode().cast_to_any(tempVar.getVariableSlot(), literal.getTypeCode(),-1, localVar.getVariableSlot(),
                         toType.getTypeCode(), toType.isPrimitiveFamily() ? -1 : blockCompiler.getFunctionDef().idOfClass(toType));
                 break;
@@ -134,7 +136,7 @@ class ForceCast extends ExpressionBase{
 
             if (expression instanceof LiteralResultExpression literalResultExpression) {
                 var literal = literalResultExpression.visit(blockCompiler);
-                return new CastStrategy(this.getSourceLocation(), false).castTo(literal,toType).visit(blockCompiler);
+                return new CastStrategy(ownerFunction, this.getSourceLocation(), false).castTo(literal,toType).visit(blockCompiler);
             }
             if (castMode == CastMode.WearClassMask) {
                 return expression.visit(blockCompiler);

@@ -19,15 +19,17 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.AgoClass;
+import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.expression.Literal;
+import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.expression.logic.Not;
 import org.siphonlab.ago.compiler.generic.GenericTypeCode;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
-import org.siphonlab.ago.compiler.statement.Label;
+import org.siphonlab.ago.compiler.statement.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -570,4 +572,65 @@ public class FunctionDef extends ClassDef {
     public List<SourceMapEntry> getSourceMap() {
         return sourceMap;
     }
+
+    public BlockStmt blockStmt(List<Statement> statements){
+        return new BlockStmt(this, statements);
+    }
+
+    public Return return_(Expression value) throws CompilationError {
+        return new Return(this, value);
+    }
+
+    public Return return_() throws CompilationError {
+        return new Return(this);
+    }
+
+    public ExpressionStmt expressionStmt(Expression expression) throws CompilationError {
+        return new ExpressionStmt(this, expression);
+    }
+
+    public Cast cast(Expression expression, ClassDef toType, boolean forceCast) throws CompilationError {
+        return new Cast(this, expression, toType, forceCast);
+    }
+
+    public Cast cast(Expression expression, ClassDef toType) throws CompilationError {
+        return new Cast(this, expression, toType);
+    }
+
+    public Unbox unbox(Expression expression){
+        return new Unbox(this, expression);
+    }
+
+    public Concat concat(Expression left, Expression right) throws CompilationError {
+        return new Concat(this, left, right);
+    }
+
+    public Not not(Expression value) throws CompilationError {
+        return new Not(this, value);
+    }
+
+    public Invoke invoke(Invoke.InvokeMode invokeMode, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
+        return new Invoke(this, invokeMode, maybeFunction, arguments, sourceLocation);
+    }
+
+    public Box box(Expression expression, ClassDef expectedType, Box.BoxMode boxMode) throws CompilationError {
+        return new Box(this, expression, expectedType, boxMode);
+    }
+
+    public Expression assign(Assign.Assignee assignee, Expression value) throws CompilationError {
+        return Assign.to(this, assignee, value);
+    }
+
+    public ClassUnder classUnder(Expression scopeExpr, ClassDef subclass) throws CompilationError {
+        return ClassUnder.create(this, scopeExpr, subclass);
+    }
+
+    public Var.LocalVar localVar(Variable variable, Var.LocalVar.VarMode varMode){
+        return new Var.LocalVar(this, variable, varMode);
+    }
+
+    public Var.Field field(Expression instance, Variable variable) throws CompilationError {
+        return new Var.Field(this, instance, variable);
+    }
+
 }

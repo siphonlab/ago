@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.CurrWithExpression;
 
@@ -26,7 +27,8 @@ public class WithStmt extends Statement{
     private final CurrWithExpression expression;
     private final Statement statement;
 
-    public WithStmt(CurrWithExpression expression, Statement statement) throws CompilationError {
+    public WithStmt(FunctionDef ownerFunction, CurrWithExpression expression, Statement statement) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform();
         this.statement = statement.transform();
     }

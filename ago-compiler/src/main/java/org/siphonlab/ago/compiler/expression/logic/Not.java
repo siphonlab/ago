@@ -15,10 +15,7 @@
  */
 package org.siphonlab.ago.compiler.expression.logic;
 
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.CodeBuffer;
-import org.siphonlab.ago.compiler.PrimitiveClassDef;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import org.siphonlab.ago.compiler.expression.*;
@@ -29,8 +26,8 @@ import java.util.Objects;
 
 public class Not extends UnaryExpression {
 
-    public Not(Expression value) throws CompilationError {
-        super(value);
+    public Not(FunctionDef ownerFunction, Expression value) throws CompilationError {
+        super(ownerFunction, value);
     }
 
     public Expression getValue(){
@@ -39,12 +36,12 @@ public class Not extends UnaryExpression {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        var v = new Cast(this.value, PrimitiveClassDef.BOOLEAN).transform();
+        var v = ownerFunction.cast(this.value, PrimitiveClassDef.BOOLEAN).transform();
         if(v instanceof Literal<?> literal){
             return new BooleanLiteral(!BooleanLiteral.isTrue(literal)).setParent(this.getParent()).setSourceLocation(this.getSourceLocation());
         }
         if(v != this.value) {
-            return new Not(v).setParent(this.getParent()).setSourceLocation(this.sourceLocation);
+            return new Not(ownerFunction, v).setParent(this.getParent()).setSourceLocation(this.sourceLocation);
         }
         return this;
     }
@@ -60,7 +57,7 @@ public class Not extends UnaryExpression {
             blockCompiler.enter(this);
 
             CodeBuffer code = blockCompiler.getCode();
-            var v = new Cast(this.value, PrimitiveClassDef.BOOLEAN).transform().visit(blockCompiler);
+            var v = ownerFunction.cast(this.value, PrimitiveClassDef.BOOLEAN).transform().visit(blockCompiler);
             if (v instanceof Literal<?> literal) {
                 code.assignLiteral(localVar.getVariableSlot(), BooleanLiteral.isFalse(literal) ? new BooleanLiteral(true) : new BooleanLiteral(false));
             } else {

@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-public class Creator extends ExpressionBase{
+public class Creator extends ExpressionInFunctionBody{
 
     private final Expression typeExpr;
     protected final List<Expression> arguments;
@@ -42,10 +42,11 @@ public class Creator extends ExpressionBase{
     private boolean invokeConstructor = true;
     private final String constructorName;
 
-    public Creator(Expression typeExpr, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
-        this(typeExpr, arguments, sourceLocation, null);
+    public Creator(FunctionDef ownerFunction, Expression typeExpr, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
+        this(ownerFunction,typeExpr, arguments, sourceLocation, null);
     }
-    public Creator(Expression typeExpr, List<Expression> arguments, SourceLocation sourceLocation, String constructorName) throws CompilationError {
+    public Creator(FunctionDef ownerFunction, Expression typeExpr, List<Expression> arguments, SourceLocation sourceLocation, String constructorName) throws CompilationError {
+        super(ownerFunction);
         this.sourceLocation = sourceLocation;
         List<Expression> transformedArguments = new ArrayList<>(arguments.size());
         for (Expression argument : arguments) {
@@ -63,7 +64,7 @@ public class Creator extends ExpressionBase{
                 throw new TypeMismatchError("object type expected", sourceLocation);
             }
             MetaClassDef metaClassDef = ScopedClassIntervalClassDef.getMetaOfLBoundClass(scopedClassIntervalClassDef);
-            this.typeExpr = new ClassOf.ClassOfScopedClassInterval(typeExpr, metaClassDef).setParent(this);
+            this.typeExpr = new ClassOf.ClassOfScopedClassInterval(ownerFunction, typeExpr, metaClassDef).setParent(this);
             classDef = lBoundClass;
             scope = null;
         } else {
@@ -74,7 +75,7 @@ public class Creator extends ExpressionBase{
         }
 
         if(classDef instanceof GenericInstantiationPlaceHolder genericInstantiationPlaceHolder){
-            this.classDef = genericInstantiationPlaceHolder.resolve(this.arguments);
+            this.classDef = genericInstantiationPlaceHolder.resolve(ownerFunction, this.arguments);
         } else {
             this.classDef = classDef;
         }
@@ -87,7 +88,7 @@ public class Creator extends ExpressionBase{
     protected Expression transformInner() throws CompilationError {
         if(this.classDef instanceof FunctionDef functionDef){
             if(this.typeExpr instanceof MaybeFunction maybeFunction){
-                return new FunctionCreator(maybeFunction,this.arguments,this.getSourceLocation()).transform();
+                return new FunctionCreator(ownerFunction, maybeFunction,this.arguments,this.getSourceLocation()).transform();
             } else {
                 throw new TypeMismatchError("illegal function instance creator",this.getSourceLocation());
             }
@@ -197,13 +198,13 @@ public class Creator extends ExpressionBase{
     }
 
     protected Expression makeConstructorInvocation(Var.LocalVar localVar, ConstructorDef constructor) throws CompilationError {
-        var c = ClassUnder.create(localVar, constructor);
+        var c = ClassUnder.create(ownerFunction, localVar, constructor);
         if(this.constructorName == null) {
             c.setCandidates(this.classDef.getConstructors());
         } else {
             c.setCandidates(Collections.singleton(constructor));
         }
-        var constructorInvocation = new Invoke(Invoke.InvokeMode.Invoke, c, this.arguments, this.sourceLocation).setSourceLocation(this.getSourceLocation()).transform();
+        var constructorInvocation = ownerFunction.invoke(Invoke.InvokeMode.Invoke, c, this.arguments, this.sourceLocation).setSourceLocation(this.getSourceLocation()).transform();
         return constructorInvocation;
     }
 

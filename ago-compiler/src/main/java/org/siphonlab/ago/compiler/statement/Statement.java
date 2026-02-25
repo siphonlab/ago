@@ -18,13 +18,15 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.expression.Expression;
-import org.siphonlab.ago.compiler.expression.ExpressionBase;
-import org.siphonlab.ago.compiler.expression.TermExpression;
-import org.siphonlab.ago.compiler.expression.Var;
+import org.siphonlab.ago.compiler.expression.*;
 
-public abstract class Statement extends ExpressionBase {
+public abstract class Statement extends ExpressionInFunctionBody {
+
+    public Statement(FunctionDef ownerFunction) {
+        super(ownerFunction);
+    }
 
     @Override
     public ClassDef inferType() throws CompilationError {

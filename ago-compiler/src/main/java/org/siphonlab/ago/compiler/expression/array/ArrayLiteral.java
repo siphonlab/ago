@@ -21,6 +21,7 @@ import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
 
 import org.apache.commons.collections4.ListUtils;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
@@ -29,16 +30,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class ArrayLiteral extends ExpressionBase {
+public class ArrayLiteral extends ExpressionInFunctionBody {
 
     private final List<Expression> elements;
     private final ArrayClassDef arrayType;
 
-    public ArrayLiteral(ArrayClassDef arrayType, List<Expression> elements) throws CompilationError {
+    public ArrayLiteral(FunctionDef ownerFunction, ArrayClassDef arrayType, List<Expression> elements) throws CompilationError {
+        super(ownerFunction);
         this.arrayType = arrayType;
         List<Expression> els = new ArrayList<>();
         for (Expression element : elements) {
-            els.add(new Cast(element.setParent(this).transform(), arrayType.getElementType()).transform());
+            els.add(ownerFunction.cast(element.setParent(this).transform(), arrayType.getElementType()).transform());
         }
         this.elements = els;
     }
@@ -52,7 +54,7 @@ public class ArrayLiteral extends ExpressionBase {
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         int size = elements.size();
 
-        new ArrayCreate(arrayType,  new IntLiteral(size)).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
+        new ArrayCreate(ownerFunction, arrayType,  new IntLiteral(size)).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
 
         if(elements.isEmpty()) return;
 
@@ -67,7 +69,7 @@ public class ArrayLiteral extends ExpressionBase {
                 blockCompiler.lockRegister(localVar);
                 for (int i = 0; i < size; i++) {
                     Expression element = elements.get(i);
-                    new ArrayPut(localVar, new IntLiteral(i), element).setSourceLocation(element.getSourceLocation()).visit(blockCompiler);
+                    new ArrayPut(ownerFunction, localVar, new IntLiteral(i), element).setSourceLocation(element.getSourceLocation()).visit(blockCompiler);
                 }
                 blockCompiler.releaseRegister(localVar);
             }

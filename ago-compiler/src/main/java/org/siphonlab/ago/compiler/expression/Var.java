@@ -22,24 +22,25 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import java.util.Objects;
 
-public abstract class Var extends ExpressionBase implements Assign.Assignee {
+public abstract class Var extends ExpressionInFunctionBody implements Assign.Assignee {
 
     public final Variable variable;
 
-    protected Var(Variable variable) {
+    protected Var(FunctionDef ownerFunction, Variable variable) {
+        super(ownerFunction);
         assert variable != null;
         this.variable = variable;
     }
 
-    public static Var of(Expression scopeExpr, Variable variable) throws CompilationError {
+    public static Var of(FunctionDef ownerFunction, Expression scopeExpr, Variable variable) throws CompilationError {
         scopeExpr = scopeExpr.transform();
         if(scopeExpr instanceof Scope scope && scope.getDepth() == 0){
-            return new Var.LocalVar(variable, LocalVar.VarMode.Existed);
+            return new Var.LocalVar(ownerFunction, variable, LocalVar.VarMode.Existed);
         }
         if(scopeExpr instanceof LocalVar localVar){
-            return new Field(localVar, variable);
+            return new Field(ownerFunction, localVar, variable);
         } else {
-            return new Field(scopeExpr, variable);
+            return new Field(ownerFunction, scopeExpr, variable);
         }
     }
 
@@ -72,8 +73,8 @@ public abstract class Var extends ExpressionBase implements Assign.Assignee {
 
         public final VarMode varMode;
 
-        public LocalVar(Variable variable, VarMode varMode) {
-            super(variable);
+        public LocalVar(FunctionDef ownerFunction, Variable variable, VarMode varMode) {
+            super(ownerFunction, variable);
             this.varMode = varMode;
         }
 
@@ -126,8 +127,8 @@ public abstract class Var extends ExpressionBase implements Assign.Assignee {
 
         private boolean outputted = false;
 
-        public ReusingLocalVar(Variable variable, VarMode varMode) {
-            super(variable, varMode);
+        public ReusingLocalVar(FunctionDef ownerFunction,Variable variable, VarMode varMode) {
+            super(ownerFunction, variable, varMode);
         }
 
         public boolean isOutputted() {
@@ -148,16 +149,16 @@ public abstract class Var extends ExpressionBase implements Assign.Assignee {
 
         boolean simplified = false;
 
-        protected Field(LocalVar instance, Variable variable) {
-            super(variable);
+        protected Field(FunctionDef ownerFunction, LocalVar instance, Variable variable) {
+            super(ownerFunction, variable);
             assert instance != null;
             assert variable != null;
             this.instance = instance;
             this.baseVar = instance;
         }
 
-        public Field(Expression instance, Variable variable) throws CompilationError {
-            super(variable);
+        public Field(FunctionDef ownerFunction, Expression instance, Variable variable) throws CompilationError {
+            super(ownerFunction, variable);
             this.instance = instance.transform();
         }
 
@@ -168,10 +169,10 @@ public abstract class Var extends ExpressionBase implements Assign.Assignee {
 //                throw new CompilationError("cannot access field of trait outside of trait or its permit class", this.getSourceLocation());
 //            }
             if(this.instance instanceof Scope scope && scope.getDepth() == 0){      // LocalVar
-                return new LocalVar(variable, LocalVar.VarMode.Existed);
+                return new LocalVar(ownerFunction, variable, LocalVar.VarMode.Existed);
             } else {
                 if (!(this.instance instanceof LocalVarResultExpression)) {
-                    this.instance = new PipeToTempVar(instance);
+                    this.instance = new PipeToTempVar(ownerFunction, instance);
                 }
             }
             return this;

@@ -19,6 +19,7 @@ import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
@@ -33,7 +34,7 @@ import static org.siphonlab.ago.opcode.arithmetic.Div.KIND_DIV;
 import static org.siphonlab.ago.opcode.arithmetic.Mod.KIND_MOD;
 import static org.siphonlab.ago.opcode.arithmetic.Subtract.KIND_SUBTRACT;
 
-public class SelfArithmetic extends ExpressionBase {
+public class SelfArithmetic extends ExpressionInFunctionBody {
 
     private final Expression site;
     private Expression change;
@@ -57,9 +58,10 @@ public class SelfArithmetic extends ExpressionBase {
         }
     }
 
-    public SelfArithmetic(Expression site, Expression change, Type type) throws CompilationError {
+    public SelfArithmetic(FunctionDef ownerFunction, Expression site, Expression change, Type type) throws CompilationError {
+        super(ownerFunction);
         this.site = site.transform().setParent(this);
-        this.change = new Cast(change.setParent(this), site.inferType()).transform();
+        this.change = ownerFunction.cast(change.setParent(this), site.inferType()).transform();
         this.type = type;
     }
 
@@ -75,7 +77,7 @@ public class SelfArithmetic extends ExpressionBase {
         }
         ClassDef type = this.change.inferType();
         if(type.getTypeCode() == TypeCode.OBJECT && type.isPrimitiveOrBoxed()){
-            return new SelfArithmetic(this.site, new Unbox(this.change), this.type).setSourceLocation(this.getSourceLocation()).transform();
+            return new SelfArithmetic(ownerFunction, this.site, ownerFunction.unbox(this.change), this.type).setSourceLocation(this.getSourceLocation()).transform();
         }
         if(!type.getTypeCode().isNumber()){
             throw new TypeMismatchError("number required", this.change.getSourceLocation());
@@ -95,36 +97,36 @@ public class SelfArithmetic extends ExpressionBase {
                     case Inc:
                         incField(blockCompiler, field, change);
                         if (localVar != null)
-                            Assign.to(localVar, field).termVisit(blockCompiler);
+                            ownerFunction.assign(localVar, field).termVisit(blockCompiler);
                         break;
                     case Dec:
-                        incField(blockCompiler, field, new Neg(change));
+                        incField(blockCompiler, field, new Neg(ownerFunction, change));
                         if (localVar != null)
-                            Assign.to(localVar, field).termVisit(blockCompiler);
+                            ownerFunction.assign(localVar, field).termVisit(blockCompiler);
                         break;
                     case SelfMulti:
                     case SelfDiv:
                     case SelfMod:
                         var temp = localVar != null ? localVar : blockCompiler.acquireTempVar(this);
-                        new ArithmeticExpr(ArithmeticExpr.Type.of(this.type.op), field, change).setSourceLocation(this.sourceLocation).outputToLocalVar(temp, blockCompiler);
-                        Assign.to(field, temp).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                        new ArithmeticExpr(ownerFunction, ArithmeticExpr.Type.of(this.type.op), field, change).setSourceLocation(this.sourceLocation).outputToLocalVar(temp, blockCompiler);
+                        ownerFunction.assign(field, temp).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                         break;
                     case IncPost:
                         if (localVar != null)
-                            Assign.to(localVar, field).termVisit(blockCompiler);
+                            ownerFunction.assign(localVar, field).termVisit(blockCompiler);
                         incField(blockCompiler, field, this.change);
                         break;
                     case DecPost:
                         if (localVar != null)
-                            Assign.to(localVar, field).termVisit(blockCompiler);
-                        incField(blockCompiler, field, new Neg(this.change));
+                            ownerFunction.assign(localVar, field).termVisit(blockCompiler);
+                        incField(blockCompiler, field, new Neg(ownerFunction, this.change));
                         break;
                     default:
                         throw new IllegalStateException("Unexpected value: " + this.type);
                 }
                 blockCompiler.releaseRegister(field.getBaseVar());
             } else if (site instanceof Var.LocalVar var) {
-                ArithmeticExpr expr = new ArithmeticExpr(ArithmeticExpr.Type.of(this.type.op), var, change).setSourceLocation(this.sourceLocation);
+                ArithmeticExpr expr = new ArithmeticExpr(ownerFunction, ArithmeticExpr.Type.of(this.type.op), var, change).setSourceLocation(this.sourceLocation);
                 switch (this.type) {
                     case Inc:
                     case Dec:
@@ -133,13 +135,13 @@ public class SelfArithmetic extends ExpressionBase {
                     case SelfMod:
                         expr.outputToLocalVar(var, blockCompiler);
                         if (localVar != null && localVar != var) {
-                            Assign.to(localVar, var).termVisit(blockCompiler);
+                            ownerFunction.assign(localVar, var).termVisit(blockCompiler);
                         }
                         break;
                     case DecPost:
                     case IncPost:
                         if (localVar != null && localVar != var)
-                            Assign.to(localVar, var).termVisit(blockCompiler);
+                            ownerFunction.assign(localVar, var).termVisit(blockCompiler);
                         expr.outputToLocalVar(var, blockCompiler);
                         break;
                 }
@@ -159,10 +161,10 @@ public class SelfArithmetic extends ExpressionBase {
                         index = collectionElement.getProcessedIndex();
                         blockCompiler.lockRegister(index);
 
-                        expr = new ArithmeticExpr(ArithmeticExpr.Type.of(this.type.op), old, change).setSourceLocation(this.sourceLocation);
-                        var v = collectionElement.toPutElement(arr, index, expr).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
+                        expr = new ArithmeticExpr(ownerFunction, ArithmeticExpr.Type.of(this.type.op), old, change).setSourceLocation(this.sourceLocation);
+                        var v = collectionElement.toPutElement(arr, index, expr, ownerFunction).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
                         if (localVar != null) {
-                            Assign.to(localVar, v).termVisit(blockCompiler);
+                            ownerFunction.assign(localVar, v).termVisit(blockCompiler);
                         }
                         break;
                     case IncPost:
@@ -175,8 +177,8 @@ public class SelfArithmetic extends ExpressionBase {
                         index = collectionElement.getProcessedIndex();
                         blockCompiler.lockRegister(index);
 
-                        expr = new ArithmeticExpr(ArithmeticExpr.Type.of(this.type.op), temp, change).setSourceLocation(this.sourceLocation);
-                        collectionElement.toPutElement(arr, index, expr).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                        expr = new ArithmeticExpr(ownerFunction, ArithmeticExpr.Type.of(this.type.op), temp, change).setSourceLocation(this.sourceLocation);
+                        collectionElement.toPutElement(arr, index, expr, ownerFunction).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                         break;
                 }
 
@@ -195,18 +197,18 @@ public class SelfArithmetic extends ExpressionBase {
                     case SelfMod:
                         var got = attribute.visit(blockCompiler);
                         blockCompiler.lockRegister(attribute.getProcessedScope());
-                        r = new ArithmeticExpr(ArithmeticExpr.Type.of(this.type.op), got, change).setSourceLocation(this.sourceLocation).visit(blockCompiler);
-                        attribute.setValue(r).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
+                        r = new ArithmeticExpr(ownerFunction, ArithmeticExpr.Type.of(this.type.op), got, change).setSourceLocation(this.sourceLocation).visit(blockCompiler);
+                        attribute.setValue(ownerFunction, r).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
                         blockCompiler.releaseRegister(attribute.getProcessedScope());
                         if (localVar != null)
-                            Assign.to(localVar, r).termVisit(blockCompiler);
+                            ownerFunction.assign(localVar, r).termVisit(blockCompiler);
                         break;
                     case IncPost:
                     case DecPost:
                         Var.LocalVar temp = localVar != null ? localVar : blockCompiler.acquireTempVar(attribute);
                         attribute.outputToLocalVar(temp, blockCompiler);
-                        r = new ArithmeticExpr(ArithmeticExpr.Type.of(this.type.op), localVar, change).setSourceLocation(this.sourceLocation).visit(blockCompiler);
-                        attribute.setValue(r).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                        r = new ArithmeticExpr(ownerFunction, ArithmeticExpr.Type.of(this.type.op), localVar, change).setSourceLocation(this.sourceLocation).visit(blockCompiler);
+                        attribute.setValue(ownerFunction, r).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                         blockCompiler.releaseRegister(attribute.getProcessedScope());
                         break;
                 }

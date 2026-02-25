@@ -16,10 +16,15 @@
 package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 // pause, directly exit current callframe, in some engine it will set frame running state to SUSPEND
 public class AwaitStmt extends Statement{
+
+    public AwaitStmt(FunctionDef ownerFunction) {
+        super(ownerFunction);
+    }
 
     @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {

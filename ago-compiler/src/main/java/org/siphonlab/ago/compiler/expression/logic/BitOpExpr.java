@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.expression.logic;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 
@@ -61,14 +62,14 @@ public class BitOpExpr extends BiExpression {
         }
     }
 
-    public BitOpExpr(Type type, Expression left, Expression right) throws CompilationError {
-        super(left, right);
+    public BitOpExpr(FunctionDef ownerFunction, Type type, Expression left, Expression right) throws CompilationError {
+        super(ownerFunction, left, right);
         this.type = type;
     }
 
     @Override
     public Expression transformInner() throws CompilationError {
-        CastStrategy.UnifyTypeResult result = new CastStrategy(this.getSourceLocation(), false).unifyTypes(this.left, this.right);
+        CastStrategy.UnifyTypeResult result = new CastStrategy(ownerFunction, this.getSourceLocation(), false).unifyTypes(this.left, this.right);
         if (result.changed() || result.left() != this.left || result.right() != this.right) {
             this.left = result.left();
             this.right = result.right();
@@ -78,15 +79,15 @@ public class BitOpExpr extends BiExpression {
             throw new TypeMismatchError("int family expression expected",this.getSourceLocation());
         }
         if(type.getTypeCode().isObject()){
-            this.left = new Unbox(this.left).transform();
-            this.right = new Unbox(this.left).transform();
+            this.left = ownerFunction.unbox(this.left).transform();
+            this.right = ownerFunction.unbox(this.left).transform();
         }
         return processLiterals();
     }
 
     @Override
     protected Expression transformUnboxed(Expression left, Expression right) throws CompilationError {
-        return new BitOpExpr(this.type, left, right).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
+        return new BitOpExpr(ownerFunction, this.type, left, right).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
     }
 
     @Override

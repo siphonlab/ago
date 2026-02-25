@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import org.siphonlab.ago.compiler.expression.*;
@@ -28,8 +29,8 @@ public class DoWhileStmt extends LoopStmt {
     private Expression condition;
     private final Statement body;
 
-    public DoWhileStmt(String label, Expression condition, Statement body) throws CompilationError {
-        super(label);
+    public DoWhileStmt(FunctionDef ownerFunction, String label, Expression condition, Statement body) throws CompilationError {
+        super(ownerFunction, label);
         this.condition = condition.setParent(this).transform();
         this.body = body.setParent(this).transform();
     }
@@ -63,7 +64,7 @@ public class DoWhileStmt extends LoopStmt {
             this.body.termVisit(blockCompiler);
             if (condition instanceof LiteralResultExpression literalResultExpression) {
                 var tempVar = blockCompiler.acquireTempVar(literalResultExpression);
-                Assign.to(tempVar, condition).setSourceLocation(condition.getSourceLocation()).visit(blockCompiler);
+                ownerFunction.assign(tempVar, condition).setSourceLocation(condition.getSourceLocation()).visit(blockCompiler);
                 code.jumpIf(tempVar.getVariableSlot(), bodyBegin);
             } else {
                 Var.LocalVar r = (Var.LocalVar) condition.visit(blockCompiler);

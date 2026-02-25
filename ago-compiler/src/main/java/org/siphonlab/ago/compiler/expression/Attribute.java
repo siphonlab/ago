@@ -25,16 +25,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Objects;
 
-public class Attribute extends ExpressionBase implements Assign.Assignee{
+public class Attribute extends ExpressionInFunctionBody implements Assign.Assignee{
 
-    private final Expression scope;
+    private final ExpressionBase scope;
     private final FunctionDef getter;
     private final FunctionDef setter;
 
     private Var.LocalVar processedScope;
 
-    public Attribute(Expression scope, FunctionDef getter, FunctionDef setter) throws CompilationError {
-        this.scope = scope.setParent(this).transform();
+    public Attribute(FunctionDef ownerFunction, ExpressionBase scope, FunctionDef getter, FunctionDef setter) throws CompilationError {
+        super(ownerFunction);
+        this.scope = (ExpressionBase) scope.setParent(this).transform();
         this.getter = getter;
         this.setter = setter;
     }
@@ -53,7 +54,7 @@ public class Attribute extends ExpressionBase implements Assign.Assignee{
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         if(this.processedScope == null) this.processedScope = (Var.LocalVar) this.scope.visit(blockCompiler);
         blockCompiler.lockRegister(this.processedScope);
-        new Invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(this.processedScope, getter), new ArrayList<>(), this.sourceLocation).outputToLocalVar(localVar, blockCompiler);
+        ownerFunction.invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(ownerFunction, this.processedScope, getter), new ArrayList<>(), this.sourceLocation).outputToLocalVar(localVar, blockCompiler);
         blockCompiler.releaseRegister(this.processedScope);
     }
 
@@ -67,11 +68,12 @@ public class Attribute extends ExpressionBase implements Assign.Assignee{
         return processedScope;
     }
 
-    public static class Setter extends ExpressionBase{
+    public static class Setter extends ExpressionInFunctionBody{
         private final Attribute attribute;
         private final Expression value;
 
-        public Setter(Attribute attribute, Expression value) {
+        public Setter(FunctionDef ownerFunction, Attribute attribute, Expression value) {
+            super(ownerFunction);
             this.attribute = attribute;
             this.value = value;
             this.attribute.setParent(this);
@@ -96,7 +98,9 @@ public class Attribute extends ExpressionBase implements Assign.Assignee{
                 if (attribute.processedScope == null)
                     attribute.processedScope = (Var.LocalVar) attribute.scope.visit(blockCompiler);
                 blockCompiler.lockRegister(attribute.processedScope);
-                var r = new Invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(attribute.scope, attribute.setter), Collections.singletonList(new Cast(value, attribute.inferType()).setSourceLocation(value.getSourceLocation()).transform()), this.sourceLocation).visit(blockCompiler);
+                var r = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(ownerFunction, attribute.scope, attribute.setter),
+                            Collections.singletonList(ownerFunction.cast(value, attribute.inferType()).setSourceLocation(value.getSourceLocation()).transform()),
+                            this.sourceLocation).visit(blockCompiler);
                 blockCompiler.releaseRegister(attribute.processedScope);
                 return r;
             } catch (CompilationError e) {
@@ -131,8 +135,8 @@ public class Attribute extends ExpressionBase implements Assign.Assignee{
 
     }
 
-    public Setter setValue(Expression value) {
-        return new Setter(this, value);
+    public Setter setValue(FunctionDef ownerFunction, Expression value) {
+        return new Setter(ownerFunction, this, value);
     }
 
     @Override

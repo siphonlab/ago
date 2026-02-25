@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.statement;
 import org.agrona.collections.IntArrayList;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 public class Label extends Statement {
@@ -28,7 +29,8 @@ public class Label extends Statement {
     private IntArrayList positions = new IntArrayList();
     private int resolvedAddress;
 
-    public Label(int index, CodeBuffer codeBuffer) {
+    public Label(FunctionDef ownerFunction, int index, CodeBuffer codeBuffer) {
+        super(ownerFunction);
         this.index = index;
         this.codeBuffer = codeBuffer;
     }

@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.Invoke;
@@ -26,7 +27,8 @@ public class AsyncInvokeFunctorStmt extends Statement{
     private final Expression functor;
     private final Invoke.InvokeMode invokeMode;
 
-    public AsyncInvokeFunctorStmt(Invoke.InvokeMode invokeMode, Expression functor) {
+    public AsyncInvokeFunctorStmt(FunctionDef ownerFunction, Invoke.InvokeMode invokeMode, Expression functor) {
+        super(ownerFunction);
         this.invokeMode = invokeMode;
         this.functor = functor;
         functor.setParent(this);

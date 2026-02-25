@@ -25,14 +25,15 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 import java.util.Objects;
 
-public abstract class Assign extends ExpressionBase {
+public abstract class Assign extends ExpressionInFunctionBody {
 
     public interface Assignee extends Expression{}
 
     protected Var assignee;
     protected Expression value;
 
-    public Assign(Var assignee, Expression value) throws CompilationError {
+    public Assign(FunctionDef ownerFunction, Var assignee, Expression value) throws CompilationError {
+        super(ownerFunction);
         this.assignee = assignee.transform();
         this.value = value.transform();
         this.assignee.setParent(this);
@@ -49,59 +50,59 @@ public abstract class Assign extends ExpressionBase {
         this.visit(blockCompiler);
     }
 
-    public static Expression to(Assignee assignee, Expression value) throws CompilationError {
-        return to(assignee, value, true);
+    public static Expression to(FunctionDef ownerFunction, Assignee assignee, Expression value) throws CompilationError {
+        return to(ownerFunction, assignee, value, true);
     }
-    public static Expression to(Assignee assignee, Expression value, boolean processBoundClass) throws CompilationError {
+    public static Expression to(FunctionDef ownerFunction, Assignee assignee, Expression value, boolean processBoundClass) throws CompilationError {
         var t = assignee.transform();
 
         value = value.transform();
         if(processBoundClass)
-            value = processBoundClass(assignee, value);
+            value = processBoundClass(ownerFunction, assignee, value);
 
         if(t instanceof Var.LocalVar localVar){
             if(value instanceof LiteralResultExpression literalResultExpression){
-                return new LiteralToLocalVar(localVar, literalResultExpression);
+                return new LiteralToLocalVar(ownerFunction, localVar, literalResultExpression);
             } else {
-                return new ToLocalVar(localVar, value);
+                return new ToLocalVar(ownerFunction,localVar, value);
             }
         } else if(t instanceof Var.Field field) {
             if (value instanceof Literal<?> literal) {
-                return new LiteralToField(field, literal);
+                return new LiteralToField(ownerFunction, field, literal);
             } else {
-                return new ToField(field, value);
+                return new ToField(ownerFunction, field, value);
             }
         } else if(t instanceof Attribute attribute) {
-            return attribute.setValue(value);
+            return attribute.setValue(ownerFunction, value);
         } else if(assignee instanceof ArrayElement arrayElement){
-            return new ArrayPut(arrayElement, value);
+            return new ArrayPut(ownerFunction, arrayElement, value);
         } else if(assignee instanceof ListElement listElement){
-            return new ListPut(listElement, value);
+            return new ListPut(ownerFunction, listElement, value);
         } else if(assignee instanceof MapValue mapValue){
-            return new MapPut(mapValue, value);
+            return new MapPut(ownerFunction, mapValue, value);
         } else {
             throw new UnsupportedOperationException();
         }
     }
 
-    public static Expression processBoundClass(Assignee assignee, Expression expression) throws CompilationError {
+    public static Expression processBoundClass(FunctionDef ownerFunction, Assignee assignee, Expression expression) throws CompilationError {
         if(assignee instanceof Var.LocalVar localVar && localVar.varMode == Var.LocalVar.VarMode.Temp){
             return expression;      // register variable allow ScopeBoundClass
         }
         var assigneeType = assignee.inferType();
-        return processBoundClass(assigneeType,expression,assignee.getSourceLocation());
+        return processBoundClass(ownerFunction, assigneeType,expression,assignee.getSourceLocation());
     }
 
-    public static Expression processBoundClass(ClassDef classRefType, Expression expression, SourceLocation classRefSourceLocation) throws CompilationError {
+    public static Expression processBoundClass(FunctionDef ownerFunction, ClassDef classRefType, Expression expression, SourceLocation classRefSourceLocation) throws CompilationError {
         if (expression instanceof ClassOf || expression instanceof ClassUnder || expression instanceof ConstClass) {
             Root root = classRefType.getRoot();
             if (classRefType.isThatOrDerivedFromThat(root.getScopedClassInterval())) {
-                return new CastToScopedClassRef(expression, classRefType).transform();
+                return new CastToScopedClassRef(ownerFunction, expression, classRefType).transform();
             } else if (root.getScopedClassInterval().isDeriveFrom(classRefType)) {
                 var p = Creator.extractScopeAndClass(expression, expression.getSourceLocation());
                 var t = root.getOrCreateScopedClassInterval(p.getRight(), p.getRight(), null);
                 //TODO register concrete type
-                return new ForceCast(new CastToScopedClassRef(expression, t).transform(), classRefType, ForceCast.CastMode.WearClassMask);
+                return new ForceCast(ownerFunction, new CastToScopedClassRef(ownerFunction, expression, t).transform(), classRefType, ForceCast.CastMode.WearClassMask);
             } else if (classRefType == PrimitiveClassDef.CLASS_REF) {
                 if (expression instanceof ConstClass constClass) {
                     return new ClassRefLiteral(constClass.getClassDef());
@@ -124,8 +125,8 @@ public abstract class Assign extends ExpressionBase {
 
     public static class ToLocalVar extends Assign implements LocalVarResultExpression{
         private Var.LocalVar assignee;
-        public ToLocalVar(Var.LocalVar assignee, Expression value) throws CompilationError {
-            super(assignee, value);
+        public ToLocalVar(FunctionDef ownerFunction, Var.LocalVar assignee, Expression value) throws CompilationError {
+            super(ownerFunction, assignee, value);
             this.assignee = assignee;
         }
 
@@ -173,8 +174,8 @@ public abstract class Assign extends ExpressionBase {
     public static class LiteralToLocalVar extends Assign implements LiteralResultExpression{
         private final LiteralResultExpression literalResultExpression;
         private Var.LocalVar assignee;
-        public LiteralToLocalVar(Var.LocalVar assignee, LiteralResultExpression value) throws CompilationError {
-            super(assignee, value);
+        public LiteralToLocalVar(FunctionDef ownerFunction, Var.LocalVar assignee, LiteralResultExpression value) throws CompilationError {
+            super(ownerFunction, assignee, value);
             this.literalResultExpression = value;
             this.assignee = assignee;
         }
@@ -223,15 +224,15 @@ public abstract class Assign extends ExpressionBase {
 
     public static class ToField extends Assign{
         private Var.Field assignee;
-        public ToField(Var.Field assignee, Expression value) throws CompilationError {
-            super(assignee, value);
+        public ToField(FunctionDef ownerFunction, Var.Field assignee, Expression value) throws CompilationError {
+            super(ownerFunction, assignee, value);
             this.assignee = assignee;
         }
 
         @Override
         public ExpressionBase transformInner() {
             if(!(this.value instanceof Var.LocalVar)){
-                this.value = new PipeToTempVar(this.value);
+                this.value = new PipeToTempVar(ownerFunction, this.value);
             }
             return this;
         }
@@ -294,8 +295,8 @@ public abstract class Assign extends ExpressionBase {
     public static class LiteralToField extends Assign implements LiteralResultExpression{
         private final LiteralResultExpression literalResultExpression;
         private Var.Field assignee;
-        public LiteralToField(Var.Field assignee, LiteralResultExpression value) throws CompilationError {
-            super(assignee, value);
+        public LiteralToField(FunctionDef ownerFunction, Var.Field assignee, LiteralResultExpression value) throws CompilationError {
+            super(ownerFunction, assignee, value);
             this.literalResultExpression = value;
             this.assignee = assignee;
         }

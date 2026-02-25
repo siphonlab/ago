@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import java.util.Objects;
@@ -25,11 +26,12 @@ import java.util.Objects;
 /**
  * Wrap OutputLocalVarExpression to a temp var
  */
-public class PipeToTempVar extends ExpressionBase implements LocalVarResultExpression{
+public class PipeToTempVar extends ExpressionInFunctionBody implements LocalVarResultExpression{
 
     private final Expression baseExpression;
 
-    public PipeToTempVar(Expression baseExpression){
+    public PipeToTempVar(FunctionDef ownerFunction, Expression baseExpression){
+        super(ownerFunction);
         this.baseExpression = baseExpression;
     }
 

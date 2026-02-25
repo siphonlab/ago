@@ -15,13 +15,16 @@
  */
 package org.siphonlab.ago.compiler.statement;
 
+import org.siphonlab.ago.compiler.FunctionDef;
+
 public abstract class LoopStmt extends Statement{
 
     protected final String label;
     protected Label exitLabel;            // for break, got value while termVisit
     protected Label continueLabel;        // for continue
 
-    public LoopStmt(String label){
+    public LoopStmt(FunctionDef ownerFunction, String label){
+        super(ownerFunction);
         this.label = label;
     }
 

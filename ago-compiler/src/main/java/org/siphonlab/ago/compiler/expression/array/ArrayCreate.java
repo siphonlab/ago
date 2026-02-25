@@ -23,14 +23,15 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 
-public class ArrayCreate extends ExpressionBase {
+public class ArrayCreate extends ExpressionInFunctionBody {
     private final ArrayClassDef arrayType;
     private final Expression lengthExpr;
 
-    public ArrayCreate(ArrayClassDef arrayType, Expression lengthExpr) throws CompilationError {
+    public ArrayCreate(FunctionDef ownerFunction, ArrayClassDef arrayType, Expression lengthExpr) throws CompilationError {
+        super(ownerFunction);
         this.arrayType = arrayType;
         lengthExpr.setParent(this);
-        this.lengthExpr = lengthExpr == null ? null : new Cast(lengthExpr, PrimitiveClassDef.INT).setSourceLocation(lengthExpr.getSourceLocation()).transform();
+        this.lengthExpr = lengthExpr == null ? null : ownerFunction.cast(lengthExpr, PrimitiveClassDef.INT).setSourceLocation(lengthExpr.getSourceLocation()).transform();
     }
 
     @Override

@@ -16,18 +16,20 @@
 package org.siphonlab.ago.compiler.expression.logic;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.CollectionElement;
 
 
-public abstract class SelfOpExpr extends ExpressionBase {
+public abstract class SelfOpExpr extends ExpressionInFunctionBody {
 
     protected final Expression site;
     protected final Expression value;
 
-    public SelfOpExpr(Expression site, Expression value){
+    public SelfOpExpr(FunctionDef ownerFunction, Expression site, Expression value){
+        super(ownerFunction);
         this.site = site;
         this.value = value;
     }
@@ -45,12 +47,12 @@ public abstract class SelfOpExpr extends ExpressionBase {
                 blockCompiler.lockRegister(field.getBaseVar());
                 var temp = localVar != null ? localVar : blockCompiler.acquireTempVar(this);
                 expr(field, value).outputToLocalVar(temp, blockCompiler);
-                Assign.to(field, temp).termVisit(blockCompiler);
+                ownerFunction.assign(field, temp).termVisit(blockCompiler);
                 blockCompiler.releaseRegister(field.getBaseVar());
             } else if (site instanceof Var.LocalVar var) {
                 expr(var, value).outputToLocalVar(var, blockCompiler);
                 if (localVar != null && localVar != var) {
-                    Assign.to(localVar, var).termVisit(blockCompiler);
+                    ownerFunction.assign(localVar, var).termVisit(blockCompiler);
                 }
             } else if (site instanceof CollectionElement collectionElement) {
                 var old = collectionElement.visit(blockCompiler);
@@ -60,21 +62,21 @@ public abstract class SelfOpExpr extends ExpressionBase {
                 blockCompiler.lockRegister(index);
                 var expr = expr(old, value);
                 var r = expr.setSourceLocation(this.sourceLocation).visit(blockCompiler);
-                collectionElement.toPutElement(arr, index, r).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                collectionElement.toPutElement(arr, index, r, ownerFunction).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                 blockCompiler.releaseRegister(arr);
                 blockCompiler.releaseRegister(index);
                 if (localVar != null) {
-                    Assign.to(localVar, r).termVisit(blockCompiler);
+                    ownerFunction.assign(localVar, r).termVisit(blockCompiler);
                 }
             } else if (site instanceof Attribute attribute) {
                 var got = attribute.visit(blockCompiler);
                 blockCompiler.lockRegister(attribute.getProcessedScope());
                 var expr = expr(got, value).visit(blockCompiler);
                 var r = expr.setSourceLocation(this.sourceLocation).visit(blockCompiler);
-                attribute.setValue(r).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                attribute.setValue(ownerFunction, r).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                 blockCompiler.releaseRegister(attribute.getProcessedScope());
                 if (localVar != null) {
-                    Assign.to(localVar, r).termVisit(blockCompiler);
+                    ownerFunction.assign(localVar, r).termVisit(blockCompiler);
                 }
             } else {
                 throw new UnsupportedOperationException("not supported yet");

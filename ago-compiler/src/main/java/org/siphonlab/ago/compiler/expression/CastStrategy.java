@@ -35,6 +35,7 @@ import static org.siphonlab.ago.TypeCode.LONG_VALUE;
 
 public class CastStrategy {
 
+    private final FunctionDef ownerFunction;
     private final SourceLocation sourceLocation;
     private final boolean forceCast;
 
@@ -49,7 +50,8 @@ public class CastStrategy {
         Object,                     // object type
     }
 
-    public CastStrategy(SourceLocation sourceLocation, boolean forceCast){
+    public CastStrategy(FunctionDef ownerFunction, SourceLocation sourceLocation, boolean forceCast){
+        this.ownerFunction = ownerFunction;
         this.sourceLocation = sourceLocation;
         this.forceCast = forceCast;
     }
@@ -134,10 +136,10 @@ public class CastStrategy {
                     case Primitive ->
                         unifyPrimitiveType(left, right, (PrimitiveClassDef) leftType, (PrimitiveClassDef) rightType);
                     case Enum, PrimitiveBoxer ->
-                        unifyTypes(left, new Unbox(right));
+                        unifyTypes(left, ownerFunction.unbox(right));
                     case langObject -> {
-                        left = new Box(left, ((PrimitiveClassDef)leftType).getBoxedType(), Box.BoxMode.Box);
-                        left = new ForceCast(left,rightType, ForceCast.CastMode.ObjectCast);
+                        left = new Box(ownerFunction, left, ((PrimitiveClassDef)leftType).getBoxedType(), Box.BoxMode.Box);
+                        left = new ForceCast(ownerFunction, left,rightType, ForceCast.CastMode.ObjectCast);
                         yield new UnifyTypeResult(left,right,rightType,true);
                     }
                     default -> throwTypeMismatchError(originLeftType, originRightType);
@@ -162,13 +164,13 @@ public class CastStrategy {
             case PrimitiveBoxer, Enum ->
                 switch (rightTypeKind){
                     case Primitive ->
-                        unifyTypes(new Unbox(left), right);
+                        unifyTypes(ownerFunction.unbox(left), right);
 
                     case Enum, PrimitiveBoxer ->
-                        unifyTypes(new Unbox(left), new Unbox(right));
+                        unifyTypes(ownerFunction.unbox(left), ownerFunction.unbox(right));
 
                     case langObject -> {
-                        left = new ForceCast(left, rightType, ForceCast.CastMode.ObjectCast);
+                        left = new ForceCast(ownerFunction, left, rightType, ForceCast.CastMode.ObjectCast);
                         yield new UnifyTypeResult(left,right,rightType, true);
                     }
 
@@ -180,7 +182,7 @@ public class CastStrategy {
             case Object ->
                 switch (rightTypeKind){
                     case langObject ->
-                        new UnifyTypeResult(new ForceCast(left,rightType, ForceCast.CastMode.ObjectCast), right,rightType, true);
+                        new UnifyTypeResult(new ForceCast(ownerFunction, left,rightType, ForceCast.CastMode.ObjectCast), right,rightType, true);
                     case Object ->
                         unifyObjectTypes(left, right, leftType, rightType);
                     default -> throwTypeMismatchError(originLeftType, originRightType);
@@ -192,7 +194,7 @@ public class CastStrategy {
 
     private UnifyTypeResult unifyObjectTypes(Expression left, Expression right, ClassDef leftType, ClassDef rightType) throws CompilationError {
         if(leftType.isThatOrSuperOfThat(rightType)){
-            var r = new ForceCast(right, leftType, ForceCast.CastMode.WearClassMask);
+            var r = new ForceCast(ownerFunction, right, leftType, ForceCast.CastMode.WearClassMask);
             return new UnifyTypeResult(left, r, leftType,true);
         } else {
             throw new TypeMismatchError("cannot cast '%s' to '%s'".formatted(rightType.getFullname(), leftType.getFullname()), right.getSourceLocation());
@@ -210,11 +212,11 @@ public class CastStrategy {
         }
         boolean changed = false;
         if (resultType != t1) {
-            l = new Cast(l, resultType);
+            l = new Cast(ownerFunction, l, resultType);
             changed = true;
         }
         if (resultType != t2) {
-            r = new Cast(r, resultType);
+            r = new Cast(ownerFunction, r, resultType);
             changed = true;
         }
         return new UnifyTypeResult(l, r, resultType, changed);
@@ -279,17 +281,17 @@ public class CastStrategy {
             if(toType == originToType){
                 return expression;
             } else {
-                return new ForceCast(expression, originToType, ForceCast.CastMode.WearClassMask);
+                return new ForceCast(ownerFunction, expression, originToType, ForceCast.CastMode.WearClassMask);
             }
         }
 
         if (expression instanceof Literal<?> literal) {
             if (toType instanceof PrimitiveClassDef) {
-                return new ForceCast(castLiteral(literal, toType), originToType, ForceCast.CastMode.WearClassMask).transform();
+                return new ForceCast(ownerFunction, castLiteral(literal, toType, this.sourceLocation), originToType, ForceCast.CastMode.WearClassMask).transform();
             }
             if (literal instanceof NullLiteral n) {
                 if (toTypeKind == TypeKind.langObject || toTypeKind == TypeKind.Object || toTypeKind == TypeKind.Any) {
-                    return new NullAsObject(n,originToType);
+                    return new NullLiteral(originToType).setSourceLocation(sourceLocation);
                 }
             }
         }
@@ -323,12 +325,12 @@ public class CastStrategy {
 
                     case PrimitiveBoxer -> {
                         var r1 = forceCastPrimitive(expression, fromType, toType.getUnboxedType());
-                        yield new Box(r1, toType, Box.BoxMode.Box).transform();
+                        yield new Box(ownerFunction, r1, toType, Box.BoxMode.Box).transform();
                     }
 
                     case Enum ->{
                         var r1 = forceCastPrimitive(expression, fromType, toType.getUnboxedType());
-                        yield new Box(r1, toType, Box.BoxMode.BoxEnum).transform();
+                        yield new Box(ownerFunction, r1, toType, Box.BoxMode.BoxEnum).transform();
                     }
                     case Any ->
                         castToAny(expression, fromType, originToType);
@@ -374,7 +376,7 @@ public class CastStrategy {
                         forceUnbox(expression, toType);
 
                     case PrimitiveBoxer, Enum, Object ->
-                        new ForceCast(expression,toType, ForceCast.CastMode.ObjectCast);
+                        new ForceCast(ownerFunction, expression,toType, ForceCast.CastMode.ObjectCast);
 
                     case langObject ->  expression;
 
@@ -408,7 +410,7 @@ public class CastStrategy {
 //                            ClassRefLiteral classRefLiteral = new ClassRefLiteral(value);
 //                            classRefLiteral.setScope(pair.getLeft());
 //                            yield new Box(classRefLiteral, toType, Box.BoxMode.Box);
-                            yield Assign.processBoundClass(toType,expression,this.sourceLocation);
+                            yield Assign.processBoundClass(ownerFunction, toType,expression,this.sourceLocation);
                         }
                         throw new TypeMismatchError("can't convert '%s' to '%s'".formatted(fromType.getFullname(), toType.getFullname()), this.sourceLocation);
                     }
@@ -431,7 +433,7 @@ public class CastStrategy {
             default -> throw new UnsupportedOperationException("no this type kind");
         };
         if(toType != r.inferType()){
-            return new ForceCast(r.setSourceLocation(this.sourceLocation),originToType, ForceCast.CastMode.WearClassMask);
+            return new ForceCast(ownerFunction, r.setSourceLocation(this.sourceLocation),originToType, ForceCast.CastMode.WearClassMask);
         }
         return r.setSourceLocation(this.sourceLocation);
     }
@@ -439,15 +441,15 @@ public class CastStrategy {
     // Box implicit primitive expression, with default box type, the targetType must be `lang.Object`
     // and the result is Integer, Long, ...
     private Expression forceBox(Expression expression) throws CompilationError {
-        return new Box(expression, expression.inferType().getRoot().getObjectClass(), Box.BoxMode.ForceBox);
+        return new Box(ownerFunction, expression, expression.inferType().getRoot().getObjectClass(), Box.BoxMode.ForceBox);
     }
 
     private Expression castObject(Expression expression, ClassDef fromType, ClassDef toType) throws CompilationError {
         if(fromType.isThatOrDerivedFromThat(toType)){
-            return new ForceCast(expression,toType, ForceCast.CastMode.WearClassMask);
+            return new ForceCast(ownerFunction, expression,toType, ForceCast.CastMode.WearClassMask);
         } else if(toType.isDeriveFrom(fromType)){
             if(forceCast) {     //TODO sometimes conversion is allowed, i.e. Cat c=(Cat)animal, however not sure generic type was allowed, i.e. Producer<Cat> p = (Producer<Cat>)producerAnimal
-                return new ForceCast(expression, toType, ForceCast.CastMode.ObjectCast);
+                return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ObjectCast);
             }
         }
         throw new TypeMismatchError("can't convert from '%s' to '%s'".formatted(fromType.getFullname(), toType.getFullname()), this.sourceLocation);
@@ -455,24 +457,24 @@ public class CastStrategy {
 
     // forceUnbox from lang.Object, which we the target type is undetermined primitive type
     private Expression forceUnbox(Expression expression, ClassDef toType) throws CompilationError {
-        return new ForceUnbox(expression, toType).setSourceLocation(this.sourceLocation);
+        return new ForceUnbox(ownerFunction, expression, toType).setSourceLocation(this.sourceLocation);
     }
 
     private Expression unboxObject(Expression expression, ClassDef toType, boolean allowForceUnbox) throws CompilationError {
         if (toType.getTypeCode() == BOOLEAN) {
-            return new ForceCast(expression, toType, ForceCast.CastMode.CastToBoolean);
+            return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.CastToBoolean);
         } else if (toType.getTypeCode() == STRING) {
-            return new ToString(expression);
+            return new ToString(ownerFunction, expression);
         }
         if(allowForceUnbox) {
-            return new ForceUnbox(expression, toType).setSourceLocation(this.sourceLocation);
+            return new ForceUnbox(ownerFunction, expression, toType).setSourceLocation(this.sourceLocation);
         }
         throw new TypeMismatchError("can't convert to '%s'".formatted(toType.getFullname()), this.sourceLocation);
     }
 
 
     private Expression unbox(Expression expression, ClassDef fromBoxType, PrimitiveClassDef toType) throws CompilationError {
-        Expression r = new Unbox(expression);
+        Expression r = ownerFunction.unbox(expression);
         if(toType == fromBoxType.getUnboxedType()){
             return r;
         } else {
@@ -481,7 +483,7 @@ public class CastStrategy {
     }
 
     private Expression unboxAndForceCastPrimitive(Expression expression, ClassDef fromBoxType, ClassDef implicitPrimaryType) throws CompilationError {
-        Expression r = new Unbox(expression);
+        Expression r = ownerFunction.unbox(expression);
         return forceCastPrimitive(r, fromBoxType.getUnboxedType(), implicitPrimaryType);
     }
 
@@ -492,19 +494,19 @@ public class CastStrategy {
         if(toType.getUnboxedTypeCode() == CLASS_REF){
             throw new TypeMismatchError("can't cast to classref", this.sourceLocation);
         }
-        return new ForceCast(expression, toType, ForceCast.CastMode.CastToAny);
+        return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.CastToAny);
     }
 
     private Expression boxEnum(Expression expression, PrimitiveClassDef fromType, ClassDef toEnumType) throws CompilationError {
         Expression r;
         if (fromType == toEnumType.getEnumBasePrimitiveType()) {
-            r = new Box(expression, toEnumType, Box.BoxMode.BoxEnum).transform();
+            r = new Box(ownerFunction, expression, toEnumType, Box.BoxMode.BoxEnum).transform();
         } else {
             if(!fromType.isPrimitiveNumberFamily()){
                 throw new TypeMismatchError("number expected", expression.getSourceLocation());
             }
             var cast = castPrimitive(expression,fromType,toEnumType.getEnumBasePrimitiveType());
-            r = new Box(cast, toEnumType, Box.BoxMode.BoxEnum).transform();
+            r = new Box(ownerFunction, cast, toEnumType, Box.BoxMode.BoxEnum).transform();
         }
         return r;
     }
@@ -513,11 +515,11 @@ public class CastStrategy {
         Expression r;
         ClassDef boxedType = fromType.getBoxedType();
         if(toType == boxedType){
-            r = new Box(expression, toType, Box.BoxMode.Box).transform();
+            r = new Box(ownerFunction, expression, toType, Box.BoxMode.Box).transform();
         } else if(toType.isDeriveFrom(boxedType)){
-            r = new Box(expression, toType, Box.BoxMode.Box).transform();
+            r = new Box(ownerFunction, expression, toType, Box.BoxMode.Box).transform();
         } else {
-            r = new Box(castPrimitive(expression, fromType, toType.getUnboxedType()), toType, Box.BoxMode.Box);
+            r = new Box(ownerFunction, castPrimitive(expression, fromType, toType.getUnboxedType()), toType, Box.BoxMode.Box);
         }
         return r;
     }
@@ -528,7 +530,7 @@ public class CastStrategy {
         if(toTypeCode != BOOLEAN){
             if(fromType.getTypeCode() == STRING){
                 if(toType.isNumber() || toTypeCode == CHAR){
-                    return new ForceCast(expression, toType, ForceCast.CastMode.PrimitiveCast);
+                    return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.PrimitiveCast);
                 }
                 throw new TypeMismatchError("'%s' can't cast to '%s'".formatted(fromType.getFullname(), toType.getFullname()), expression.getSourceLocation());
             }
@@ -541,7 +543,7 @@ public class CastStrategy {
                 throw new TypeMismatchError("'%s' can't cast to '%s'".formatted(fromType.getFullname(), toType.getFullname()), expression.getSourceLocation());
             }
         }
-        return new ForceCast(expression, toType, ForceCast.CastMode.PrimitiveCast);
+        return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.PrimitiveCast);
     }
 
     private Expression forceCastPrimitive(Expression expression, PrimitiveClassDef fromType, GenericTypeCode.GenericCodeAvatarClassDef originToType) throws CompilationError {
@@ -549,7 +551,7 @@ public class CastStrategy {
             throw new TypeMismatchError("classref cannot cast to unknown type", this.sourceLocation);
         }
         // here the toType is GenericTypeCode, i.e. T as [Primitive]
-        return new ForceCast(expression, originToType, ForceCast.CastMode.PrimitiveCast);
+        return new ForceCast(ownerFunction, expression, originToType, ForceCast.CastMode.PrimitiveCast);
     }
 
     private Expression forceCastPrimitive(Expression expression, ClassDef fromType, ClassDef originToType) throws CompilationError {
@@ -557,10 +559,10 @@ public class CastStrategy {
             throw new TypeMismatchError("can't cast to classref", this.sourceLocation);
         }
         // here the toType is GenericTypeCode, i.e. T as [Primitive]
-        return new ForceCast(expression, originToType, ForceCast.CastMode.PrimitiveCast);
+        return new ForceCast(ownerFunction, expression, originToType, ForceCast.CastMode.PrimitiveCast);
     }
 
-    Expression castLiteral(Literal<?> literal, ClassDef toType) throws CompilationError {
+    public static Literal<?> castLiteral(Literal<?> literal, ClassDef toType, SourceLocation sourceLocation) throws CompilationError {
         var toTypeCode = toType.getTypeCode();
         if (toTypeCode == TypeCode.BOOLEAN) {
             return new BooleanLiteral(BooleanLiteral.isTrue(literal));
@@ -696,6 +698,10 @@ public class CastStrategy {
                     return new IntLiteral(Integer.parseInt(str));
                 case LONG_VALUE:
                     return new LongLiteral(Long.parseLong(str));
+            }
+        } else if(literal instanceof NullLiteral n){
+            if(toType.getTypeCode() == OBJECT){
+                return new NullLiteral(toType).setSourceLocation(sourceLocation);
             }
         }
         throw new TypeMismatchError(literal.inferType().getTypeCode() + " cannot cast to " + toTypeCode, sourceLocation);

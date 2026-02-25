@@ -19,6 +19,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
@@ -26,12 +27,13 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class CastToScopedClassRef extends ExpressionBase{
+public class CastToScopedClassRef extends ExpressionInFunctionBody{
 
     private final Expression expression;
     private final ClassDef scopedClassIntervalClassDef;
 
-    public CastToScopedClassRef(Expression expression, ClassDef scopedClassIntervalClassDef) {
+    public CastToScopedClassRef(FunctionDef ownerFunction, Expression expression, ClassDef scopedClassIntervalClassDef) {
+        super(ownerFunction);
         this.expression = expression;
         this.scopedClassIntervalClassDef = scopedClassIntervalClassDef;
         this.setSourceLocation(expression.getSourceLocation());
@@ -54,17 +56,17 @@ public class CastToScopedClassRef extends ExpressionBase{
             ClassDef classDef = pair.getRight();
 
             blockCompiler.lockRegister(localVar);
-            new Box(new ClassRefLiteral(classDef), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);
+            ownerFunction.box(new ClassRefLiteral(classDef), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);
 
             ClassDef classInterval = blockCompiler.getFunctionDef().getRoot().getScopedClassInterval();
             if (!localVar.inferType().isDeriveFrom(classInterval)) {
                 throw new TypeMismatchError("a ScopedClassInterval expression expected", this.getSourceLocation());
             }
 
-            var fld = new Var.Field(localVar, classInterval.getVariable("scope"));
+            var fld = new Var.Field(ownerFunction, localVar, classInterval.getVariable("scope"));
 
             if(scope != null) {
-                Assign.to(fld, scope, false).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                Assign.to(ownerFunction, fld, scope, false).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
             }
 
             blockCompiler.releaseRegister(localVar);

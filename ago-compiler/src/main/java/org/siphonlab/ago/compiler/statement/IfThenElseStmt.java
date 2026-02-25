@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.LiteralResultExpression;
@@ -35,7 +36,8 @@ public class IfThenElseStmt extends Statement {
 
     private boolean conditionNeg = false;
 
-    public IfThenElseStmt(Expression condition, Statement trueBranch, Statement falseBranch) throws CompilationError {
+    public IfThenElseStmt(FunctionDef ownerFunction, Expression condition, Statement trueBranch, Statement falseBranch) throws CompilationError {
+        super(ownerFunction);
         this.condition = condition.setParent(this);
         this.trueBranch = trueBranch.setParent(this);
         this.falseBranch = falseBranch == null ? null : falseBranch.setParent(this);
@@ -50,17 +52,17 @@ public class IfThenElseStmt extends Statement {
         }
         if(trueBranch instanceof EmptyStmt){
             if(falseBranch != null && !(falseBranch instanceof EmptyStmt)){
-                return new IfThenElseStmt(new Not(condition), falseBranch, null).setSourceLocation(this.getSourceLocation()).transform();
+                return new IfThenElseStmt(ownerFunction, new Not(ownerFunction, condition), falseBranch, null).setSourceLocation(this.getSourceLocation()).transform();
             } else {
                 // only evaluate the condition
-                return new ExpressionStmt(condition);
+                return new ExpressionStmt(ownerFunction, condition);
             }
         }
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isTrue(literal)){
                 return trueBranch;
             } else {
-                return falseBranch != null ? falseBranch : new EmptyStmt().setSourceLocation(this.getSourceLocation());
+                return falseBranch != null ? falseBranch : new EmptyStmt(ownerFunction).setSourceLocation(this.getSourceLocation());
             }
         }
         return this;

@@ -21,6 +21,7 @@ import org.siphonlab.ago.SourceLocation;
 
 
 import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
@@ -73,8 +74,8 @@ public class ArithmeticExpr extends BiExpression {
         }
     }
 
-    public ArithmeticExpr(Type type, Expression left, Expression right) throws CompilationError {
-        super(left, right);
+    public ArithmeticExpr(FunctionDef ownerFunction, Type type, Expression left, Expression right) throws CompilationError {
+        super(ownerFunction, left, right);
         this.type = type;
     }
 
@@ -83,14 +84,14 @@ public class ArithmeticExpr extends BiExpression {
         if(this.type == Type.Add &&
                 (left.inferType().getUnboxedTypeCode() == TypeCode.STRING
                 || right.inferType().getUnboxedTypeCode() == TypeCode.STRING)){
-            return new Concat(left, right).setSourceLocation(this.getSourceLocation()).transformInner();
+            return ownerFunction.concat(left, right).setSourceLocation(this.getSourceLocation()).transformInner();
         }
         return super.transformInner();
     }
 
     @Override
     protected Expression transformUnboxed(Expression left, Expression right) throws CompilationError {
-        return new ArithmeticExpr(this.type, left, right).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
+        return new ArithmeticExpr(ownerFunction, this.type, left, right).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
     }
 
     @Override

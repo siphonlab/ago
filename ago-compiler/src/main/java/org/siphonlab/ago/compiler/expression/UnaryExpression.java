@@ -17,12 +17,14 @@ package org.siphonlab.ago.compiler.expression;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
-public abstract class UnaryExpression extends ExpressionBase{
+public abstract class UnaryExpression extends ExpressionInFunctionBody{
     protected final Expression value;
 
-    public UnaryExpression(Expression value) throws CompilationError {
+    public UnaryExpression(FunctionDef ownerFunction,  Expression value) throws CompilationError {
+        super(ownerFunction);
         this.value = value.transform();
         this.value.setParent(this);
     }

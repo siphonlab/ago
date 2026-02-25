@@ -17,17 +17,19 @@ package org.siphonlab.ago.compiler.expression.array;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.ExpressionBase;
 import org.siphonlab.ago.compiler.expression.Var;
 
-public class ArrayLength extends ExpressionBase {
+public class ArrayLength extends ExpressionInFunctionBody {
 
     private final Expression array;
 
-    public ArrayLength(Expression array){
+    public ArrayLength(FunctionDef ownerFunction, Expression array){
+        super(ownerFunction);
         this.array = array;
     }
 
@@ -40,7 +42,7 @@ public class ArrayLength extends ExpressionBase {
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         ClassDef classDef = array.inferType();
         var lengthField = classDef.getFields().get("length");
-        Var.of(array,lengthField).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar,blockCompiler);
+        Var.of(ownerFunction, array, lengthField).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar,blockCompiler);
     }
 
     @Override

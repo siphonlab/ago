@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler.expression.logic;
 
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.expression.Assign;
 import org.siphonlab.ago.compiler.expression.Cast;
 import org.siphonlab.ago.compiler.expression.Expression;
@@ -48,10 +49,10 @@ public class SelfLogicExpr extends SelfOpExpr {
         }
     }
 
-    public SelfLogicExpr(Expression site, Expression change, Type type) throws CompilationError {
-        super(site, change);
+    public SelfLogicExpr(FunctionDef ownerFunction, Expression site, Expression change, Type type) throws CompilationError {
+        super(ownerFunction, site, change);
         this.site = site.transform().setParent(this);
-        this.change = new Cast(change.setParent(this), site.inferType()).transform();
+        this.change = ownerFunction.cast(change.setParent(this), site.inferType()).transform();
         this.type = type;
     }
 
@@ -71,7 +72,7 @@ public class SelfLogicExpr extends SelfOpExpr {
                     if(BooleanLiteral.isTrue(literal)){     // an= true
                         return this.site;
                     } else {
-                        return Assign.to((Assign.Assignee) site,literal).setSourceLocation(this.getSourceLocation()).transform();
+                        return ownerFunction.assign((Assign.Assignee) site,literal).setSourceLocation(this.getSourceLocation()).transform();
                     }
                 }
                 case Or:{
@@ -86,7 +87,7 @@ public class SelfLogicExpr extends SelfOpExpr {
 
     @Override
     Expression expr(Expression left, Expression right) throws CompilationError {
-        return (type == Type.And ? new AndExpr(site,change) : new OrExpr(site,change));
+        return (type == Type.And ? new AndExpr(ownerFunction, site,change) : new OrExpr(ownerFunction, site,change));
     }
 
     @Override

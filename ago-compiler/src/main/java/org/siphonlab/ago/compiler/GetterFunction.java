@@ -75,10 +75,10 @@ public class GetterFunction extends FunctionDef{
         }
 
         var blockCompiler = new BlockCompiler(this.unit, this, null);
-        Var.Field fld = new Var.Field(new Scope(1, this.getParentClass()), field)
+        Var.Field fld = this.field(new Scope(this,1, this.getParentClass()), field)
                     .setSourceLocation(this.getParentClass().unit.sourceLocation(field.getDeclaration()));
 
-        blockCompiler.compileExpressions(List.of(new Return(fld).setSourceLocation(unit.sourceLocation(getterContext))));
+        blockCompiler.compileExpressions(List.of(new Return(this, fld).setSourceLocation(unit.sourceLocation(getterContext))));
 
         this.nextCompilingStage(CompilingStage.Compiled);
     }

@@ -338,16 +338,16 @@ public class NamePathResolver {
         throw unit.resolveError(idThis.ast, "cannot resolve '%s' within current scope".formatted(deferClass.getFullname()));
     }
 
-    private Expression traitField(Scope scope, ClassDef trait) throws CompilationError {
+    private Expression traitField(FunctionDef ownerFunction, Scope scope, ClassDef trait) throws CompilationError {
         var field = scope.getClassDef().getFieldForTrait(trait);
-        Var.Field fld = new Var.Field(scope, field)
+        Var.Field fld = new Var.Field(ownerFunction, scope, field)
                 .setSourceLocation(scope.getClassDef().getUnit().sourceLocation(field.getDeclaration()));
         return fld;
     }
 
-    private Expression permitClassField(Scope scope) throws CompilationError {
+    private Expression permitClassField(FunctionDef ownerFunction, Scope scope) throws CompilationError {
         var field = scope.getClassDef().getFieldForPermitClass();
-        Var.Field fld = new Var.Field(scope, field)
+        Var.Field fld = new Var.Field(ownerFunction, scope, field)
                 .setSourceLocation(scope.getClassDef().getUnit().sourceLocation(field.getDeclaration()));
         return fld;
     }

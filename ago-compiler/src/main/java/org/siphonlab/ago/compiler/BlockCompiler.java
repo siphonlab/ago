@@ -93,8 +93,8 @@ public class BlockCompiler {
             // trait may create constructor for functions
             ConstructorDef constructor = this.functionDef.getConstructor();
             if (constructor != null) {
-                var c = ClassUnder.create(new Scope(0, functionDef), constructor);
-                var constructorInvocation = new Invoke(Invoke.InvokeMode.Invoke, c, Collections.emptyList(), functionDef.getSourceLocation()).setSourceLocation(functionDef.getSourceLocation()).transform();
+                var c = functionDef.classUnder(new Scope(functionDef, 0, functionDef), constructor);
+                var constructorInvocation = functionDef.invoke(Invoke.InvokeMode.Invoke, c, Collections.emptyList(), functionDef.getSourceLocation()).setSourceLocation(functionDef.getSourceLocation()).transform();
                 compiledStatements.add(constructorInvocation);
             }
         }
@@ -116,7 +116,7 @@ public class BlockCompiler {
         // default return statement for `void`
         if(functionDef.getResultType() == null || functionDef.getResultType().getTypeCode() == TypeCode.VOID){
             if(compiledStatements.isEmpty() || !(compiledStatements.getLast() instanceof Return)){
-                compiledStatements.add(new Return());
+                compiledStatements.add(functionDef.return_());
             }
         }
         // generate code
@@ -144,11 +144,11 @@ public class BlockCompiler {
             return returnStmt(returnStmt).setSourceLocation(unit.sourceLocation(statement));
         } else if (statement instanceof ExpressionStmtContext expressionStmt) {
             var expression = expression(expressionStmt.expressionStatement().expression());
-            return new ExpressionStmt(expression).setSourceLocation(unit.sourceLocation(statement));
+            return functionDef.expressionStmt(expression).setSourceLocation(unit.sourceLocation(statement));
         } else if(statement instanceof BlockStmtContext block) {
             return this.blockStmt(block);
         } else if(statement instanceof EmptyStmtContext emptyStmt){
-            return new EmptyStmt().setSourceLocation(unit.sourceLocation(emptyStmt));
+            return new EmptyStmt(functionDef).setSourceLocation(unit.sourceLocation(emptyStmt));
         } else if(statement instanceof IfStmtContext ifStmt){
             return this.ifStmt(ifStmt).setSourceLocation(unit.sourceLocation(statement));
         } else if(statement instanceof ForStmtContext forStmt){
@@ -183,7 +183,7 @@ public class BlockCompiler {
     }
 
     private AwaitStmt awaitStmt() {
-        return new AwaitStmt();
+        return new AwaitStmt(functionDef);
     }
 
     private Return returnStmt(ReturnStmtContext returnStmt) throws CompilationError {
@@ -191,9 +191,9 @@ public class BlockCompiler {
             if(functionDef.getResultType() != PrimitiveClassDef.VOID){
                 throw unit.typeError(returnStmt, "'%s' result expected".formatted(functionDef.getResultType()));
             }
-            return new Return();
+            return functionDef.return_();
         } else {
-            return new Return(new Cast(expression(returnStmt.expression()), functionDef.getResultType()));
+            return functionDef.return_(functionDef.cast(expression(returnStmt.expression()), functionDef.getResultType()));
         }
     }
 
@@ -215,24 +215,24 @@ public class BlockCompiler {
             }
 
             // initializers, depends on the declaration sequence
-            var me = new Scope(1, ownerClass);
+            var me = new Scope(functionDef, 1, ownerClass);
             var varMe = (Var.LocalVar) me.visit(this);
             this.lockRegister(varMe);
             for (Field field : ownerClass.fields.values()) {
                 if(hasFieldParameters) {
                     var parameter = pfMap.get(field);
                     if(parameter != null){      // assign to this parameter instead of the default initializer expr
-                        Var.Field assignee = new Var.Field(varMe, field).setSourceLocation(unit.sourceLocation(field.getDeclaration()));
-                        var parameterExpr = new Var.LocalVar(parameter, Var.LocalVar.VarMode.Existed);
-                        var assign = Assign.to(assignee, parameterExpr).setSourceLocation(unit.sourceLocation(parameter.getDeclaration()));
+                        Var.Field assignee = functionDef.field(varMe, field).setSourceLocation(unit.sourceLocation(field.getDeclaration()));
+                        var parameterExpr = functionDef.localVar(parameter, Var.LocalVar.VarMode.Existed);
+                        var assign = functionDef.assign(assignee, parameterExpr).setSourceLocation(unit.sourceLocation(parameter.getDeclaration()));
                         stmts.add(assign);
                         continue;
                     }
                 }
                 if (field.getInitializer() != null) {
                     var valueExpr = expression(field.getInitializer());
-                    Var.Field assignee = new Var.Field(varMe, field).setSourceLocation(unit.sourceLocation(field.getDeclaration()));
-                    var assign = Assign.to(assignee, valueExpr).setSourceLocation(assignee.getSourceLocation());
+                    Var.Field assignee = functionDef.field(varMe, field).setSourceLocation(unit.sourceLocation(field.getDeclaration()));
+                    var assign = functionDef.assign(assignee, valueExpr).setSourceLocation(assignee.getSourceLocation());
                     stmts.add(assign);
                 }
             }
@@ -241,26 +241,26 @@ public class BlockCompiler {
                 Field field = entry.getValue();
                 ClassDef trait = field.getType();   // field type is TraitDefInScope, the key is TraitDef
                 TraitCreator traitCreator;
-                Var.Field traitField = new Var.Field(varMe, field).setSourceLocation(unit.sourceLocation(field.getDeclaration()));
+                Var.Field traitField = functionDef.field(varMe, field).setSourceLocation(unit.sourceLocation(field.getDeclaration()));
                 Expression bindPermit;
                 if (trait.getPermitClass() != null && trait.getPermitClass() != trait.getRoot().getObjectClass()) {
-                    var permitFld = new Var.Field(traitField, trait.getFieldForPermitClass());
-                    bindPermit = Assign.to(permitFld, varMe);
+                    var permitFld = functionDef.field(traitField, trait.getFieldForPermitClass());
+                    bindPermit = functionDef.assign(permitFld, varMe);
                 } else {
                     bindPermit = null;
                 }
                 // create a local var to accept the trait instance from `new Trait()`
                 // for traitField is a field, can't accept creator result, there must be a temp var
-                // even if Assign.to(field, creator), it will create a temp var too
+                // even if functionDef.assign(field, creator), it will create a temp var too
                 // now I make the temp var explicit, so that I can bind @trait_field and @permit_field before invoke trait constructor
-                var createdTrait = this.acquireTempVar(new SomeInstance(trait));
+                var createdTrait = this.acquireTempVar(new SomeInstance(functionDef, trait));
 
                 var ls = new ArrayList<Statement>();
-                ls.add(new ExpressionStmt( Assign.to(traitField, createdTrait).transform()));
-                if(bindPermit != null) ls.add(new ExpressionStmt(bindPermit));
+                ls.add(new ExpressionStmt(functionDef, functionDef.assign(traitField, createdTrait).transform()));
+                if(bindPermit != null) ls.add(new ExpressionStmt(functionDef, bindPermit));
 
-                traitCreator = new TraitCreator(new ConstClass(trait), new BlockStmt(ls), unit.sourceLocation(field.getDeclaration()));
-                stmts.add(Assign.to(createdTrait, traitCreator).setSourceLocation(traitField.getSourceLocation()));
+                traitCreator = new TraitCreator(functionDef, new ConstClass(functionDef, trait), functionDef.blockStmt(ls), unit.sourceLocation(field.getDeclaration()));
+                stmts.add(functionDef.assign(createdTrait, traitCreator).setSourceLocation(traitField.getSourceLocation()));
             }
 
             if(!stmts.isEmpty()) {
@@ -311,7 +311,7 @@ public class BlockCompiler {
             variable.setType(type);
         }
 
-        Var.LocalVar localVar = new Var.LocalVar(variable, Var.LocalVar.VarMode.ToDeclare).setSourceLocation(unit.sourceLocation(identifier));
+        Var.LocalVar localVar = new Var.LocalVar(functionDef, variable, Var.LocalVar.VarMode.ToDeclare).setSourceLocation(unit.sourceLocation(identifier));
         functionDef.addLocalVariableWithSlot(variable);
         return localVar;
     }
@@ -323,7 +323,7 @@ public class BlockCompiler {
         variable.setSourceLocation(unit.sourceLocation(localVariableDeclaration));
         variable.setModifiers(Compiler.variableModifiers(unit, localVariableDeclaration.variableModifiers(), Compiler.ModifierTarget.Variable));
 
-        Var.LocalVar localVar = new Var.LocalVar(variable, Var.LocalVar.VarMode.ToDeclare);
+        Var.LocalVar localVar = new Var.LocalVar(functionDef, variable, Var.LocalVar.VarMode.ToDeclare);
 
         VariableInitializerContext initializer = localVariableDeclaration.variableInitializer();
         ClassDef type = null;
@@ -349,20 +349,20 @@ public class BlockCompiler {
                     var scopedClassIntervalClassDef = functionDef.getRoot().getOrCreateScopedClassInterval(t, t, null);
                     functionDef.registerConcreteType(scopedClassIntervalClassDef);
                     inferred = t;
-                    initializerExpr = new CastToScopedClassRef(initializerExpr, scopedClassIntervalClassDef).transform();
+                    initializerExpr = new CastToScopedClassRef(functionDef, initializerExpr, scopedClassIntervalClassDef).transform();
                 } else {
                     inferred = initializerExpr.inferType();
                     if (inferred == functionDef.getRoot().getAnyClass()) {
                         inferred = functionDef.getRoot().getObjectClass();
-                        initializerExpr = new Cast(initializerExpr, inferred).setSourceLocation(initializerExpr.getSourceLocation()).transform();
+                        initializerExpr = new Cast(functionDef, initializerExpr, inferred).setSourceLocation(initializerExpr.getSourceLocation()).transform();
                     }
                 }
                 variable.setType(inferred);
             } else {
-                initializerExpr = new Cast(initializerExpr, type).setSourceLocation(initializerExpr.getSourceLocation()).transform();
+                initializerExpr = new Cast(functionDef, initializerExpr, type).setSourceLocation(initializerExpr.getSourceLocation()).transform();
             }
             functionDef.addLocalVariableWithSlot(variable);
-            return new ExpressionStmt(Assign.to(localVar, initializerExpr));
+            return new ExpressionStmt(functionDef, functionDef.assign(localVar, initializerExpr));
         } else {
             functionDef.addLocalVariableWithSlot(variable);
             return null;
@@ -373,7 +373,7 @@ public class BlockCompiler {
         if(expression == null) return null;
         if(expression instanceof AddSubtractExprContext addSubtractExpr){
             ArithmeticExpr.Type type = addSubtractExpr.bop.getType() == ADD ? ArithmeticExpr.Type.Add : ArithmeticExpr.Type.Substract;
-            return new ArithmeticExpr(type, expression(addSubtractExpr.expression(0)), expression(addSubtractExpr.expression(1)))
+            return new ArithmeticExpr(functionDef, type, expression(addSubtractExpr.expression(0)), expression(addSubtractExpr.expression(1)))
                     .setSourceLocation(unit.sourceLocation(expression));
         } else if (expression instanceof PrimaryExprContext primaryExprContext){
             if(primaryExprContext.primaryExpression() instanceof LiteralExprContext literalExpr) {
@@ -391,7 +391,7 @@ public class BlockCompiler {
                return this.methodCall(left, methodCall);
             } else {
                 var namePath = memberAccessExpr.namePath();
-                var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, left.inferType(),left, (FormalNamePathContext) namePath).resolve();
+                var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, left.inferType(), left, (FormalNamePathContext) namePath).resolve();
                 return right;
             }
         } else if(expression instanceof QuotedExprContext quotedExpr){
@@ -404,7 +404,7 @@ public class BlockCompiler {
 //                case NOT_IDENTITY_EQUAL ->
                 default -> throw new UnsupportedOperationException("'%s' not supported".formatted(equalsExpr.bop));
             };
-            return new Equals(expression(equalsExpr.expression(0)), expression(equalsExpr.expression(1)), type).setSourceLocation(unit.sourceLocation(expression));
+            return new Equals(functionDef, expression(equalsExpr.expression(0)), expression(equalsExpr.expression(1)), type).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CreatorExprContext creatorExpr) {
             return creator(creatorExpr);
         } else if(expression instanceof ChainCreatorExprContext chainCreatorExpr){
@@ -415,7 +415,7 @@ public class BlockCompiler {
             var type = unit.parseType(functionDef, castTypeExprContext.variableType(), false, false);
             ClassDef t = extractType(type);
             Compiler.processClassTillStage(t, CompilingStage.AllocateSlots);
-            return new Cast(expression(castTypeExprContext.expression()), t, true);
+            return new Cast(functionDef, expression(castTypeExprContext.expression()), t, true);
 //        } else if(expression instanceof HighPriorCastTypeExprContext highPriorCastTypeExprContext) {
 //            ClassDef type;
 //            if(highPriorCastTypeExprContext.primitiveType() != null){
@@ -431,11 +431,11 @@ public class BlockCompiler {
             var index = expression(elementExpr.expression(1));
             Root root = functionDef.getRoot();
             if(root.getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())) {
-                return new ArrayElement(obj, index).setSourceLocation(unit.sourceLocation(expression));
+                return new ArrayElement(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
             } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())) {
-                return new ListElement(obj, index).setSourceLocation(unit.sourceLocation(expression));
+                return new ListElement(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
             } else if(root.getAnyReadwriteMap().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyMap().isThatOrSuperOfThat(obj.inferType())){
-                return new MapValue(obj, index).setSourceLocation(unit.sourceLocation(expression));
+                return new MapValue(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
             } else {
                 throw new TypeMismatchError("an array, a List or a Map expected", unit.sourceLocation(elementExpr));
             }
@@ -466,23 +466,23 @@ public class BlockCompiler {
                 case MOD -> ArithmeticExpr.Type.Mod;
                 default -> throw new RuntimeException("unexpected type " + multiDivModExpr.bop);
             };
-            return new ArithmeticExpr(type, expression(multiDivModExpr.expression(0)), expression(multiDivModExpr.expression(1)))
+            return new ArithmeticExpr(functionDef,type, expression(multiDivModExpr.expression(0)), expression(multiDivModExpr.expression(1)))
                     .setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CompareExprContext compareExpr){
             return compareExpr(compareExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof InstanceOfExprContext instanceOfExpr){
             return instanceOfExpr(instanceOfExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof BitAndExprContext expr){
-            return new BitOpExpr(BitOpExpr.Type.BitAnd,expression(expr.expression(0)), expression(expr.expression(1)))
+            return new BitOpExpr(functionDef,BitOpExpr.Type.BitAnd,expression(expr.expression(0)), expression(expr.expression(1)))
                     .setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof BitXorExprContext expr){
-            return new BitOpExpr(BitOpExpr.Type.BitXor,expression(expr.expression(0)), expression(expr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
+            return new BitOpExpr(functionDef,BitOpExpr.Type.BitXor,expression(expr.expression(0)), expression(expr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof BitOrExprContext expr){
-            return new BitOpExpr(BitOpExpr.Type.BitOr,expression(expr.expression(0)), expression(expr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
+            return new BitOpExpr(functionDef,BitOpExpr.Type.BitOr,expression(expr.expression(0)), expression(expr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof AndExprContext andExpr){
-            return new AndExpr(expression(andExpr.expression(0)), expression(andExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
+            return new AndExpr(functionDef,expression(andExpr.expression(0)), expression(andExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof OrExprContext orExpr) {
-            return new OrExpr(expression(orExpr.expression(0)), expression(orExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
+            return new OrExpr(functionDef, expression(orExpr.expression(0)), expression(orExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof ShiftExprContext shiftExprContext){
             return shiftExpr(shiftExprContext).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof PostWithExprContext postWithExpr){
@@ -563,7 +563,7 @@ public class BlockCompiler {
         var r = expressions.getFirst();
         for (int j = 1; j < expressions.size(); j++) {
             Expression expr = expressions.get(j);
-            r = new Concat(r, expr);
+            r = functionDef.concat(r, expr);
         }
         return r;
     }
@@ -579,31 +579,31 @@ public class BlockCompiler {
         } else {
             receiverVar = null;
         }
-        return new InstanceOf(expression(instanceOfExpr.expression()), type, receiverVar);
+        return new InstanceOf(functionDef, expression(instanceOfExpr.expression()), type, receiverVar);
     }
 
     private Expression ifElseExpr(IfElseExprContext ifElseExpr) throws CompilationError {
         var ifPart = expression(ifElseExpr.ifPart);
         var elsePart = expression(ifElseExpr.elsePart);
         var cond = expression(ifElseExpr.condition);
-        return new IfElseExpr(ifPart, cond, elsePart);
+        return new IfElseExpr(functionDef, ifPart, cond, elsePart);
     }
 
     private Expression prefixExpr(PrefixExprContext prefixExpr) throws CompilationError {
         Expression expression = expression(prefixExpr.expression());
         switch (prefixExpr.prefix.getType()) {
             case ADD:
-                return new Pos(expression);
+                return new Pos(functionDef, expression);
             case SUB:
-                return new Neg(expression);
+                return new Neg(functionDef, expression);
             case NOT:
-                return new Not(expression);
+                return new Not(functionDef,expression);
             case INC:
-                return new SelfArithmetic(expression, new IntLiteral(1), SelfArithmetic.Type.Inc);
+                return new SelfArithmetic(functionDef,expression, new IntLiteral(1), SelfArithmetic.Type.Inc);
             case DEC:
-                return new SelfArithmetic(expression, new IntLiteral(1), SelfArithmetic.Type.Dec);
+                return new SelfArithmetic(functionDef, expression, new IntLiteral(1), SelfArithmetic.Type.Dec);
             case BITNOT:
-                return new BitNot(expression);
+                return new BitNot(functionDef, expression);
             default:
                 throw new RuntimeException("TODO");
         }
@@ -612,7 +612,7 @@ public class BlockCompiler {
     private Expression incDec(IncDecExprContext incDecExpr) throws CompilationError {
         var expr = incDecExpr.expression();
         SelfArithmetic.Type type = incDecExpr.INC() != null ? SelfArithmetic.Type.IncPost : SelfArithmetic.Type.DecPost;
-        return new SelfArithmetic(expression(expr), new IntLiteral(1), type);
+        return new SelfArithmetic(functionDef, expression(expr), new IntLiteral(1), type);
     }
 
 
@@ -623,7 +623,7 @@ public class BlockCompiler {
         SourceLocation sourceLocation = unit.sourceLocation(assignExpr);
         switch (bopType) {
             case ASSIGN:
-                return Assign.to((Assign.Assignee) assignee, value).setSourceLocation(sourceLocation);
+                return functionDef.assign((Assign.Assignee) assignee, value).setSourceLocation(sourceLocation);
             case ADD_ASSIGN:
             case SUB_ASSIGN:
             case MUL_ASSIGN:
@@ -637,24 +637,24 @@ public class BlockCompiler {
                     case MOD_ASSIGN -> SelfArithmetic.Type.SelfMod;
                     default -> throw new UnsupportedOperationException("impossible");
                 };
-                return new SelfArithmetic(assignee, value,arithType).setSourceLocation(sourceLocation);
+                return new SelfArithmetic(functionDef, assignee, value,arithType).setSourceLocation(sourceLocation);
 
             case AND_ASSIGN:
-                return new SelfLogicExpr(assignee, value, SelfLogicExpr.Type.And).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new SelfLogicExpr(functionDef, assignee, value, SelfLogicExpr.Type.And).setSourceLocation(unit.sourceLocation(assignExpr));
             case OR_ASSIGN:
-                return new SelfLogicExpr(assignee, value, SelfLogicExpr.Type.Or).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new SelfLogicExpr(functionDef, assignee, value, SelfLogicExpr.Type.Or).setSourceLocation(unit.sourceLocation(assignExpr));
             case BITAND_ASSIGN:
-                return new SelfBitOpExpr(assignee,value, SelfBitOpExpr.Type.BitAnd).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new SelfBitOpExpr(functionDef, assignee,value, SelfBitOpExpr.Type.BitAnd).setSourceLocation(unit.sourceLocation(assignExpr));
             case BITOR_ASSIGN:
-                return new SelfBitOpExpr(assignee,value, SelfBitOpExpr.Type.BitOr).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new SelfBitOpExpr(functionDef, assignee,value, SelfBitOpExpr.Type.BitOr).setSourceLocation(unit.sourceLocation(assignExpr));
             case BITXOR_ASSIGN:
-                return new SelfBitOpExpr(assignee,value, SelfBitOpExpr.Type.BitXor).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new SelfBitOpExpr(functionDef, assignee,value, SelfBitOpExpr.Type.BitXor).setSourceLocation(unit.sourceLocation(assignExpr));
             case LSHIFT_ASSIGN:
-                return new SelfBitShiftExpr(assignee,value, SelfBitShiftExpr.Type.LShift).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new SelfBitShiftExpr(functionDef, assignee,value, SelfBitShiftExpr.Type.LShift).setSourceLocation(unit.sourceLocation(assignExpr));
             case RSHIFT_ASSIGN:
-                return new SelfBitShiftExpr(assignee,value, SelfBitShiftExpr.Type.RShift).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new SelfBitShiftExpr(functionDef, assignee,value, SelfBitShiftExpr.Type.RShift).setSourceLocation(unit.sourceLocation(assignExpr));
             case URSHIFT_ASSIGN:
-                return new SelfBitShiftExpr(assignee,value, SelfBitShiftExpr.Type.URShift).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new SelfBitShiftExpr(functionDef, assignee,value, SelfBitShiftExpr.Type.URShift).setSourceLocation(unit.sourceLocation(assignExpr));
             case COPY_ASSIGN:
                 ClassDef assigneeType = assignee.inferType();
                 ClassDef valueType = value.inferType();
@@ -672,7 +672,7 @@ public class BlockCompiler {
                 } else {
                     throw new TypeMismatchError("'%s' and '%s' has no explicit relation".formatted(assigneeType.getFullname(), valueType.getFullname()), value.getSourceLocation());
                 }
-                return new CopyAssign(assignee, value, commonType).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new CopyAssign(functionDef, assignee, value, commonType).setSourceLocation(unit.sourceLocation(assignExpr));
             case SET_VALUE:
 //TODO
             default:
@@ -688,7 +688,7 @@ public class BlockCompiler {
             case LE -> Compare.Type.LE;
             default -> throw new UnsupportedOperationException("'%s' not supported".formatted(compareExpr.bop));
         };
-        return new Compare(expression( compareExpr.expression(0)),expression(compareExpr.expression(1)), type);
+        return new Compare(functionDef, expression( compareExpr.expression(0)),expression(compareExpr.expression(1)), type);
     }
 
     private Expression shiftExpr(ShiftExprContext shiftExprContext) throws CompilationError {
@@ -705,7 +705,7 @@ public class BlockCompiler {
             type = BitShiftExpr.Type.URShift;
         }
         List<ExpressionContext> expression = shiftExprContext.expression();
-        return new BitShiftExpr(type, this.expression(expression.get(0)), this.expression(expression.get(1)));
+        return new BitShiftExpr(functionDef, type, this.expression(expression.get(0)), this.expression(expression.get(1)));
     }
 
     private void gtLtNoBroken(List<TerminalNode> tokens, String s) throws SyntaxError {
@@ -758,7 +758,7 @@ public class BlockCompiler {
                     freeLength = true;
                 }
                 var arrayType = functionDef.getOrCreateArrayType(elementType, null);
-                expr = new ArrayCreate(arrayType, lengthExpr);
+                expr = new ArrayCreate(functionDef, arrayType, lengthExpr);
                 elementType = arrayType;
             }
             return expr;
@@ -773,7 +773,7 @@ public class BlockCompiler {
         var expr = unit.parseType(current.inferType(), chainCreator.declarationType(), true, true);
         if (expr instanceof ClassUnder.ClassUnderScope classUnderScope) {     // if it's under scope, expr.Class
             assert ((Scope) classUnderScope.getScope()).getDepth() == 0;
-            expr = ClassUnder.create(current, classUnderScope.getClassDef());
+            expr = functionDef.classUnder(current, classUnderScope.getClassDef());
         } else {
             // i.e. class under meta, class under meta of scope
             throw new ResolveError("illegal expression for '%s' creator".formatted(chainCreator.declarationType().getText()), unit.sourceLocation(chainCreatorExpr.expression()));
@@ -845,9 +845,9 @@ public class BlockCompiler {
             return value;
         } else {
             if(assignee instanceof Assign.Assignee a) {
-                value = processBoundClass(a, value);
+                value = processBoundClass(functionDef, a, value);
             }
-            return new Cast(value, assigneeType).transform();
+            return functionDef.cast(value, assigneeType).transform();
         }
     }
 
@@ -876,7 +876,7 @@ public class BlockCompiler {
             Expression element = arrayElement(arrayElementContext, ((ArrayClassDef) arrayType).getElementType());
             elements.add(element);
         }
-        return new ArrayLiteral((ArrayClassDef) arrayType, elements).setSourceLocation(unit.sourceLocation(lArrayContext));
+        return new ArrayLiteral(functionDef, (ArrayClassDef) arrayType, elements).setSourceLocation(unit.sourceLocation(lArrayContext));
     }
 
     private Expression arrayElement(ArrayElementContext elementContext, ClassDef elementType) throws CompilationError {
@@ -884,7 +884,7 @@ public class BlockCompiler {
             throw new UnsupportedOperationException("TODO");    //TODO
         }
         if(elementType != null){
-            return new Cast(expression(elementContext.expression()), elementType).transform();
+            return new Cast(functionDef, expression(elementContext.expression()), elementType).transform();
         } else {
             return expression(elementContext.expression());
         }
@@ -919,9 +919,9 @@ public class BlockCompiler {
         } else {
             ClassDef inferType = invocation.inferType();
             if(inferType instanceof FunctionDef) {   // a function instance
-                return new FunctionApply(extractInvokeMode(methodCall), invocation, forkContext);
+                return new FunctionApply(functionDef, extractInvokeMode(methodCall), invocation, forkContext);
             } else if(functionDef.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(inferType)){  // Function<R>
-                return new InvokeFunctor(Invoke.InvokeMode.Invoke, invocation, forkContext);
+                return new InvokeFunctor(functionDef, Invoke.InvokeMode.Invoke, invocation, forkContext);
             } else if(inferType instanceof ClassIntervalClassDef classIntervalClassDef) {   // `var v as [SomeFunction] = f; f()`, that means
                 var lBound = classIntervalClassDef.getLBoundClass();
                 if (lBound.isThatOrDerivedFromThat(lBound.getRoot().getFunctionBaseOfAnyClass())) {
@@ -935,7 +935,7 @@ public class BlockCompiler {
     private Expression invoke(MaybeFunction resolved, MethodCallContext methodCall, ArgumentsContext arguments) throws CompilationError {
         List<Expression> values = valueExpressions(arguments);
         Invoke.InvokeMode invokeMode = extractInvokeMode(methodCall);
-        var invoke = new Invoke(invokeMode, this.functionDef, resolved, values, unit.sourceLocation(methodCall));
+        var invoke = new Invoke(functionDef, invokeMode, resolved, values, unit.sourceLocation(methodCall));
         invoke.setForkContext(extractForkContext(methodCall));
         return invoke;
     }
@@ -996,7 +996,7 @@ public class BlockCompiler {
     private Expression create(Expression typeExpr, ParserRuleContext creatorContext, ArgumentsContext arguments, String constructorName) throws CompilationError {
         List<Expression> values = valueExpressions(arguments);
 
-        return new Creator(typeExpr, values, unit.sourceLocation(creatorContext), constructorName).transform();
+        return new Creator(functionDef, typeExpr, values, unit.sourceLocation(creatorContext), constructorName).transform();
     }
 
     private Expression create(Expression typeExpr, ParserRuleContext creatorContext, ArgumentsContext arguments) throws CompilationError {
@@ -1033,7 +1033,7 @@ public class BlockCompiler {
         SlotDef slot = getSlotsAllocator().acquireRegister(type);
         v.setSlot(slot);
         v.setName(slot.getName());
-        var r = reusable ? new Var.ReusingLocalVar(v, Var.LocalVar.VarMode.Temp): new Var.LocalVar(v, Var.LocalVar.VarMode.Temp);
+        var r = reusable ? new Var.ReusingLocalVar(functionDef, v, Var.LocalVar.VarMode.Temp): new Var.LocalVar(functionDef, v, Var.LocalVar.VarMode.Temp);
         if(reusable){
             getSlotsAllocator().lockRegister(slot);
             this.reusableTempVariables.put(expression, r);
@@ -1063,7 +1063,7 @@ public class BlockCompiler {
     }
 
     public Label createLabel(){
-        return new Label(nextLabelId++, this.code);
+        return new Label(functionDef, nextLabelId++, this.code);
     }
 
 
@@ -1086,7 +1086,7 @@ public class BlockCompiler {
             var st = this.blockStatement(blockStatementContext);
             if(st != null) statements.add(st);
         }
-        return new BlockStmt(statements).setSourceLocation(unit.sourceLocation(block));
+        return new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(block));
 
     }
 
@@ -1094,7 +1094,7 @@ public class BlockCompiler {
         var cond = parExpression(ifStmt.parExpression());
         var trueBranch = statement(ifStmt.trueBranch);
         Statement falseBranch = ifStmt.falseBranch == null ? null : statement(ifStmt.falseBranch);
-        return new IfThenElseStmt(cond, trueBranch, falseBranch);
+        return new IfThenElseStmt(functionDef, cond, trueBranch, falseBranch);
     }
 
     private Expression parExpression(ParExpressionContext parExpression) throws CompilationError {
@@ -1144,7 +1144,7 @@ public class BlockCompiler {
             Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);
 
             var iterVar = defineLocalVar(enhancedForControl.identifier(),variableModifiers, type);
-            return new ForEachStmt(label, iterVar, expression, statement(forStmt.statement()), mode, unit.sourceLocation(enhancedForControl));
+            return new ForEachStmt(functionDef, label, iterVar, expression, statement(forStmt.statement()), mode, unit.sourceLocation(enhancedForControl));
         } else {
             Statement init;
             ForInitContext forInit = forControl.forInit();
@@ -1162,7 +1162,7 @@ public class BlockCompiler {
             Expression condition = expr == null ? null : this.expression(expr);
             BlockStmt updateStatement = expressionList(forControl.forUpdate);
             Statement body = statement(forStmt.statement());
-            return new ForStmt(label,init, condition, updateStatement, body);
+            return new ForStmt(functionDef, label,init, condition, updateStatement, body);
         }
     }
 
@@ -1170,20 +1170,20 @@ public class BlockCompiler {
         if(expressionList == null) return null;
         List<Statement> ls = new ArrayList<>();
         for (ExpressionContext expression : expressionList.expression()) {
-            ls.add(new ExpressionStmt(this.expression(expression)));
+            ls.add(new ExpressionStmt(functionDef, this.expression(expression)));
         }
-        return new BlockStmt(ls).setSourceLocation(unit.sourceLocation(expressionList));
+        return new BlockStmt(functionDef, ls).setSourceLocation(unit.sourceLocation(expressionList));
     }
 
     private Statement whileStmt(WhileStmtContext whileStmt) throws CompilationError {
         var cond = parExpression(whileStmt.parExpression());
         String label = whileStmt.label() != null ? whileStmt.label().identifier().getText() : null;
-        return new WhileStmt(label, cond, statement(whileStmt.statement()));
+        return new WhileStmt(functionDef, label, cond, statement(whileStmt.statement()));
     }
     DoWhileStmt doWhileStmt(DoWhileStmtContext doWhileStmt) throws CompilationError {
         var cond = parExpression(doWhileStmt.parExpression());
         String label = doWhileStmt.label() != null ? doWhileStmt.label().identifier().getText() : null;
-        return new DoWhileStmt(label, cond, statement(doWhileStmt.statement()));
+        return new DoWhileStmt(functionDef, label, cond, statement(doWhileStmt.statement()));
     }
     Statement switchStmt(SwitchStmtContext switchStmt) throws CompilationError {
         var condition = this.parExpression(switchStmt.parExpression());
@@ -1216,7 +1216,7 @@ public class BlockCompiler {
         if(last != null){
             switchGroups.add(last);
         }
-        return new SwitchCaseStmt(condition, switchGroups);
+        return new SwitchCaseStmt(functionDef, condition, switchGroups);
     }
 
     private SwitchCaseStmt.Case switchLabel(SwitchLabelContext switchLabel) throws CompilationError {
@@ -1295,40 +1295,40 @@ public class BlockCompiler {
         }
         FinallyBlockContext finallyBlockContext = tryStmt.finallyBlock();
         BlockStmt finallyBlock = finallyBlockContext == null ? null : block(finallyBlockContext.block());
-        return new TryCatchFinallyStmt(tryBlock, catchCauses, finallyBlock);
+        return new TryCatchFinallyStmt(functionDef, tryBlock, catchCauses, finallyBlock);
     }
 
     ThrowStmt throwStmt(ThrowStmtContext throwStmt) throws CompilationError {
-        return new ThrowStmt(expression(throwStmt.expression()));
+        return new ThrowStmt(functionDef, expression(throwStmt.expression()));
     }
 
     Statement breakStmt(BreakStmtContext breakStmt){
         var id = breakStmt.identifier();
-        return new BreakStmt(id == null ? null : id.getText());
+        return new BreakStmt(functionDef, id == null ? null : id.getText());
     }
 
     Statement continueStmt(ContinueStmtContext continueStmt){
         var id = continueStmt.identifier();
-        return new ContinueStmt(id == null ? null : id.getText());
+        return new ContinueStmt(functionDef, id == null ? null : id.getText());
     }
 
     void yieldStmt(YieldStmtContext yieldStmt){
 
     }
     WithStmt withStmt(WithStmtContext withStmt) throws CompilationError {
-        var expression = new CurrWithExpression(parExpression(withStmt.parExpression()));
+        var expression = new CurrWithExpression(functionDef, parExpression(withStmt.parExpression()));
         withExpressionStack.push(expression);
         var stmt = statement(withStmt.statement());
         withExpressionStack.pop();
-        return new WithStmt(expression, stmt);
+        return new WithStmt(functionDef, expression, stmt);
     }
 
     private Expression withExpr(PostWithExprContext postWithExpr) throws CompilationError {
-        var expression = new CurrWithExpression(this.expression(postWithExpr.expression()));
+        var expression = new CurrWithExpression(functionDef, this.expression(postWithExpr.expression()));
         withExpressionStack.push(expression);
         var stmt = this.statement(postWithExpr.postWith().statement());
         withExpressionStack.pop();
-        return new WithExpr(expression, stmt);
+        return new WithExpr(functionDef, expression, stmt);
     }
 
     ViaStmt viaStmt (ViaStmtContext viaStmt ) throws CompilationError {
@@ -1337,7 +1337,7 @@ public class BlockCompiler {
             throw new TypeMismatchError("a ViaObject expected", par.getSourceLocation());
         }
         Statement stmt = this.statement(viaStmt.statement());
-        return new ViaStmt(par, stmt);
+        return new ViaStmt(functionDef, par, stmt);
     }
 
     private Statement asyncInvokeFunctorStmt(AsyncInvokeFunctorStmtContext asyncInvokeFunctorStmt) throws CompilationError {
@@ -1351,7 +1351,7 @@ public class BlockCompiler {
         if(!functionDef.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(expression.inferType())){
             throw new TypeMismatchError("functor expected",expression.getSourceLocation());
         }
-        return new AsyncInvokeFunctorStmt(mode, expression);
+        return new AsyncInvokeFunctorStmt(functionDef, mode, expression);
     }
 
     private Expression invokeFunctor(AwaitFunctorContext invokeFunctorContext) throws CompilationError {
@@ -1367,7 +1367,7 @@ public class BlockCompiler {
         if (!functionDef.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(f.inferType())) {
             throw new TypeMismatchError("functor expected", f.getSourceLocation());
         }
-        return new InvokeFunctor(Invoke.InvokeMode.Await, f, forkContextExpr);
+        return new InvokeFunctor(functionDef, Invoke.InvokeMode.Await, f, forkContextExpr);
     }
 
     public List<ClassDef> getHandledExceptions() {

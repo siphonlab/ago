@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.expression;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -24,20 +25,21 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import java.util.Collections;
 import java.util.Objects;
 
-public class ToString extends ExpressionBase{
+public class ToString extends ExpressionInFunctionBody{
 
     private final Expression expression;
     private final ClassDef exprClass;
 
-    public ToString(Expression expression, ClassDef exprClass) throws CompilationError {
+    public ToString(FunctionDef ownerFunction, Expression expression, ClassDef exprClass) throws CompilationError {
+        super(ownerFunction);
         this.expression = expression.transform();
         this.setParent(expression.getParent());
         expression.setParent(this);
         this.exprClass = exprClass;
     }
 
-    public ToString(Expression expression) throws CompilationError {
-        this(expression, expression.inferType());
+    public ToString(FunctionDef ownerFunction,Expression expression) throws CompilationError {
+        this(ownerFunction, expression, expression.inferType());
     }
 
 
@@ -54,9 +56,9 @@ public class ToString extends ExpressionBase{
     @Override
     protected Expression transformInner() throws CompilationError {
         if(expression instanceof Literal<?> literal){
-            return new Cast(literal, PrimitiveClassDef.STRING).transform();
+            return ownerFunction.cast(literal, PrimitiveClassDef.STRING).transform();
         } else {
-            return new Invoke(Invoke.InvokeMode.Invoke, new ClassUnder.ClassUnderInstance(expression, exprClass.findMethod("toString#")), Collections.emptyList(), this.getSourceLocation());
+            return ownerFunction.invoke(Invoke.InvokeMode.Invoke, new ClassUnder.ClassUnderInstance(ownerFunction, expression, exprClass.findMethod("toString#")), Collections.emptyList(), this.getSourceLocation());
         }
     }
 

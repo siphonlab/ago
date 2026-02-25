@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.expression.math;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 
@@ -31,8 +32,8 @@ import static org.siphonlab.ago.TypeCode.*;
 
 public class Pos extends UnaryArithmetic {
 
-    public Pos(Expression value) throws CompilationError {
-        super(value);
+    public Pos(FunctionDef ownerFunction, Expression value) throws CompilationError {
+        super(ownerFunction, value);
     }
 
     @Override
@@ -40,13 +41,13 @@ public class Pos extends UnaryArithmetic {
         ClassDef type = this.value.inferType();
 
         if(type.getTypeCode() == STRING){   // auto cast to double like js does
-            return new Cast(this.value, PrimitiveClassDef.DOUBLE).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
+            return ownerFunction.cast(this.value, PrimitiveClassDef.DOUBLE).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
         }
         if(type.getTypeCode() == CHAR){     // char cast to int
-            return new Cast(this.value, PrimitiveClassDef.INT).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
+            return ownerFunction.cast(this.value, PrimitiveClassDef.INT).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
         }
         if(type.getTypeCode() == OBJECT && type.isPrimitiveOrBoxed()){
-            return new Unbox(this.value).setParent(this.getParent()).transform();
+            return ownerFunction.unbox(this.value).setParent(this.getParent()).transform();
         }
         if(!type.isPrimitiveNumberFamily()){
             throw new TypeMismatchError("illegal type '%' for positive, number or number string required", this.getSourceLocation());

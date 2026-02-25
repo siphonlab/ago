@@ -33,12 +33,14 @@ import java.util.function.Consumer;
 
 public class FunctionInvocationResolver {
 
+    private final FunctionDef ownerFunction;
     private final FunctionDef method;
     private final Collection<FunctionDef> candidates;
     private final List<Expression> arguments;
     private final SourceLocation sourceLocation;
 
-    public FunctionInvocationResolver(FunctionDef method, Collection<FunctionDef> candidates, List<Expression> arguments, SourceLocation sourceLocation){
+    public FunctionInvocationResolver(FunctionDef ownerFunction, FunctionDef method, Collection<FunctionDef> candidates, List<Expression> arguments, SourceLocation sourceLocation){
+        this.ownerFunction = ownerFunction;
         this.method = method;
         this.candidates = candidates != null && !candidates.isEmpty() ? candidates : null;
         assert this.candidates == null || this.candidates.contains(method);
@@ -125,7 +127,7 @@ public class FunctionInvocationResolver {
             ClassDef argType = null;
             try {
                 if(parameterType instanceof ClassIntervalClassDef) {     // cast class to ScopedClassInterval
-                    argType = new Cast(arguments.get(i), parameterType).transform().inferType();
+                    argType = new Cast(ownerFunction, arguments.get(i), parameterType).transform().inferType();
                     argTypesPreserveVarArgs.add(argType);
                     argPos++;
                 } else if(parameterType instanceof VarArgs varArgs){
@@ -138,7 +140,7 @@ public class FunctionInvocationResolver {
                             eleType = indicateGenericType(varArgs.getElementType(),t, resolveResult);
                         } else {
                             try {
-                                new CastStrategy(arg.getSourceLocation(), false).castTo(arg, eleType);
+                                new CastStrategy(ownerFunction, arg.getSourceLocation(), false).castTo(arg, eleType);
                             } catch (TypeMismatchError e){
                                 resolveResult.error = e;
                                 return resolveResult;

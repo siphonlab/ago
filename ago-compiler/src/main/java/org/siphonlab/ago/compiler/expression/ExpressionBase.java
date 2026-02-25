@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.expression;
 
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 public abstract class ExpressionBase implements Expression{
