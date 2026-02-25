@@ -260,7 +260,11 @@ propertyName
     ;
 
 
-typeOfFunction:      AS variableType;
+typeOfFunction:
+     AS variableType    # ReturnVariableType
+     | AS typeRange     # ReturnTypeRange
+     | LIKE namePath    # ReturnLike
+ ;
 
 typeOfVariable:
       AS variableType implementsPhrase?             # AsType

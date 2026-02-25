@@ -64,7 +64,7 @@ public class CastToScopedClassRef extends ExpressionBase{
             var fld = new Var.Field(localVar, classInterval.getVariable("scope"));
 
             if(scope != null) {
-                Assign.to(fld, scope).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                Assign.to(fld, scope, false).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
             }
 
             blockCompiler.releaseRegister(localVar);

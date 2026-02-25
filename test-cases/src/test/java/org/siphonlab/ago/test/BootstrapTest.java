@@ -136,7 +136,7 @@ public class BootstrapTest {
     @Test
     public void callback_test() throws CompilationError, IOException {
         Util.run("bootstrap/14.callback.ago");
-        assertTrue(Trace.outputted("3", "6", "103", "106", "114", "160"));
+        assertTrue(Trace.outputted("3", "6", "103", "106", "114", "160", "600", "600", "1120"));
     }
 
     @Test

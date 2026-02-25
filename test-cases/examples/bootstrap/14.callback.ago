@@ -7,6 +7,12 @@ fun add2(a as int, b as int) as int{
 }
 
 class C{
+    metaclass{
+        metaValue as int = 20;
+        fun multi(a as int, b as int) as int{
+            return metaValue * a * b;
+        }
+    }
     i as int
     fun new(i as int){
         this.i = i;
@@ -17,6 +23,11 @@ class C{
 
     fun add2(a as int, b as int) as int{
         return i + a + b + a + b
+    }
+
+    fun wrapMulti() like add{
+        var f like add = multi;
+        return f;
     }
 }
 
@@ -35,7 +46,14 @@ fun main(){
     var f like add = c.add2
     Trace.print(f(3, 4))
 
-    test(f, 10, 20)
+    test(f, 10, 20);
 
 //    test((fun f1(a as int, b as int) as int{return c.add(a, b) + 1000}), 30, 40)       //TODO
+
+    f = C.multi;
+    Trace.print(f(5, 6))    // 20 * 5 * 6 = 600
+    test(C.multi, 5, 6)     // 600
+
+    f = c.wrapMulti();
+    Trace.print(f(7, 8))
 }

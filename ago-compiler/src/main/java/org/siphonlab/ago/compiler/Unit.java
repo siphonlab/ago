@@ -651,6 +651,31 @@ public class Unit {
         }
     }
 
+    protected ClassDef parseType(ClassDef scopeClass, AgoParser.TypeOfFunctionContext typeOfFunction) throws CompilationError {
+        if (typeOfFunction == null) {
+            return PrimitiveClassDef.VOID;
+        }
+        if (typeOfFunction instanceof AgoParser.ReturnVariableTypeContext asType) {
+            var expr = parseType(scopeClass, asType.variableType(), false, false);
+            return extractType(expr);
+        } else {
+            Literal[] args;
+            if (typeOfFunction instanceof AgoParser.ReturnTypeRangeContext asTypeRange) {
+                args = parseTypeRange(asTypeRange.typeRange(), scopeClass);
+            } else if (typeOfFunction instanceof AgoParser.ReturnLikeContext likeType) {
+                var type = parseTypeName(scopeClass, likeType.namePath(), false);
+                type = tryExtractFunctionInterfaceInstantiation(likeType, type);
+                args = new Literal[]{new ClassRefLiteral(type), new ClassRefLiteral(root.getAnyClass())};
+            } else {
+                throw new RuntimeException("impossible");
+            }
+            ClassDef classInterval = root.getScopedClassInterval();
+            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), args, null);
+            scopeClass.registerConcreteType(pc);
+            return pc;
+        }
+    }
+
     private ClassDef tryExtractFunctionInterfaceInstantiation(ParserRuleContext ruleContext, ClassDef type) throws CompilationError {
         if(type instanceof FunctionDef functionDef){
             ClassDef functionInterfaceInstantiation = functionDef.getFunctionInterfaceInstantiation();

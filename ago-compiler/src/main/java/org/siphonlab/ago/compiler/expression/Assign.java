@@ -50,10 +50,14 @@ public abstract class Assign extends ExpressionBase {
     }
 
     public static Expression to(Assignee assignee, Expression value) throws CompilationError {
+        return to(assignee, value, true);
+    }
+    public static Expression to(Assignee assignee, Expression value, boolean processBoundClass) throws CompilationError {
         var t = assignee.transform();
 
         value = value.transform();
-        value = processBoundClass(assignee, value);
+        if(processBoundClass)
+            value = processBoundClass(assignee, value);
 
         if(t instanceof Var.LocalVar localVar){
             if(value instanceof LiteralResultExpression literalResultExpression){

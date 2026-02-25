@@ -23,6 +23,7 @@ import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
+import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.GenericTypeCode;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
@@ -127,7 +128,9 @@ public class FunctionDef extends ClassDef {
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: parse function fields".formatted(this));
         var methodDecl = getMethodDecl();
         if (methodDecl.typeOfFunction() != null) {
-            this.setResultType(unit.extractType(unit.parseType(this, methodDecl.typeOfFunction().variableType(), false, false)));
+            AgoParser.TypeOfFunctionContext typeOfFunction = methodDecl.typeOfFunction();
+            ClassDef r = unit.parseType(this, typeOfFunction);
+            this.setResultType(r);
         } else {
             this.setResultType(PrimitiveClassDef.VOID);
         }
