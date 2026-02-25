@@ -15,9 +15,7 @@
  */
 package org.siphonlab.ago.compiler.expression;
 
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
@@ -38,7 +36,11 @@ public class Scope extends ExpressionBase implements MaybeFunction{
 
     public Scope(int depth, ClassDef classDef) {
         this.depth = depth;
-        this.classDef = classDef;
+        if(classDef.isTrait()){
+            this.classDef = new TraitDefInScope(classDef);
+        } else {
+            this.classDef = classDef;
+        }
         assert classDef != null;
     }
 
