@@ -20,6 +20,7 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Cast;
+import org.siphonlab.ago.compiler.expression.CastStrategy;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -149,7 +150,7 @@ public class Variable {
             if(primaryExprContext.primaryExpression() instanceof AgoParser.LiteralExprContext literalExpr){
                 Literal<?> literalValue = Literal.parse(literalExpr.literal(), ownerClass.getRoot(), ownerClass.unit.sourceLocation(literalExpr));
                 if(this.type.isPrimitive()){
-                    var l = new Cast(literalValue, this.type).transform();
+                    var l = CastStrategy.castLiteral(literalValue, this.type, literalValue.getSourceLocation()).transform();
                     if(l instanceof Literal<?> l2){
                         this.constLiteralValue = l2;
                     }

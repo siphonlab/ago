@@ -97,11 +97,14 @@ public class NamePathResolver {
     private final ResolveMode resolveMode;
 
     private final Unit unit;
-    private final ClassDef scopeClass;
+    private final ClassDef scopeClass;      // it's head.inferType() if there is head, otherwise ownerFunction
     private final Expression head;
     private final ParserRuleContext namePath;
     private final List<Id> ids;
     private int pos;
+
+    // expression is in body of ownerFunction
+    private FunctionDef ownerFunction;
 
 
     private CompilationError error;
@@ -162,11 +165,19 @@ public class NamePathResolver {
     }
 
     public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, AgoParser.FormalNamePathContext namePath){
-        this(resolveMode, unit, scopeClass, null, namePath);
+        this(resolveMode, unit, null, scopeClass, null, namePath, parseIds(namePath, unit));
+    }
+
+    public NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef scopeClass, AgoParser.FormalNamePathContext namePath){
+        this(resolveMode, unit, scopeClass, scopeClass, null, namePath, parseIds(namePath, unit));
     }
 
     public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, AgoParser.IdentifierAllowPostfixContext identifierAllowPostfixContext){
-        this(resolveMode, unit, scopeClass, null, identifierAllowPostfixContext, Collections.singletonList(new Id(identifierAllowPostfixContext, unit.sourceLocation(identifierAllowPostfixContext))));
+        this(resolveMode, unit, null, scopeClass, null, identifierAllowPostfixContext, Collections.singletonList(new Id(identifierAllowPostfixContext, unit.sourceLocation(identifierAllowPostfixContext))));
+    }
+
+    public NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef ownerFunction, ClassDef scopeClass, AgoParser.FormalNamePathContext formalNamePath) {
+        this(resolveMode, unit, ownerFunction, scopeClass, null, formalNamePath, parseIds(formalNamePath, unit));
     }
 
     @Override
@@ -174,8 +185,12 @@ public class NamePathResolver {
         return "(Resolve %s in %s)".formatted(this.namePath.getText(), this.scopeClass.getFullname());
     }
 
-    public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, Expression head, AgoParser.FormalNamePathContext namePath){
-        this(resolveMode, unit, scopeClass, head, namePath, parseIds(namePath, unit));
+    public NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef ownerFunction,  Expression head, AgoParser.FormalNamePathContext namePath) throws CompilationError {
+        this(resolveMode, unit, ownerFunction, head.inferType(), head, namePath, parseIds(namePath, unit));
+    }
+
+    public FunctionDef getOwnerFunction() {
+        return ownerFunction;
     }
 
     private static List<Id> parseIds(AgoParser.FormalNamePathContext namePath, Unit unit) {
@@ -205,9 +220,10 @@ public class NamePathResolver {
         return ids;
     }
 
-    private NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, Expression head, ParserRuleContext namePath, List<Id> ids){
+    private NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef ownerFunction, ClassDef scopeClass, Expression head, ParserRuleContext namePath, List<Id> ids){
         this.resolveMode = resolveMode;
         this.unit = unit;
+        this.ownerFunction = ownerFunction;
         this.scopeClass = scopeClass;
         this.head = head;
         this.namePath = namePath;
@@ -324,11 +340,11 @@ public class NamePathResolver {
                     return new Scope(depth, c).fromPronoun(PronounType.This).setSourceLocation(idThis.sourceLocation);
                 } else if((c.isClass() || c.isFunction()) && deferClass.isTrait()){
                     var traitField = c.getFieldForTrait(deferClass);
-                    if(traitField != null){
+                    if(traitField != null && this.ownerFunction != null){
                         return traitField(new Scope(depth, c).fromPronoun(PronounType.This).setSourceLocation(idThis.sourceLocation), deferClass)
                                 .setSourceLocation(idThis.sourceLocation);
                     }
-                } else if(c.isTrait() && deferClass.getPermitClass() == deferClass){
+                } else if(c.isTrait() && deferClass.getPermitClass() == deferClass && this.ownerFunction != null){
                     return permitClassField(new Scope(depth, c).fromPronoun(PronounType.This).setSourceLocation(idThis.sourceLocation)).setSourceLocation(idThis.sourceLocation);
                 }
             } else {
@@ -338,14 +354,15 @@ public class NamePathResolver {
         throw unit.resolveError(idThis.ast, "cannot resolve '%s' within current scope".formatted(deferClass.getFullname()));
     }
 
-    private Expression traitField(FunctionDef ownerFunction, Scope scope, ClassDef trait) throws CompilationError {
+    private Expression traitField(Scope scope, ClassDef trait) throws CompilationError {
+        assert ownerFunction != null;
         var field = scope.getClassDef().getFieldForTrait(trait);
         Var.Field fld = new Var.Field(ownerFunction, scope, field)
                 .setSourceLocation(scope.getClassDef().getUnit().sourceLocation(field.getDeclaration()));
         return fld;
     }
 
-    private Expression permitClassField(FunctionDef ownerFunction, Scope scope) throws CompilationError {
+    private Expression permitClassField(Scope scope) throws CompilationError {
         var field = scope.getClassDef().getFieldForPermitClass();
         Var.Field fld = new Var.Field(ownerFunction, scope, field)
                 .setSourceLocation(scope.getClassDef().getUnit().sourceLocation(field.getDeclaration()));
@@ -517,7 +534,7 @@ public class NamePathResolver {
         var id = currId(pos);
         try {
             return switch (curr) {
-                case null -> forward(id, pos);
+                case null -> forwardStart(id, pos);
                 case ConstClass constClass -> forward(constClass, id, pos);
                 case Var.LocalVar localVar -> forward(localVar, id, pos);
                 case Scope scope -> forward(scope, id, pos);
@@ -552,50 +569,49 @@ public class NamePathResolver {
         return null;
     }
 
-    Expression resolveVariableOrClass(Id id, int pos) throws CompilationError {
-        String name = id.text();
+    Expression resolveVariableOrClassInScopeClass(Id id, int pos) throws CompilationError {
         var atEnd = (pos == this.ids.size()  - 1);
         switch (resolveMode){
             case ForTypeName: {
-                var c = resolveClass(id, true, true);
+                var c = resolveClassInScopeClass(id, true, true);
                 if (c != null) return c;
                 break;
             }
             case ForInvokable:
             case ForTypeExpr: {
                 if(atEnd || id instanceof ParameterizedClass){      // GClass<Dog>.create make it not the end
-                    var c = resolveClass(id, true, true);
+                    var c = resolveClassInScopeClass(id, true, true);
                     if (c != null) return c;
                     if(id instanceof ParameterizedClass){
-                        resolveClass(id, true, true);
+                        resolveClassInScopeClass(id, true, true);
                     }
-                    var v = resolveVariable(id);
+                    var v = resolveVariableInScopeClass(id);
                     if (v != null) {
                         if (isClassInterval(v) || isFunction(v)) return v;    // TODO or type variable
                         if (resolveMode == ResolveMode.ForInvokable && isFunctor(v)) return v;
                     }
 
                 } else {
-                    var v = resolveVariable(id);
+                    var v = resolveVariableInScopeClass(id);
                     if (v != null) return v;
-                    var c = resolveClass(id, true, true);
+                    var c = resolveClassInScopeClass(id, true, true);
                     if (c != null) return c;
                 }
                 break;
             }
             case ForVariable: {
-                var v = resolveVariable(id);
+                var v = resolveVariableInScopeClass(id);
                 if (v != null) return v;    // TODO or type variable
                 if (!atEnd) {
-                    var c = resolveClass(id, true, true);
+                    var c = resolveClassInScopeClass(id, true, true);
                     if (c != null) return c;
                 }
                 break;
             }
             case ForValue: {
-                var v = resolveVariable(id);
+                var v = resolveVariableInScopeClass(id);
                 if (v != null) return v;    // TODO or type variable
-                var c = resolveClass(id, true, true);
+                var c = resolveClassInScopeClass(id, true, true);
                 if (c != null) return c;
             }
         }
@@ -662,8 +678,8 @@ public class NamePathResolver {
         return classDef.isThatOrDerivedFromThat(scopeClass.getRoot().getFunctionBaseOfAnyClass());
     }
 
-        // resolve from empty start
-    Expression forward(Id id, int pos) throws CompilationError {
+    // resolve from empty start
+    Expression forwardStart(Id id, int pos) throws CompilationError {
         if(id instanceof Pronoun pronoun) {
             return forward(resolvePronoun(pronoun), pos + 1);
         }
@@ -672,20 +688,22 @@ public class NamePathResolver {
             return new ConstClass(primitiveType.primitiveClassDef);
         }
 
-        var r = resolveVariableOrClass(id, pos);
+        var r = resolveVariableOrClassInScopeClass(id, pos);
         if(r != null){
             var r2 = forward(r.setSourceLocation(id.sourceLocation), pos + 1);
             if(r2 != null) return r2;
         }
 
-        var cls = tryFullname();
-        if(cls != null){
-            var distance = scopeClass.distanceToOuterClass(cls);
-            SourceLocation sourceLocation = unit.sourceLocation(namePath);
-            if(distance != -1){
-                return forward(new ClassOf.ClassOfScope(new Scope(distance, cls), 1).setSourceLocation(sourceLocation), this.pos);
-            } else {
-                return forward(new ConstClass(cls).setSourceLocation(sourceLocation), this.pos);
+        if(head == null) {
+            var cls = tryFullname();
+            if (cls != null) {
+                var distance = scopeClass.distanceToOuterClass(cls);
+                SourceLocation sourceLocation = unit.sourceLocation(namePath);
+                if (distance != -1) {
+                    return forward(new ClassOf.ClassOfScope(new Scope(distance, cls), 1).setSourceLocation(sourceLocation), this.pos);
+                } else {
+                    return forward(new ConstClass(cls).setSourceLocation(sourceLocation), this.pos);
+                }
             }
         }
         return null;
@@ -778,7 +796,7 @@ public class NamePathResolver {
         }
     }
 
-    private Expression resolveClass(Id id, boolean allowScopeScan, boolean allowMetaScan) throws CompilationError {
+    private Expression resolveClassInScopeClass(Id id, boolean allowScopeScan, boolean allowMetaScan) throws CompilationError {
         if(allowMetaScan && scopeClass.getMetaClassDef() != null){
             var r = resolveSubClassInMetaClass(new ConstClass(scopeClass), id);
             if (r != null) return findNearestParameterizedInterface(r);
@@ -825,20 +843,20 @@ public class NamePathResolver {
         return r;
     }
 
-    private Expression resolveVariable(Id id) throws CompilationError {
+    private Expression resolveVariableInScopeClass(Id id) throws CompilationError {
         if(id instanceof PrimitiveType || id instanceof ParameterizedClass){
             this.error = new TypeMismatchError("variable expected", id.sourceLocation);
             return null;
         }
 
         var attribute = scopeClass.getAttribute(id.text());
-        if(attribute != null){
-            return new Attribute(new Scope.Local(scopeClass), attribute.getGetter(), attribute.getSetter()).setSourceLocation(id.sourceLocation);
+        if(attribute != null && ownerFunction != null){
+            return new Attribute(ownerFunction, new Scope.Local(scopeClass), attribute.getGetter(), attribute.getSetter()).setSourceLocation(id.sourceLocation);
         }
 
         var c = scopeClass.getVariable(id.text());
         if(c != null)
-            return new Var.LocalVar(c, Var.LocalVar.VarMode.Existed).setSourceLocation(id.sourceLocation);
+            return new Var.LocalVar(ownerFunction, c, Var.LocalVar.VarMode.Existed).setSourceLocation(id.sourceLocation);
 
         if(scopeClass.getMetaClassDef() != null){
             var r = resolveVariable(new ConstClass(scopeClass), id, true);
@@ -951,7 +969,7 @@ public class NamePathResolver {
         if (innerClass != null) {
             var parameterizedClass = parameterizedClass(innerClass, id);
             if(parameterizedClass != innerClass){
-                return new ClassUnder.ClassUnderScope(classOfScope.getScope(), parameterizedClass).setSourceLocation(id.sourceLocation);
+                return new ClassUnder.ClassUnderScope(ownerFunction, classOfScope.getScope(), parameterizedClass).setSourceLocation(id.sourceLocation);
             }
             if(classOfScope.getMetaLevel() == 1){
                 int distance = scopeClass.distanceToOuterClass(innerClass);
@@ -959,11 +977,11 @@ public class NamePathResolver {
                     var r = ClassOf.create(new Scope(distance, innerClass)).setSourceLocation(id.sourceLocation);     // 对于 ParameterizedClass， 需要考虑是否为同一个类, 判断能否重入 Scope
                     return resolveCandidateFunctions(r, classOfScope.getClassDef(), id);
                 } else {
-                    var r = new ClassUnder.ClassUnderScope(classOfScope.getScope(), innerClass).setSourceLocation(id.sourceLocation);
+                    var r = new ClassUnder.ClassUnderScope(ownerFunction, classOfScope.getScope(), innerClass).setSourceLocation(id.sourceLocation);
                     return resolveCandidateFunctions(r, classOfScope.getClassDef(), id);
                 }
             } else {
-                var r = ClassUnder.create(classOfScope, innerClass).setSourceLocation(id.sourceLocation);
+                var r = ClassUnder.create(ownerFunction, classOfScope, innerClass).setSourceLocation(id.sourceLocation);
                 return resolveCandidateFunctions(r, classOfScope.getClassDef(), id);
             }
         }
@@ -978,14 +996,14 @@ public class NamePathResolver {
             if (innerClass != null) {
                 var parameterizedClass = parameterizedClass(innerClass, id);
                 if(parameterizedClass != innerClass){
-                    return new ClassUnder.ClassUnderScope(scope, parameterizedClass).setSourceLocation(id.sourceLocation);
+                    return new ClassUnder.ClassUnderScope(ownerFunction, scope, parameterizedClass).setSourceLocation(id.sourceLocation);
                 }
                 int distance = scopeClass.distanceToOuterClass(innerClass);
                 if (distance != -1) {
                     var r = ClassOf.create(new Scope(distance, innerClass)).setSourceLocation(id.sourceLocation);     // 对于 ParameterizedClass， 需要考虑是否为同一个类, 判断能否重入 Scope
                     return resolveCandidateFunctions(r, exprType, id);
                 } else {
-                    var r = new ClassUnder.ClassUnderScope(scope, innerClass).setSourceLocation(id.sourceLocation);
+                    var r = new ClassUnder.ClassUnderScope(ownerFunction, scope, innerClass).setSourceLocation(id.sourceLocation);
                     return resolveCandidateFunctions(r, exprType, id);
                 }
             }
@@ -1068,11 +1086,11 @@ public class NamePathResolver {
             if (c != null) {
                 var parameterizedClass = parameterizedClass(c, id);
                 if (parameterizedClass != c) {
-                    return ClassUnder.create(currClass == classDef ? constClass : new ConstClass(currClass).setSourceLocation(currClass.getUnit().sourceLocation(currClass.getDeclarationName())),
+                    return ClassUnder.create(ownerFunction, currClass == classDef ? constClass : new ConstClass(currClass).setSourceLocation(currClass.getUnit().sourceLocation(currClass.getDeclarationName())),
                             parameterizedClass).setSourceLocation(id.sourceLocation);
                 }
 
-                var r = ClassUnder.create(constClass, c).setSourceLocation(id.sourceLocation);
+                var r = ClassUnder.create(ownerFunction, constClass, c).setSourceLocation(id.sourceLocation);
                 return resolveCandidateFunctions(r, metaClassDef, id);
             }
         }
@@ -1143,10 +1161,10 @@ public class NamePathResolver {
                 if (c != null) {
                     var parameterizedClass = parameterizedClass(c, id);
                     if (parameterizedClass != c) {
-                        return ClassUnder.create(expression, parameterizedClass).setSourceLocation(id.sourceLocation);
+                        return ClassUnder.create(ownerFunction, expression, parameterizedClass).setSourceLocation(id.sourceLocation);
                     }
 
-                    var r = ClassUnder.create(expression, c).setSourceLocation(id.sourceLocation);
+                    var r = ClassUnder.create(ownerFunction, expression, c).setSourceLocation(id.sourceLocation);
                     return resolveCandidateFunctions(r, exprType, id);
                 }
             }
@@ -1232,13 +1250,13 @@ public class NamePathResolver {
             if(currType == null) return null;
 
             var attribute = currType.getAttribute(id.text());
-            if(attribute != null){
-                return new Attribute(curr, attribute.getGetter(), attribute.getSetter()).setSourceLocation(id.sourceLocation);
+            if(attribute != null && ownerFunction != null){
+                return new Attribute(ownerFunction, curr, attribute.getGetter(), attribute.getSetter()).setSourceLocation(id.sourceLocation);
             }
 
             Variable c = currType.getVariable(id.text());
             if (c != null) {
-                var r = Var.of(curr, c).setSourceLocation(id.sourceLocation);
+                var r = Var.of(ownerFunction, curr, c).setSourceLocation(id.sourceLocation);
                 if(curr instanceof ConstClass cls && cls.getClassDef().isEnum()){
                     if(c.getType() == cls.getClassDef()){
                         return new EnumValue((Var.Field) r, (Field) c);

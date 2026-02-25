@@ -51,7 +51,7 @@ public class ViaStmt extends Statement{
 
             FunctionDef functionDef = blockCompiler.getFunctionDef();
             Root root = functionDef.getRoot();
-            Expression funThis = new Scope(ownerFunction,0, functionDef).fromPronoun(NamePathResolver.PronounType.FunThis);
+            Expression funThis = new Scope(0, functionDef).fromPronoun(NamePathResolver.PronounType.FunThis);
 
             ClassUnder enterFun = (ClassUnder) ClassUnder.create(ownerFunction, viaObject, viaObject.inferType().getChild("enter#")).setSourceLocation(viaObject.getSourceLocation()).setParent(this);
             var invokeEnterFun = new Invoke(ownerFunction, Invoke.InvokeMode.Invoke, enterFun, Collections.singletonList(funThis), viaObject.getSourceLocation());

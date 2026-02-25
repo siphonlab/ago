@@ -48,7 +48,7 @@ public class ConstValue extends ExpressionBase{
         try {
             blockCompiler.enter(this);
 
-            ownerFunction.assign(localVar, constLiteralValue).termVisit(blockCompiler);
+            blockCompiler.getFunctionDef().assign(localVar, constLiteralValue).termVisit(blockCompiler);
         } catch (CompilationError e) {
             throw e;
         } finally {

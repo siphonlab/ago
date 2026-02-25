@@ -73,7 +73,7 @@ public class Equals extends BiExpression{
             right = new ClassRefLiteral(getClassOf(right));
             var leftType = left.inferType();
             if (leftType instanceof ScopedClassIntervalClassDef scopedClassIntervalClassDef) {
-                left = ownerFunction.unbox(left).transformInner();
+                left = new Unbox(this.ownerFunction, left).transformInner();
                 return Pair.of(left, right);
             } else if (left instanceof ClassOf || left instanceof ClassUnder || left instanceof ConstClass) {
                 left = new ClassRefLiteral(getClassOf(left));
@@ -205,7 +205,7 @@ public class Equals extends BiExpression{
     }
 
     public static boolean isLiteralEquals(Expression expression1, Expression expression2) throws CompilationError {
-        var eq = new Equals(expression1,expression2,Type.Equals).transform();
+        var eq = new Equals(null, expression1,expression2,Type.Equals).transform();
         if(eq instanceof BooleanLiteral booleanLiteral){
             return booleanLiteral.value;
         }

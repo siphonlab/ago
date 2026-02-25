@@ -22,6 +22,7 @@ import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.Cast;
+import org.siphonlab.ago.compiler.expression.CastStrategy;
 import org.siphonlab.ago.compiler.expression.EnumValue;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
@@ -144,7 +145,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                             AgoParser.LiteralContext literalContext = literalExpr.literal();
                             literalArguments[i] = Literal.parse(literalContext, getRoot(), unit.sourceLocation(literalExpr));
                         } else if (primaryExpr.primaryExpression() instanceof AgoParser.NamePathExprContext namePath) {
-                            var v = unit.resolveNamePath(this, namePath.namePath(), NamePathResolver.ResolveMode.ForValue);
+                            var v = unit.resolveNamePath(null, this, namePath.namePath(), NamePathResolver.ResolveMode.ForValue);
                             if(v instanceof EnumValue enumValue) {
                                 isLiteral = true;
                                 literalArguments[i] = enumValue.toLiteral();
@@ -180,7 +181,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                                 if(type.isEnum()){
                                     castedArgs.add(argument);
                                 } else {
-                                    var l = new Cast(argument, type).transform();
+                                    var l = CastStrategy.castLiteral(argument, type, argument.getSourceLocation());
                                     castedArgs.add((Literal<?>) l);
                                 }
                             } catch (CompilationError e) {

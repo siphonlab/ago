@@ -22,6 +22,7 @@ import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.ExpressionBase;
+import org.siphonlab.ago.compiler.expression.ExpressionInFunctionBody;
 import org.siphonlab.ago.compiler.expression.Var;
 
 public class ArrayLength extends ExpressionInFunctionBody {

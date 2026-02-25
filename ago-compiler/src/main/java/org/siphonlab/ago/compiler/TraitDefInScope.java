@@ -19,6 +19,7 @@ import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * use trait as scope member, i.e. trait.this, trait.this.xxx, super.xxx in descendant of trait
@@ -116,5 +117,11 @@ public class TraitDefInScope extends TraitDef{
     @Override
     public Field getFieldForPermitClass() {
         return baseTrait.getFieldForPermitClass();
+    }
+
+    @Override
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+        if(this.baseTrait == anotherClass) return this;
+        return super.asThatOrSuperOfThat(anotherClass, visited);
     }
 }

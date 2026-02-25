@@ -746,7 +746,12 @@ public class Unit {
 
     protected Expression parseType(ClassDef scopeClass, AgoParser.DeclarationTypeContext declarationType, boolean acceptTypeExpr, boolean allowGenericPlaceHolder) throws CompilationError {
         var namePath = declarationType.namePath();
-        var expr = resolveNamePath(scopeClass, namePath, acceptTypeExpr ? NamePathResolver.ResolveMode.ForTypeExpr : NamePathResolver.ResolveMode.ForTypeName);
+        Expression expr;
+        if(acceptTypeExpr){
+            expr = resolveNamePath(scopeClass instanceof FunctionDef f? f : null, scopeClass, namePath, NamePathResolver.ResolveMode.ForTypeExpr);
+        } else {
+            expr = resolveNamePath(null, scopeClass, namePath, NamePathResolver.ResolveMode.ForTypeName);
+        }
         if (expr instanceof ConstClass || expr instanceof ClassOf.ClassOfScope
                 || expr instanceof ClassUnder.ClassUnderScope ||
                 (expr instanceof ClassUnder.ClassUnderInstance u && u.getClassDef().getParent() instanceof MetaClassDef)) {
@@ -784,11 +789,11 @@ public class Unit {
         }
     }
 
-    protected Expression resolveNamePath(ClassDef scopeClass, AgoParser.NamePathContext namePath, NamePathResolver.ResolveMode resolveMode) throws CompilationError {
+    protected Expression resolveNamePath(FunctionDef ownerFunction, ClassDef scopeClass, AgoParser.NamePathContext namePath, NamePathResolver.ResolveMode resolveMode) throws CompilationError {
         if (namePath instanceof AgoParser.PrimitiveContext primitive) {
             return new ConstClass(PrimitiveClassDef.fromPrimitiveTypeAst(primitive.primitiveType()));
         } else if (namePath instanceof AgoParser.FormalNamePathContext formalNamePath) {
-            var resolver = new NamePathResolver(resolveMode, this, scopeClass, formalNamePath);
+            var resolver = new NamePathResolver(resolveMode, this, ownerFunction, scopeClass, formalNamePath);
             return resolver.resolve();
         } else {
             throw new UnsupportedOperationException("unexpected namePath " + namePath.getText());

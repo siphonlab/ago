@@ -434,10 +434,10 @@ public class SwitchCaseStmt extends Statement{
             for (Case cs : group.cases) {
                 switch (cs.caseKind){
                     case ConstExpression:
-                        if(Equals.isLiteralEquals(cs.expression,condition) || condResult.equals(cs.expression)) return cs;
+                        if(Equals.isLiteralEquals(cs.expression, condition) || condResult.equals(cs.expression)) return cs;
                         break;
                     case EnumConst:
-                        if(Equals.isLiteralEquals(cs.expression,condition) || condResult.equals(cs.expression)) return cs;
+                        if(Equals.isLiteralEquals(cs.expression, condition) || condResult.equals(cs.expression)) return cs;
                         break;
                     case TypeDispatch:
                         if(cs.expression.inferType().isThatOrSuperOfThat(condResult.inferType())){

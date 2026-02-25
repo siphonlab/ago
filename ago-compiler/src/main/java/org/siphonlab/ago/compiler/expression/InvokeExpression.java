@@ -64,7 +64,7 @@ public class InvokeExpression extends ExpressionInFunctionBody{
             } else {
                 this.accordingFunction = lBound;
             }
-            var expr = new ClassOf.ClassOfScopedClassInterval(ownerFunction, scopedFunctionExpr, ScopedClassIntervalClassDef.getMetaOfLBoundClass(classIntervalClassDef));
+            var expr = new ClassOf.ClassOfScopedClassInterval(scopedFunctionExpr, ScopedClassIntervalClassDef.getMetaOfLBoundClass(classIntervalClassDef));
             this.scopedFunctionExpr = expr.setParent(this).transform();
         } else {
             throw new ResolveError("class interval expected", scopedFunctionExpr.getSourceLocation());

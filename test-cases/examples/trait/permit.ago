@@ -25,7 +25,7 @@ fun main(){
     worker.setTimeout(1000);
 
 //    Trace.print(worker.timeout)  cannot access
-//    Trace.print((worker|Config).timeout)   //not allowed too, TODO throw compliant error
+//    Trace.print((worker|Config).timeout)   //not allowed too,
 
     var c as Config = worker;
     c.setTimeout(3000)

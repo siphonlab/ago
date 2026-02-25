@@ -197,7 +197,7 @@ public class EnumDef extends ClassDef{
         Scope metaClassScope = new Scope(1, metaClass);
         for (var field : this.metaFields.values()) {
             try {
-                var creator = new Creator(constructorDef, new ConstClass(constructorDef,this), Arrays.asList(enumValues.get(field.name), new StringLiteral(field.name)), unit.sourceLocation(this.enumDeclarationContext));
+                var creator = new Creator(constructorDef, new ConstClass(this), Arrays.asList(enumValues.get(field.name), new StringLiteral(field.name)), unit.sourceLocation(this.enumDeclarationContext));
                 var assign = constructorDef.assign(Var.of(constructorDef, metaClassScope, field), creator);
                 initializers.add(assign);
             } catch (CompilationError e) {

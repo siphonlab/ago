@@ -64,7 +64,7 @@ public class Creator extends ExpressionInFunctionBody{
                 throw new TypeMismatchError("object type expected", sourceLocation);
             }
             MetaClassDef metaClassDef = ScopedClassIntervalClassDef.getMetaOfLBoundClass(scopedClassIntervalClassDef);
-            this.typeExpr = new ClassOf.ClassOfScopedClassInterval(ownerFunction, typeExpr, metaClassDef).setParent(this);
+            this.typeExpr = new ClassOf.ClassOfScopedClassInterval(typeExpr, metaClassDef).setParent(this);
             classDef = lBoundClass;
             scope = null;
         } else {

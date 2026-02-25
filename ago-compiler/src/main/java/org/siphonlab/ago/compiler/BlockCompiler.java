@@ -93,7 +93,7 @@ public class BlockCompiler {
             // trait may create constructor for functions
             ConstructorDef constructor = this.functionDef.getConstructor();
             if (constructor != null) {
-                var c = functionDef.classUnder(new Scope(functionDef, 0, functionDef), constructor);
+                var c = functionDef.classUnder(new Scope(0, functionDef), constructor);
                 var constructorInvocation = functionDef.invoke(Invoke.InvokeMode.Invoke, c, Collections.emptyList(), functionDef.getSourceLocation()).setSourceLocation(functionDef.getSourceLocation()).transform();
                 compiledStatements.add(constructorInvocation);
             }
@@ -215,7 +215,7 @@ public class BlockCompiler {
             }
 
             // initializers, depends on the declaration sequence
-            var me = new Scope(functionDef, 1, ownerClass);
+            var me = new Scope( 1, ownerClass);
             var varMe = (Var.LocalVar) me.visit(this);
             this.lockRegister(varMe);
             for (Field field : ownerClass.fields.values()) {
@@ -259,7 +259,7 @@ public class BlockCompiler {
                 ls.add(new ExpressionStmt(functionDef, functionDef.assign(traitField, createdTrait).transform()));
                 if(bindPermit != null) ls.add(new ExpressionStmt(functionDef, bindPermit));
 
-                traitCreator = new TraitCreator(functionDef, new ConstClass(functionDef, trait), functionDef.blockStmt(ls), unit.sourceLocation(field.getDeclaration()));
+                traitCreator = new TraitCreator(functionDef, new ConstClass(trait), functionDef.blockStmt(ls), unit.sourceLocation(field.getDeclaration()));
                 stmts.add(functionDef.assign(createdTrait, traitCreator).setSourceLocation(traitField.getSourceLocation()));
             }
 
@@ -379,7 +379,7 @@ public class BlockCompiler {
             if(primaryExprContext.primaryExpression() instanceof LiteralExprContext literalExpr) {
                 return literalExpr(literalExpr);
             } else if(primaryExprContext.primaryExpression() instanceof NamePathExprContext namePath){
-                return unit.resolveNamePath(this.functionDef, namePath.namePath(), NamePathResolver.ResolveMode.ForValue);
+                return unit.resolveNamePath(this.functionDef, this.functionDef, namePath.namePath(), NamePathResolver.ResolveMode.ForValue);
             }
         } else if(expression instanceof MethodCallExprContext methodCallExpr){
             var methodCall = methodCallExpr.methodCall();
@@ -391,7 +391,7 @@ public class BlockCompiler {
                return this.methodCall(left, methodCall);
             } else {
                 var namePath = memberAccessExpr.namePath();
-                var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, left.inferType(), left, (FormalNamePathContext) namePath).resolve();
+                var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, left, (FormalNamePathContext) namePath).resolve();
                 return right;
             }
         } else if(expression instanceof QuotedExprContext quotedExpr){
@@ -446,7 +446,7 @@ public class BlockCompiler {
             NamePathContext namePathContext = withMemberAccessExprContext.namePath();
             if(namePathContext != null){
                 var namePath = withMemberAccessExprContext.namePath();
-                NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, left.inferType(), left, ((FormalNamePathContext) namePath));
+                NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, this.functionDef, left, ((FormalNamePathContext) namePath));
                 var r = namePathResolver.resolve();
                 return r;
             } else {
@@ -794,7 +794,7 @@ public class BlockCompiler {
             if(primaryExprContext.primaryExpression() instanceof LiteralExprContext literalExpr) {
                 return literalExpr(literalExpr);
             } else if(primaryExprContext.primaryExpression() instanceof NamePathExprContext namePath){
-                return unit.resolveNamePath(this.functionDef, namePath.namePath(), NamePathResolver.ResolveMode.ForVariable);
+                return unit.resolveNamePath(this.functionDef, this.functionDef, namePath.namePath(), NamePathResolver.ResolveMode.ForVariable);
             }
         } else if(expression instanceof MemberAccessExprContext memberAccessExpr) {
             var left = expression(memberAccessExpr.expression());
@@ -803,7 +803,7 @@ public class BlockCompiler {
                 throw new SyntaxError("left side is not assignable", unit.sourceLocation(methodCall));
             } else {
                 var namePath = memberAccessExpr.namePath();
-                NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, left.inferType(), left, ((FormalNamePathContext) namePath));
+                NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, this.functionDef, left, ((FormalNamePathContext) namePath));
                 var r = namePathResolver.resolve();
                 return r;
             }
@@ -814,7 +814,7 @@ public class BlockCompiler {
                 throw new SyntaxError("left side is not assignable", unit.sourceLocation(methodCall));
             } else {
                 var namePath = withMemberAccessExprContext.namePath();
-                NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, left.inferType(), left, ((FormalNamePathContext) namePath));
+                NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, this.functionDef, left, ((FormalNamePathContext) namePath));
                 var r = namePathResolver.resolve();
                 return r;
             }
@@ -907,7 +907,7 @@ public class BlockCompiler {
         }
         NamePathResolver resolver;
         if(left != null){
-            resolver = new NamePathResolver(NamePathResolver.ResolveMode.ForInvokable, this.unit, functionDef, left, ((FormalNamePathContext)namePath));
+            resolver = new NamePathResolver(NamePathResolver.ResolveMode.ForInvokable, this.unit, this.functionDef, left, ((FormalNamePathContext)namePath));
         } else {
             resolver = new NamePathResolver(NamePathResolver.ResolveMode.ForInvokable, this.unit, functionDef, ((FormalNamePathContext)namePath));
         }
@@ -1224,7 +1224,7 @@ public class BlockCompiler {
         if(switchLabel.constantExpression != null){
             cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, expression(switchLabel.constantExpression));
         } else if(switchLabel.enumConstantName != null) {
-            Expression constExpr = unit.resolveNamePath(this.functionDef, switchLabel.namePath(), NamePathResolver.ResolveMode.ForVariable);
+            Expression constExpr = unit.resolveNamePath(this.functionDef, this.functionDef, switchLabel.namePath(), NamePathResolver.ResolveMode.ForVariable);
             if(!(constExpr instanceof EnumValue) && !(constExpr instanceof ConstValue)){
                throw unit.typeError(switchLabel.namePath(), "enum value or const value expected");
             }

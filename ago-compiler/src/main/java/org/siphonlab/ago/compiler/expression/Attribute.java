@@ -27,15 +27,15 @@ import java.util.Objects;
 
 public class Attribute extends ExpressionInFunctionBody implements Assign.Assignee{
 
-    private final ExpressionBase scope;
+    private final Expression scope;
     private final FunctionDef getter;
     private final FunctionDef setter;
 
     private Var.LocalVar processedScope;
 
-    public Attribute(FunctionDef ownerFunction, ExpressionBase scope, FunctionDef getter, FunctionDef setter) throws CompilationError {
+    public Attribute(FunctionDef ownerFunction, Expression scope, FunctionDef getter, FunctionDef setter) throws CompilationError {
         super(ownerFunction);
-        this.scope = (ExpressionBase) scope.setParent(this).transform();
+        this.scope = scope.setParent(this).transform();
         this.getter = getter;
         this.setter = setter;
     }

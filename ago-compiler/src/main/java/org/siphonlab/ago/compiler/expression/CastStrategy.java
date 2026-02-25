@@ -563,6 +563,7 @@ public class CastStrategy {
     }
 
     public static Literal<?> castLiteral(Literal<?> literal, ClassDef toType, SourceLocation sourceLocation) throws CompilationError {
+        if(toType == literal.getClassDef()) return literal;
         var toTypeCode = toType.getTypeCode();
         if (toTypeCode == TypeCode.BOOLEAN) {
             return new BooleanLiteral(BooleanLiteral.isTrue(literal));

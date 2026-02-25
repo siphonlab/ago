@@ -167,7 +167,7 @@ public class Box extends ExpressionInFunctionBody{
                         if (fld == null) {
                             throw new ResolveError("value '%d' not found in enum '%s'".formatted(literal, enumDef.getFullname()), this.getSourceLocation());
                         }
-                        ownerFunction.assign(localVar, Var.of(ownerFunction, new ConstClass(ownerFunction, boxType), fld)).termVisit(blockCompiler);
+                        ownerFunction.assign(localVar, Var.of(ownerFunction, new ConstClass(boxType), fld)).termVisit(blockCompiler);
                         break;
                     case ForceBox:
                         var temp = blockCompiler.acquireTempVar(this);
@@ -194,7 +194,7 @@ public class Box extends ExpressionInFunctionBody{
                         }
                         break;
                     case BoxEnum:
-                        ClassUnder valueOf = ClassUnder.create(ownerFunction, new ConstClass(ownerFunction, boxType), boxType.getMetaClassDef().getChild("valueOf#"));
+                        ClassUnder valueOf = ClassUnder.create(ownerFunction, new ConstClass(boxType), boxType.getMetaClassDef().getChild("valueOf#"));
                         ownerFunction.invoke(Invoke.InvokeMode.Invoke, valueOf, List.of(v), null).transform().outputToLocalVar(localVar, blockCompiler);
                         break;
                     case ForceBox:
@@ -240,11 +240,11 @@ public class Box extends ExpressionInFunctionBody{
     private void runCreator(Var.LocalVar target, Expression value, BlockCompiler blockCompiler) throws CompilationError {
         List<Expression> arguments = Collections.singletonList(value);
         if(boxType.isTop()) {
-            new Creator(ownerFunction, new ConstClass(ownerFunction, this.boxType), arguments, getSourceLocation())
+            new Creator(ownerFunction, new ConstClass(this.boxType), arguments, getSourceLocation())
                     .outputToLocalVar(target, blockCompiler);
         } else {
             MetaClassDef metaClassDef = (MetaClassDef) boxType.getParent();
-            ClassUnder classUnder = ClassUnder.create(ownerFunction, new ConstClass(ownerFunction, metaClassDef.getInstanceClassDef()), boxType);
+            ClassUnder classUnder = ClassUnder.create(ownerFunction, new ConstClass(metaClassDef.getInstanceClassDef()), boxType);
             new Creator(ownerFunction, classUnder, arguments, getSourceLocation())
                     .outputToLocalVar(target, blockCompiler);
         }
