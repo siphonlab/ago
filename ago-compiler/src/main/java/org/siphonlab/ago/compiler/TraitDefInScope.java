@@ -15,6 +15,9 @@
  */
 package org.siphonlab.ago.compiler;
 
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.Collection;
@@ -30,6 +33,9 @@ public class TraitDefInScope extends TraitDef{
 
     public TraitDefInScope(ClassDef baseTrait) {
         super(baseTrait.name, getDeclaration(baseTrait));
+        if(baseTrait instanceof TraitDefInScope){
+            baseTrait = ((TraitDefInScope) baseTrait).baseTrait;
+        }
         this.baseTrait = baseTrait;
         this.setGenericSource(baseTrait.getGenericSource());
         this.setModifiers(baseTrait.modifiers);
@@ -124,4 +130,11 @@ public class TraitDefInScope extends TraitDef{
         if(this.baseTrait == anotherClass) return this;
         return super.asThatOrSuperOfThat(anotherClass, visited);
     }
+
+    @Override
+    public TraitDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
+        var r = super.cloneForInstantiate(instantiationArguments, returnExisted);
+        return new TraitDefInScope(r);
+    }
+
 }
