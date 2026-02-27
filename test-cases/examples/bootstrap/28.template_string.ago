@@ -1,9 +1,19 @@
+interface I{
+    metaclass{
+        final foo as string = $"
+            This is some
+                text
+                    from
+                        I.foo
+        "$
+    }
+}
 fun main(){
     var a = 1;
     var b = 2;
 
     var s = $"a + b =  `the result`
-                  ${a+b}"$
+                       ${a+b}"$
 
     Trace.print(s)
 
@@ -13,4 +23,5 @@ fun main(){
     // Hello
     // World! AB
 
+    Trace.print(I.foo)
 }

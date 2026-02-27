@@ -38,8 +38,13 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
     }
 
     public static Literal<?> parse(AgoParser.LiteralContext literal, Root root, SourceLocation sourceLocation) throws TypeMismatchError {
-        if(literal instanceof AgoParser.LTemplateStringContext){
-            throw new TypeMismatchError("template string not allowed for parameterized class and initializer", sourceLocation);
+        if(literal instanceof AgoParser.LTemplateStringContext lTemplateString){
+            for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
+                AgoParser.ExpressionContext atomExpr = atom.expression();
+                if (atomExpr != null) {
+                    throw new TypeMismatchError("template string not allowed for parameterized class and initializer", sourceLocation);
+                }
+            }
         }
         var r = parse(literal, root);
         r.setSourceLocation(sourceLocation);
@@ -54,6 +59,8 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
             var s = lString.STRING_LITERAL();
             String s1 = Compiler.parseStringLiteral(s);
             return new StringLiteral(s1);
+        } else if(literal instanceof AgoParser.LTemplateStringContext lTemplateString){
+            return LiteralParser.parseTemplateStringWithoutExpression(lTemplateString);
         } else if(literal instanceof AgoParser.LCharContext lChar){
             return new CharLiteral(LiteralParser.parseCharLiteral(lChar.CHAR_LITERAL().getText()));
         } else if(literal instanceof AgoParser.LNullContext lNullContext){

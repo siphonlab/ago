@@ -226,10 +226,7 @@ public class BootstrapTest {
     public void templ_string_test() throws CompilationError, IOException {
         Util.run("bootstrap/28.template_string.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted(
-                "a + b =  `the result`",
-                "    3",
-                "\"Hello", "World! AB\""));
+        assertTrue(Trace.outputted("a + b =  `the result`", "         3", "\"Hello", "World! AB\"", "This is some", "    text", "        from", "            I.foo"));
     }
 
     @Test

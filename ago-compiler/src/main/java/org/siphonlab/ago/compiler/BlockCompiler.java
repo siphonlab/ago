@@ -514,12 +514,21 @@ public class BlockCompiler {
         List<Expression> expressions = new ArrayList<>();
         var sb = new StringBuilder();
         TemplateStringAtomContext startAtom = null, endAtom = null;
-        var offset = lTemplateString.getStart().getCharPositionInLine() + 2;
-        var newLine = false;
-        var newLineWSCount = 0;
+
+        var offset = lTemplateString.getStart().getCharPositionInLine() + 2;  // indent position
+
+        // If the first line has no content and directly transitions to a new line,
+        // use the index of the first non-whitespace character from the next line as the indentation point.
+        // Subsequent lines are indented according to the previous lines.
+
+        CharBuffer charBuffer = new CharBuffer();
+
+        boolean atFirstLineHead = true;
+        boolean atLineHead = true;
         for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
             ExpressionContext atomExpr = atom.expression();
             if(atomExpr != null){
+                atFirstLineHead = false;
                 if(!sb.isEmpty()){
                     expressions.add(new StringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
                     sb.setLength(0);
@@ -530,33 +539,40 @@ public class BlockCompiler {
                 if(startAtom == null) startAtom = atom;
                 endAtom = atom;
                 String text = atom.TemplateStringAtom().getText();
-                for(var i=0; i<text.length(); i++){
-                    var c = text.charAt(i);
-                    if(newLine){
-                        if(c == '\r'){
-                            sb.append(c);
+                charBuffer.append(text);
+                while(true) {
+                    if (atFirstLineHead) {
+                        atFirstLineHead = false;
+                        if (charBuffer.skipNewLineIfPeekIsNewLine()) {
+                            // now enter next line
+                            offset = charBuffer.skipWs();
+                            atLineHead = false;
                             continue;
-                        } else if(c == ' ' || c == '\t'){
-                            newLineWSCount ++;
-                            if(newLineWSCount >= offset){
-                                newLine = false;
-                            }
-                            continue;
-                        } else {
-                            newLine = false;
-                        }
-                    } else {
-                        if(c == '\n'){
-                            newLine = true;
-                            newLineWSCount = 0;
                         }
                     }
-                    sb.append(c);
+                    if (atLineHead) {
+                        charBuffer.skipIndent(offset);
+                        atLineHead = false;
+                        continue;
+                    }
+
+                    if (charBuffer.skipNewLineIfPeekIsNewLine()) {
+                        sb.append('\n');
+                        atLineHead = true;
+                    } else {
+                        char c = charBuffer.get();
+                        if (c != '\0') {
+                            sb.append(c);
+                        } else {
+                            break;
+                        }
+                    }
                 }
             }
         }
+
         if(!sb.isEmpty()){
-            expressions.add(new StringLiteral(LiteralParser.parseJsStringLiteral(sb.toString())).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
+            expressions.add(new StringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
         }
         if(expressions.isEmpty()) return new StringLiteral("").setSourceLocation(unit.sourceLocation(lTemplateString));
         if(expressions.size() == 1) return expressions.getFirst();

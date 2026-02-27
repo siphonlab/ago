@@ -22,6 +22,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Cast;
 import org.siphonlab.ago.compiler.expression.CastStrategy;
 import org.siphonlab.ago.compiler.expression.Literal;
+import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
@@ -153,6 +154,9 @@ public class Variable {
                     var l = CastStrategy.castLiteral(literalValue, this.type, literalValue.getSourceLocation()).transform();
                     if(l instanceof Literal<?> l2){
                         this.constLiteralValue = l2;
+                        if(l2 instanceof StringLiteral s){
+                            s.register(this.ownerClass);
+                        }
                     }
                 }
             }

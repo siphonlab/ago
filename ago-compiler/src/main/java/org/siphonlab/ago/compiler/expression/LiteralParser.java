@@ -15,6 +15,9 @@
  */
 package org.siphonlab.ago.compiler.expression;
 
+import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
+import org.siphonlab.ago.compiler.parser.AgoParser;
+
 public class LiteralParser {
     /**
      * Parse a JavaScript string literal, handling escape sequences,
@@ -270,5 +273,55 @@ public class LiteralParser {
         }
     }
 
+
+    public static Literal<?> parseTemplateStringWithoutExpression(AgoParser.LTemplateStringContext lTemplateString) {
+        int offset = lTemplateString.getStart().getCharPositionInLine() + 2;    // indent position
+
+        // If the first line has no content and directly transitions to a new line,
+        // use the index of the first non-whitespace character from the next line as the indentation point.
+        // Subsequent lines are indented according to the previous lines.
+
+        StringBuilder sb = new StringBuilder();
+        CharBuffer charBuffer = new CharBuffer();
+
+        boolean atFirstLineHead = true;
+        boolean atLineHead = true;
+        for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
+            String text = atom.TemplateStringAtom().getText();
+            charBuffer.append(text);
+            while(true) {
+                if (atFirstLineHead) {
+                    atFirstLineHead = false;
+                    if (charBuffer.skipNewLineIfPeekIsNewLine()) {
+                        // now enter next line
+                        offset = charBuffer.skipWs();
+                        atLineHead = false;
+                        continue;
+                    }
+                }
+                if (atLineHead) {
+                    charBuffer.skipIndent(offset);
+                    atLineHead = false;
+                    continue;
+                }
+
+                if (charBuffer.skipNewLineIfPeekIsNewLine()) {
+                    sb.append('\n');
+                    atLineHead = true;
+                } else {
+                    char c = charBuffer.get();
+                    if (c != '\0') {
+                        sb.append(c);
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+
+        String parsedText = sb.toString();
+        return new StringLiteral(parsedText);
+    }
 
 }
