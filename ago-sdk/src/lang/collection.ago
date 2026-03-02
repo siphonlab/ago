@@ -46,14 +46,17 @@ interface ReadOnlyList<+T> from ReadOnlyCollection<T>{
 
 abstract class List<T> with ReadWriteList<T>, ReadOnlyList<T>{
 
+    abstract fun new();
+
+    abstract fun new#array(array as T[]);
+
 }
 
 native class LinkedList<E> from List<E>{
-    fun new(){
-        init()
-    }
 
-    private fun init() native "org.siphonlab.ago.lang.LinkedList.create";
+    fun new() native "org.siphonlab.ago.lang.LinkedList.create"
+
+    fun new#array(array as E[]) native "org.siphonlab.ago.lang.LinkedList.create"
 
     override count#get() as int native "org.siphonlab.ago.lang.LinkedList.getCount";
     override isReadOnly() as boolean native "org.siphonlab.ago.lang.LinkedList.isReadOnly";
@@ -79,11 +82,9 @@ native class LinkedList<E> from List<E>{
 }
 
 native class ArrayList<E> from List<E>{
-    fun new(){
-        init()
-    }
+    fun new() native "org.siphonlab.ago.lang.ArrayList.create";
 
-    private fun init() native "org.siphonlab.ago.lang.ArrayList.create";
+    fun new#array(array as E[]) native "org.siphonlab.ago.lang.ArrayList.create";
 
     override count#get() as int native "org.siphonlab.ago.lang.ArrayList.getCount";
     override isReadOnly() as boolean native "org.siphonlab.ago.lang.ArrayList.isReadOnly";

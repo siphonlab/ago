@@ -52,12 +52,12 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
                               SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef,
                               ClassDef templateClass, AgoParser.GenericTypeParameterContext genericTypeParameterContext) {
         super(genericTypeCode, description);
-        this.genericParamIndex = genericParamIndex;
-        this.sharedGenericTypeParameterClassDef = sharedGenericTypeParameterClassDef;
-        this.genericCodeAvatarClassDef = new GenericCodeAvatarClassDef(this);
-        this.templateClass = templateClass;
-        this.genericTypeParameterContext = genericTypeParameterContext;
         this.name = name;
+        this.genericParamIndex = genericParamIndex;
+        this.templateClass = templateClass;
+        this.sharedGenericTypeParameterClassDef = sharedGenericTypeParameterClassDef;
+        this.genericTypeParameterContext = genericTypeParameterContext;
+        this.genericCodeAvatarClassDef = new GenericCodeAvatarClassDef(this);
     }
 
     public static GenericTypeCode createGeneric(int genericTypeCode, int genericParamIndex, String name, SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef, AgoParser.GenericTypeParameterContext genericTypeParameterContext, ClassDef templateClass){
@@ -97,9 +97,12 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
         private final GenericTypeCode genericTypeCode;
 
         public GenericCodeAvatarClassDef(GenericTypeCode genericTypeCode) {
-            super(genericTypeCode.sharedGenericTypeParameterClassDef.getFullname());    // this class is just for placeholder, has no package
+            super(composeName(genericTypeCode));    // this class is just for placeholder, has no package
             this.genericTypeCode = genericTypeCode;
             setCompilingStage(CompilingStage.Compiled);
+        }
+        static String composeName(GenericTypeCode genericTypeCode){
+            return "%s_%d_%s|%s".formatted(genericTypeCode.name, genericTypeCode.genericParamIndex, genericTypeCode.templateClass.getFullname(), genericTypeCode.sharedGenericTypeParameterClassDef.getFullname());
         }
 
         @Override
