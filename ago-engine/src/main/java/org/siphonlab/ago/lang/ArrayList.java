@@ -22,6 +22,9 @@ import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.TypeInfo;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
+import org.siphonlab.ago.runtime.*;
+
+import java.util.Arrays;
 
 import static org.siphonlab.ago.TypeCode.*;
 
@@ -43,6 +46,28 @@ public class ArrayList {
             case CHAR_VALUE -> new CharArrayList();
             case OBJECT_VALUE -> new java.util.ArrayList<Instance<?>>();
             case CLASS_REF_VALUE -> new IntArrayList();
+            default -> throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
+        };
+        instance.setNativePayload(ls);
+        callFrame.finishVoid();
+    }
+
+    public static void create(NativeFrame callFrame, Instance<?> array) {
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
+        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var ls = switch (typeInfo.getTypeCode().value) {
+            case INT_VALUE -> new IntArrayList(((IntArrayInstance)array).value);
+            case LONG_VALUE -> new LongArrayList(((LongArrayInstance)array).value);
+            case FLOAT_VALUE -> new FloatArrayList(((FloatArrayInstance)array).value);
+            case DOUBLE_VALUE -> new DoubleArrayList(((DoubleArrayInstance)array).value);
+            case BOOLEAN_VALUE -> new BooleanArrayList(((BooleanArrayInstance)array).value);
+            case STRING_VALUE -> new java.util.ArrayList<>(Arrays.asList(((StringArrayInstance)array).value));
+            case SHORT_VALUE -> new ShortArrayList(((ShortArrayInstance)array).value);
+            case BYTE_VALUE -> new ByteArrayList(((ByteArrayInstance)array).value);
+            case CHAR_VALUE -> new CharArrayList(((CharArrayInstance)array).value);
+            case OBJECT_VALUE -> new java.util.ArrayList<>(Arrays.asList(((ObjectArrayInstance)array).value));
+            case CLASS_REF_VALUE -> new IntArrayList(((IntArrayInstance)array).value);
             default -> throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
         };
         instance.setNativePayload(ls);

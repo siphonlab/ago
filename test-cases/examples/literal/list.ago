@@ -1,0 +1,16 @@
+fun main(){
+    var ls = new ArrayList<int>([1,2,3])
+    for(var i in ls){
+        Trace.print(i)
+    }
+
+    var ls2 = [ArrayList<int>|5, 7, 9];
+    for(var i in ls2){
+        Trace.print(i)
+    }
+
+    var ls3 = [LinkedList<int>|101, 102, 103];
+    for(var i in ls3){
+        Trace.print(i)
+    }
+}

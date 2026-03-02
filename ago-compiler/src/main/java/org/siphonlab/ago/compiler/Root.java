@@ -65,6 +65,8 @@ public class Root extends Namespace<Package> {
     private ClassDef ANY_READONLY_LIST_CLASS;
     private ClassDef READWRITE_LIST_CLASS;
     private ClassDef ANY_READWRITE_LIST_CLASS;
+    private ClassDef LIST_CLASS;
+    private ClassDef ANY_LIST_CLASS;
 
     private ClassDef READONLY_MAP_CLASS;
     private ClassDef ANY_READONLY_MAP_CLASS;
@@ -489,6 +491,22 @@ public class Root extends Namespace<Package> {
         }
     }
 
+    public synchronized ClassDef getListClass(){
+        if(LIST_CLASS != null) return LIST_CLASS;
+        return LIST_CLASS = findByFullname("lang.List");
+    }
+
+    public ClassDef getAnyListClass() {
+        if (ANY_LIST_CLASS != null) return ANY_LIST_CLASS;
+        try {
+            return ANY_LIST_CLASS = getListClass().instantiate(
+                    new InstantiationArguments(LIST_CLASS.typeParamsContext,
+                            new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}),
+                    null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 
 }

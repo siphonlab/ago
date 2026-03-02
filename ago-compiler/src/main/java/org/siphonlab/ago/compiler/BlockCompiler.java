@@ -19,6 +19,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -844,6 +845,7 @@ public class BlockCompiler {
         throw new UnsupportedOperationException(expression.getText());
     }
 
+    //TODO assign type maybe scoped type
     Expression assigner(ExpressionContext expression, Expression assignee, ClassDef assigneeType) throws CompilationError {
         if(expression instanceof PrimaryExprContext primaryExpr){
             if(primaryExpr.primaryExpression() instanceof LiteralExprContext literalExpr){
@@ -867,14 +869,27 @@ public class BlockCompiler {
         }
     }
 
-    private ArrayLiteral arrayLiteral(LArrayContext lArrayContext, Expression assignee, ClassDef assigneeType) throws CompilationError {
+    // ArrayLiteral | ListLiteral
+    private Expression arrayLiteral(LArrayContext lArrayContext, Expression assignee, ClassDef assigneeType) throws CompilationError {
         ClassDef arrayType;
         var arrayLiteral = lArrayContext.arrayLiteral();
+        Expression listTypeExpr = null;
+        Root root = functionDef.getRoot();
         if(arrayLiteral.variableType() != null){
             Expression typeExpr = unit.parseType(functionDef, arrayLiteral.variableType(), false, false);
             arrayType = extractType(typeExpr);
+            if(root.getAnyListClass().isThatOrSuperOfThat(arrayType)){
+                listTypeExpr = typeExpr;
+            }
         } else if(assigneeType != null){
             arrayType = assigneeType;
+            if(root.getAnyListClass().isThatOrSuperOfThat(arrayType)){
+                if(!arrayType.isTop()){
+                    throw unit.typeError(lArrayContext, "implicit List class through assignment must be a top class");
+                } else {
+                    listTypeExpr = new ConstClass(arrayType);
+                }
+            }
         } else if(!arrayLiteral.elementList().isEmpty()){
             var first = arrayLiteral.elementList().arrayElement(0);
             var el = arrayElement(first, null);
@@ -884,7 +899,14 @@ public class BlockCompiler {
         }
         Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
 
-        if(!functionDef.getRoot().getAnyArrayClass().isThatOrSuperOfThat(arrayType)){  //TODO allow List
+        if(listTypeExpr != null){
+            var listType = arrayType;
+            ClassDef eleType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+            //TODO indicate type from element
+            MutableBoolean returnExisted = new MutableBoolean();
+            arrayType = functionDef.getOrCreateArrayType(eleType, returnExisted);
+            if(returnExisted.isFalse()) Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
+        } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
             throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
         }
         List<Expression> elements = new ArrayList<>();
@@ -892,7 +914,11 @@ public class BlockCompiler {
             Expression element = arrayElement(arrayElementContext, ((ArrayClassDef) arrayType).getElementType());
             elements.add(element);
         }
-        return new ArrayLiteral(functionDef, (ArrayClassDef) arrayType, elements).setSourceLocation(unit.sourceLocation(lArrayContext));
+        var r = new ArrayLiteral(functionDef, (ArrayClassDef) arrayType, elements).setSourceLocation(unit.sourceLocation(lArrayContext));
+        if(listTypeExpr != null){
+            return new Creator(functionDef, listTypeExpr, Collections.singletonList(r), unit.sourceLocation(lArrayContext), "new#array");
+        }
+        return r;
     }
 
     private Expression arrayElement(ArrayElementContext elementContext, ClassDef elementType) throws CompilationError {

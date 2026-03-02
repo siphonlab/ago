@@ -13,29 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.runtime;
+package org.siphonlab.ago.test;
 
-import org.siphonlab.ago.AgoClass;
-import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.Slots;
+import org.junit.jupiter.api.Test;
+import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.lang.Trace;
 
-import java.util.List;
+import java.io.IOException;
 
-public abstract class AgoArrayInstance extends Instance<AgoClass> {
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.siphonlab.ago.test.Util.run;
 
-    protected final int length;
+public class LiteralTests {
 
-    public AgoArrayInstance(Slots slots, AgoClass agoClass, int length) {
-        super(slots, agoClass);
-        this.length = length;
-        slots.setInt(0, length);        // length field
+    @Test
+    public void list() throws CompilationError, IOException {
+        run("literal/list.ago");
+        assertTrue(Trace.outputted("1", "2", "3", "5", "7", "9", "101", "102", "103"));
     }
 
-    public abstract Object getArray();
-
-    public abstract void fill(List<Object> list);
-
-    public int getLength() {
-        return length;
-    }
 }

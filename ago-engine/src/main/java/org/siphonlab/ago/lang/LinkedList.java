@@ -18,7 +18,10 @@ package org.siphonlab.ago.lang;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
+import org.siphonlab.ago.runtime.AgoArrayInstance;
+import org.siphonlab.ago.runtime.ObjectArrayInstance;
 
+import java.lang.reflect.Array;
 import java.util.Iterator;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -28,6 +31,18 @@ public class LinkedList {
     public static void create(NativeFrame callFrame) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         instance.setNativePayload(new java.util.LinkedList<>());
+        callFrame.finishVoid();
+    }
+
+    public static void create(NativeFrame callFrame, Instance<?> array) {
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        java.util.LinkedList<Object> nativePayload = new java.util.LinkedList<>();
+        AgoArrayInstance arrayInstance = (AgoArrayInstance) array;
+        for (int i = 0; i < arrayInstance.getLength(); i++) {
+            var el = Array.get(arrayInstance.getArray(),i);
+            nativePayload.add(el);
+        }
+        instance.setNativePayload(nativePayload);
         callFrame.finishVoid();
     }
 

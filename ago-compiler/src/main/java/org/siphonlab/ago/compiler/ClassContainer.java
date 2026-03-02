@@ -47,6 +47,9 @@ public class ClassContainer extends Namespace<ClassDef>{
             }
             return;
         }
+        if(existed.getCompilingStage().lt(CompilingStage.InheritsFields)){
+            Compiler.processClassTillStage(existed, CompilingStage.InheritsFields);
+        }
 
         if (!existed.getName().equals(newFun.getName())) {
             throw unit.syntaxError(newFun.getDeclarationName(), "duplicated function with different name, '%s' and '%s'".formatted(existed.getName(), newFun.getName()));
