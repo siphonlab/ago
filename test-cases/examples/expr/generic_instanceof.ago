@@ -7,6 +7,9 @@ fun f<T>(t as T){
         Trace.print("non primitive type")
         g(t)
     }
+    if(t instanceof Object obj){
+        g(obj)
+    }
 }
 
 fun g(obj as Object){
@@ -17,4 +20,6 @@ fun main(){
     var i = 20
 
     f(i)
+
+    //f(fun.this)    main#@5c0d2070
 }
