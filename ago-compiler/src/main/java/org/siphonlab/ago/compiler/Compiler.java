@@ -556,9 +556,6 @@ public class Compiler {
 
     static int constructorModifier(Unit unit, AgoParser.MethodStarterContext methodStarter) throws SyntaxError {
         int result = methodModifier(unit, methodStarter);
-        if((result & AgoClass.ABSTRACT) == AgoClass.ABSTRACT){
-            throw unit.syntaxError(methodStarter, "constructor cannot be abstract");
-        }
         if((result & AgoClass.FINAL) == AgoClass.FINAL){
             throw unit.syntaxError(methodStarter, "constructor cannot be final");
         }

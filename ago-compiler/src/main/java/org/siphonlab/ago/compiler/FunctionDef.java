@@ -241,7 +241,7 @@ public class FunctionDef extends ClassDef {
 
     public void setBody(int[] body) {
         this.body = body;
-        if(body == null || body.length == 0){
+        if((body == null || body.length == 0) && !this.isNative()){
             this.modifiers |= AgoClass.EMPTY_METHOD;
         }
     }
