@@ -210,7 +210,7 @@ methodBody:
 ;
 
 constructorDeclaration
-    : methodStarter? NEW POST_IDENTIFIER? formalParameters throwsPhrase? constructorBody = block
+    : methodStarter? NEW POST_IDENTIFIER? formalParameters throwsPhrase? constructorBody = methodBody
     ;
 
 fieldDeclaration: fieldModifier* fieldVariableDeclarators eos;

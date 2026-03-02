@@ -144,7 +144,16 @@ public class FunctionDef extends ClassDef {
         //TODO scan filed in local variables
         // local variables will be compiled in BlockCompiler.visitLocalVariableDeclaration
 
-        AgoParser.ThrowsPhraseContext throwsPhrase = this.methodDecl.throwsPhrase();
+        parseThrows(this.methodDecl.throwsPhrase());
+
+        this.createFunctionInterface();
+        this.createFieldsOfTrait();
+
+        this.nextCompilingStage(CompilingStage.ValidateHierarchy);
+        return true;
+    }
+
+    protected void parseThrows(AgoParser.ThrowsPhraseContext throwsPhrase) throws CompilationError {
         if(throwsPhrase != null){
             List<ClassDef> exceptionTypes = new ArrayList<>();
             for (AgoParser.DeclarationTypeContext declarationTypeContext : throwsPhrase.declarationTypeList().declarationType()) {
@@ -164,12 +173,6 @@ public class FunctionDef extends ClassDef {
             }
             this.throwsExceptions = exceptionTypes;
         }
-
-        this.createFunctionInterface();
-        this.createFieldsOfTrait();
-
-        this.nextCompilingStage(CompilingStage.ValidateHierarchy);
-        return true;
     }
 
     @Override
@@ -494,6 +497,11 @@ public class FunctionDef extends ClassDef {
         if(methodDecl == null) return;
 
         var body = methodDecl.methodBody();
+        compileBody(body);
+        this.nextCompilingStage(CompilingStage.Compiled);   // Compiled
+    }
+
+    protected void compileBody(AgoParser.MethodBodyContext body) throws CompilationError {
         if (body instanceof AgoParser.MBBLockContext mbBlock) {
             methodBodyNotAllowedForAbstractMethod();
             var block = mbBlock.block();
@@ -508,13 +516,14 @@ public class FunctionDef extends ClassDef {
         } else if (body instanceof AgoParser.MBEmptyContext) {
             if (this.isAbstract()) {
                 //
+            } else if(this.resultType.getTypeCode() == TypeCode.VOID) {
+                new BlockCompiler(this.unit, this, new ArrayList<>()).compile();
             } else {
                 throw new UnsupportedOperationException("TODO");        //TODO
             }
         } else {
             throw new UnsupportedOperationException("impossible");
         }
-        this.nextCompilingStage(CompilingStage.Compiled);   // Compiled
     }
 
     private void methodBodyNotAllowedForAbstractMethod() throws SyntaxError {

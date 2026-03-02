@@ -79,6 +79,8 @@ public class ConstructorDef extends FunctionDef{
         unit.parseFormalParameters(this, constructorDeclaration.formalParameters());
         this.processFieldParameters();
 
+        this.parseThrows(this.constructorDeclaration.throwsPhrase());
+
         this.createFunctionInterface();
         this.createFieldsOfTrait();
 
@@ -162,12 +164,8 @@ public class ConstructorDef extends FunctionDef{
             return;
         }
 
-        if(this.constructorDeclaration == null || constructorDeclaration.constructorBody == null){
-            new BlockCompiler(this.unit, this, new ArrayList<>()).compile();
-        } else {
-            AgoParser.BlockContext constructorBody = constructorDeclaration.constructorBody;
-            new BlockCompiler(this.unit, this, constructorBody.blockStatement()).compile();
-        }
+        AgoParser.MethodBodyContext body = this.constructorDeclaration.constructorBody;
+        compileBody(body);
 
         this.nextCompilingStage(CompilingStage.Compiled);   // Compiled
     }

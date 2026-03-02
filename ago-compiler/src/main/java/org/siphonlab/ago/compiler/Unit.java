@@ -616,9 +616,9 @@ public class Unit {
         if (fun.isStatic()) {
             throw syntaxError(methodDecl.methodStarter(), "functions(include constructors) cannot be 'static'");
         }
-        AgoParser.BlockContext constructorBody = methodDecl.constructorBody;
-        if (constructorBody != null) {
-            scanTypesInBlock(fun, constructorBody);
+        var constructorBody = methodDecl.constructorBody;
+        if (constructorBody instanceof AgoParser.MBBLockContext mbbLockContext) {
+            scanTypesInBlock(fun, mbbLockContext.block());
         }
     }
 
