@@ -680,7 +680,9 @@ public class AgoClassLoader implements ClassManager{
             agoFunction.setParameters(buildVariables(agoClass, header.functionParams).map(v -> (AgoParameter)v).toArray(AgoParameter[]::new));
             if (agoFunction instanceof AgoNativeFunction nativeFunction) {
                 nativeFunction.setResultSlot(header.functionResultSlot);
-                generateNativeCaller(nativeFunction);
+                if(!header.isInGenericTemplate(headers)) {
+                    generateNativeCaller(nativeFunction);
+                }
             } else {
                 agoFunction.setVariables(buildVariables(agoClass, header.functionVariables).toArray(AgoVariable[]::new));
             }
