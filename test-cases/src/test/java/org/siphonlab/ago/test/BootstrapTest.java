@@ -219,7 +219,8 @@ public class BootstrapTest {
         assertTrue(Trace.outputted("Jack", "Sally,John",
                 "2 = Sally", "3 = Sally,John", "1 = John", "100 = Jack",
                 "2", "3", "1", "100",
-                "Sally", "Sally,John", "John", "Jack"));
+                "Sally", "Sally,John", "John", "Jack",
+                "80"));
     }
 
     @Test

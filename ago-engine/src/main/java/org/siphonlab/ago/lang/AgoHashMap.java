@@ -16,18 +16,15 @@
 package org.siphonlab.ago.lang;
 
 import org.agrona.collections.Int2NullableObjectHashMap;
-import org.agrona.collections.Int2NullableObjectHashMap;
-import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2NullableObjectHashMap;
-import org.eclipse.collections.api.iterator.*;
 import org.eclipse.collections.impl.list.mutable.primitive.*;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.siphonlab.ago.TypeCode.*;
 
@@ -149,11 +146,14 @@ public class AgoHashMap {
         }
 
         public static void get(NativeFrame callFrame, Instance<?> key) {
+            throw new IllegalCallerException("never call this, pass hashCode instead, just for placeholder");
+        }
+        public static void get(NativeFrame callFrame, Instance<?> key, int hashCode) {
             NativeInstance instance = (NativeInstance) callFrame.getParentScope();
 
             @SuppressWarnings("unchecked")
             Map<?, ?> map = (Map<?, ?>) instance.getNativePayload();
-            Object valObj = map.get(key);
+            Object valObj = map.get(new InstanceKey(key, hashCode));
 
             finish(callFrame, valObj);
         }
@@ -365,16 +365,55 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, char key, Instance<?> value){ putIntKey(callFrame, key, (Object) value); }
 
         /* Instance<?> key */
-        public static void put(NativeFrame callFrame, Instance<?> key, int   value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, long  value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, float value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, double value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, boolean value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, String value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, short value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, byte  value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, char  value){ putObjectKey(callFrame, key, (Object) value); }
-        public static void put(NativeFrame callFrame, Instance<?> key, Instance<?> value){ putObjectKey(callFrame, key, (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, int   value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, long  value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, float value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, double value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, boolean value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, String value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, short value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, byte  value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, char  value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, Instance<?> value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+
+
+        public static void put(NativeFrame callFrame, Instance<?> key, int   value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, long  value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, float value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, double value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, boolean value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, String value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, short value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, byte  value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, char  value){ throwIllegalCall(); }
+        public static void put(NativeFrame callFrame, Instance<?> key, Instance<?> value){ throwIllegalCall(); }
+
+    }
+
+    private static void throwIllegalCall(){
+        throw new IllegalCallerException("never call this, pass hashCode instead, just for placeholder");
+    }
+
+    private static class InstanceKey{
+        private final Instance<?> instance;
+        private final int hashCode;
+
+        private InstanceKey(Instance<?> instance, int hashCode) {
+            this.instance = instance;
+            this.hashCode = hashCode;
+        }
+
+        @Override
+        public int hashCode() {
+            return hashCode;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if(obj instanceof InstanceKey instanceKey)
+                return Objects.equals(instance, instanceKey.instance);
+            return false;
+        }
     }
 
     public static void containsKey(NativeFrame callFrame, int key) {

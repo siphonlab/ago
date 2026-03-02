@@ -141,3 +141,72 @@ interface ReadOnlyMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
 abstract class Map<Key, Value> with ReadWriteMap<Key, Value>, ReadOnlyMap<Key, Value>{
 
 }
+
+/**
+a typed Map, for key type int, short, byte boolean, classref, float, char, use Int2NullableObjectHashMap in backend
+for key type, long, double, use  Long2NullableObjectHashMap in backend
+for string and object, HashMap<Object, Object>.
+
+if the key is Object, invoke hashCode() to put, and `get` to, but equals not make effect, for that need callback to ago
+**/
+native class HashMap<Key, Value> from Map<Key, Value>{
+    fun new(){
+        init()
+    }
+
+    private fun init() native "org.siphonlab.ago.lang.AgoHashMap.create";
+
+    override count#get() as int native "org.siphonlab.ago.lang.AgoHashMap.getCount";
+    override isReadOnly() as boolean native "org.siphonlab.ago.lang.AgoHashMap.isReadOnly";
+    override clear() native "org.siphonlab.ago.lang.AgoHashMap.clear";
+
+    override get#key(index as Key) as Value{
+        if(index instanceof Object obj){
+            return getObjectKey(obj, obj.hashCode());
+        } else {
+            return getPrimitiveKey(index);
+        }
+    }
+
+    private fun getObjectKey(index as Object, indexHashCode as int) as Value native "org.siphonlab.ago.lang.AgoHashMap$Get.get";
+    private fun getPrimitiveKey(index as Key) as Value native "org.siphonlab.ago.lang.AgoHashMap$Get.get";
+
+    override put(index as Key, value as Value){
+        if(index instanceof Object obj){
+            putObjectKey(obj, obj.hashCode(), value);
+        } else {
+            putPrimitiveKey(index, value);
+        }
+    }
+
+    private fun putObjectKey(index as Object, indexHashCode as int, value as Value) native "org.siphonlab.ago.lang.AgoHashMap$Put.put";
+    private fun putPrimitiveKey(index as Key, value as Value) native "org.siphonlab.ago.lang.AgoHashMap$Put.put";
+
+    override keys#get() as ReadOnlyCollection<Key>{
+        var ls = new ArrayList<Key>();
+        this.nativeKeys(ls);
+        return ls;
+    }
+    private fun nativeKeys(ls as ArrayList<Key>) native "org.siphonlab.ago.lang.AgoHashMap.keys";
+
+    override values#get() as ReadOnlyCollection<Value> {
+        var ls = new ArrayList<Value>();
+        this.nativeValues(ls);
+        return ls;
+    }
+    private fun nativeValues(ls as ArrayList<Value>) native "org.siphonlab.ago.lang.AgoHashMap.values";
+
+    override containsKey(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.containsKey";
+    override remove(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.removeByKey";
+
+    native class HashMapIterator with Iterator<KeyValuePair<Key, Value>> {
+        fun new() {create()}
+        private fun create() native "org.siphonlab.ago.lang.AgoHashMap.Iterator_create";
+        override hasNext() as boolean native "org.siphonlab.ago.lang.AgoHashMap.Iterator_hasNext";
+        override next() as KeyValuePair<Key, Value> native "org.siphonlab.ago.lang.AgoHashMap.Iterator_next";
+    }
+
+    override iterator() as Iterator<KeyValuePair<Key, Value>>{
+        return new HashMapIterator();
+    }
+}
