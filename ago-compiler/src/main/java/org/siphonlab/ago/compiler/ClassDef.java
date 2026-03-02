@@ -1487,12 +1487,6 @@ public class ClassDef extends ClassContainer {
             this.setPermitClass(templ.getPermitClass().instantiate(instantiationArguments, null));
         }
 
-        for (ClassDef child : this.getUniqueChildren()) {
-            if(!this.gotFromInherited(child)){
-                child.instantiateHierarchy();
-            }
-        }
-
         this.instantiateMetaClass();
 
         this.setCompilingStage(CompilingStage.ParseFields);     // bypass ValidateHierarchy
