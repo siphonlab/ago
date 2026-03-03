@@ -72,6 +72,9 @@ public class Root extends Namespace<Package> {
     private ClassDef ANY_READONLY_MAP_CLASS;
     private ClassDef READWRITE_MAP_CLASS;
     private ClassDef ANY_READWRITE_MAP_CLASS;
+    private ClassDef MAP_CLASS;
+    private ClassDef ANY_MAP_CLASS;
+    private ClassDef HASH_MAP_CLASS;
 
     private ClassDef NULL_CLASS = new ClassDef(TypeCode.NULL.toString()) {
         {
@@ -508,5 +511,28 @@ public class Root extends Namespace<Package> {
         }
     }
 
+    public synchronized ClassDef getMapClass() {
+        if (MAP_CLASS != null) return MAP_CLASS;
+        return MAP_CLASS = findByFullname("lang.Map");
+    }
 
+    public ClassDef getAnyMapClass() {
+        if (ANY_MAP_CLASS != null) return ANY_MAP_CLASS;
+        try {
+            return ANY_MAP_CLASS = getMapClass().instantiate(
+                    new InstantiationArguments(MAP_CLASS.typeParamsContext,
+                            new ClassRefLiteral[]{
+                                    new ClassRefLiteral(this.getAnyClass()),   // K
+                                    new ClassRefLiteral(this.getAnyClass())    // V
+                            }),
+                    null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public synchronized ClassDef getHashMapClass() {
+        if (HASH_MAP_CLASS != null) return HASH_MAP_CLASS;
+        return HASH_MAP_CLASS = findByFullname("lang.HashMap");
+    }
 }

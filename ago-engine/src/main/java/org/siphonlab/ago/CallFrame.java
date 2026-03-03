@@ -166,7 +166,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (callerRunSpace != runSpace) {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptFloat(result, caller);
+        callerRunSpace.acceptChar(result, caller);
     }
 
     public void finishObject(Instance<?> result) {

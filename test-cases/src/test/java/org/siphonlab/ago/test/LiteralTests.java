@@ -29,7 +29,12 @@ public class LiteralTests {
     @Test
     public void list() throws CompilationError, IOException {
         run("literal/list.ago");
-        assertTrue(Trace.outputted("1", "2", "3", "5", "7", "9", "101", "102", "103"));
+        assertTrue(Trace.outputted("1", "2", "3", "5", "7", "9", "101", "102", "103", "22", "33", "44"));
+    }
+
+    @Test
+    public void object() throws CompilationError, IOException {
+        run("literal/object.ago");
     }
 
 }

@@ -13,4 +13,9 @@ fun main(){
     for(var i in ls3){
         Trace.print(i)
     }
+
+    var ls4 as ArrayList<int> = [22, 33, 44]
+    for(var i in ls4){
+        Trace.print(i)
+    }
 }

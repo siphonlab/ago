@@ -28,6 +28,7 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
+import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
@@ -36,6 +37,7 @@ import org.siphonlab.ago.compiler.expression.math.Neg;
 import org.siphonlab.ago.compiler.expression.math.Pos;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
+import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.statement.*;
 import org.slf4j.Logger;
@@ -504,6 +506,8 @@ public class BlockCompiler {
         LiteralContext literal = literalExpr.literal();
         if(literal instanceof LArrayContext larr) {
             return arrayLiteral(larr, null, null);
+        } else if(literal instanceof LObjectContext lobj){
+            return objectLiteral(lobj, null, null);
         } else if(literal instanceof LTemplateStringContext lTemplateString){
             return templateString(lTemplateString);
         } else {
@@ -854,7 +858,7 @@ public class BlockCompiler {
                 if(literal instanceof LArrayContext lArrayContext){
                     return arrayLiteral(lArrayContext, assignee, assigneeType);
                 } else if(literal instanceof LObjectContext objectLiteral){
-                    throw new UnsupportedOperationException("object literal todo");
+                    return objectLiteral(objectLiteral, assignee, assigneeType);
                 }
             }
         }
@@ -929,6 +933,168 @@ public class BlockCompiler {
             return new Cast(functionDef, expression(elementContext.expression()), elementType).transform();
         } else {
             return expression(elementContext.expression());
+        }
+    }
+
+    private Expression objectLiteral(LObjectContext lObjectContext, Expression assignee, ClassDef assigneeType) throws CompilationError{
+        ClassDef objectType;
+        var objectLiteral = lObjectContext.objectLiteral();
+        Expression objectTypeExpr = null;
+        Root root = functionDef.getRoot();
+        List<PropertyAssignmentContext> propertyAssignments = objectLiteral.propertyAssignment();
+        if(objectLiteral.declarationType() != null){
+            Expression typeExpr = unit.parseType(functionDef, objectLiteral.declarationType(), false, false);
+            objectType = extractType(typeExpr);
+            objectTypeExpr = typeExpr;
+        } else if(assigneeType != null){
+            objectType = assigneeType;
+            if(!objectType.isTop()){
+                throw unit.typeError(lObjectContext, "implicit Object/Map class through assignment must be a top class");
+            } else {
+                objectTypeExpr = new ConstClass(objectType);
+            }
+        } else {
+            // default type is Map<String, ?> the key is always String
+            if(propertyAssignments.isEmpty()){
+                var m = functionDef.getOrCreateGenericInstantiationClassDef(root.getHashMapClass(), new ClassRefLiteral[]{
+                        new ClassRefLiteral(PrimitiveClassDef.STRING),
+                        new ClassRefLiteral(root.getObjectClass())
+                }, null);
+                functionDef.registerConcreteType(m);
+                functionDef.idOfClass(root.getHashMapClass());
+                objectType = (ClassDef) m;
+                objectTypeExpr = new ConstClass(objectType);
+            } else {
+                var first = objectLiteral.propertyAssignment(0);
+                ClassDef keyType = PrimitiveClassDef.STRING;
+                ClassDef valueType;
+                if (first instanceof PropertyExpressionAssignmentContext pe) {
+                    var expr = this.expression(pe.expression());
+                    valueType = expr.inferType();
+                } else if(first instanceof PropertyShorthandContext ps){
+                    var expr = this.expression(ps.expression());
+                    var t = expr.inferType();
+                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
+                        ClassRefLiteral[] typeArgumentsArray = t.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+                        keyType = typeArgumentsArray[0].getClassDefValue();
+                        valueType = typeArgumentsArray[1].getClassDefValue();
+                    } else {
+                        valueType = root.getObjectClass();
+                    }
+                } else {
+                    throw new UnsupportedOperationException();
+                }
+                var m = functionDef.getOrCreateGenericInstantiationClassDef(root.getHashMapClass(), new ClassRefLiteral[]{
+                        new ClassRefLiteral(keyType),
+                        new ClassRefLiteral(valueType)
+                }, null);
+                functionDef.registerConcreteType(m);
+                functionDef.idOfClass(root.getHashMapClass());
+                objectType = (ClassDef) m;
+                objectTypeExpr = new ConstClass(objectType);
+            }
+        }
+        Compiler.processClassTillStage(objectType, CompilingStage.AllocateSlots);
+        if(propertyAssignments.isEmpty()){
+            return new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
+        }
+
+        if(root.getAnyMapClass().isThatOrSuperOfThat(objectType)){  // Map
+            var mapInstance = new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
+            CurrWithExpression currWithExpression = new CurrWithExpression(functionDef, mapInstance);
+
+            var statements = new ArrayList<Statement>();
+            ClassRefLiteral[] arr = objectType.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+            ClassDef keyType = arr[0].getClassDefValue();
+            ClassDef valueType = arr[1].getClassDefValue();
+            for (PropertyAssignmentContext pa : propertyAssignments) {
+                if (pa instanceof PropertyExpressionAssignmentContext pe) {
+                    var p = this.propertyName(pe.propertyName());
+                    var v = this.expression(pe.expression());
+                    var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
+                            Arrays.asList(functionDef.cast(p, keyType).transform(), functionDef.cast(v, valueType).transform()), unit.sourceLocation(pe));
+                    statements.add(functionDef.expressionStmt(put));
+                } else if(pa instanceof PropertyShorthandContext ps){
+                    var expr = this.expression(ps.expression());
+                    var t = expr.inferType();
+                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
+                        ClassDef entryType = t.findMethod("iterator#").getResultType();
+                        Var.LocalVar iterVar = this.acquireTempVar(new ConstClass(entryType));
+                        var keyOfIter = functionDef.field(iterVar, entryType.getVariable("key"));
+                        var valueOfIter = functionDef.field(iterVar, entryType.getVariable("value"));
+                        var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
+                                Arrays.asList(functionDef.cast(keyOfIter, keyType).transform(),
+                                        functionDef.cast(valueOfIter, valueType).transform()), unit.sourceLocation(ps));
+                        statements.add(new ForEachStmt(functionDef, null, iterVar, expr, functionDef.expressionStmt(put), ForEachStmt.Mode.Iterable, unit.sourceLocation(ps)));
+                    } else {
+                        valueType = root.getObjectClass();
+                        //TODO from object to map
+                    }
+                } else {
+                    throw new UnsupportedOperationException();
+                }
+            }
+            return new WithExpr(functionDef, currWithExpression, new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(objectLiteral)));
+        } else {        // Object
+            var objectInstance = new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
+            CurrWithExpression currWithExpression = new CurrWithExpression(functionDef, objectInstance);
+
+            var statements = new ArrayList<Statement>();
+            for (PropertyAssignmentContext pa : propertyAssignments) {
+                if (pa instanceof PropertyExpressionAssignmentContext pe) {
+                    var expr = this.expression(pe.expression());
+                    var n = this.propertyName(pe.propertyName());
+                    if(n instanceof StringLiteral s){
+                        String a = s.getString();
+                        var attr = objectType.getAttribute(a);
+                        if(attr != null) {
+                            var set = new Attribute(functionDef, currWithExpression, attr.getGetter(), attr.getSetter()).setSourceLocation(unit.sourceLocation(pe))
+                                    .setValue(functionDef, expr);
+                            statements.add(functionDef.expressionStmt(set));
+                        } else {
+                            Field field = objectType.getFields().get(a);
+                            if(field == null){
+                                throw unit.resolveError(pe.propertyName(), "'%s' is not attribute or field".formatted(a));
+                            } else if(!field.isPublic()){
+                                throw unit.resolveError(pe.propertyName(), "'%s' is not public field".formatted(a));
+                            }
+                            var assign = functionDef.assign(functionDef.field(currWithExpression, field), expr);
+                            statements.add(functionDef.expressionStmt(assign));
+                        }
+                    } else {    // for expression
+                        throw unit.syntaxError(pe, "expression key can only apply to Map");
+                    }
+                } else if(pa instanceof PropertyShorthandContext ps){
+                    var expr = this.expression(ps.expression());
+                    var t = expr.inferType();
+                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
+                        throw unit.typeError(ps, "cannot copy a Map to an object");
+                    } else {
+                        if(objectType.isThatOrSuperOfThat(t) || t.isThatOrSuperOfThat(objectType)){
+                            var assign = new CopyAssign(functionDef, expr, currWithExpression, findCommonType(objectType, t));
+                            statements.add(functionDef.expressionStmt(assign));
+                        } else {
+                            throw unit.typeError(ps, "cannot assign '%s' to '%s'".formatted(t.getFullname(), objectType.getFullname()));
+                        }
+                    }
+                } else {
+                    throw new UnsupportedOperationException();
+                }
+            }
+            return new WithExpr(functionDef, currWithExpression, new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(objectLiteral)));
+        }
+    }
+
+    private Expression propertyName(PropertyNameContext propertyNameContext) throws CompilationError {
+        if(propertyNameContext instanceof IdPropertyNameContext id){
+            return new StringLiteral(id.getText()).setSourceLocation(unit.sourceLocation(propertyNameContext));
+        } else if(propertyNameContext instanceof StringPropertyNameContext s){
+            String s1 = Compiler.parseStringLiteral(s.STRING_LITERAL());
+            return new StringLiteral(s1).setSourceLocation(unit.sourceLocation(propertyNameContext));
+        } else if(propertyNameContext instanceof ExpressionPropertyNameContext expr){
+            return this.expression(expr.expression()).setSourceLocation(unit.sourceLocation(propertyNameContext));
+        } else {
+            throw new IllegalArgumentException("unexpected property name");
         }
     }
 

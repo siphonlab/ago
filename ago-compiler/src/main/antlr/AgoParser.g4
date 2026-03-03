@@ -240,23 +240,18 @@ arrayElement
     ;
 
 objectLiteral
-    : declarationType? '{' (propertyAssignment (',' propertyAssignment)* ','?)? '}'
+    : '{' (declarationType '|')? (propertyAssignment (',' propertyAssignment)* ','?)? '}'
     ;
 
 propertyAssignment
     : propertyName ':' expression                                # PropertyExpressionAssignment
-//    | Async? '*'? propertyName '(' formalParameterList? ')' functionBody # FunctionProperty
-//    | getter '(' ')' functionBody                                        # PropertyGetter
-//    | setter '(' formalParameterArg ')' functionBody                     # PropertySetter
     | '...'? expression                                         # PropertyShorthand
     ;
 
 propertyName
-    : identifier
-    | STRING_LITERAL
-    | integerLiteral
-    | floatLiteral
-    | '[' expression ']'
+    : identifier                #IdPropertyName
+    | STRING_LITERAL            #StringPropertyName
+    | '[' expression ']'        #ExpressionPropertyName
     ;
 
 
