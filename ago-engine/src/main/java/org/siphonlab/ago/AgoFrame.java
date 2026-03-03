@@ -1322,6 +1322,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         return pc;
     }
     protected void copyAssign(Instance<?> dest, Instance<?> src, AgoClass commonClass) {
+        if(src == null || dest == null) return;
         Slots targetSlots = dest.getSlots();
         Slots srcSlots = src.getSlots();
         for (AgoSlotDef slotDef : commonClass.getSlotDefs()) {

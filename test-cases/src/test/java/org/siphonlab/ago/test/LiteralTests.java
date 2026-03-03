@@ -35,6 +35,14 @@ public class LiteralTests {
     @Test
     public void object() throws CompilationError, IOException {
         run("literal/object.ago");
+        assertTrue(Trace.outputted("name: Tom  gender: M", "name: Tom  gender: M  workNo: 1001 salary: 10200", "name: Mike  gender: M  workNo: 1003 salary: 13332"));
     }
+
+    @Test
+    public void map() throws CompilationError, IOException {
+        run("literal/map.ago");
+        assertTrue(Trace.outputted("HashMap<string,lang.Object>", "Tom", "Jenny", "42", "M", "51888222"));
+    }
+
 
 }

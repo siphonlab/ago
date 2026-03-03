@@ -1826,6 +1826,10 @@ public class ClassDef extends ClassContainer {
         return this.attributes.get(name);
     }
 
+    public Map<String, GetterSetterPair> getAttributes() {
+        return attributes;
+    }
+
     public static ClassDef findCommonType(ClassDef typeA, ClassDef typeB) {
         if(typeA == null) return typeB;
         if(typeB.isThatOrDerivedFromThat(typeA)){

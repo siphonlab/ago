@@ -30,6 +30,7 @@ import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
+import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
 import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
@@ -954,7 +955,7 @@ public class BlockCompiler {
                 objectTypeExpr = new ConstClass(objectType);
             }
         } else {
-            // default type is Map<String, ?> the key is always String
+            // default type is Map<String, Object> the key is always String
             if(propertyAssignments.isEmpty()){
                 var m = functionDef.getOrCreateGenericInstantiationClassDef(root.getHashMapClass(), new ClassRefLiteral[]{
                         new ClassRefLiteral(PrimitiveClassDef.STRING),
@@ -967,11 +968,8 @@ public class BlockCompiler {
             } else {
                 var first = objectLiteral.propertyAssignment(0);
                 ClassDef keyType = PrimitiveClassDef.STRING;
-                ClassDef valueType;
-                if (first instanceof PropertyExpressionAssignmentContext pe) {
-                    var expr = this.expression(pe.expression());
-                    valueType = expr.inferType();
-                } else if(first instanceof PropertyShorthandContext ps){
+                ClassDef valueType = root.getObjectClass();
+                if(first instanceof PropertyShorthandContext ps){
                     var expr = this.expression(ps.expression());
                     var t = expr.inferType();
                     if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
@@ -981,8 +979,6 @@ public class BlockCompiler {
                     } else {
                         valueType = root.getObjectClass();
                     }
-                } else {
-                    throw new UnsupportedOperationException();
                 }
                 var m = functionDef.getOrCreateGenericInstantiationClassDef(root.getHashMapClass(), new ClassRefLiteral[]{
                         new ClassRefLiteral(keyType),
@@ -1018,17 +1014,50 @@ public class BlockCompiler {
                     var expr = this.expression(ps.expression());
                     var t = expr.inferType();
                     if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        ClassDef entryType = t.findMethod("iterator#").getResultType();
-                        Var.LocalVar iterVar = this.acquireTempVar(new ConstClass(entryType));
-                        var keyOfIter = functionDef.field(iterVar, entryType.getVariable("key"));
-                        var valueOfIter = functionDef.field(iterVar, entryType.getVariable("value"));
+                        ClassDef iteratorType = t.findMethod("iterator#").getResultType();
+                        var keyValuePairType = iteratorType.findMethod("next#").getResultType();
+                        Var.LocalVar iterVar = this.acquireTempVar(keyValuePairType);
+                        var keyOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("key"));
+                        var valueOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("value"));
                         var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
                                 Arrays.asList(functionDef.cast(keyOfIter, keyType).transform(),
                                         functionDef.cast(valueOfIter, valueType).transform()), unit.sourceLocation(ps));
-                        statements.add(new ForEachStmt(functionDef, null, iterVar, expr, functionDef.expressionStmt(put), ForEachStmt.Mode.Iterable, unit.sourceLocation(ps)));
+                        var withValue = new CurrWithExpression(functionDef, expr);
+                        ForEachStmt forEachStmt = new ForEachStmt(functionDef, null, iterVar, withValue, functionDef.expressionStmt(put), ForEachStmt.Mode.Iterable, unit.sourceLocation(ps));
+                        var ifNotNull = new IfThenElseStmt(functionDef, new Equals(functionDef, withValue, new NullLiteral(t), Equals.Type.NotEquals), forEachStmt, null);
+                        statements.add(new WithStmt(functionDef, withValue, ifNotNull));
                     } else {
+                        if(!PrimitiveClassDef.STRING.isThatOrSuperOfThat(keyType)){
+                            throw unit.typeError(pa, "to accept an object, Map<String,?> destination expected");
+                        }
                         valueType = root.getObjectClass();
-                        //TODO from object to map
+                        var assignments = new ArrayList<Statement>();
+                        var withValue = new CurrWithExpression(functionDef, expr);
+                        Set<String> visited = new HashSet<>();
+                        if(t.getAttributes() != null) {
+                            for (var k : t.getAttributes().keySet()) {
+                                GetterSetterPair attribute = t.getAttribute(k);
+                                var attr = new Attribute(functionDef, withValue, attribute.getGetter(), attribute.getSetter());
+                                var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
+                                        Arrays.asList(functionDef.cast(new StringLiteral(k), keyType).transform(),
+                                                functionDef.cast(attr, valueType).transform()), unit.sourceLocation(ps));
+                                assignments.add(functionDef.expressionStmt(put));
+                                visited.add(k);
+                            }
+                        }
+                        Map<String, Field> fields = t.getFields();
+                        for(var k : fields.keySet()){
+                            var fld = fields.get(k);
+                            if(fld.isPublic() && !visited.contains(k)){
+                                var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
+                                        Arrays.asList(functionDef.cast(new StringLiteral(k), keyType).transform(),
+                                                functionDef.cast(functionDef.field(withValue, fld), valueType).transform()), unit.sourceLocation(ps));
+                                assignments.add(functionDef.expressionStmt(put));
+                                visited.add(k);
+                            }
+                        }
+                        var ifNotNull = new IfThenElseStmt(functionDef, new Equals(functionDef, withValue, new NullLiteral(t), Equals.Type.NotEquals), new BlockStmt(functionDef, assignments), null);
+                        statements.add(new WithStmt(functionDef, withValue, ifNotNull));
                     }
                 } else {
                     throw new UnsupportedOperationException();
@@ -1071,7 +1100,7 @@ public class BlockCompiler {
                         throw unit.typeError(ps, "cannot copy a Map to an object");
                     } else {
                         if(objectType.isThatOrSuperOfThat(t) || t.isThatOrSuperOfThat(objectType)){
-                            var assign = new CopyAssign(functionDef, expr, currWithExpression, findCommonType(objectType, t));
+                            var assign = new CopyAssign(functionDef, currWithExpression, expr, findCommonType(objectType, t));
                             statements.add(functionDef.expressionStmt(assign));
                         } else {
                             throw unit.typeError(ps, "cannot assign '%s' to '%s'".formatted(t.getFullname(), objectType.getFullname()));
@@ -1248,6 +1277,19 @@ public class BlockCompiler {
         }
         return r;
     }
+
+    public Var.LocalVar acquireTempVar(ClassDef type) throws CompilationError {
+        if(type instanceof PhantomMetaClassDef) type = functionDef.getRoot().getObjectClass();
+        var v = new Variable();
+        v.setType(type);
+        v.setOwnerClass(this.functionDef);
+        v.setModifiers(AgoClass.PRIVATE);
+        SlotDef slot = getSlotsAllocator().acquireRegister(type);
+        v.setSlot(slot);
+        v.setName(slot.getName());
+        return new Var.LocalVar(functionDef, v, Var.LocalVar.VarMode.Temp);
+    }
+
 
     public void lockRegister(TermExpression tempVar) {
         if(tempVar instanceof Var.LocalVar localVar && localVar.varMode == Var.LocalVar.VarMode.Temp){

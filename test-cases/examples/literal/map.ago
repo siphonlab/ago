@@ -1,0 +1,26 @@
+class Staff{
+    public name as string;
+    gender as char {get; set;}
+    public workNo as string;
+    public age as int
+
+    override toString() as string{
+        return $"name: ${name}  gender: ${gender}  workNo: ${workNo}"$
+    }
+}
+
+fun main(){
+    var map = {name: "Tom", gender: 'M', workNo : '1234', age : 44};
+    Trace.print(map.getClass().getName())
+    Trace.print(map['name'])
+
+    var staff = {Staff| name: "Jenny", gender: 'F', workNo: '1002'}
+    var n as Staff = null;
+    var m = {...staff, age: 42, ...n}
+    Trace.print(m['name'])
+    Trace.print(m['age'])
+
+    var m2 = {...map, phone: '51888222'};
+    Trace.print(m2['gender'])
+    Trace.print(m2['phone'])
+}
