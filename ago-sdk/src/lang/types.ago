@@ -1,0 +1,116 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+public class Integer from Number<int>{
+    metaclass{
+        fun toHexString(v as int) as string
+            native "org.siphonlab.ago.lang.Lang.Integer_toHexString";
+    }
+
+    public override intValue() as int    { return value; }
+
+    public override longValue() as long  { return value; }
+
+    public override floatValue() as float    { return value; }
+
+    public override doubleValue() as double  { return value; }
+
+    public override byteValue() as byte      { return value|byte; }
+
+    public override shortValue() as short    { return value|short; }
+
+    public override toString() as string native "org.siphonlab.ago.lang.Lang.Integer_toString"
+
+    override hashCode() as int{
+        return this.value;
+    }
+}
+
+public class Long from Number<long>{
+    metaclass{
+        fun toHexString(v as long) as string
+            native "org.siphonlab.ago.lang.Lang.Long_toHexString";
+    }
+
+    public override intValue() as int    { return value; }
+
+    public override longValue() as long  { return value; }
+
+    public override floatValue() as float    { return value; }
+
+    public override doubleValue() as double  { return value; }
+
+    public override byteValue() as byte      { return value|byte; }
+
+    public override shortValue() as short    { return value|short; }
+
+    public override toString() as string native "org.siphonlab.ago.lang.Lang.Long_toString"
+}
+
+
+public class String from Boxer<string>{
+
+    override hashCode() as int{
+        return stringHashCode(value);
+    }
+
+    fun stringHashCode(s as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_hashCode";
+
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof String aString) and value == aString.value;
+    }
+
+    override toString() as string{
+        return value;
+    }
+
+}
+
+public class Boolean from Boxer<boolean>{
+
+    override hashCode() as int{
+        return 1231 if value else 1237;;
+    }
+
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof Boolean b) and value == b.value;
+    }
+
+    override toString() as string{
+        return "true" if value else "false";
+    }
+
+}
+
+public class Char from Boxer<char>{
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof Char b) and value == b.value;
+    }
+
+    override toString() as string{
+        return this.value|String;
+    }
+
+    override hashCode() as int{
+        return this.value|int;
+    }
+
+}

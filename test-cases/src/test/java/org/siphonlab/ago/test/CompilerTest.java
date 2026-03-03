@@ -44,6 +44,7 @@ public class CompilerTest {
         Compiler compiler = new Compiler();
         Unit[] units = compiler.compile(new File[]{
                 new File("../ago-sdk/src/lang/lang.ago"),
+                new File("../ago-sdk/src/lang/types.ago"),
                 new File("../ago-sdk/src/lang/collection.ago"),
                 new File("../ago-sdk/src/lang/runspace.ago"),
                 new File("../ago-sdk/src/lang/atomic.ago")
