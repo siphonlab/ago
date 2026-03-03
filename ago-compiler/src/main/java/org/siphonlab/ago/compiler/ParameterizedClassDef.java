@@ -334,7 +334,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     public static String composeName(ClassDef baseClass, Literal<?>[] arguments) {
-        return baseClass.getName() + "::" + Arrays.stream(arguments).map(Literal::getId).collect(Collectors.joining("|"));
+        return baseClass.getName() + "::" + Arrays.stream(arguments).map(Literal::getId).collect(Collectors.joining(","));
     }
 
     @Override

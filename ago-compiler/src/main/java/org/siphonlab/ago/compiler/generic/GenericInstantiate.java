@@ -120,7 +120,7 @@ public class GenericInstantiate {
 
     public static String composeName(ClassDef templateClass, ClassRefLiteral[] typeArguments) {
         return templateClass.getName() + "<" + Arrays.stream(typeArguments)
-                .map(l -> l.getClassDefValue().getFullname()).collect(Collectors.joining("|")) + ">";
+                .map(l -> l.getClassDefValue().getFullname()).collect(Collectors.joining(",")) + ">";
     }
 
     public ClassRefLiteral[] getTypeArguments() {

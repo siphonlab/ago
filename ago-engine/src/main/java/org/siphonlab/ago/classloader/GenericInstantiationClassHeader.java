@@ -56,7 +56,7 @@ public class GenericInstantiationClassHeader extends ClassHeader {
                     } else {
                         return l.typeCode.toString();
                     }
-                }).collect(Collectors.joining("|")) + ">";
+                }).collect(Collectors.joining(",")) + ">";
     }
 
     public static String[] composeMetaClassName(ClassHeader instanceTemplate, GenericTypeArguments genericTypeArguments, Map<String, ClassHeader> headers) {
