@@ -409,6 +409,7 @@ public class ClassFile {
                 }
                 buffer.put((byte) 1);
                 buffer.putInt(ownerClass.idOfKnownConstString(arrayClassDef.getFullname()));
+                buffer.putPrefixedString(arrayClassDef.getName(), encoder);
                 putType(buffer, ownerClass,arrayClassDef.getElementType());
             } else if (concreteType instanceof ParameterizedClassDef pc) {
                 buffer.put((byte) 2);

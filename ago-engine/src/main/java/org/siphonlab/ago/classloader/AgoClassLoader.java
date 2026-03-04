@@ -444,10 +444,11 @@ public class AgoClassLoader implements ClassManager{
     private void readConcreteType(IoBuffer buffer, String[] strings) throws CharacterCodingException {
         int kind = buffer.get();
         if(kind == 1){
-            String arrayClassName = strings[buffer.getInt()];
+            String arrayClassFullName = strings[buffer.getInt()];
+            String arrayClassName = buffer.getPrefixedString(decoder);
             var elementType = readType(buffer, strings);
-            headers.computeIfAbsent(arrayClassName, n -> {
-                ArrayTypeHeader header = new ArrayTypeHeader(arrayClassName, elementType, this);
+            headers.computeIfAbsent(arrayClassFullName, n -> {
+                ArrayTypeHeader header = new ArrayTypeHeader(arrayClassFullName, arrayClassName, elementType, this);
                 header.setClassId(headers.size());
                 return header;
             });

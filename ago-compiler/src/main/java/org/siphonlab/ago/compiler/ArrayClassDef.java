@@ -62,6 +62,7 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
         ClassDef arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{new ClassRefLiteral(elementType)}), null);
         this.setSuperClass(arrayInstantiationType);
         this.registerConcreteType((ConcreteType) arrayInstantiationType);
+        resolveMetaclass();
         this.setCompilingStage(CompilingStage.InheritsFields);
         try {
             Compiler.processClassTillStage(this,elementType.getCompilingStage());
@@ -92,6 +93,16 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     @Override
     public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
         return cloneForInstantiate(arguments,returnExisted);
+    }
+
+    @Override
+    public void setMetaClassDef(MetaClassDef metaClassDef) {
+        super.setMetaClassDef(metaClassDef);
+    }
+
+    @Override
+    void instantiateHierarchy() throws CompilationError {
+        super.instantiateHierarchy();
     }
 
     @Override

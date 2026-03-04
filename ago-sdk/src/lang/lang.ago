@@ -187,6 +187,9 @@ interface ViaObject{
 
 // array creator will get ArrayInstance insteadof
 class Array<T> with Iterable<T>{
+    metaclass{
+        fun copy(source as T[], sourcePos as int, destination as T[], destPos as int, length as int) native "org.siphonlab.ago.lang.Lang.arrayCopy"
+    }
     public final length as int;
 
     override iterator() as Iterator<T>{

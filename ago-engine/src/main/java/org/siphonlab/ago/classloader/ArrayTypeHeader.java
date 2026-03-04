@@ -16,6 +16,7 @@
 package org.siphonlab.ago.classloader;
 
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.ArrayInfo;
 import org.siphonlab.ago.TypeCode;
@@ -31,10 +32,10 @@ public class ArrayTypeHeader extends ClassHeader {
 
     protected TypeDesc elementType;
 
-    public ArrayTypeHeader(String fullname, TypeDesc elementType, AgoClassLoader classLoader) {
+    public ArrayTypeHeader(String fullname, String name, TypeDesc elementType, AgoClassLoader classLoader) {
         super(fullname, TYPE_CLASS, PUBLIC, null, classLoader);
         this.elementType = elementType;
-        this.name = fullname;
+        this.name = name;
     }
 
 
@@ -44,20 +45,46 @@ public class ArrayTypeHeader extends ClassHeader {
             return this;
         }
         TypeDesc elementInst = elementType.applyTemplate(headers, genericTypeArguments);
-        String n = newParent == null ? '[' + elementInst.getName() : newParent.fullname() + '[' + elementInst.getName();
-        var existed = headers.get(n);
+        var p = composeName(newParent, elementInst, headers);
+        var existed = headers.get(p.getRight());
         if(existed != null) return existed;
 
         return instantiate(newParent, headers, genericTypeArguments);
     }
 
+    private static Pair<String, String> composeName(ClassHeader newParent, TypeDesc elementInst, Map<String, ClassHeader> headers){
+        String name;
+        String fullname;
+        if (newParent == null) {
+            if(elementInst.typeCode.isObject()){
+                var el = headers.get(elementInst.getClassName());
+                name = '[' + el.getName();
+                fullname = el.extractPackagePrefix() + name;
+            } else {
+                name = '[' + elementInst.getName();
+                fullname = name;
+            }
+        } else {
+            name = '[' + elementInst.getName();
+            fullname = newParent.fullname() + '[' + elementInst.getName();
+        }
+        return Pair.of(name, fullname);
+    }
+
     @Override
     protected ClassHeader instantiate(ClassHeader newParent, Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
+        if(!typeArguments.canApplyToTemplate(this, headers)){
+            return this;
+        }
         TypeDesc elementInst = elementType.applyTemplate(headers, typeArguments);
-        String n = newParent == null ? '[' + elementInst.getName() : newParent.fullname() + '[' + elementInst.getName();
-        var inst = new ArrayTypeHeader(n, elementInst, classLoader);
+        var p = composeName(newParent, elementInst, headers);
+        String fullname = p.getRight();
+        String name = p.getLeft();
+        var existed = headers.get(fullname);
+        if(existed != null) return existed;
+        var inst = new ArrayTypeHeader(fullname, name, elementInst, classLoader);
         inst.setClassId(headers.size());
-        headers.put(inst.fullname, inst);
+        classLoader.registerNewClass(inst);
         applyInstantiation(inst, typeArguments, newParent, headers);
         return inst;
     }
@@ -102,8 +129,19 @@ public class ArrayTypeHeader extends ClassHeader {
                 m -> new MethodDesc(m.getName(),m.getFullname())
                 ).toList());
         this.strings = arrayBase.strings;
-        this.setMetaClass(arrayBase.getMetaClass());
-        this.setInterfaces(arrayBase.interfaces);
+        var instantiationMetaClass = headers.get(instantiation.getMetaClass());
+        String metaFullname = this.extractPackagePrefix() + "Meta@<" + this.name + ">";
+        var existed = headers.get(metaFullname);
+        if(existed == null){
+            var metaHeader = new MetaClassHeader(metaFullname, TYPE_METACLASS, instantiationMetaClass.modifiers, instantiationMetaClass.getSlice().slice(), instantiationMetaClass.classLoader);
+            metaHeader.setSuperClass(instantiationMetaClass.fullname);
+            metaHeader.resolveHierarchicalClasses(headers);
+            classLoader.registerNewClass(metaHeader);
+            this.setMetaClass(metaHeader.fullname);
+        } else {
+            this.setMetaClass(metaFullname);
+        }
+        this.setInterfaces(instantiation.interfaces);
         this.setLoadingStage(LoadingStage.ParseFields);
         return true;
     }

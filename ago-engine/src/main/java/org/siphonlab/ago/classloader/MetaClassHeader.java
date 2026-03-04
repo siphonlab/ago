@@ -18,6 +18,8 @@ package org.siphonlab.ago.classloader;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.siphonlab.ago.classloader.LoadingStage.BuildClass;

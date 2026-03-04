@@ -120,20 +120,24 @@ public class AgoClassParser {
         assert classes.size() == allClasses.size();
 
         Collection<ClassDef> r = classes.values();
-        for (Namespace<?> n : root.getAllDescendants().getUniqueElements()) {
-            if (n instanceof ClassDef classDef) {
-                if (classDef.getCompilingStage() != CompilingStage.Compiled) {
-                    Compiler.processClassTillStage(classDef, CompilingStage.Compiled);      // lang.Function<>, lang.FunctionN<>
-                    if(r instanceof List<ClassDef>){
-                        r.add(classDef);
-                    } else {
-                        var ls = new ArrayList<>(r);
-                        ls.add(classDef);
-                        r = ls;
-                    }
+        while(true) {
+            ArrayList<Namespace<?>> namespaces = new ArrayList<>(root.getAllDescendants().getUniqueElements());
+            for (Namespace<?> n : namespaces) {
+                if (n instanceof ClassDef classDef) {
+                    if (classDef.getCompilingStage() != CompilingStage.Compiled) {
+                        Compiler.processClassTillStage(classDef, CompilingStage.Compiled);      // lang.Function<>, lang.FunctionN<>
+                        if (r instanceof List<ClassDef>) {
+                            r.add(classDef);
+                        } else {
+                            var ls = new ArrayList<>(r);
+                            ls.add(classDef);
+                            r = ls;
+                        }
 //                    throw new RuntimeException("'%s' not compiled".formatted(classDef));
+                    }
                 }
             }
+            if(namespaces.size() == root.getAllDescendants().getUniqueElements().size()) break;
         }
 
         return r;
