@@ -18,6 +18,7 @@ package org.siphonlab.ago.lang;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.siphonlab.ago.runtime.ObjectArrayInstance;
 
 import java.util.ArrayList;
@@ -121,5 +122,10 @@ public class Lang {
 //        frame.finishVoid();
 //    }
 
-
+    public static void arrayCopy(NativeFrame frame, Instance<?> source, int sourcePos, Instance<?> destination, int destPos, int length){
+        var srcArray = ((AgoArrayInstance)source).getArray();
+        var destArray = ((AgoArrayInstance)destination).getArray();
+        System.arraycopy(srcArray, sourcePos, destArray, destPos, length);
+        frame.finishVoid();
+    }
 }
