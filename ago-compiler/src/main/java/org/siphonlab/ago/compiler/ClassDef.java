@@ -912,7 +912,7 @@ public class ClassDef extends ClassContainer {
             if(superClass.isInterfaceOrTrait()) {
                 for (ClassDef implementedInterface : c.implementedInterfaces) {
                     var d = implementedInterface.distanceToSuperClass(superClass);
-                    if (d != -1) return distance + d;
+                    if (d != -1) return distance + d + 1;
                 }
             }
             if(c == c.superClass) return distance;
