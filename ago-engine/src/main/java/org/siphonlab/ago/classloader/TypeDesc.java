@@ -48,6 +48,14 @@ public class TypeDesc {
                 Objects.equals(this.className, that.className);
     }
 
+    public String asClassNamePart(){
+        if(typeCode == TypeCode.OBJECT) {
+            return getClassName();
+        } else {
+            return typeCode.toString();
+        }
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(typeCode, className);

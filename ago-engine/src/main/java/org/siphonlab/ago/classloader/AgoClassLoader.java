@@ -886,29 +886,6 @@ public class AgoClassLoader implements ClassManager{
     }
 
 
-    static class GenericLoadingContext{
-        final Queue<FailableRunnable<RuntimeException>> delayTasks = new LinkedList<>();
-        final Map<String, ClassHeader> headers;
-
-        GenericLoadingContext(Map<String, ClassHeader> headers) {
-            this.headers = headers;
-        }
-        public void put(ClassHeader header){
-            if(this.headers.containsKey(header.fullname)){
-                return;
-            }
-            this.headers.put(header.fullname, header);
-        }
-        public int size(){
-            return this.headers.size();
-        }
-
-        public ClassHeader get(String fullname) {
-            return headers.get(fullname);
-        }
-    }
-
-
     private void collectMetaAndSuperAndChildren(ClassHeader header) {
         var cls = header.agoClass;
         cls.setSuperClass(classByName.get(header.getSuperClass()));

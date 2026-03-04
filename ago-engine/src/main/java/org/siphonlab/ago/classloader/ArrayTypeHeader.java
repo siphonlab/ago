@@ -52,30 +52,49 @@ public class ArrayTypeHeader extends ClassHeader {
         return instantiate(newParent, headers, genericTypeArguments);
     }
 
-    private static Pair<String, String> composeName(ClassHeader newParent, TypeDesc elementInst, Map<String, ClassHeader> headers){
+    private static Pair<String, String> composeName(ClassHeader newParent, TypeDesc elementDesc, Map<String, ClassHeader> headers){
         String name;
         String fullname;
         if (newParent == null) {
-            if(elementInst.typeCode.isObject()){
-                var el = headers.get(elementInst.getClassName());
+            if(elementDesc.typeCode.isObject()) {
+                var el = headers.get(elementDesc.getClassName());
                 name = '[' + el.getName();
                 fullname = el.extractPackagePrefix() + name;
+            } else if(elementDesc instanceof GenericTypeDesc g){
+                if(g.className != null){
+                    var el = headers.get(g.className);
+                    name = '[' + g.asClassNamePart();
+                    fullname = el.extractPackagePrefix() + name;
+                } else {
+                    name = '[' + g.asClassNamePart();
+                    fullname = name;
+                }
             } else {
-                name = '[' + elementInst.getName();
+                name = '[' + elementDesc.asClassNamePart();
                 fullname = name;
             }
         } else {
-            name = '[' + elementInst.getName();
-            fullname = newParent.fullname() + '[' + elementInst.getName();
+            name = '[' + elementDesc.asClassNamePart();
+            fullname = newParent.fullname() + '[' + elementDesc.asClassNamePart();
         }
         return Pair.of(name, fullname);
     }
 
     @Override
     protected ClassHeader instantiate(ClassHeader newParent, Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
-        if(!typeArguments.canApplyToTemplate(this, headers)){
-            return this;
+        boolean b = false;
+        if(elementType instanceof GenericTypeDesc g){
+            if(g.isPlaceHolder){
+                this.elementType = g = g.resolveExactType(headers);
+            }
+            if(typeArguments.canApplyToTemplate(headers.get(g.templateClass), headers)) {
+                b = true;
+            }
+        } else if(elementType.getTypeCode() == OBJECT && typeArguments.canApplyToTemplate(headers.get(elementType.getClassName()), headers)){
+            b = true;
         }
+        if(!b) return this;
+
         TypeDesc elementInst = elementType.applyTemplate(headers, typeArguments);
         var p = composeName(newParent, elementInst, headers);
         String fullname = p.getRight();
@@ -102,9 +121,7 @@ public class ArrayTypeHeader extends ClassHeader {
 
     @Override
     public ClassHeader resolveTemplateInstantiation(Map<String, ClassHeader> headers,  GenericTypeArguments typeArguments) {
-        TypeDesc appliedElement = elementType.applyTemplate(headers, typeArguments);
-        String n = this.parent == null ? '[' + appliedElement.getName() : this.parent.fullname() + '[' + appliedElement.getName();
-        return headers.get(n);
+        return this.tryInstantiate(this.parent, headers, typeArguments);
     }
 
     @Override

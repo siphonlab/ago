@@ -47,16 +47,7 @@ public class GenericInstantiationClassHeader extends ClassHeader {
 
     public static String composeClassName(String baseTemplateName, GenericTypeArguments genericTypeArguments) {
         return baseTemplateName + "<" + Arrays.stream(genericTypeArguments.getTypeArgumentsArray())
-                .map(l -> {
-                    if(l.typeCode == TypeCode.OBJECT) {
-                        return l.getClassName();
-                    } else if(l instanceof GenericTypeDesc g) {
-                        assert !g.isPlaceHolder;
-                        return g.asClassNamePart();
-                    } else {
-                        return l.typeCode.toString();
-                    }
-                }).collect(Collectors.joining(",")) + ">";
+                    .map(TypeDesc::asClassNamePart).collect(Collectors.joining(",")) + ">";
     }
 
     public static String[] composeMetaClassName(ClassHeader instanceTemplate, GenericTypeArguments genericTypeArguments, Map<String, ClassHeader> headers) {
