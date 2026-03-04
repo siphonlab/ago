@@ -17,6 +17,7 @@ package org.siphonlab.ago.lang;
 
 import org.eclipse.collections.api.iterator.*;
 import org.eclipse.collections.impl.list.mutable.primitive.*;
+import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.GenericArgumentsInfo;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.TypeInfo;
@@ -25,6 +26,7 @@ import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.*;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -664,29 +666,141 @@ public class ArrayList {
 
     public static void addAll_Array(NativeFrame callFrame, Instance<?> array) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
+        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
         Object payload = instance.getNativePayload();
         AgoArrayInstance agoArrayInstance = (AgoArrayInstance) array;
         Object arr = agoArrayInstance.getArray();
-        if (payload instanceof java.util.ArrayList arrayList) {
-            List<Instance> list = Arrays.asList((Instance[]) arr);
-            arrayList.addAll(list);
-        } else if (payload instanceof IntArrayList ls) {
-            ls.addAll((int[])arr);
-        } else if (payload instanceof LongArrayList ls) {
-            ls.addAll((long[])arr);
-        } else if (payload instanceof FloatArrayList ls) {
-            ls.addAll((float[])arr);
-        } else if (payload instanceof DoubleArrayList ls) {
-            ls.addAll((double[])arr);
-        } else if (payload instanceof BooleanArrayList ls) {
-            ls.addAll((boolean[])arr);
-        } else if (payload instanceof ShortArrayList ls) {
-            ls.addAll((short[])arr);
-        } else if (payload instanceof ByteArrayList ls) {
-            ls.addAll((byte[])arr);
-        } else if (payload instanceof CharArrayList ls) {
-            ls.addAll((char[])arr);
+
+        switch (typeInfo.getTypeCode().value) {
+            case INT_VALUE:
+                ((IntArrayList)payload).addAll((int[])arr);
+                break;
+            case LONG_VALUE:
+                ((LongArrayList)payload).addAll((long[])arr);
+                break;
+            case FLOAT_VALUE:
+                ((FloatArrayList)payload).addAll((float[])arr);
+                break;
+            case DOUBLE_VALUE:
+                ((DoubleArrayList)payload).addAll((double[])arr);
+                break;
+            case BOOLEAN_VALUE:
+                ((BooleanArrayList)payload).addAll((boolean[])arr);
+                break;
+            case STRING_VALUE:
+                ((java.util.ArrayList<String>)payload).addAll(List.of((String[])arr));
+                break;
+            case SHORT_VALUE:
+                ((ShortArrayList)payload).addAll((short[])arr);
+                break;
+            case BYTE_VALUE:
+                ((ByteArrayList)payload).addAll((byte[])arr);
+                break;
+            case CHAR_VALUE:
+                ((CharArrayList)payload).addAll((char[])arr);
+                break;
+            case OBJECT_VALUE:
+                Collections.addAll(((java.util.ArrayList<Instance<?>>) payload), (Instance<?>[]) arr);
+                break;
+            case CLASS_REF_VALUE:
+                ((IntArrayList)payload).addAll((int[])arr);
+                break;
+            default:
+                throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
         }
         callFrame.finishVoid();
+    }
+
+    public static void toArray(NativeFrame callFrame){
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
+        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        Object payload = instance.getNativePayload();
+
+        AgoEngine agoEngine = callFrame.getAgoEngine();
+        switch (typeInfo.getTypeCode().value) {
+            case INT_VALUE:
+                IntArrayList intArrayList = (IntArrayList) payload;
+                var arrInt = agoEngine.createIntArray(callFrame.getAgoClass().getResultClass(), intArrayList.size());
+                intArrayList.toArray(arrInt.value);
+                callFrame.finishObject(arrInt);
+                break;
+
+            case LONG_VALUE:
+                LongArrayList longArrayList = (LongArrayList) payload;
+                var arrLong = agoEngine.createLongArray(callFrame.getAgoClass().getResultClass(), longArrayList.size());
+                longArrayList.toArray(arrLong.value);
+                callFrame.finishObject(arrLong);
+                break;
+
+            case FLOAT_VALUE:
+                FloatArrayList floatArrayList = (FloatArrayList) payload;
+                var arrFloat = agoEngine.createFloatArray(callFrame.getAgoClass().getResultClass(), floatArrayList.size());
+                floatArrayList.toArray(arrFloat.value);
+                callFrame.finishObject(arrFloat);
+                break;
+
+            case DOUBLE_VALUE:
+                DoubleArrayList doubleArrayList = (DoubleArrayList) payload;
+                var arrDouble = agoEngine.createDoubleArray(callFrame.getAgoClass().getResultClass(), doubleArrayList.size());
+                doubleArrayList.toArray(arrDouble.value);
+                callFrame.finishObject(arrDouble);
+                break;
+
+            case BOOLEAN_VALUE:
+                BooleanArrayList booleanArrayList = (BooleanArrayList) payload;
+                var arrBool = agoEngine.createBooleanArray(callFrame.getAgoClass().getResultClass(), booleanArrayList.size());
+                booleanArrayList.toArray(arrBool.value);
+                callFrame.finishObject(arrBool);
+                break;
+
+            case STRING_VALUE:
+                @SuppressWarnings("unchecked")
+                java.util.ArrayList<String> stringList = (java.util.ArrayList<String>) payload;
+                var arrString = agoEngine.createStringArray(callFrame.getAgoClass().getResultClass(), stringList.size());
+                stringList.toArray(arrString.value);
+                callFrame.finishObject(arrString);
+                break;
+
+            case SHORT_VALUE:
+                ShortArrayList shortArrayList = (ShortArrayList) payload;
+                var arrShort = agoEngine.createShortArray(callFrame.getAgoClass().getResultClass(), shortArrayList.size());
+                shortArrayList.toArray(arrShort.value);
+                callFrame.finishObject(arrShort);
+                break;
+
+            case BYTE_VALUE:
+                ByteArrayList byteArrayList = (ByteArrayList) payload;
+                var arrByte = agoEngine.createByteArray(callFrame.getAgoClass().getResultClass(), byteArrayList.size());
+                byteArrayList.toArray(arrByte.value);
+                callFrame.finishObject(arrByte);
+                break;
+
+            case CHAR_VALUE:
+                CharArrayList charArrayList = (CharArrayList) payload;
+                var arrChar = agoEngine.createCharArray(callFrame.getAgoClass().getResultClass(), charArrayList.size());
+                charArrayList.toArray(arrChar.value);
+                callFrame.finishObject(arrChar);
+                break;
+
+            case OBJECT_VALUE:
+                @SuppressWarnings("unchecked")
+                java.util.ArrayList<Instance<?>> objList = (java.util.ArrayList<Instance<?>>) payload;
+                var arrObj = agoEngine.createObjectArray(callFrame.getAgoClass().getResultClass(), objList.size());
+                objList.toArray(arrObj.value);
+                callFrame.finishObject(arrObj);
+                break;
+
+            case CLASS_REF_VALUE:
+                IntArrayList classRefList = (IntArrayList) payload;
+                var arrCls = agoEngine.createIntArray(callFrame.getAgoClass().getResultClass(), classRefList.size());
+                classRefList.toArray(arrCls.value);
+                callFrame.finishObject(arrCls);
+                break;
+
+            default:
+                throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
+        }
     }
 }
