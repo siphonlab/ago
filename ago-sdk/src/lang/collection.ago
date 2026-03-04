@@ -21,7 +21,9 @@ interface Collection<T> from Iterable<T>{
     fun add(item as T);
     fun clear();
     fun contains(item as T) as boolean;
-    fun copyTo(array as T[], arrayIndex as int);
+    fun copyTo#offset(arr as T[], arrayOffset as int);
+    fun copyTo#arr(arr as T[]);
+    fun copyTo#offset_length(arr as T[], arrayOffset as int, length as int);
     fun remove(item as T) as boolean;
 }
 
@@ -31,7 +33,9 @@ interface ReadOnlyCollection<+T> from Iterable<T>{
     fun add(item as T);
     fun clear();
     fun contains(item as T) as boolean;
-    fun copyTo(array as T[], arrayIndex as int);
+    fun copyTo#offset(arr as T[], arrayOffset as int);
+    fun copyTo#arr(arr as T[]);
+    fun copyTo#offset_length(arr as T[], arrayOffset as int, length as int);
     fun remove(item as T) as boolean;
 }
 
@@ -79,6 +83,26 @@ abstract class List<T> with ReadWriteList<T>, ReadOnlyList<T>{
         }
         return arr;
     }
+
+    override copyTo#offset(arr as T[], arrayOffset as int){
+        copyTo(arr, arrayOffset, arr.length - arrayOffset);
+    }
+
+    override copyTo#arr(arr as T[]){
+        copyTo(arr, 0, arr.length);
+    }
+
+    override copyTo#offset_length(arr as T[], arrayOffset as int, length as int) {
+        var i = arrayOffset;
+        var outputted = 0;
+        var arrLength = arr.length;
+        for(var el in this){
+            arr[i++] = el;
+            if(i == arrLength) break;
+            outputted++
+            if(outputted == length) break;
+        }
+    }
 }
 
 native class LinkedList<E> from List<E>{
@@ -92,7 +116,6 @@ native class LinkedList<E> from List<E>{
     override add(item as E) native "org.siphonlab.ago.lang.LinkedList.add";
     override clear() native "org.siphonlab.ago.lang.LinkedList.clear";
     override contains(item as E) as boolean native "org.siphonlab.ago.lang.LinkedList.contains";
-    override copyTo(array as E[], arrayIndex as int) native "org.siphonlab.ago.lang.LinkedList.copyTo";
     override remove(item as E) as boolean native "org.siphonlab.ago.lang.LinkedList.remove";
 
     override get#index(index as int) as E native "org.siphonlab.ago.lang.LinkedList.getAtIndex";
@@ -134,7 +157,6 @@ native class ArrayList<E> from List<E>{
     override add(item as E) native "org.siphonlab.ago.lang.ArrayList.add";
     override clear() native "org.siphonlab.ago.lang.ArrayList.clear";
     override contains(item as E) as boolean native "org.siphonlab.ago.lang.ArrayList.contains";
-    override copyTo(array as E[], arrayIndex as int) native "org.siphonlab.ago.lang.ArrayList.copyTo";
     override remove(item as E) as boolean native "org.siphonlab.ago.lang.ArrayList.remove";
 
     override get#index(index as int) as E native "org.siphonlab.ago.lang.ArrayList.getAtIndex";
@@ -159,9 +181,9 @@ native class ArrayList<E> from List<E>{
             this.add(el);
         }
     }
-    private fun ensureCapacity(minimalSize as int) native "org.siphonlab.ago.lang.ArrayList.ensureCapacity"
+    private fun ensureCapacity(minimalSize as int) native "org.siphonlab.ago.lang.ArrayList.ensureCapacity";
 
-//    override toArray() as E[] "org.siphonlab.ago.lang.ArrayList.toArray"
+    override toArray() as E[] native "org.siphonlab.ago.lang.ArrayList.toArray";
 }
 
 // ------------------- map ------------------------------
