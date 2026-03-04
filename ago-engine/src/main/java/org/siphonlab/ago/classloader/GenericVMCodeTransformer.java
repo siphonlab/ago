@@ -86,7 +86,10 @@ public class GenericVMCodeTransformer {
                                 if (instruction == Array.array_create_g_vCc || instruction == Array.array_create_g_vCv) {
                                     // replace opcode to array_create_o
                                     code.putInt(code.position() - 4, instruction == Array.array_create_g_vCc ? Array.array_create_o_vCc : Array.array_create_o_vCv);
-                                    instantiateClassName(code, 1, strings, genericTypeArguments, instantFunction, headers);
+                                    var c = (ArrayTypeHeader)instantiateClassName(code, 1, strings, genericTypeArguments, instantFunction, headers);
+                                    if(c.elementType.typeCode != TypeCode.OBJECT){
+                                        code.putInt(code.position() - 4, instruction2 | (c.elementType.typeCode.value << 16));
+                                    }
                                 } else {
                                     code.putInt(code.position() - 4, instruction2 | (genericTypeArguments.mapTypeCode(type) << 16));
                                 }
@@ -340,7 +343,7 @@ public class GenericVMCodeTransformer {
         codeBuffer.putInt(codeBuffer.position() - 4, instantiation.classId);
         instantFunction.handledInstructions.add(pos);
         codeBuffer.position(pos);
-        return cls;
+        return instantiation;
     }
 
     private ClassHeader updateGenericCodeClass(IoBuffer codeBuffer, int offset, String[] strings, GenericTypeArguments genericTypeArguments, ClassHeader instantFunction, Map<String, ClassHeader> headers) {
