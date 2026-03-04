@@ -1,0 +1,19 @@
+fun main(){
+    var arr = [1,2,3,4];
+    var ls = new ArrayList<int>(arr)
+    var arr2 = [9,8,7,6];
+
+    Array<int>.copy(arr2, 1, arr, 1, 2)
+    Trace.print(arr);       // [1,8,7,4]
+
+    ls.addAll(arr2);
+    Trace.print(ls);        // [ArrayList<int>|1,8,7,4,9,8,7,6]
+
+    arr = ls.toArray();
+    Trace.print(arr);
+
+    var ls2 = new LinkedList<int>();
+    ls2.addAll(ls)
+    ls2.addAll(arr)
+    Trace.print(ls2);
+}

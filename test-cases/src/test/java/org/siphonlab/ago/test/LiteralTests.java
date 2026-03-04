@@ -33,6 +33,12 @@ public class LiteralTests {
     }
 
     @Test
+    public void list_op() throws CompilationError, IOException {
+        run("literal/list_op.ago");
+        Trace.printOutput();
+    }
+
+    @Test
     public void object() throws CompilationError, IOException {
         run("literal/object.ago");
         assertTrue(Trace.outputted("name: Tom  gender: M", "name: Tom  gender: M  workNo: 1001 salary: 10200", "name: Mike  gender: M  workNo: 1003 salary: 13332"));

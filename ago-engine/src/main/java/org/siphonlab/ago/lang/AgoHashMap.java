@@ -16,6 +16,7 @@
 package org.siphonlab.ago.lang;
 
 import org.agrona.collections.Int2NullableObjectHashMap;
+import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.Long2NullableObjectHashMap;
 import org.eclipse.collections.impl.list.mutable.primitive.*;
 import org.siphonlab.ago.*;
@@ -414,6 +415,14 @@ public class AgoHashMap {
                 return Objects.equals(instance, instanceKey.instance);
             return false;
         }
+    }
+
+    public static void putAll(NativeFrame frame, Instance<?> anotherMap){
+        NativeInstance instance = (NativeInstance) frame.getParentScope();
+        Map map = (Map) instance.getNativePayload();
+        Map another = (Map) ((NativeInstance)anotherMap).getNativePayload();
+        map.putAll(another);
+        frame.finishVoid();
     }
 
     public static void containsKey(NativeFrame callFrame, int key) {

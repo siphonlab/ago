@@ -25,6 +25,7 @@ import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.*;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static org.siphonlab.ago.TypeCode.*;
 
@@ -57,17 +58,17 @@ public class ArrayList {
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
         TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
         var ls = switch (typeInfo.getTypeCode().value) {
-            case INT_VALUE -> new IntArrayList(((IntArrayInstance)array).value);
-            case LONG_VALUE -> new LongArrayList(((LongArrayInstance)array).value);
-            case FLOAT_VALUE -> new FloatArrayList(((FloatArrayInstance)array).value);
-            case DOUBLE_VALUE -> new DoubleArrayList(((DoubleArrayInstance)array).value);
-            case BOOLEAN_VALUE -> new BooleanArrayList(((BooleanArrayInstance)array).value);
-            case STRING_VALUE -> new java.util.ArrayList<>(Arrays.asList(((StringArrayInstance)array).value));
-            case SHORT_VALUE -> new ShortArrayList(((ShortArrayInstance)array).value);
-            case BYTE_VALUE -> new ByteArrayList(((ByteArrayInstance)array).value);
-            case CHAR_VALUE -> new CharArrayList(((CharArrayInstance)array).value);
-            case OBJECT_VALUE -> new java.util.ArrayList<>(Arrays.asList(((ObjectArrayInstance)array).value));
-            case CLASS_REF_VALUE -> new IntArrayList(((IntArrayInstance)array).value);
+            case INT_VALUE -> new IntArrayList(((IntArrayInstance) array).value);
+            case LONG_VALUE -> new LongArrayList(((LongArrayInstance) array).value);
+            case FLOAT_VALUE -> new FloatArrayList(((FloatArrayInstance) array).value);
+            case DOUBLE_VALUE -> new DoubleArrayList(((DoubleArrayInstance) array).value);
+            case BOOLEAN_VALUE -> new BooleanArrayList(((BooleanArrayInstance) array).value);
+            case STRING_VALUE -> new java.util.ArrayList<>(Arrays.asList(((StringArrayInstance) array).value));
+            case SHORT_VALUE -> new ShortArrayList(((ShortArrayInstance) array).value);
+            case BYTE_VALUE -> new ByteArrayList(((ByteArrayInstance) array).value);
+            case CHAR_VALUE -> new CharArrayList(((CharArrayInstance) array).value);
+            case OBJECT_VALUE -> new java.util.ArrayList<>(Arrays.asList(((ObjectArrayInstance) array).value));
+            case CLASS_REF_VALUE -> new IntArrayList(((IntArrayInstance) array).value);
             default -> throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
         };
         instance.setNativePayload(ls);
@@ -637,4 +638,55 @@ public class ArrayList {
         }
     }
 
+    public static void ensureCapacity(NativeFrame callFrame, int size) {
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        Object payload = instance.getNativePayload();
+        if (payload instanceof java.util.ArrayList<?> arrayList) {
+            arrayList.ensureCapacity(size);
+        } else if (payload instanceof IntArrayList ls) {
+            ls.ensureCapacity(size);
+        } else if (payload instanceof LongArrayList ls) {
+            ls.ensureCapacity(size);
+        } else if (payload instanceof FloatArrayList ls) {
+            ls.ensureCapacity(size);
+        } else if (payload instanceof DoubleArrayList ls) {
+            ls.ensureCapacity(size);
+        } else if (payload instanceof BooleanArrayList ls) {
+            // no  ensureCapacity in BooleanArrayList
+        } else if (payload instanceof ShortArrayList ls) {
+            ls.ensureCapacity(size);
+        } else if (payload instanceof ByteArrayList ls) {
+            ls.ensureCapacity(size);
+        } else if (payload instanceof CharArrayList ls) {
+            ls.ensureCapacity(size);
+        }
+    }
+
+    public static void addAll_Array(NativeFrame callFrame, Instance<?> array) {
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        Object payload = instance.getNativePayload();
+        AgoArrayInstance agoArrayInstance = (AgoArrayInstance) array;
+        Object arr = agoArrayInstance.getArray();
+        if (payload instanceof java.util.ArrayList arrayList) {
+            List<Instance> list = Arrays.asList((Instance[]) arr);
+            arrayList.addAll(list);
+        } else if (payload instanceof IntArrayList ls) {
+            ls.addAll((int[])arr);
+        } else if (payload instanceof LongArrayList ls) {
+            ls.addAll((long[])arr);
+        } else if (payload instanceof FloatArrayList ls) {
+            ls.addAll((float[])arr);
+        } else if (payload instanceof DoubleArrayList ls) {
+            ls.addAll((double[])arr);
+        } else if (payload instanceof BooleanArrayList ls) {
+            ls.addAll((boolean[])arr);
+        } else if (payload instanceof ShortArrayList ls) {
+            ls.addAll((short[])arr);
+        } else if (payload instanceof ByteArrayList ls) {
+            ls.addAll((byte[])arr);
+        } else if (payload instanceof CharArrayList ls) {
+            ls.addAll((char[])arr);
+        }
+        callFrame.finishVoid();
+    }
 }

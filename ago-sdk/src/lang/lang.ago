@@ -195,6 +195,15 @@ class Array<T> with Iterable<T>{
     override iterator() as Iterator<T>{
         return new ArrayIterator<T>(this)
     }
+
+    override toString() as string{
+        var s = '[';
+        for(var i=0; i<length; i++){
+            s += this[i]
+            if(i < length -1) s += ','
+        }
+        return s + ']';
+    }
 }
 
 class ArrayIterator<T> with Iterator<T>{
