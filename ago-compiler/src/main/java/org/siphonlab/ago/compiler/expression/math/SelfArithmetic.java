@@ -79,7 +79,17 @@ public class SelfArithmetic extends ExpressionInFunctionBody {
         if(type.getTypeCode() == TypeCode.OBJECT && type.isPrimitiveOrBoxed()){
             return new SelfArithmetic(ownerFunction, this.site, ownerFunction.unbox(this.change), this.type).setSourceLocation(this.getSourceLocation()).transform();
         }
+        ClassDef siteType = this.site.inferType();
+        if(!siteType.getUnboxedTypeCode().isNumber()){
+            if(siteType.getUnboxedTypeCode() == TypeCode.STRING) {
+                if (this.type == Type.Inc) {
+                    return ownerFunction.assign((Assign.Assignee) site, ownerFunction.concat(site, change));
+                }
+            }
+            throw new TypeMismatchError("number required", this.getSourceLocation());
+        }
         if(!type.getTypeCode().isNumber()){
+            change = ownerFunction.cast(change, siteType).transform();
             throw new TypeMismatchError("number required", this.change.getSourceLocation());
         }
         return this;
