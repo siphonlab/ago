@@ -93,7 +93,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                         expandoSize = new ArrayLength(ownerFunction, expression).visit(blockCompiler);
                     } else {
                         assert ownerFunction.getRoot().getAnyCollectionClass().isThatOrSuperOfThat(classDef);
-                        expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("count#get")),
+                        expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("size#get")),
                                             Collections.emptyList(), expression.getSourceLocation()).visit(blockCompiler);
                     }
                     blockCompiler.lockRegister(expandoSize);
@@ -197,7 +197,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
             }
         } else {
             var collectionClass = ownerFunction.getRoot().getAnyCollectionClass().asThatOrSuperOfThat(classDef);
-            expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("count#get")), Collections.emptyList(), expression.getSourceLocation()).visit(blockCompiler);
+            expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("size#get")), Collections.emptyList(), expression.getSourceLocation()).visit(blockCompiler);
             if(collectionClass.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue() == this.arrayType.getElementType()) {
                 ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, collectionClass.findMethod("toArray#")), Collections.emptyList(), expression.getSourceLocation())
                         .outputToLocalVar(localVar, blockCompiler);

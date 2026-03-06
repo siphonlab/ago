@@ -494,7 +494,11 @@ public class FunctionDef extends ClassDef {
         }
 
         var methodDecl = getMethodDecl();
-        if(methodDecl == null) return;
+        if(methodDecl == null) {
+            compileBody(null);
+            this.nextCompilingStage(CompilingStage.Compiled);
+            return;
+        }
 
         var body = methodDecl.methodBody();
         compileBody(body);
@@ -513,7 +517,7 @@ public class FunctionDef extends ClassDef {
             this.setNativeEntrance(s);
             this.allocateSlotsForFields();
             this.idOfConstString(s);     // add to string pool
-        } else if (body instanceof AgoParser.MBEmptyContext) {
+        } else if (body instanceof AgoParser.MBEmptyContext || body == null) {
             if (this.isAbstract()) {
                 //
             } else if(this.resultType.getTypeCode() == TypeCode.VOID) {

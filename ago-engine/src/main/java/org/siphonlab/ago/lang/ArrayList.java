@@ -77,7 +77,7 @@ public class ArrayList {
         callFrame.finishVoid();
     }
 
-    public static void getCount(NativeFrame callFrame) {
+    public static void getSize(NativeFrame callFrame) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         Object payload = instance.getNativePayload();
         if (payload instanceof IntArrayList ia) {

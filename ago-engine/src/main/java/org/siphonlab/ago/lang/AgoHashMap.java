@@ -47,7 +47,7 @@ public class AgoHashMap {
         callFrame.finishVoid();
     }
 
-    public static void getCount(NativeFrame callFrame) {
+    public static void getSize(NativeFrame callFrame) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         Map<?, ?> map = (Map<?, ?>) instance.getNativePayload();
         callFrame.finishInt(map.size());

@@ -164,6 +164,12 @@ public class ConstructorDef extends FunctionDef{
             return;
         }
 
+        if(this.constructorDeclaration == null){
+            compileBody(null);
+            this.nextCompilingStage(CompilingStage.Compiled);
+            return;
+        }
+
         AgoParser.MethodBodyContext body = this.constructorDeclaration.constructorBody;
         compileBody(body);
 

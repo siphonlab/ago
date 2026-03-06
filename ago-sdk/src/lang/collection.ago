@@ -16,7 +16,7 @@
 package lang;
 
 interface Collection<T> from Iterable<T>{
-    fun count#get() as int;
+    fun size#get() as int;
     fun isReadOnly() as boolean;
     fun add(item as T);
     fun clear();
@@ -29,7 +29,7 @@ interface Collection<T> from Iterable<T>{
 }
 
 interface ReadOnlyCollection<+T> from Iterable<T>{
-    fun count#get() as int;
+    fun size#get() as int;
     fun isReadOnly() as boolean;
     fun add(item as T);
     fun clear();
@@ -73,7 +73,7 @@ abstract class List<T> with ReadWriteList<T>, ReadOnlyList<T>{
 
     override toString() as string{
         var s = '[' + this.getClass().getName() + '|';
-        var cnt = this.count;
+        var cnt = this.size;
         for(var el in this){
             s += el;
             cnt --;
@@ -83,7 +83,7 @@ abstract class List<T> with ReadWriteList<T>, ReadOnlyList<T>{
     }
 
     override toArray() as T[]{
-        var arr = new T[this.count];
+        var arr = new T[this.size];
         var i = 0;
         for(var el in this){
             arr[i++] = el;
@@ -118,7 +118,7 @@ native class LinkedList<E> from List<E>{
 
     fun new#array(array as E[]) native "org.siphonlab.ago.lang.LinkedList.create"
 
-    override count#get() as int native "org.siphonlab.ago.lang.LinkedList.getCount";
+    override size#get() as int native "org.siphonlab.ago.lang.LinkedList.getSize";
     override isReadOnly() as boolean native "org.siphonlab.ago.lang.LinkedList.isReadOnly";
     override add(item as E) native "org.siphonlab.ago.lang.LinkedList.add";
     override clear() native "org.siphonlab.ago.lang.LinkedList.clear";
@@ -159,7 +159,7 @@ native class ArrayList<E> from List<E>{
 
     fun new#array(array as E[]) native "org.siphonlab.ago.lang.ArrayList.create";
 
-    override count#get() as int native "org.siphonlab.ago.lang.ArrayList.getCount";
+    override size#get() as int native "org.siphonlab.ago.lang.ArrayList.getSize";
     override isReadOnly() as boolean native "org.siphonlab.ago.lang.ArrayList.isReadOnly";
     override add(item as E) native "org.siphonlab.ago.lang.ArrayList.add";
     override clear() native "org.siphonlab.ago.lang.ArrayList.clear";
@@ -183,7 +183,7 @@ native class ArrayList<E> from List<E>{
     override addAll#array(array as E[]) native "org.siphonlab.ago.lang.ArrayList.addAll_Array"
 
     override addAll#collection(it as Collection<E>){
-        this.ensureCapacity(it.count + this.count);
+        this.ensureCapacity(it.size + this.size);
         for(var el in it){
             this.add(el);
         }
@@ -208,7 +208,7 @@ interface ReadWriteMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
     fun remove(key as Key) as boolean;
     fun putAll(map as ReadOnlyMap<Key,Value>);
 
-    fun count#get() as int;
+    fun size#get() as int;
     fun isReadOnly() as boolean;
     fun clear();
 }
@@ -219,7 +219,7 @@ interface ReadOnlyMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
     fun values#get() as ReadOnlyCollection<Value>;
     fun containsKey(key as Key) as boolean;
 
-    fun count#get() as int;
+    fun size#get() as int;
     fun isReadOnly() as boolean;
     fun clear();
 }
@@ -242,7 +242,7 @@ native class HashMap<Key, Value> from Map<Key, Value>{
 
     private fun init() native "org.siphonlab.ago.lang.AgoHashMap.create";
 
-    override count#get() as int native "org.siphonlab.ago.lang.AgoHashMap.getCount";
+    override size#get() as int native "org.siphonlab.ago.lang.AgoHashMap.getSize";
     override isReadOnly() as boolean native "org.siphonlab.ago.lang.AgoHashMap.isReadOnly";
     override clear() native "org.siphonlab.ago.lang.AgoHashMap.clear";
 
