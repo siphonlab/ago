@@ -44,4 +44,13 @@ public class Modifier {
         if(!sb.isEmpty()) sb.setLength(sb.length() - 1);
         return sb.toString();
     }
+    public static boolean isPublic(int modifiers){
+        return (modifiers & AgoClass.PUBLIC) == AgoClass.PUBLIC;
+    }
+    public static boolean isPrivate(int modifiers){
+        return (modifiers & AgoClass.PRIVATE) == AgoClass.PRIVATE;
+    }
+    public static boolean isProtected(int modifiers){
+        return (modifiers & AgoClass.PROTECTED) == AgoClass.PROTECTED;
+    }
 }

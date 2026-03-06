@@ -19,10 +19,12 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import static org.siphonlab.ago.classloader.LoadingStage.BuildClass;
+import static org.siphonlab.ago.classloader.LoadingStage.InstantiateFunctionFamily;
 
 public class MetaClassHeader extends ClassHeader {
     String[] dependencies;
@@ -100,6 +102,30 @@ public class MetaClassHeader extends ClassHeader {
 //            }
 //        }
         return super.buildClass(headers);
+    }
+
+    @Override
+    public boolean parseFields(Map<String, ClassHeader> headers) {
+        if(this.loadingStage != LoadingStage.ParseFields) return true;
+
+        if(this.instanceClass instanceof ArrayTypeHeader){
+            var base = headers.get(this.superClass);
+            if(base.loadingStage == LoadingStage.ParseFields){
+                if(!base.parseFields(headers)) return false;
+            }
+
+            this.fields = Arrays.stream(base.fields).filter(f -> !Modifier.isPrivate(base.modifiers)).toArray(VariableDesc[]::new);
+            this.slotDescs = base.slotDescs;
+            this.genericSource = base.genericSource;
+//            if (this.children != null) {
+//                this.setChildren(new ArrayList<>(base.children.stream().map(c -> c.clone(this, headers)).toList()));
+//            }
+            this.setMethods(base.methods);
+            this.setLoadingStage(InstantiateFunctionFamily);
+        } else {
+            super.parseFields(headers);
+        }
+        return true;
     }
 
     @Override

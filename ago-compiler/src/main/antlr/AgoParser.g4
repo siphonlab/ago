@@ -227,12 +227,12 @@ fieldVariableDeclarator
     ;
 
 arrayLiteral
-    : '[' (variableType '|')? elementList ']'
+    : '[' (variableType '|')? elementList? ']'
     ;
 
-// JavaScript supports arrasys like [,,1,2,,].
+// JavaScript supports arrasys like [,,1,2,,]. but we needn't it
 elementList
-    : ','* arrayElement? (','+ arrayElement) * ','* // Yes, everything is optional
+    : arrayElement (',' arrayElement) *
     ;
 
 arrayElement

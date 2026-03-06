@@ -155,6 +155,7 @@ public class ArrayTypeHeader extends ClassHeader {
             metaHeader.resolveHierarchicalClasses(headers);
             classLoader.registerNewClass(metaHeader);
             this.setMetaClass(metaHeader.fullname);
+            metaHeader.setInstanceClass(this);
         } else {
             this.setMetaClass(metaFullname);
         }

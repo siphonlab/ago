@@ -1505,7 +1505,7 @@ public class ClassDef extends ClassContainer {
                     mockMeta.setSuperClass(superMeta);
                     mockMeta.setMetaClassDef(superMeta.resolveMetaclass());
                     mockMeta.setSourceLocation(superMeta.getSourceLocation());
-                    mockMeta.setCompilingStage(superMeta.getCompilingStage());
+                    mockMeta.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);
                     this.setMetaClassDef(mockMeta);
                     this.getPackage().addChild(mockMeta);
                     return mockMeta;
@@ -1673,7 +1673,7 @@ public class ClassDef extends ClassContainer {
                 if(functionDef.getCompilingStage() == CompilingStage.Compiled) continue;
 
                 var methodBodyContext = functionDef.getMethodBodyContext();
-                boolean hasBody = (methodBodyContext != null && !(methodBodyContext instanceof AgoParser.MBEmptyContext));
+                boolean hasBody = (methodBodyContext != null && !(methodBodyContext instanceof AgoParser.MBEmptyContext)) || functionDef.isNative();
                 if(functionDef instanceof InterfaceFunctionWrapper){
                     hasBody = true;
                 }

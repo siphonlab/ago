@@ -662,6 +662,7 @@ public class ArrayList {
         } else if (payload instanceof CharArrayList ls) {
             ls.ensureCapacity(size);
         }
+        callFrame.finishVoid();
     }
 
     public static void addAll_Array(NativeFrame callFrame, Instance<?> array) {
