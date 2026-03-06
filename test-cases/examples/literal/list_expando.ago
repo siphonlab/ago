@@ -1,0 +1,25 @@
+fun main(){
+    var arr = [1,2,3]
+
+    var arr2 = [...arr]
+    Trace.print(arr2)
+
+    var ls = [ArrayList<int>| 4, 5, 6]
+    var arr3 = [...ls]
+    Trace.print(arr3)
+
+    var doubles = [3.14, 2.14, 5.14]
+
+    var arr4 = [...ls, 10, 11, 12, ...ls, ...doubles, 6.8, 7.8, ...arr]
+    Trace.print(arr4);
+
+    var ls2 = [ArrayList<int>| ...arr]
+    Trace.print(ls2)
+
+    var ls3 = [ArrayList<int>| 8, 9, ...arr];
+    Trace.print(ls3)
+
+    var a = 2;
+    var ls4 = [ArrayList<int>| ...doubles, ...arr, ...ls, a];
+    Trace.print(ls4)
+}

@@ -469,7 +469,7 @@ public class CastStrategy {
         if(allowForceUnbox) {
             return new ForceUnbox(ownerFunction, expression, toType).setSourceLocation(this.sourceLocation);
         }
-        throw new TypeMismatchError("can't convert to '%s'".formatted(toType.getFullname()), this.sourceLocation);
+        throw new TypeMismatchError("can't convert to '%s' from '%s'".formatted(toType.getFullname(), expression.inferType().getFullname()), this.sourceLocation);
     }
 
 

@@ -38,7 +38,6 @@ import org.siphonlab.ago.compiler.expression.math.Neg;
 import org.siphonlab.ago.compiler.expression.math.Pos;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
-import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.statement.*;
 import org.slf4j.Logger;
@@ -850,8 +849,21 @@ public class BlockCompiler {
         throw new UnsupportedOperationException(expression.getText());
     }
 
-    //TODO assign type maybe scoped type
     Expression assigner(ExpressionContext expression, Expression assignee, ClassDef assigneeType) throws CompilationError {
+        return this.assigner(expression, assignee, assigneeType, true);
+    }
+
+    /**
+     *
+     * @param expression
+     * @param assignee
+     * @param assigneeType if castType=false, it's just a suggestion type, won't force cast
+     * @param castType
+     * @return
+     * @throws CompilationError
+     */
+    //TODO assign type maybe scoped type
+    Expression assigner(ExpressionContext expression, Expression assignee, ClassDef assigneeType, boolean castType) throws CompilationError {
         if(expression instanceof PrimaryExprContext primaryExpr){
             if(primaryExpr.primaryExpression() instanceof LiteralExprContext literalExpr){
                 LiteralContext literal = literalExpr.literal();
@@ -863,18 +875,40 @@ public class BlockCompiler {
                 }
             }
         }
-        Expression value = expression(expression).transform();
+        Expression value = expression(expression).setSourceLocation(unit.sourceLocation(expression)).transform();
         if(assigneeType == null){
             return value;
         } else {
             if(assignee instanceof Assign.Assignee a) {
                 value = processBoundClass(functionDef, a, value);
             }
-            return functionDef.cast(value, assigneeType).transform();
+            if(castType) {
+                return functionDef.cast(value, assigneeType).transform();
+            } else {
+                return value;
+            }
         }
     }
 
-    // ArrayLiteral | ListLiteral
+    /* ArrayLiteral | ListLiteral
+          for Array:
+                no expando, ArrayLiteral()
+                expando, ArrayCreate(),
+                    if expando is Array,
+                        if type match, Array.copy
+                        otherwise for each assign
+                    else if expando is List
+                        for each assign
+          for List:
+                no expando, List.new#array(ArrayLiteral())
+                expando, List.new#array(ArrayLiteral1())
+                    if expando is Array,
+                        if type match, fillArray()
+                        otherwise for each add
+                    else if expando is List
+                        if type match, addAll()
+                        otherwise for each add
+     */
     private Expression arrayLiteral(LArrayContext lArrayContext, Expression assignee, ClassDef assigneeType) throws CompilationError {
         ClassDef arrayType;
         var arrayLiteral = lArrayContext.arrayLiteral();
@@ -897,44 +931,118 @@ public class BlockCompiler {
             }
         } else if(!arrayLiteral.elementList().isEmpty()){
             var first = arrayLiteral.elementList().arrayElement(0);
-            var el = arrayElement(first, null);
-            arrayType = functionDef.getOrCreateArrayType(el.inferType(), null);
+            var el = arrayElement(first, null, null);
+            arrayType = functionDef.getOrCreateArrayType(el.elementType(), null);
         } else {
             throw unit.syntaxError(lArrayContext, "cannot predict array type");
         }
         Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
 
+        ClassDef eleType;
         if(listTypeExpr != null){
-            var listType = arrayType;
-            ClassDef eleType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
-            //TODO indicate type from element
-            MutableBoolean returnExisted = new MutableBoolean();
-            arrayType = functionDef.getOrCreateArrayType(eleType, returnExisted);
-            if(returnExisted.isFalse()) Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
+            var listType = functionDef.getRoot().getAnyListClass().asThatOrSuperOfThat(arrayType);
+            eleType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+            arrayType = null;
         } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
             throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
+        } else {
+            eleType = ((ArrayClassDef)arrayType).getElementType();
         }
-        List<Expression> elements = new ArrayList<>();
+        List<CollectionElementDef> elements = new ArrayList<>();
+        boolean hasExpando = false;
         for (ArrayElementContext arrayElementContext : arrayLiteral.elementList().arrayElement()) {
-            Expression element = arrayElement(arrayElementContext, ((ArrayClassDef) arrayType).getElementType());
+            // indicate inside array literal, doubt not required
+            if(arrayType == null){
+                MutableBoolean returnExisted = new MutableBoolean();
+                arrayType = functionDef.getOrCreateArrayType(eleType, returnExisted);
+                if(returnExisted.isFalse()) Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
+            }
+            var element = arrayElement(arrayElementContext, (ArrayClassDef) arrayType, ((ArrayClassDef)arrayType).getElementType());
             elements.add(element);
+            if(!hasExpando && element.isExpando()) hasExpando = true;
         }
-        var r = new ArrayLiteral(functionDef, (ArrayClassDef) arrayType, elements).setSourceLocation(unit.sourceLocation(lArrayContext));
-        if(listTypeExpr != null){
-            return new Creator(functionDef, listTypeExpr, Collections.singletonList(r), unit.sourceLocation(lArrayContext), "new#array");
+        if(!hasExpando) {
+            if(arrayType == null){
+                MutableBoolean returnExisted = new MutableBoolean();
+                arrayType = functionDef.getOrCreateArrayType(eleType, returnExisted);
+                if(returnExisted.isFalse()) Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
+            }
+            if(elements.isEmpty()){
+                if (listTypeExpr == null) {
+                    return new ArrayCreate(functionDef, (ArrayClassDef) arrayType, new IntLiteral(0)).setSourceLocation(unit.sourceLocation(lArrayContext));
+                } else {
+                    // create via new#
+                    return new Creator(functionDef, listTypeExpr, Collections.emptyList(), unit.sourceLocation(lArrayContext), "new#");
+                }
+            } else {
+                var ls = elements.stream().map(e -> e.getExpression()).toList();
+                var r = new ArrayLiteral(functionDef, (ArrayClassDef) arrayType, ls).setSourceLocation(unit.sourceLocation(lArrayContext));
+                if (listTypeExpr != null) {
+                    // create via new#array
+                    return new Creator(functionDef, listTypeExpr, Collections.singletonList(r), unit.sourceLocation(lArrayContext), "new#array");
+                }
+                return r;
+            }
+        } else {
+            if(listTypeExpr != null){
+                return new ComplexListLiteral(functionDef, listTypeExpr, eleType, elements).setSourceLocation(unit.sourceLocation(lArrayContext)).transform();
+            } else {
+                return new ComplexArrayLiteral(functionDef, (ArrayClassDef)arrayType, elements).setSourceLocation(unit.sourceLocation(lArrayContext)).transform();
+            }
         }
-        return r;
     }
 
-    private Expression arrayElement(ArrayElementContext elementContext, ClassDef elementType) throws CompilationError {
-        if(elementContext.expando != null){
-            throw new UnsupportedOperationException("TODO");    //TODO
-        }
-        if(elementType != null){
-            return new Cast(functionDef, expression(elementContext.expression()), elementType).transform();
+    public enum CollectionType{
+        Array,
+        Iterator,
+        Iterable,
+        Collection,
+        List
+    }
+    public record CollectionElementType(ClassDef collectionType, ClassDef elementType, CollectionType type){}
+
+    public CollectionElementType extractCollectionElementType(ClassDef groupType){
+        if(groupType instanceof ArrayClassDef arrayClassDef){
+            return new CollectionElementType(arrayClassDef, arrayClassDef.getElementType(), CollectionType.Array);
         } else {
-            return expression(elementContext.expression());
+            var t= functionDef.getRoot().getAnyListClass().asThatOrSuperOfThat(groupType);
+            if(t != null){
+                return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.List);
+            }
+            t= functionDef.getRoot().getAnyCollectionClass().asThatOrSuperOfThat(groupType);
+            if(t != null){
+                return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Collection);
+            }
+            t = functionDef.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(groupType);
+            if(t != null){
+                return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Iterable);
+            } else {
+                t = functionDef.getRoot().getAnyIteratorInterface().asThatOrSuperOfThat(groupType);
+                return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Iterator);
+            }
         }
+    }
+
+
+    private CollectionElementDef arrayElement(ArrayElementContext elementContext, ArrayClassDef arrayType,  ClassDef elementType) throws CompilationError {
+        boolean isExpando = elementContext.expando != null;
+        CollectionElementDef r;
+        if (isExpando) {
+            var el = this.assigner(elementContext.expression(), null, arrayType, false).setSourceLocation(unit.sourceLocation(elementContext));
+            Root root = functionDef.getRoot();
+            ClassDef expandoType = el.inferType();
+            if(expandoType instanceof ArrayClassDef arrayClassDef){
+                r = new CollectionElementDef(el, true, arrayClassDef.getElementType());
+            } else {
+                ClassDef it = root.getAnyIterableInterface().asThatOrSuperOfThat(expandoType);
+                var t = it.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0];
+                r = new CollectionElementDef(el, true, t.getClassDefValue());
+            }
+        } else {
+            var el = this.assigner(elementContext.expression(), null, elementType).setSourceLocation(unit.sourceLocation(elementContext));
+            r = new CollectionElementDef(el, false, el.inferType());
+        }
+        return r;
     }
 
     private Expression objectLiteral(LObjectContext lObjectContext, Expression assignee, ClassDef assigneeType) throws CompilationError{
@@ -995,37 +1103,43 @@ public class BlockCompiler {
             return new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
         }
 
-        if(root.getAnyMapClass().isThatOrSuperOfThat(objectType)){  // Map
+        if(root.getAnyMapClass().isThatOrSuperOfThat(objectType)){  // Map Literal
             var mapInstance = new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
-            CurrWithExpression currWithExpression = new CurrWithExpression(functionDef, mapInstance);
+            CurrWithExpression withMapInstance = new CurrWithExpression(functionDef, mapInstance);
 
             var statements = new ArrayList<Statement>();
-            ClassRefLiteral[] arr = objectType.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+            var mapType = functionDef.getRoot().getAnyMapClass().asThatOrSuperOfThat(objectType);
+            ClassRefLiteral[] arr = mapType.getGenericSource().instantiationArguments().getTypeArgumentsArray();
             ClassDef keyType = arr[0].getClassDefValue();
             ClassDef valueType = arr[1].getClassDefValue();
             for (PropertyAssignmentContext pa : propertyAssignments) {
                 if (pa instanceof PropertyExpressionAssignmentContext pe) {
                     var p = this.propertyName(pe.propertyName());
-                    var v = this.expression(pe.expression());
-                    var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
-                            Arrays.asList(functionDef.cast(p, keyType).transform(), functionDef.cast(v, valueType).transform()), unit.sourceLocation(pe));
-                    statements.add(functionDef.expressionStmt(put));
-                } else if(pa instanceof PropertyShorthandContext ps){
+                    MapValue mapValue = new MapValue(functionDef, withMapInstance, p);
+                    var v = this.assigner(pe.expression(), mapValue, valueType);
+                    statements.add(functionDef.expressionStmt(functionDef.assign(mapValue, v)));
+                } else if(pa instanceof PropertyShorthandContext ps){   // expando
                     var expr = this.expression(ps.expression());
                     var t = expr.inferType();
                     if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        ClassDef iteratorType = t.findMethod("iterator#").getResultType();
-                        var keyValuePairType = iteratorType.findMethod("next#").getResultType();
-                        Var.LocalVar iterVar = this.acquireTempVar(keyValuePairType);
-                        var keyOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("key"));
-                        var valueOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("value"));
-                        var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
-                                Arrays.asList(functionDef.cast(keyOfIter, keyType).transform(),
-                                        functionDef.cast(valueOfIter, valueType).transform()), unit.sourceLocation(ps));
-                        var withValue = new CurrWithExpression(functionDef, expr);
-                        ForEachStmt forEachStmt = new ForEachStmt(functionDef, null, iterVar, withValue, functionDef.expressionStmt(put), ForEachStmt.Mode.Iterable, unit.sourceLocation(ps));
-                        var ifNotNull = new IfThenElseStmt(functionDef, new Equals(functionDef, withValue, new NullLiteral(t), Equals.Type.NotEquals), forEachStmt, null);
-                        statements.add(new WithStmt(functionDef, withValue, ifNotNull));
+                        var readonlyMapType = root.getAnyReadonlyMap().asThatOrSuperOfThat(t);
+                        if(readonlyMapType != null && readonlyMapType.isThatOrSuperOfThat(mapType)){
+                            var withValue = new CurrWithExpression(functionDef, expr);
+                            var putAll = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(withMapInstance, objectType.findMethod("putAll#")), List.of(withValue), unit.sourceLocation(ps));
+                            var ifNotNull = new IfThenElseStmt(functionDef, new Equals(functionDef, withValue, new NullLiteral(t), Equals.Type.NotEquals), functionDef.expressionStmt(putAll), null);
+                            statements.add(new WithStmt(functionDef, withValue, ifNotNull));
+                        } else {
+                            ClassDef iteratorType = t.findMethod("iterator#").getResultType();
+                            var keyValuePairType = iteratorType.findMethod("next#").getResultType();
+                            Var.LocalVar iterVar = this.acquireTempVar(keyValuePairType);
+                            var keyOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("key"));
+                            var valueOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("value"));
+                            var put = new MapPut(functionDef, withMapInstance, keyOfIter, valueOfIter).setSourceLocation(unit.sourceLocation(ps)).transform();
+                            var withValue = new CurrWithExpression(functionDef, expr);
+                            ForEachStmt forEachStmt = new ForEachStmt(functionDef, null, iterVar, withValue, functionDef.expressionStmt(put), ForEachStmt.Mode.Iterable, unit.sourceLocation(ps));
+                            var ifNotNull = new IfThenElseStmt(functionDef, new Equals(functionDef, withValue, new NullLiteral(t), Equals.Type.NotEquals), forEachStmt, null);
+                            statements.add(new WithStmt(functionDef, withValue, ifNotNull));
+                        }
                     } else {
                         if(!PrimitiveClassDef.STRING.isThatOrSuperOfThat(keyType)){
                             throw unit.typeError(pa, "to accept an object, Map<String,?> destination expected");
@@ -1038,9 +1152,7 @@ public class BlockCompiler {
                             for (var k : t.getAttributes().keySet()) {
                                 GetterSetterPair attribute = t.getAttribute(k);
                                 var attr = new Attribute(functionDef, withValue, attribute.getGetter(), attribute.getSetter());
-                                var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
-                                        Arrays.asList(functionDef.cast(new StringLiteral(k), keyType).transform(),
-                                                functionDef.cast(attr, valueType).transform()), unit.sourceLocation(ps));
+                                var put = new MapPut(functionDef, withMapInstance, new StringLiteral(k), attr).setSourceLocation(unit.sourceLocation(ps)).transform();
                                 assignments.add(functionDef.expressionStmt(put));
                                 visited.add(k);
                             }
@@ -1049,9 +1161,7 @@ public class BlockCompiler {
                         for(var k : fields.keySet()){
                             var fld = fields.get(k);
                             if(fld.isPublic() && !visited.contains(k)){
-                                var put = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(currWithExpression, objectType.findMethod("put#")),
-                                        Arrays.asList(functionDef.cast(new StringLiteral(k), keyType).transform(),
-                                                functionDef.cast(functionDef.field(withValue, fld), valueType).transform()), unit.sourceLocation(ps));
+                                var put = new MapPut(functionDef, withMapInstance, new StringLiteral(k), functionDef.field(withValue, fld)).setSourceLocation(unit.sourceLocation(ps)).transform();
                                 assignments.add(functionDef.expressionStmt(put));
                                 visited.add(k);
                             }
@@ -1060,10 +1170,11 @@ public class BlockCompiler {
                         statements.add(new WithStmt(functionDef, withValue, ifNotNull));
                     }
                 } else {
+                    //TODO assign map to Object attributes/fields
                     throw new UnsupportedOperationException();
                 }
             }
-            return new WithExpr(functionDef, currWithExpression, new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(objectLiteral)));
+            return new WithExpr(functionDef, withMapInstance, new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(objectLiteral)));
         } else {        // Object
             var objectInstance = new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
             CurrWithExpression currWithExpression = new CurrWithExpression(functionDef, objectInstance);
@@ -1071,15 +1182,14 @@ public class BlockCompiler {
             var statements = new ArrayList<Statement>();
             for (PropertyAssignmentContext pa : propertyAssignments) {
                 if (pa instanceof PropertyExpressionAssignmentContext pe) {
-                    var expr = this.expression(pe.expression());
                     var n = this.propertyName(pe.propertyName());
                     if(n instanceof StringLiteral s){
                         String a = s.getString();
-                        var attr = objectType.getAttribute(a);
-                        if(attr != null) {
-                            var set = new Attribute(functionDef, currWithExpression, attr.getGetter(), attr.getSetter()).setSourceLocation(unit.sourceLocation(pe))
-                                    .setValue(functionDef, expr);
-                            statements.add(functionDef.expressionStmt(set));
+                        var attrPair = objectType.getAttribute(a);
+                        if(attrPair != null) {
+                            Attribute attr = new Attribute(functionDef, currWithExpression, attrPair.getGetter(), attrPair.getSetter()).setSourceLocation(unit.sourceLocation(pe));
+                            var assign = functionDef.assign(attr, this.assigner(pe.expression(), attr, attr.inferType()));
+                            statements.add(functionDef.expressionStmt(assign));
                         } else {
                             Field field = objectType.getFields().get(a);
                             if(field == null){
@@ -1087,7 +1197,8 @@ public class BlockCompiler {
                             } else if(!field.isPublic()){
                                 throw unit.resolveError(pe.propertyName(), "'%s' is not public field".formatted(a));
                             }
-                            var assign = functionDef.assign(functionDef.field(currWithExpression, field), expr);
+                            Var.Field fieldOfDest = functionDef.field(currWithExpression, field);
+                            var assign = functionDef.assign(fieldOfDest, this.assigner(pe.expression(), fieldOfDest, field.getType()));
                             statements.add(functionDef.expressionStmt(assign));
                         }
                     } else {    // for expression
@@ -1370,10 +1481,10 @@ public class BlockCompiler {
             var expression = this.expression(enhancedForControl.expression()).transform();
             ClassDef expressionType = expression.inferType();
             ForEachStmt.Mode mode = ForEachStmt.Mode.Iterable;
-            ClassDef concreteType = unit.getRoot().getIterableInterface().asThatOrSuperOfThat(expressionType);
+            ClassDef concreteType = unit.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(expressionType);
             if(concreteType == null){
                 mode = ForEachStmt.Mode.Iterator;
-                concreteType = unit.getRoot().getIteratorInterface().asThatOrSuperOfThat(expressionType);
+                concreteType = unit.getRoot().getAnyIteratorInterface().asThatOrSuperOfThat(expressionType);
                 if(concreteType == null) {
                     throw new TypeMismatchError("an iterable class required", unit.sourceLocation(forControl.expression()));
                 }

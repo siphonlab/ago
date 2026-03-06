@@ -16,8 +16,7 @@
 package org.siphonlab.ago.compiler.statement;
 
 
-
-import org.siphonlab.ago.compiler.SourceLocation;
+import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.*;

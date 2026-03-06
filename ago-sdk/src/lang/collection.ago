@@ -25,6 +25,7 @@ interface Collection<T> from Iterable<T>{
     fun copyTo#arr(arr as T[]);
     fun copyTo#offset_length(arr as T[], arrayOffset as int, length as int);
     fun remove(item as T) as boolean;
+    fun toArray() as T[];
 }
 
 interface ReadOnlyCollection<+T> from Iterable<T>{
@@ -62,6 +63,12 @@ abstract class List<T> with ReadWriteList<T>, ReadOnlyList<T>{
         }
     }
 
+    fun addAll#iterator(it as Iterator<T>){
+        for(var el in it){
+            this.add(el);
+        }
+    }
+
     abstract fun addAll#collection(it as Collection<T>);
 
     override toString() as string{
@@ -75,7 +82,7 @@ abstract class List<T> with ReadWriteList<T>, ReadOnlyList<T>{
         return s + ']';
     }
 
-    fun toArray() as T[]{
+    override toArray() as T[]{
         var arr = new T[this.count];
         var i = 0;
         for(var el in this){
@@ -290,4 +297,5 @@ native class HashMap<Key, Value> from Map<Key, Value>{
     override iterator() as Iterator<KeyValuePair<Key, Value>>{
         return new HashMapIterator();
     }
+
 }

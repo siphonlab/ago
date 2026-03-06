@@ -51,5 +51,12 @@ public class LiteralTests {
         assertTrue(Trace.outputted("HashMap<string,lang.Object>", "Tom", "Jenny", "42", "M", "51888222"));
     }
 
+    @Test
+    public void list_expando() throws CompilationError, IOException {
+        run("literal/list_expando.ago");
+//        Trace.printOutput();
+        assertTrue(Trace.outputted("[1,2,3]", "[4,5,6]", "[4,5,6,10,11,12,4,5,6,3,2,5,6,7,1,2,3]", "[ArrayList<int>|1,2,3]", "[ArrayList<int>|1,2,3]", "[ArrayList<int>|3,2,5,1,2,3,4,5,6,2]"));
+    }
+
 
 }

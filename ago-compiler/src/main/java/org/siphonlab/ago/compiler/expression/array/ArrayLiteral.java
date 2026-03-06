@@ -45,6 +45,10 @@ public class ArrayLiteral extends ExpressionInFunctionBody {
         this.elements = els;
     }
 
+    public List<Expression> getElements() {
+        return elements;
+    }
+
     @Override
     public ClassDef inferType() throws CompilationError {
         return arrayType;
@@ -78,8 +82,9 @@ public class ArrayLiteral extends ExpressionInFunctionBody {
         } finally {
             blockCompiler.leave(this);
         }
-
     }
+
+
 
     @Override
     public ArrayLiteral setSourceLocation(SourceLocation sourceLocation) {

@@ -102,7 +102,7 @@ public class FunctionInvocationResolver {
     private ResolveResult resolve(FunctionDef functionDef, List<Expression> arguments) {
         var resolveResult = new ResolveResult(functionDef);
         if(functionDef.getParameters().size() > arguments.size()){
-            resolveResult.error = new ResolveError("arguments count mismatch", sourceLocation);
+            resolveResult.error = new ResolveError("arguments count mismatch, %d expected, but only pass %d".formatted(functionDef.getParameters().size(), arguments.size()), sourceLocation);
             return resolveResult;
         }
         List<Parameter> parameters = functionDef.getParameters();

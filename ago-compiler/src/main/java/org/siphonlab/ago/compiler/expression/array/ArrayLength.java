@@ -20,10 +20,8 @@ import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.expression.Expression;
-import org.siphonlab.ago.compiler.expression.ExpressionBase;
-import org.siphonlab.ago.compiler.expression.ExpressionInFunctionBody;
-import org.siphonlab.ago.compiler.expression.Var;
+import org.siphonlab.ago.compiler.expression.*;
+import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 
 public class ArrayLength extends ExpressionInFunctionBody {
 
@@ -37,6 +35,14 @@ public class ArrayLength extends ExpressionInFunctionBody {
     @Override
     public ClassDef inferType() throws CompilationError {
         return PrimitiveClassDef.INT;
+    }
+
+    @Override
+    public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
+        if(array instanceof ArrayLiteral arrayLiteral){
+            return new IntLiteral(arrayLiteral.getElements().size());
+        }
+        return super.visit(blockCompiler);
     }
 
     @Override

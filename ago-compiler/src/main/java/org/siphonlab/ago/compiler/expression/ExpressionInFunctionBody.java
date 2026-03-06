@@ -6,7 +6,7 @@ public abstract class ExpressionInFunctionBody extends ExpressionBase{
 
     protected final FunctionDef ownerFunction;
 
-    protected ExpressionInFunctionBody(FunctionDef ownerFunction) {
+    public ExpressionInFunctionBody(FunctionDef ownerFunction) {
         this.ownerFunction = ownerFunction;
     }
 

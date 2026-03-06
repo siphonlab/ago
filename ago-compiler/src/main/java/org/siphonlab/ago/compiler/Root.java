@@ -58,6 +58,7 @@ public class Root extends Namespace<Package> {
     private ClassDef PRIMITIVE_NUMBER_TYPE_INTERFACE;
     private ClassDef ITERABLE_INTERFACE;
     private ClassDef ITERATOR_INTERFACE;
+
     private ClassDef VIA_OBJECT_INTERFACE;
     private ClassDef FORK_CONTEXT_INTERFACE;
 
@@ -67,6 +68,8 @@ public class Root extends Namespace<Package> {
     private ClassDef ANY_READWRITE_LIST_CLASS;
     private ClassDef LIST_CLASS;
     private ClassDef ANY_LIST_CLASS;
+    private ClassDef COLLECTION_CLASS;
+    private ClassDef ANY_COLLECTION_CLASS;
 
     private ClassDef READONLY_MAP_CLASS;
     private ClassDef ANY_READONLY_MAP_CLASS;
@@ -294,6 +297,7 @@ public class Root extends Namespace<Package> {
         }
         if (this.getCompilingStage().getValue() > arrayClassDef.getCompilingStage().getValue()) {
             Compiler.processClassTillStage(arrayClassDef, this.getCompilingStage());
+            Compiler.processClassTillStage(arrayClassDef.getMetaClassDef(), this.getCompilingStage());
         }
         return arrayClassDef;
     }
@@ -373,7 +377,7 @@ public class Root extends Namespace<Package> {
         return new NullLiteral(this.nullClass());
     }
 
-    public ClassDef getIterableInterface() {
+    public ClassDef getAnyIterableInterface() {
         if(ITERABLE_INTERFACE != null) return ITERABLE_INTERFACE;
         ClassDef iterableInterface = findByFullname("lang.Iterable");
         try {
@@ -383,7 +387,7 @@ public class Root extends Namespace<Package> {
             throw new RuntimeException(e);
         }
     }
-    public ClassDef getIteratorInterface() {
+    public ClassDef getAnyIteratorInterface() {
         if (ITERATOR_INTERFACE != null) return ITERATOR_INTERFACE;
         ClassDef iterator = findByFullname("lang.Iterator");
         try {
@@ -510,6 +514,24 @@ public class Root extends Namespace<Package> {
             throw new RuntimeException(e);
         }
     }
+
+    public synchronized ClassDef getCollectionClass(){
+        if(COLLECTION_CLASS != null) return COLLECTION_CLASS;
+        return COLLECTION_CLASS = findByFullname("lang.Collection");
+    }
+
+    public ClassDef getAnyCollectionClass() {
+        if (ANY_COLLECTION_CLASS != null) return ANY_COLLECTION_CLASS;
+        try {
+            return ANY_COLLECTION_CLASS = getCollectionClass().instantiate(
+                    new InstantiationArguments(COLLECTION_CLASS.typeParamsContext,
+                            new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}),
+                    null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     public synchronized ClassDef getMapClass() {
         if (MAP_CLASS != null) return MAP_CLASS;
