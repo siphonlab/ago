@@ -201,7 +201,7 @@ public class SwitchCaseStmt extends Statement{
                                 if (typeCode.isHigherThan(TypeCode.INT)) {
                                     errors.add(new TypeMismatchError("only int value allowed", cs.sourceLocation));
                                 } else {
-                                    var value = (IntLiteral) ownerFunction.cast(literal, PrimitiveClassDef.INT).setSourceLocation(cs.sourceLocation).transform();
+                                    var value = (IntLiteral) ownerFunction.cast(literal, getRoot().INT()).setSourceLocation(cs.sourceLocation).transform();
                                     cs.expression = value;
                                     intCasesMap.put(value.value, cs.group);
                                 }
@@ -236,7 +236,7 @@ public class SwitchCaseStmt extends Statement{
             this.switchTableFirstKey = min;
             this.switchTableLastKey = max;
             this.intCasesMap = intCasesMap;
-            this.condition = ownerFunction.cast(this.condition,PrimitiveClassDef.INT).transform();
+            this.condition = ownerFunction.cast(this.condition,getRoot().INT()).transform();
         } else {
             if(!errors.isEmpty()){
                 throw errors.get(0);

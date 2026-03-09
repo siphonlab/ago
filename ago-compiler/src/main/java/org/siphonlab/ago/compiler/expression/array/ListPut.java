@@ -52,7 +52,7 @@ public class ListPut extends ExpressionInFunctionBody {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.indexExpr = ownerFunction.cast(indexExpr, PrimitiveClassDef.INT).transform().setParent(this);
+        this.indexExpr = ownerFunction.cast(indexExpr, getRoot().INT()).transform().setParent(this);
         this.value = ownerFunction.cast(value, this.elementType).setParent(this).transform();
         return this;
     }

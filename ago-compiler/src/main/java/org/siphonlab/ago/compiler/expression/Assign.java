@@ -103,9 +103,9 @@ public abstract class Assign extends ExpressionInFunctionBody {
                 var t = root.getOrCreateScopedClassInterval(p.getRight(), p.getRight(), null);
                 //TODO register concrete type
                 return new ForceCast(ownerFunction, new CastToScopedClassRef(ownerFunction, expression, t).transform(), classRefType, ForceCast.CastMode.WearClassMask);
-            } else if (classRefType == PrimitiveClassDef.CLASS_REF) {
+            } else if (classRefType.isClassRef()) {
                 if (expression instanceof ConstClass constClass) {
-                    return new ClassRefLiteral(constClass.getClassDef());
+                    return constClass.getClassDef().toClassRefLiteral();
                 } else {
                     throw new TypeMismatchError("classref only accept top-level class", expression.getSourceLocation());
                 }

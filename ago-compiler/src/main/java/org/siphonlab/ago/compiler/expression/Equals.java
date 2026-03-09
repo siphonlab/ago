@@ -70,13 +70,13 @@ public class Equals extends BiExpression{
     // according org.siphonlab.ago.compile.expression.Assign.processBoundClass
     private Pair<Expression, Expression> transformScopeBoundClass(Expression left, Expression right) throws CompilationError {
         if (right instanceof ClassOf || right instanceof ClassUnder || right instanceof ConstClass) {
-            right = new ClassRefLiteral(getClassOf(right));
+            right = getClassOf(right).toClassRefLiteral();
             var leftType = left.inferType();
             if (leftType instanceof ScopedClassIntervalClassDef scopedClassIntervalClassDef) {
                 left = new Unbox(this.ownerFunction, left).transformInner();
                 return Pair.of(left, right);
             } else if (left instanceof ClassOf || left instanceof ClassUnder || left instanceof ConstClass) {
-                left = new ClassRefLiteral(getClassOf(left));
+                left = getClassOf(left).toClassRefLiteral();
             } else {
                 throw new TypeMismatchError("class interval or classref expected", this.getSourceLocation());
             }
@@ -144,7 +144,7 @@ public class Equals extends BiExpression{
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return PrimitiveClassDef.BOOLEAN;
+        return getRoot().BOOLEAN();
     }
 
     @Override
@@ -179,7 +179,7 @@ public class Equals extends BiExpression{
             case NotEquals -> !r;
             default -> throw new UnsupportedOperationException("TODO");
         };
-        return new BooleanLiteral(r).setSourceLocation(this.getSourceLocation());
+        return getRoot().createBooleanLiteral( r).setSourceLocation(this.getSourceLocation());
     }
 
     @Override

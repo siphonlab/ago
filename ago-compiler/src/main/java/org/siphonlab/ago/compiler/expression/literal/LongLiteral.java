@@ -22,8 +22,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import java.util.Objects;
 
 public class LongLiteral extends Literal<Long> {
-    public LongLiteral(Long value) {
-        super(PrimitiveClassDef.LONG, value);
+    public LongLiteral(PrimitiveClassDef LONG, Long value) {
+        super(LONG, value);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class LongLiteral extends Literal<Long> {
 
     @Override
     public LongLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new LongLiteral(this.value);
+        var r = new LongLiteral((PrimitiveClassDef) this.classDef, this.value);
         r.setSourceLocation(sourceLocation);
         return r;
     }

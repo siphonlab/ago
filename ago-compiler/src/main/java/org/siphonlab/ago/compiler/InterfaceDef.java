@@ -35,8 +35,8 @@ public class InterfaceDef extends ClassDef{
 
     private final AgoParser.InterfaceDeclarationContext interfaceDeclaration;
 
-    public InterfaceDef(String name, AgoParser.InterfaceDeclarationContext interfaceDeclaration) {
-        super(name);
+    public InterfaceDef(Root root, String name, AgoParser.InterfaceDeclarationContext interfaceDeclaration) {
+        super(root, name);
         this.interfaceDeclaration = interfaceDeclaration;
         this.classType = AgoClass.TYPE_INTERFACE;
         this.modifiers |= AgoClass.ABSTRACT;
@@ -138,7 +138,7 @@ public class InterfaceDef extends ClassDef{
     }
 
     public InterfaceDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
-        var clone = new InterfaceDef(name, this.interfaceDeclaration);
+        var clone = new InterfaceDef(root, name, this.interfaceDeclaration);
         this.cloneTo(instantiationArguments, clone);
         return clone;
     }

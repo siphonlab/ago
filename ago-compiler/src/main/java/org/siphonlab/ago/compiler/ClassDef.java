@@ -50,6 +50,8 @@ public class ClassDef extends ClassContainer {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ClassDef.class);
 
+    protected final Root root;
+
     private MetaClassDef metaClassDef;
 
     protected AgoParser.ClassDeclarationContext classDeclaration;
@@ -100,14 +102,15 @@ public class ClassDef extends ClassContainer {
     private Map<String, GetterSetterPair> attributes = new HashMap<>();
 
 
-    public ClassDef(String name) {
+    public ClassDef(Root root, String name) {
         super(name);
+        this.root = root;
         this.classType = AgoClass.TYPE_CLASS;
         slotsAllocator = new SlotsAllocator(this);
     }
 
-    public ClassDef(String name, AgoParser.ClassDeclarationContext classDeclaration) {
-        this(name);
+    public ClassDef(Root root, String name, AgoParser.ClassDeclarationContext classDeclaration) {
+        this(root, name);
         this.classDeclaration  = classDeclaration;
         this.classType = AgoClass.TYPE_CLASS;
     }
@@ -412,7 +415,7 @@ public class ClassDef extends ClassContainer {
 
                     var fun = (FunctionDef) child;
                     var field = this.fields.get(wrapperFldName.getText());
-                    var wrapperFun = new InterfaceFunctionWrapper(this, fun, field, field.getDeclaration());
+                    var wrapperFun = new InterfaceFunctionWrapper(root, this, fun, field, field.getDeclaration());
                     addChild(wrapperFun);
                     wrapperFun.resolveHierarchicalClasses();
                     wrapperFun.setCompilingStage(CompilingStage.ParseFields);
@@ -435,7 +438,7 @@ public class ClassDef extends ClassContainer {
                         continue;        // already provided an overloaded function
 
                     var fun = (FunctionDef) child;
-                    var wrapperFun = new InterfaceFunctionWrapper(this, fun, wrapperFld, wrapperFld.getDeclaration());
+                    var wrapperFun = new InterfaceFunctionWrapper(root, this, fun, wrapperFld, wrapperFld.getDeclaration());
                     addChild(wrapperFun);
                     wrapperFun.resolveHierarchicalClasses();
                     wrapperFun.setCompilingStage(CompilingStage.ParseFields);
@@ -457,7 +460,7 @@ public class ClassDef extends ClassContainer {
 
         boolean needCreate = hasFieldInitializerOrTrait();
         if(needCreate){
-            var mockConstructor = new ConstructorDef(AgoClass.CONSTRUCTOR | AgoClass.PUBLIC, "new#");
+            var mockConstructor = new ConstructorDef(root, AgoClass.CONSTRUCTOR | AgoClass.PUBLIC, "new#");
             mockConstructor.setCompilingStage(this.compilingStage);
             mockConstructor.setUnit(this.unit);
             this.addChild(mockConstructor);
@@ -477,11 +480,11 @@ public class ClassDef extends ClassContainer {
     }
 
     private void createSetter(Field field, AgoParser.SetterContext setterContext) throws SyntaxError {
-        this.addChild(new SetterFunction(field, setterContext));
+        this.addChild(new SetterFunction(root, field, setterContext));
     }
 
     private void createGetter(Field field, AgoParser.GetterContext getterContext) throws SyntaxError {
-        this.addChild(new GetterFunction(field, getterContext));
+        this.addChild(new GetterFunction(getRoot(), field, getterContext));
     }
 
     public boolean hasFieldInitializerOrTrait() {
@@ -673,8 +676,18 @@ public class ClassDef extends ClassContainer {
         return (this.modifiers & AgoClass.PROTECTED) != 0;
     }
 
+
+    public boolean isVoid(){return this.getTypeCode() == TypeCode.VOID;}
+    public boolean isNull(){return this.getTypeCode() == TypeCode.NULL;}
+    public boolean isBoolean(){return this.getTypeCode() == TypeCode.BOOLEAN;}
+    public boolean isClassRef(){return this.getTypeCode() == TypeCode.CLASS_REF;}
+
+    public ClassRefLiteral toClassRefLiteral(){
+        return root.createClassRefLiteral(this);
+    }
+
     public boolean isPrimitiveFamily(){
-        return this instanceof PrimitiveClassDef || this.isThatOrDerivedFromThat(getRoot().getPrimitiveTypeInterface());
+        return this instanceof PrimitiveClassDef || this.isThatOrDerivedFromThat(getRoot().getPrimitiveType());
     }
 
     public boolean isPrimitive() {
@@ -682,7 +695,7 @@ public class ClassDef extends ClassContainer {
     }
 
     public boolean isPrimitiveNumberFamily() {
-        return this instanceof PrimitiveClassDef p && p.isNumber() || this.isThatOrDerivedFromThat(getRoot().getPrimitiveNumberTypeInterface());
+        return this instanceof PrimitiveClassDef p && p.isNumber() || this.isThatOrDerivedFromThat(getRoot().getPrimitiveNumberType());
     }
 
     /**
@@ -719,16 +732,16 @@ public class ClassDef extends ClassContainer {
 
     public boolean isPrimitiveBoxed(){
         if(this.isEnum()) return true;
-        return  (this.isThatOrDerivedFromThat(PrimitiveClassDef.BYTE.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.BYTE.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.SHORT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.SHORT.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.CHAR.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.CHAR.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.INT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.INT.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.FLOAT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.FLOAT.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.LONG.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.LONG.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.DOUBLE.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.DOUBLE.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.STRING.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.STRING.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.BOOLEAN.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.BOOLEAN.getBoxerInterface())) ||
-                (this.isThatOrDerivedFromThat(PrimitiveClassDef.CLASS_REF.getBoxedType())
+        return  (this.isThatOrDerivedFromThat(getRoot().BYTE().getBoxedType()) || this.isDeriveFrom(getRoot().BYTE().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().SHORT().getBoxedType()) || this.isDeriveFrom(getRoot().SHORT().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().CHAR().getBoxedType()) || this.isDeriveFrom(getRoot().CHAR().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().INT().getBoxedType()) || this.isDeriveFrom(getRoot().INT().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().FLOAT().getBoxedType()) || this.isDeriveFrom(getRoot().FLOAT().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().LONG().getBoxedType()) || this.isDeriveFrom(getRoot().LONG().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().DOUBLE().getBoxedType()) || this.isDeriveFrom(getRoot().DOUBLE().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().STRING().getBoxedType()) || this.isDeriveFrom(getRoot().STRING().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().BOOLEAN().getBoxedType()) || this.isDeriveFrom(getRoot().BOOLEAN().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().CLASSREF().getBoxedType())
             );
     }
 
@@ -745,16 +758,16 @@ public class ClassDef extends ClassContainer {
         if(this.isEnum()){
             return enumBasePrimitiveType.getTypeCode();
         }
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.BYTE.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.BYTE.getBoxerInterface())) return TypeCode.BYTE;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.SHORT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.SHORT.getBoxerInterface())) return TypeCode.SHORT;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.CHAR.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.CHAR.getBoxerInterface())) return TypeCode.CHAR;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.INT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.INT.getBoxerInterface())) return TypeCode.INT;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.FLOAT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.FLOAT.getBoxerInterface())) return TypeCode.FLOAT;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.LONG.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.LONG.getBoxerInterface())) return TypeCode.LONG;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.DOUBLE.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.DOUBLE.getBoxerInterface())) return TypeCode.DOUBLE;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.STRING.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.STRING.getBoxerInterface())) return TypeCode.STRING;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.BOOLEAN.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.BOOLEAN.getBoxerInterface())) return TypeCode.BOOLEAN;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.CLASS_REF.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.CLASS_REF.getBoxerInterface())) return TypeCode.CLASS_REF;
+        if(this.isThatOrDerivedFromThat(getRoot().BYTE().getBoxedType()) || this.isDeriveFrom(getRoot().BYTE().getBoxerInterface())) return TypeCode.BYTE;
+        if(this.isThatOrDerivedFromThat(getRoot().SHORT().getBoxedType()) || this.isDeriveFrom(getRoot().SHORT().getBoxerInterface())) return TypeCode.SHORT;
+        if(this.isThatOrDerivedFromThat(getRoot().CHAR().getBoxedType()) || this.isDeriveFrom(getRoot().CHAR().getBoxerInterface())) return TypeCode.CHAR;
+        if(this.isThatOrDerivedFromThat(getRoot().INT().getBoxedType()) || this.isDeriveFrom(getRoot().INT().getBoxerInterface())) return TypeCode.INT;
+        if(this.isThatOrDerivedFromThat(getRoot().FLOAT().getBoxedType()) || this.isDeriveFrom(getRoot().FLOAT().getBoxerInterface())) return TypeCode.FLOAT;
+        if(this.isThatOrDerivedFromThat(getRoot().LONG().getBoxedType()) || this.isDeriveFrom(getRoot().LONG().getBoxerInterface())) return TypeCode.LONG;
+        if(this.isThatOrDerivedFromThat(getRoot().DOUBLE().getBoxedType()) || this.isDeriveFrom(getRoot().DOUBLE().getBoxerInterface())) return TypeCode.DOUBLE;
+        if(this.isThatOrDerivedFromThat(getRoot().STRING().getBoxedType()) || this.isDeriveFrom(getRoot().STRING().getBoxerInterface())) return TypeCode.STRING;
+        if(this.isThatOrDerivedFromThat(getRoot().BOOLEAN().getBoxedType()) || this.isDeriveFrom(getRoot().BOOLEAN().getBoxerInterface())) return TypeCode.BOOLEAN;
+        if(this.isThatOrDerivedFromThat(getRoot().CLASSREF().getBoxedType()) || this.isDeriveFrom(getRoot().CLASSREF().getBoxerInterface())) return TypeCode.CLASS_REF;
         return getTypeCode();
     }
     
@@ -762,16 +775,16 @@ public class ClassDef extends ClassContainer {
         if(this.isEnum()){
             return enumBasePrimitiveType;
         }
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.BYTE.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.BYTE.getBoxerInterface())) return PrimitiveClassDef.BYTE;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.SHORT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.SHORT.getBoxerInterface())) return PrimitiveClassDef.SHORT;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.CHAR.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.CHAR.getBoxerInterface())) return PrimitiveClassDef.CHAR;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.INT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.INT.getBoxerInterface())) return PrimitiveClassDef.INT;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.FLOAT.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.FLOAT.getBoxerInterface())) return PrimitiveClassDef.FLOAT;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.LONG.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.LONG.getBoxerInterface())) return PrimitiveClassDef.LONG;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.DOUBLE.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.DOUBLE.getBoxerInterface())) return PrimitiveClassDef.DOUBLE;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.STRING.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.STRING.getBoxerInterface())) return PrimitiveClassDef.STRING;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.BOOLEAN.getBoxedType()) || this.isDeriveFrom(PrimitiveClassDef.BOOLEAN.getBoxerInterface())) return PrimitiveClassDef.BOOLEAN;
-        if(this.isThatOrDerivedFromThat(PrimitiveClassDef.CLASS_REF.getBoxedType())) return PrimitiveClassDef.CLASS_REF;
+        if(this.isThatOrDerivedFromThat(getRoot().BYTE().getBoxedType()) || this.isDeriveFrom(getRoot().BYTE().getBoxerInterface())) return getRoot().BYTE();
+        if(this.isThatOrDerivedFromThat(getRoot().SHORT().getBoxedType()) || this.isDeriveFrom(getRoot().SHORT().getBoxerInterface())) return getRoot().SHORT();
+        if(this.isThatOrDerivedFromThat(getRoot().CHAR().getBoxedType()) || this.isDeriveFrom(getRoot().CHAR().getBoxerInterface())) return getRoot().CHAR();
+        if(this.isThatOrDerivedFromThat(getRoot().INT().getBoxedType()) || this.isDeriveFrom(getRoot().INT().getBoxerInterface())) return getRoot().INT();
+        if(this.isThatOrDerivedFromThat(getRoot().FLOAT().getBoxedType()) || this.isDeriveFrom(getRoot().FLOAT().getBoxerInterface())) return getRoot().FLOAT();
+        if(this.isThatOrDerivedFromThat(getRoot().LONG().getBoxedType()) || this.isDeriveFrom(getRoot().LONG().getBoxerInterface())) return getRoot().LONG();
+        if(this.isThatOrDerivedFromThat(getRoot().DOUBLE().getBoxedType()) || this.isDeriveFrom(getRoot().DOUBLE().getBoxerInterface())) return getRoot().DOUBLE();
+        if(this.isThatOrDerivedFromThat(getRoot().STRING().getBoxedType()) || this.isDeriveFrom(getRoot().STRING().getBoxerInterface())) return getRoot().STRING();
+        if(this.isThatOrDerivedFromThat(getRoot().BOOLEAN().getBoxedType()) || this.isDeriveFrom(getRoot().BOOLEAN().getBoxerInterface())) return getRoot().BOOLEAN();
+        if(this.isThatOrDerivedFromThat(getRoot().CLASSREF().getBoxedType())) return getRoot().CLASSREF();
         throw new UnsupportedOperationException("'%s' is not a boxer type".formatted(this.getFullname()));
     }
 
@@ -951,8 +964,7 @@ public class ClassDef extends ClassContainer {
             visited.add(anotherClass);
         }
 
-//        ClassDef anyClass = getRoot().getAnyClass();      // any class only works in ClassBound
-        if(this == getRoot().getObjectClass()) return this;
+        if(this == getRoot().getAnyClass()) return this;
 
         if(anotherClass instanceof GenericConcreteType && this instanceof GenericConcreteType){        // Template -> GenericSource
             if(anotherClass.getTemplateClass() == this.getTemplateClass() && isTypeArgumentsMatch(anotherClass)){
@@ -1365,7 +1377,7 @@ public class ClassDef extends ClassContainer {
      * @return
      */
     public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
-        var clone = new ClassDef(name, classDeclaration);
+        var clone = new ClassDef(root, name, classDeclaration);
         cloneTo(instantiationArguments, clone);
         return clone;
     }
@@ -1501,7 +1513,7 @@ public class ClassDef extends ClassContainer {
             if (this.getSuperClass() != null && this.getSuperClass() != this) {
                 var superMeta = this.superClass.resolveMetaclass();
                 if( superMeta != null) {
-                    MetaClassDef mockMeta = new MetaClassDef(this, superMeta.getMetaLevel(), null);
+                    MetaClassDef mockMeta = new MetaClassDef(root, this, superMeta.getMetaLevel(), null);
                     mockMeta.setSuperClass(superMeta);
                     mockMeta.setMetaClassDef(superMeta.resolveMetaclass());
                     mockMeta.setSourceLocation(superMeta.getSourceLocation());
@@ -1796,7 +1808,7 @@ public class ClassDef extends ClassContainer {
                 InstantiationArguments innerArgs = c.getGenericSource().instantiationArguments();
                 if (instantiationArguments.canApplyToTemplate(c) || innerArgs.valuesMatch(instantiationArguments)) {
                     b = true;
-                    newArray[i] = new ClassRefLiteral(c.instantiate(instantiationArguments, null));
+                    newArray[i] = c.instantiate(instantiationArguments, null).toClassRefLiteral();
                 }
             }
             if(!b) newArray[i] = classRefLiteral;

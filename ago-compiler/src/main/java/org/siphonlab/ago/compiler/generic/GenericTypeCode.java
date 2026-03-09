@@ -57,7 +57,7 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
         this.templateClass = templateClass;
         this.sharedGenericTypeParameterClassDef = sharedGenericTypeParameterClassDef;
         this.genericTypeParameterContext = genericTypeParameterContext;
-        this.genericCodeAvatarClassDef = new GenericCodeAvatarClassDef(this);
+        this.genericCodeAvatarClassDef = new GenericCodeAvatarClassDef(sharedGenericTypeParameterClassDef.getRoot(), this);
     }
 
     public static GenericTypeCode createGeneric(int genericTypeCode, int genericParamIndex, String name, SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef, AgoParser.GenericTypeParameterContext genericTypeParameterContext, ClassDef templateClass){
@@ -96,8 +96,8 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
 
         private final GenericTypeCode genericTypeCode;
 
-        public GenericCodeAvatarClassDef(GenericTypeCode genericTypeCode) {
-            super(composeName(genericTypeCode));    // this class is just for placeholder, has no package
+        public GenericCodeAvatarClassDef(Root root, GenericTypeCode genericTypeCode) {
+            super(root, composeName(genericTypeCode));    // this class is just for placeholder, has no package
             this.genericTypeCode = genericTypeCode;
             setCompilingStage(CompilingStage.Compiled);
         }

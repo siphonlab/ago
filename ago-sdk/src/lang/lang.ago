@@ -15,7 +15,18 @@
  */
 package lang;
 
-class Object{
+class Any{      // root of all Primitive and Object
+
+}
+
+class Primitive from Any{
+
+}
+class PrimitiveNumber from Primitive{
+
+}
+
+class Object from Any{
 
     fun new() {}
 
@@ -33,9 +44,6 @@ class Object{
     fun hashCode() as int
         native "org.siphonlab.ago.lang.Lang.Object_hashCode";
 }
-
-// a mark class for ClassInterval
-final class Any{}
 
 // box type for classref
 class ClassRef from Boxer<classref>{
@@ -155,9 +163,6 @@ interface Function2<+R, -P1, -P2> for Function<R>{}
 interface Function3<+R, -P1, -P2, -P3> for Function<R>{}
 interface Function4<+R, -P1, -P2, -P3, -P4> for Function<R>{}
 interface Function5<+R, -P1, -P2, -P3, -P4, -P5> for Function<R>{}
-
-interface Primitive;            // a placeholder type for primitive
-interface PrimitiveNumber from Primitive;         // a placeholder type for primitive numbers
 
 public abstract class Number<N as [PrimitiveNumber]> from Boxer<N>{
 

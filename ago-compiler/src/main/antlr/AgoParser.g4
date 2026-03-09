@@ -110,9 +110,11 @@ methodStarter:
 ;
 
 classDeclaration
-    : classModifier* CLASS className=identifier genericTypeParameters? extendsPhrase? implementsPhrase?
+    : classModifier* CLASS className=classId genericTypeParameters? extendsPhrase? implementsPhrase?
         classBody
     ;
+
+classId : identifier | primitiveType | NULL_LITERAL;
 
 traitDeclaration
     : classModifier* TRAIT className=identifier genericTypeParameters? extendsPhrase? implementsPhrase? permitsType?

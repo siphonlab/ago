@@ -40,14 +40,14 @@ public class Concat extends BiExpression{
         var right = this.right;
 
         if(left.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-            left = ownerFunction.cast(this.left, PrimitiveClassDef.STRING);
+            left = ownerFunction.cast(this.left, getRoot().STRING());
             if(right.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-                right = ownerFunction.cast(this.right, PrimitiveClassDef.STRING);
+                right = ownerFunction.cast(this.right, getRoot().STRING());
             }
             return ownerFunction.concat(left, right).setSourceLocation(this.getSourceLocation()).transform();
         } else {
             if(right.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-                right = ownerFunction.cast(right, PrimitiveClassDef.STRING);
+                right = ownerFunction.cast(right, getRoot().STRING());
                 return ownerFunction.concat(left, right).setSourceLocation(this.getSourceLocation()).transform();
             }
         }
@@ -61,7 +61,7 @@ public class Concat extends BiExpression{
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return PrimitiveClassDef.STRING;
+        return getRoot().STRING();
     }
 
     @Override
@@ -113,7 +113,7 @@ public class Concat extends BiExpression{
         if (rightStr.getString().isEmpty()) {
             return left;
         }
-        return new StringLiteral(leftStr.getString() + rightStr.getString());
+        return getRoot().createStringLiteral(leftStr.getString() + rightStr.getString());
     }
 
     @Override

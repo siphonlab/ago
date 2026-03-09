@@ -63,6 +63,7 @@ public class BlockCompiler {
     private final CodeBuffer code;
 
     final List<Expression> compiledStatements = new ArrayList<>();
+    private final Root root;
     int nextLabelId = 0;
 
     private List<ClassDef> handledExceptions = new LinkedList<>();
@@ -74,6 +75,7 @@ public class BlockCompiler {
         this.slotsAllocator = functionDef.getSlotsAllocator();
         this.code = new CodeBuffer();
         this.handledExceptions.addAll(functionDef.getThrowsExceptions());
+        this.root = functionDef.getRoot();
     }
 
     public FunctionDef getFunctionDef() {
@@ -191,7 +193,7 @@ public class BlockCompiler {
 
     private Return returnStmt(ReturnStmtContext returnStmt) throws CompilationError {
         if(returnStmt.expression() == null){
-            if(functionDef.getResultType() != PrimitiveClassDef.VOID){
+            if(!functionDef.getResultType().isVoid()){
                 throw unit.typeError(returnStmt, "'%s' result expected".formatted(functionDef.getResultType()));
             }
             return functionDef.return_();
@@ -349,14 +351,14 @@ public class BlockCompiler {
                         || initializerExpr instanceof ClassOf
                 ){
                     var t = initializerExpr.inferType();
-                    var scopedClassIntervalClassDef = functionDef.getRoot().getOrCreateScopedClassInterval(t, t, null);
+                    var scopedClassIntervalClassDef = root.getOrCreateScopedClassInterval(t, t, null);
                     functionDef.registerConcreteType(scopedClassIntervalClassDef);
                     inferred = t;
                     initializerExpr = new CastToScopedClassRef(functionDef, initializerExpr, scopedClassIntervalClassDef).transform();
                 } else {
                     inferred = initializerExpr.inferType();
-                    if (inferred == functionDef.getRoot().getAnyClass()) {
-                        inferred = functionDef.getRoot().getObjectClass();
+                    if (inferred == root.getAnyClass()) {
+                        inferred = root.getObjectClass();
                         initializerExpr = new Cast(functionDef, initializerExpr, inferred).setSourceLocation(initializerExpr.getSourceLocation()).transform();
                     }
                 }
@@ -432,7 +434,6 @@ public class BlockCompiler {
         } else if(expression instanceof ElementExprContext elementExpr){
             var obj = expression(elementExpr.expression(0));
             var index = expression(elementExpr.expression(1));
-            Root root = functionDef.getRoot();
             if(root.getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())) {
                 return new ArrayElement(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
             } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())) {
@@ -535,7 +536,7 @@ public class BlockCompiler {
             if(atomExpr != null){
                 atFirstLineHead = false;
                 if(!sb.isEmpty()){
-                    expressions.add(new StringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
+                    expressions.add(root.createStringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
                     sb.setLength(0);
                     startAtom = null;
                 }
@@ -577,9 +578,9 @@ public class BlockCompiler {
         }
 
         if(!sb.isEmpty()){
-            expressions.add(new StringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
+            expressions.add(getRoot().createStringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
         }
-        if(expressions.isEmpty()) return new StringLiteral("").setSourceLocation(unit.sourceLocation(lTemplateString));
+        if(expressions.isEmpty()) return getRoot().createStringLiteral("").setSourceLocation(unit.sourceLocation(lTemplateString));
         if(expressions.size() == 1) return expressions.getFirst();
         var r = expressions.getFirst();
         for (int j = 1; j < expressions.size(); j++) {
@@ -589,6 +590,9 @@ public class BlockCompiler {
         return r;
     }
 
+    public Root getRoot() {
+        return root;
+    }
 
     private Expression instanceOfExpr(InstanceOfExprContext instanceOfExpr) throws CompilationError {
         var typeExpr = unit.parseType(functionDef, instanceOfExpr.variableType(), false, false);
@@ -620,9 +624,9 @@ public class BlockCompiler {
             case NOT:
                 return new Not(functionDef,expression);
             case INC:
-                return new SelfArithmetic(functionDef,expression, new IntLiteral(1), SelfArithmetic.Type.Inc);
+                return new SelfArithmetic(functionDef,expression, getRoot().createIntLiteral(1), SelfArithmetic.Type.Inc);
             case DEC:
-                return new SelfArithmetic(functionDef, expression, new IntLiteral(1), SelfArithmetic.Type.Dec);
+                return new SelfArithmetic(functionDef, expression, getRoot().createIntLiteral(1), SelfArithmetic.Type.Dec);
             case BITNOT:
                 return new BitNot(functionDef, expression);
             default:
@@ -633,7 +637,7 @@ public class BlockCompiler {
     private Expression incDec(IncDecExprContext incDecExpr) throws CompilationError {
         var expr = incDecExpr.expression();
         SelfArithmetic.Type type = incDecExpr.INC() != null ? SelfArithmetic.Type.IncPost : SelfArithmetic.Type.DecPost;
-        return new SelfArithmetic(functionDef, expression(expr), new IntLiteral(1), type);
+        return new SelfArithmetic(functionDef, expression(expr), getRoot().createIntLiteral(1), type);
     }
 
 
@@ -913,7 +917,6 @@ public class BlockCompiler {
         ClassDef arrayType;
         var arrayLiteral = lArrayContext.arrayLiteral();
         Expression listTypeExpr = null;
-        Root root = functionDef.getRoot();
         if(arrayLiteral.variableType() != null){
             Expression typeExpr = unit.parseType(functionDef, arrayLiteral.variableType(), false, false);
             arrayType = extractType(typeExpr);
@@ -940,7 +943,7 @@ public class BlockCompiler {
 
         ClassDef eleType;
         if(listTypeExpr != null){
-            var listType = functionDef.getRoot().getAnyListClass().asThatOrSuperOfThat(arrayType);
+            var listType = root.getAnyListClass().asThatOrSuperOfThat(arrayType);
             eleType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
             arrayType = null;
         } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
@@ -969,7 +972,7 @@ public class BlockCompiler {
             }
             if(elements.isEmpty()){
                 if (listTypeExpr == null) {
-                    return new ArrayCreate(functionDef, (ArrayClassDef) arrayType, new IntLiteral(0)).setSourceLocation(unit.sourceLocation(lArrayContext));
+                    return new ArrayCreate(functionDef, (ArrayClassDef) arrayType, getRoot().createIntLiteral(0)).setSourceLocation(unit.sourceLocation(lArrayContext));
                 } else {
                     // create via new#
                     return new Creator(functionDef, listTypeExpr, Collections.emptyList(), unit.sourceLocation(lArrayContext), "new#");
@@ -1005,19 +1008,19 @@ public class BlockCompiler {
         if(groupType instanceof ArrayClassDef arrayClassDef){
             return new CollectionElementType(arrayClassDef, arrayClassDef.getElementType(), CollectionType.Array);
         } else {
-            var t= functionDef.getRoot().getAnyListClass().asThatOrSuperOfThat(groupType);
+            var t= root.getAnyListClass().asThatOrSuperOfThat(groupType);
             if(t != null){
                 return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.List);
             }
-            t= functionDef.getRoot().getAnyCollectionClass().asThatOrSuperOfThat(groupType);
+            t= root.getAnyCollectionClass().asThatOrSuperOfThat(groupType);
             if(t != null){
                 return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Collection);
             }
-            t = functionDef.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(groupType);
+            t = root.getAnyIterableInterface().asThatOrSuperOfThat(groupType);
             if(t != null){
                 return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Iterable);
             } else {
-                t = functionDef.getRoot().getAnyIteratorInterface().asThatOrSuperOfThat(groupType);
+                t = root.getAnyIteratorInterface().asThatOrSuperOfThat(groupType);
                 return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Iterator);
             }
         }
@@ -1029,7 +1032,6 @@ public class BlockCompiler {
         CollectionElementDef r;
         if (isExpando) {
             var el = this.assigner(elementContext.expression(), null, arrayType, false).setSourceLocation(unit.sourceLocation(elementContext));
-            Root root = functionDef.getRoot();
             ClassDef expandoType = el.inferType();
             if(expandoType instanceof ArrayClassDef arrayClassDef){
                 r = new CollectionElementDef(el, true, arrayClassDef.getElementType());
@@ -1049,7 +1051,6 @@ public class BlockCompiler {
         ClassDef objectType;
         var objectLiteral = lObjectContext.objectLiteral();
         Expression objectTypeExpr = null;
-        Root root = functionDef.getRoot();
         List<PropertyAssignmentContext> propertyAssignments = objectLiteral.propertyAssignment();
         if(objectLiteral.declarationType() != null){
             Expression typeExpr = unit.parseType(functionDef, objectLiteral.declarationType(), false, false);
@@ -1066,8 +1067,8 @@ public class BlockCompiler {
             // default type is Map<String, Object> the key is always String
             if(propertyAssignments.isEmpty()){
                 var m = functionDef.getOrCreateGenericInstantiationClassDef(root.getHashMapClass(), new ClassRefLiteral[]{
-                        new ClassRefLiteral(PrimitiveClassDef.STRING),
-                        new ClassRefLiteral(root.getObjectClass())
+                        root.getStringClass().toClassRefLiteral(),
+                        root.getObjectClass().toClassRefLiteral()
                 }, null);
                 functionDef.registerConcreteType(m);
                 functionDef.idOfClass(root.getHashMapClass());
@@ -1075,7 +1076,7 @@ public class BlockCompiler {
                 objectTypeExpr = new ConstClass(objectType);
             } else {
                 var first = objectLiteral.propertyAssignment(0);
-                ClassDef keyType = PrimitiveClassDef.STRING;
+                ClassDef keyType = getRoot().STRING();
                 ClassDef valueType = root.getObjectClass();
                 if(first instanceof PropertyShorthandContext ps){
                     var expr = this.expression(ps.expression());
@@ -1089,8 +1090,8 @@ public class BlockCompiler {
                     }
                 }
                 var m = functionDef.getOrCreateGenericInstantiationClassDef(root.getHashMapClass(), new ClassRefLiteral[]{
-                        new ClassRefLiteral(keyType),
-                        new ClassRefLiteral(valueType)
+                        keyType.toClassRefLiteral(),
+                        valueType.toClassRefLiteral()
                 }, null);
                 functionDef.registerConcreteType(m);
                 functionDef.idOfClass(root.getHashMapClass());
@@ -1108,7 +1109,7 @@ public class BlockCompiler {
             CurrWithExpression withMapInstance = new CurrWithExpression(functionDef, mapInstance);
 
             var statements = new ArrayList<Statement>();
-            var mapType = functionDef.getRoot().getAnyMapClass().asThatOrSuperOfThat(objectType);
+            var mapType = root.getAnyMapClass().asThatOrSuperOfThat(objectType);
             ClassRefLiteral[] arr = mapType.getGenericSource().instantiationArguments().getTypeArgumentsArray();
             ClassDef keyType = arr[0].getClassDefValue();
             ClassDef valueType = arr[1].getClassDefValue();
@@ -1141,7 +1142,7 @@ public class BlockCompiler {
                             statements.add(new WithStmt(functionDef, withValue, ifNotNull));
                         }
                     } else {
-                        if(!PrimitiveClassDef.STRING.isThatOrSuperOfThat(keyType)){
+                        if(!root.STRING().isThatOrSuperOfThat(keyType)){
                             throw unit.typeError(pa, "to accept an object, Map<String,?> destination expected");
                         }
                         valueType = root.getObjectClass();
@@ -1152,7 +1153,7 @@ public class BlockCompiler {
                             for (var k : t.getAttributes().keySet()) {
                                 GetterSetterPair attribute = t.getAttribute(k);
                                 var attr = new Attribute(functionDef, withValue, attribute.getGetter(), attribute.getSetter());
-                                var put = new MapPut(functionDef, withMapInstance, new StringLiteral(k), attr).setSourceLocation(unit.sourceLocation(ps)).transform();
+                                var put = new MapPut(functionDef, withMapInstance, getRoot().createStringLiteral(k), attr).setSourceLocation(unit.sourceLocation(ps)).transform();
                                 assignments.add(functionDef.expressionStmt(put));
                                 visited.add(k);
                             }
@@ -1161,7 +1162,7 @@ public class BlockCompiler {
                         for(var k : fields.keySet()){
                             var fld = fields.get(k);
                             if(fld.isPublic() && !visited.contains(k)){
-                                var put = new MapPut(functionDef, withMapInstance, new StringLiteral(k), functionDef.field(withValue, fld)).setSourceLocation(unit.sourceLocation(ps)).transform();
+                                var put = new MapPut(functionDef, withMapInstance, getRoot().createStringLiteral(k), functionDef.field(withValue, fld)).setSourceLocation(unit.sourceLocation(ps)).transform();
                                 assignments.add(functionDef.expressionStmt(put));
                                 visited.add(k);
                             }
@@ -1227,10 +1228,10 @@ public class BlockCompiler {
 
     private Expression propertyName(PropertyNameContext propertyNameContext) throws CompilationError {
         if(propertyNameContext instanceof IdPropertyNameContext id){
-            return new StringLiteral(id.getText()).setSourceLocation(unit.sourceLocation(propertyNameContext));
+            return getRoot().createStringLiteral(id.getText()).setSourceLocation(unit.sourceLocation(propertyNameContext));
         } else if(propertyNameContext instanceof StringPropertyNameContext s){
             String s1 = Compiler.parseStringLiteral(s.STRING_LITERAL());
-            return new StringLiteral(s1).setSourceLocation(unit.sourceLocation(propertyNameContext));
+            return getRoot().createStringLiteral(s1).setSourceLocation(unit.sourceLocation(propertyNameContext));
         } else if(propertyNameContext instanceof ExpressionPropertyNameContext expr){
             return this.expression(expr.expression()).setSourceLocation(unit.sourceLocation(propertyNameContext));
         } else {
@@ -1268,7 +1269,7 @@ public class BlockCompiler {
             ClassDef inferType = invocation.inferType();
             if(inferType instanceof FunctionDef) {   // a function instance
                 return new FunctionApply(functionDef, extractInvokeMode(methodCall), invocation, forkContext);
-            } else if(functionDef.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(inferType)){  // Function<R>
+            } else if(root.getFunctionBaseOfAnyClass().isThatOrSuperOfThat(inferType)){  // Function<R>
                 return new InvokeFunctor(functionDef, Invoke.InvokeMode.Invoke, invocation, forkContext);
             } else if(inferType instanceof ClassIntervalClassDef classIntervalClassDef) {   // `var v as [SomeFunction] = f; f()`, that means
                 var lBound = classIntervalClassDef.getLBoundClass();
@@ -1315,7 +1316,7 @@ public class BlockCompiler {
             ViaForkContextContext viaForkContext = asyncInvokeContext.viaForkContext();
             if(viaForkContext != null) {
                 Expression r = this.expression(viaForkContext.forkContext);
-                if(!r.inferType().isDeriveFrom(this.functionDef.getRoot().getForkContextInterface())){
+                if(!r.inferType().isDeriveFrom(this.root.getForkContextInterface())){
                     throw unit.typeError(viaForkContext.forkContext, "'lang.ForkContext' expected");
                 }
                 return r;
@@ -1373,7 +1374,7 @@ public class BlockCompiler {
         }
 
         ClassDef type = expression.inferType();
-        if(type instanceof PhantomMetaClassDef) type = functionDef.getRoot().getObjectClass();
+        if(type instanceof PhantomMetaClassDef) type = root.getObjectClass();
         var v = new Variable();
         v.setType(type);
         v.setOwnerClass(this.functionDef);
@@ -1390,7 +1391,7 @@ public class BlockCompiler {
     }
 
     public Var.LocalVar acquireTempVar(ClassDef type) throws CompilationError {
-        if(type instanceof PhantomMetaClassDef) type = functionDef.getRoot().getObjectClass();
+        if(type instanceof PhantomMetaClassDef) type = root.getObjectClass();
         var v = new Variable();
         v.setType(type);
         v.setOwnerClass(this.functionDef);
@@ -1616,7 +1617,7 @@ public class BlockCompiler {
                 for (DeclarationTypeContext declarationTypeContext : declarationTypeContexts) {
                     var exceptionType = unit.parseTypeName(functionDef, declarationTypeContext.namePath(), false);
                     Compiler.processClassTillStage(exceptionType, CompilingStage.AllocateSlots);
-                    if(!exceptionType.isThatOrDerivedFromThat(functionDef.getRoot().getThrowableClass())){
+                    if(!exceptionType.isThatOrDerivedFromThat(root.getThrowableClass())){
                         throw unit.typeError(declarationTypeContext,"'%s' is not a throwable class");
                     }
                     for (ClassDef existed : exceptionTypes) {
@@ -1709,7 +1710,7 @@ public class BlockCompiler {
             mode = Invoke.InvokeMode.Spawn;
         }
         Expression expression = expression(asyncInvokeFunctorStmt.expression()).transform();
-        if(!functionDef.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(expression.inferType())){
+        if(!root.getFunctionBaseOfAnyClass().isThatOrSuperOfThat(expression.inferType())){
             throw new TypeMismatchError("functor expected",expression.getSourceLocation());
         }
         return new AsyncInvokeFunctorStmt(functionDef, mode, expression);
@@ -1721,11 +1722,11 @@ public class BlockCompiler {
         Expression forkContextExpr = null;
         if(viaForkContext != null) {
             forkContextExpr = this.expression(viaForkContext.forkContext);
-            if(!forkContextExpr.inferType().isDeriveFrom(this.functionDef.getRoot().getForkContextInterface())){
+            if(!forkContextExpr.inferType().isDeriveFrom(this.root.getForkContextInterface())){
                 throw unit.typeError(viaForkContext.forkContext, "'lang.ForkContext' expected");
             }
         }
-        if (!functionDef.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(f.inferType())) {
+        if (!root.getFunctionBaseOfAnyClass().isThatOrSuperOfThat(f.inferType())) {
             throw new TypeMismatchError("functor expected", f.getSourceLocation());
         }
         return new InvokeFunctor(functionDef, Invoke.InvokeMode.Await, f, forkContextExpr);

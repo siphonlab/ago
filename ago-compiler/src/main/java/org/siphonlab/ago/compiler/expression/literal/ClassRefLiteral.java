@@ -29,8 +29,8 @@ public class ClassRefLiteral extends Literal<Integer> {
 
     private Expression scope;
 
-    public ClassRefLiteral(ClassDef classDefValue) {
-        super(PrimitiveClassDef.CLASS_REF, -1);
+    public ClassRefLiteral(PrimitiveClassDef CLASSREF, ClassDef classDefValue) {
+        super(CLASSREF, -1);
         assert classDefValue != null;
         this.classDefValue = classDefValue;
     }
@@ -70,7 +70,7 @@ public class ClassRefLiteral extends Literal<Integer> {
 
     @Override
     public ClassRefLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new ClassRefLiteral(this.classDefValue);
+        var r = new ClassRefLiteral((PrimitiveClassDef) this.classDef, this.classDefValue);
         r.setSourceLocation(sourceLocation);
         return r;
     }

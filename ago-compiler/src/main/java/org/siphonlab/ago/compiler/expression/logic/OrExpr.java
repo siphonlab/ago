@@ -29,7 +29,6 @@ import org.siphonlab.ago.compiler.statement.Label;
 
 import java.util.Objects;
 
-import static org.siphonlab.ago.compiler.PrimitiveClassDef.BOOLEAN;
 import static org.siphonlab.ago.opcode.logic.Or.KIND_OR;
 
 public class OrExpr extends ExpressionInFunctionBody {
@@ -51,11 +50,11 @@ public class OrExpr extends ExpressionInFunctionBody {
         if(leftType.getTypeCode() == TypeCode.BOOLEAN || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
             if(!(rightType.getTypeCode() == TypeCode.BOOLEAN
                     || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN)){
-                return new OrExpr(ownerFunction, left, ownerFunction.cast(right, BOOLEAN, false).transform()).transform();
+                return new OrExpr(ownerFunction, left, ownerFunction.cast(right, getRoot().BOOLEAN(), false).transform()).transform();
             }
         } else if(rightType.getTypeCode() == TypeCode.BOOLEAN
                 || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
-            return new OrExpr(ownerFunction, ownerFunction.cast(left, BOOLEAN, false).transform(), right).transform();
+            return new OrExpr(ownerFunction, ownerFunction.cast(left, getRoot().BOOLEAN(), false).transform(), right).transform();
         }
         CastStrategy.UnifyTypeResult result = new CastStrategy(ownerFunction, this.getSourceLocation(), false).unifyTypes(this.left, this.right);
         if (result.changed() || result.left() != this.left || result.right() != this.right) {
@@ -90,7 +89,7 @@ public class OrExpr extends ExpressionInFunctionBody {
                 this.left.outputToLocalVar(localVar, blockCompiler);
             }
             if (this.right instanceof Var var) {
-                if (this.left.inferType() == BOOLEAN) {
+                if (this.left.inferType().isBoolean()) {
                     var v1 = localVar;
                     Var.LocalVar v2 = (Var.LocalVar) var.visit(blockCompiler);
                     blockCompiler.getCode().biOperate(KIND_OR, left.inferType().getTypeCode(), v1.getVariableSlot(), v2.getVariableSlot(), localVar.getVariableSlot());

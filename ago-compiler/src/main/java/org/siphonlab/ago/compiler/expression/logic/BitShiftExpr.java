@@ -18,7 +18,6 @@ package org.siphonlab.ago.compiler.expression.logic;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.IllegalExpressionError;
@@ -60,7 +59,7 @@ public class BitShiftExpr extends ExpressionInFunctionBody {
         super(ownerFunction);
         this.type = type;
         this.left = left.transform().setParent(this);
-        this.right = ownerFunction.cast(right, PrimitiveClassDef.INT).transform().setParent(this);
+        this.right = ownerFunction.cast(right, getRoot().INT()).transform().setParent(this);
     }
 
     @Override
@@ -75,7 +74,7 @@ public class BitShiftExpr extends ExpressionInFunctionBody {
         if(!right.inferType().getTypeCode().isIntFamily()){
             throw new TypeMismatchError("int family value expected", right.getSourceLocation());
         }
-        right = ownerFunction.cast(right, PrimitiveClassDef.INT).transform();
+        right = ownerFunction.cast(right, getRoot().INT()).transform();
         if(right instanceof IntLiteral r){
             if(r.value == 0) return left;
             if(r.value < 0) throw new IllegalExpressionError("illegal bits value", right.getSourceLocation());
@@ -92,31 +91,31 @@ public class BitShiftExpr extends ExpressionInFunctionBody {
         switch (this.type){
             case LShift:
                 return switch (this.left.inferType().getTypeCode().value) {
-                    case INT_VALUE -> new IntLiteral((((IntLiteral) l).value) << change);
-                    case BYTE_VALUE -> new ByteLiteral((byte) (((ByteLiteral) l).value << change));
-                    case CHAR_VALUE -> new CharLiteral((char) ((((CharLiteral) l).value) << change));
-                    case SHORT_VALUE -> new ShortLiteral((short) ((((ShortLiteral) l).value) << change));
-                    case LONG_VALUE -> new LongLiteral((((LongLiteral) l).value) << change);
+                    case INT_VALUE -> getRoot().createIntLiteral((((IntLiteral) l).value) << change);
+                    case BYTE_VALUE -> getRoot().createByteLiteral( (byte) (((ByteLiteral) l).value << change));
+                    case CHAR_VALUE -> getRoot().createCharLiteral((char) ((((CharLiteral) l).value) << change));
+                    case SHORT_VALUE -> getRoot().createShortLiteral((short) ((((ShortLiteral) l).value) << change));
+                    case LONG_VALUE -> getRoot().createLongLiteral( (((LongLiteral) l).value) << change);
                     default ->
                             throw new TypeMismatchError(String.format("cannot apply '<<' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };
             case RShift:
                 return switch (this.left.inferType().getTypeCode().value) {
-                    case INT_VALUE -> new IntLiteral((((IntLiteral) l).value) >> change);
-                    case BYTE_VALUE -> new ByteLiteral((byte) (((ByteLiteral) l).value >> change));
-                    case CHAR_VALUE -> new CharLiteral((char) ((((CharLiteral) l).value) >> change));
-                    case SHORT_VALUE -> new ShortLiteral((short) ((((ShortLiteral) l).value) >> change));
-                    case LONG_VALUE -> new LongLiteral((((LongLiteral) l).value) >> change);
+                    case INT_VALUE -> getRoot().createIntLiteral((((IntLiteral) l).value) >> change);
+                    case BYTE_VALUE -> getRoot().createByteLiteral( (byte) (((ByteLiteral) l).value >> change));
+                    case CHAR_VALUE -> getRoot().createCharLiteral((char) ((((CharLiteral) l).value) >> change));
+                    case SHORT_VALUE -> getRoot().createShortLiteral((short) ((((ShortLiteral) l).value) >> change));
+                    case LONG_VALUE -> getRoot().createLongLiteral( (((LongLiteral) l).value) >> change);
                     default ->
                             throw new TypeMismatchError(String.format("cannot apply '>>' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };
             case URShift:
                 return switch (this.left.inferType().getTypeCode().value) {
-                    case INT_VALUE -> new IntLiteral((((IntLiteral) l).value) >>> change);
-                    case BYTE_VALUE -> new ByteLiteral((byte) (((ByteLiteral) l).value >>> change));
-                    case CHAR_VALUE -> new CharLiteral((char) ((((CharLiteral) l).value) >>> change));
-                    case SHORT_VALUE -> new ShortLiteral((short) ((((ShortLiteral) l).value) >>> change));
-                    case LONG_VALUE -> new LongLiteral((((LongLiteral) l).value) >>> change);
+                    case INT_VALUE -> getRoot().createIntLiteral((((IntLiteral) l).value) >>> change);
+                    case BYTE_VALUE -> getRoot().createByteLiteral( (byte) (((ByteLiteral) l).value >>> change));
+                    case CHAR_VALUE -> getRoot().createCharLiteral((char) ((((CharLiteral) l).value) >>> change));
+                    case SHORT_VALUE -> getRoot().createShortLiteral((short) ((((ShortLiteral) l).value) >>> change));
+                    case LONG_VALUE -> getRoot().createLongLiteral( (((LongLiteral) l).value) >>> change);
                     default ->
                             throw new TypeMismatchError(String.format("cannot apply '>>>' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };

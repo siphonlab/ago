@@ -21,8 +21,8 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.expression.Literal;
 
 public class BooleanLiteral extends Literal<Boolean> {
-    public BooleanLiteral(Boolean value) {
-        super(PrimitiveClassDef.BOOLEAN, value);
+    public BooleanLiteral(PrimitiveClassDef BOOLEAN, Boolean value) {
+        super(BOOLEAN, value);
     }
 
     @Override
@@ -32,7 +32,7 @@ public class BooleanLiteral extends Literal<Boolean> {
 
     @Override
     public BooleanLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new BooleanLiteral(this.value);
+        var r = new BooleanLiteral((PrimitiveClassDef) this.classDef, this.value);
         r.setSourceLocation(sourceLocation);
         return r;
     }

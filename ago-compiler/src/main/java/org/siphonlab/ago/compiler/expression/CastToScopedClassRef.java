@@ -18,14 +18,10 @@ package org.siphonlab.ago.compiler.expression;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.CodeBuffer;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
-
-import java.util.ArrayList;
-import java.util.Collections;
 
 public class CastToScopedClassRef extends ExpressionInFunctionBody{
 
@@ -56,7 +52,7 @@ public class CastToScopedClassRef extends ExpressionInFunctionBody{
             ClassDef classDef = pair.getRight();
 
             blockCompiler.lockRegister(localVar);
-            ownerFunction.box(new ClassRefLiteral(classDef), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);
+            ownerFunction.box(classDef.toClassRefLiteral(), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);
 
             ClassDef classInterval = blockCompiler.getFunctionDef().getRoot().getScopedClassInterval();
             if (!localVar.inferType().isDeriveFrom(classInterval)) {

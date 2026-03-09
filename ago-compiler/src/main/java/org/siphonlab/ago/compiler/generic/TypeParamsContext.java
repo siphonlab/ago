@@ -67,7 +67,7 @@ public class TypeParamsContext {
         var args = new ClassRefLiteral[this.genericTypeParams.size()];
         for (int i = 0; i < genericTypeParams.size(); i++) {
             GenericTypeCode genericTypeParam = genericTypeParams.get(i);
-            args[i] = new ClassRefLiteral(genericTypeParam.getGenericCodeAvatarClassDef());
+            args[i] = genericTypeParam.getGenericCodeAvatarClassDef().toClassRefLiteral();
         }
         return args;
     }

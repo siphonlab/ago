@@ -37,7 +37,7 @@ public class ForStmt extends LoopStmt{
         Expression c ;
         if(condition != null) {
             condition.setParent(this);
-            c = ownerFunction.cast(condition, PrimitiveClassDef.BOOLEAN).transform();
+            c = ownerFunction.cast(condition, getRoot().BOOLEAN()).transform();
         } else {
             c = null;
         }

@@ -51,7 +51,7 @@ public class Unbox extends ExpressionInFunctionBody{
     @Override
     public ClassDef inferType() throws CompilationError {
         var t = expression.inferType();
-        return PrimitiveClassDef.fromBoxedType(t);
+        return ownerFunction.getRoot().fromPrimitiveTypeCode(t.getUnboxedTypeCode());
     }
 
     @Override

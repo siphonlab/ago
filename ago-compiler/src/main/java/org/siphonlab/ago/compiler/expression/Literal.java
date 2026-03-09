@@ -54,42 +54,42 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
     private static Literal<?> parse(AgoParser.LiteralContext literal, Root root){
         if(literal instanceof AgoParser.LIntegerContext lInteger){
             AgoParser.IntegerLiteralContext integerLiteral = lInteger.integerLiteral();
-            return parseIntegerLiteral(integerLiteral);
+            return parseIntegerLiteral(root, integerLiteral);
         } else if(literal instanceof AgoParser.LStringContext lString) {
             var s = lString.STRING_LITERAL();
             String s1 = Compiler.parseStringLiteral(s);
-            return new StringLiteral(s1);
+            return root.createStringLiteral(s1);
         } else if(literal instanceof AgoParser.LTemplateStringContext lTemplateString){
-            return LiteralParser.parseTemplateStringWithoutExpression(lTemplateString);
+            return LiteralParser.parseTemplateStringWithoutExpression(root, lTemplateString);
         } else if(literal instanceof AgoParser.LCharContext lChar){
-            return new CharLiteral(LiteralParser.parseCharLiteral(lChar.CHAR_LITERAL().getText()));
+            return root.createCharLiteral(LiteralParser.parseCharLiteral(lChar.CHAR_LITERAL().getText()));
         } else if(literal instanceof AgoParser.LNullContext lNullContext){
             return root.createNullLiteral();
         } else if(literal instanceof AgoParser.LBoolContext lBoolContext){
-            return new BooleanLiteral(Boolean.parseBoolean(lBoolContext.getText()));
+            return root.createBooleanLiteral(Boolean.parseBoolean(lBoolContext.getText()));
         } else if(literal instanceof AgoParser.LFloatContext floatContext){
-            return parseFloatLiteral(floatContext.floatLiteral());
+            return parseFloatLiteral(root, floatContext.floatLiteral());
         }
         throw new UnsupportedOperationException();
     }
 
-    public static Literal<?> parseIntegerLiteral(AgoParser.IntegerLiteralContext integerLiteral) {
+    public static Literal<?> parseIntegerLiteral(Root root, AgoParser.IntegerLiteralContext integerLiteral) {
         var n = LiteralParser.parseIntegerLiteral(integerLiteral.getText());
         if(n instanceof Integer i){
-            return new IntLiteral(i);
+            return root.createIntLiteral(i);
         } else if(n instanceof Long l){
-            return new LongLiteral(l);
+            return root.createLongLiteral(l);
         } else {
-            return new ByteLiteral((Byte)n);
+            return root.createByteLiteral((Byte)n);
         }
     }
 
-    public static Literal<?> parseFloatLiteral(AgoParser.FloatLiteralContext floatLiteral) {
+    public static Literal<?> parseFloatLiteral(Root root, AgoParser.FloatLiteralContext floatLiteral) {
         var n = LiteralParser.parseFloatLiteral(floatLiteral.getText());
         if(n instanceof Double d){
-            return new DoubleLiteral(d);
+            return root.createDoubleLiteral(d);
         } else {
-            return new FloatLiteral((Float) n);
+            return root.createFloatLiteral((Float) n);
         }
     }
 

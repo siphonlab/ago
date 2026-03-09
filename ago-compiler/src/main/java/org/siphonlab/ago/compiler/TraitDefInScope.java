@@ -32,7 +32,7 @@ public class TraitDefInScope extends TraitDef{
     private final ClassDef baseTrait;
 
     public TraitDefInScope(ClassDef baseTrait) {
-        super(baseTrait.name, getDeclaration(baseTrait));
+        super(baseTrait.root, baseTrait.name, getDeclaration(baseTrait));
         if(baseTrait instanceof TraitDefInScope){
             baseTrait = ((TraitDefInScope) baseTrait).baseTrait;
         }

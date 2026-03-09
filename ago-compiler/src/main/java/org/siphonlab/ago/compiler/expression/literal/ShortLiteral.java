@@ -22,8 +22,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import java.util.Objects;
 
 public class ShortLiteral extends Literal<Short> {
-    public ShortLiteral(Short value) {
-        super(PrimitiveClassDef.SHORT, value);
+    public ShortLiteral(PrimitiveClassDef SHORT, Short value) {
+        super(SHORT, value);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class ShortLiteral extends Literal<Short> {
 
     @Override
     public ShortLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new ShortLiteral(this.value);
+        var r = new ShortLiteral((PrimitiveClassDef) this.classDef, this.value);
         r.setSourceLocation(sourceLocation);
         return r;
     }

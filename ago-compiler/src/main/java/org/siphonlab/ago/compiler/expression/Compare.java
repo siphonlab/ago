@@ -100,7 +100,7 @@ public class Compare extends BiExpression{
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return PrimitiveClassDef.BOOLEAN;
+        return getRoot().BOOLEAN();
     }
 
     @Override
@@ -137,7 +137,7 @@ public class Compare extends BiExpression{
             case LT -> r < 0;
             case LE -> r <= 0;
         };
-        return new BooleanLiteral(b).setSourceLocation(this.getSourceLocation());
+        return getRoot().createBooleanLiteral( b).setSourceLocation(this.getSourceLocation());
     }
 
     @Override

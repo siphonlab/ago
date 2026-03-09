@@ -45,7 +45,7 @@ public class ToString extends ExpressionInFunctionBody{
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return PrimitiveClassDef.STRING;
+        return getRoot().STRING();
     }
 
     @Override
@@ -56,7 +56,7 @@ public class ToString extends ExpressionInFunctionBody{
     @Override
     protected Expression transformInner() throws CompilationError {
         if(expression instanceof Literal<?> literal){
-            return ownerFunction.cast(literal, PrimitiveClassDef.STRING).transform();
+            return ownerFunction.cast(literal, getRoot().STRING()).transform();
         } else {
             return ownerFunction.invoke(Invoke.InvokeMode.Invoke, new ClassUnder.ClassUnderInstance(ownerFunction, expression, exprClass.findMethod("toString#")), Collections.emptyList(), this.getSourceLocation());
         }

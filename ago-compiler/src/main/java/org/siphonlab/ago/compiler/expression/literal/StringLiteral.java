@@ -30,8 +30,8 @@ import java.util.Objects;
 public class StringLiteral extends Literal<Integer> {
     private final String string;
 
-    public StringLiteral(String s) {
-        super(PrimitiveClassDef.STRING, -1);
+    public StringLiteral(PrimitiveClassDef STRING, String s) {
+        super(STRING, -1);
         this.string = s;
     }
 
@@ -70,7 +70,7 @@ public class StringLiteral extends Literal<Integer> {
 
     @Override
     public StringLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new StringLiteral(this.string);
+        var r = new StringLiteral((PrimitiveClassDef) this.classDef, this.string);
         r.setSourceLocation(sourceLocation);
         return r;
     }

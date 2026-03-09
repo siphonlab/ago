@@ -36,9 +36,9 @@ public class Not extends UnaryExpression {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        var v = ownerFunction.cast(this.value, PrimitiveClassDef.BOOLEAN).transform();
+        var v = ownerFunction.cast(this.value, getRoot().BOOLEAN()).transform();
         if(v instanceof Literal<?> literal){
-            return new BooleanLiteral(!BooleanLiteral.isTrue(literal)).setParent(this.getParent()).setSourceLocation(this.getSourceLocation());
+            return getRoot().createBooleanLiteral( !BooleanLiteral.isTrue(literal)).setParent(this.getParent()).setSourceLocation(this.getSourceLocation());
         }
         if(v != this.value) {
             return new Not(ownerFunction, v).setParent(this.getParent()).setSourceLocation(this.sourceLocation);
@@ -48,7 +48,7 @@ public class Not extends UnaryExpression {
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return PrimitiveClassDef.BOOLEAN;
+        return getRoot().BOOLEAN();
     }
 
     @Override
@@ -57,9 +57,9 @@ public class Not extends UnaryExpression {
             blockCompiler.enter(this);
 
             CodeBuffer code = blockCompiler.getCode();
-            var v = ownerFunction.cast(this.value, PrimitiveClassDef.BOOLEAN).transform().visit(blockCompiler);
+            var v = ownerFunction.cast(this.value, getRoot().BOOLEAN()).transform().visit(blockCompiler);
             if (v instanceof Literal<?> literal) {
-                code.assignLiteral(localVar.getVariableSlot(), BooleanLiteral.isFalse(literal) ? new BooleanLiteral(true) : new BooleanLiteral(false));
+                code.assignLiteral(localVar.getVariableSlot(), BooleanLiteral.isFalse(literal) ? getRoot().createBooleanLiteral( true) : getRoot().createBooleanLiteral( false));
             } else {
                 code.not(localVar.getVariableSlot(), ((Var.LocalVar) v).getVariableSlot());
                 // not_vov not implemented

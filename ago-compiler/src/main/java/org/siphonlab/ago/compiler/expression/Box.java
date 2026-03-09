@@ -45,6 +45,7 @@ public class Box extends ExpressionInFunctionBody{
 
     public Box(FunctionDef ownerFunction, Expression expression, ClassDef expectedType, BoxMode boxMode) throws CompilationError {
         super(ownerFunction);
+        Objects.requireNonNull(expectedType);
         this.expression = expression.transform();
         this.boxType = expectedType;
         this.boxMode = boxMode;
@@ -138,7 +139,7 @@ public class Box extends ExpressionInFunctionBody{
             if (c instanceof Literal<?> literal) {
                 switch (this.boxMode){
                     case Box:
-                        if (literal instanceof ClassRefLiteral classRefLiteral && this.boxType != PrimitiveClassDef.CLASS_REF.getBoxedType()) {
+                        if (literal instanceof ClassRefLiteral classRefLiteral && this.boxType != getRoot().CLASSREF().getBoxedType()) {
                             Var.LocalVar scopeVar = null;
                             if(boxType.isThatOrDerivedFromThat(boxType.getRoot().getScopedClassInterval())){
                                 if(classRefLiteral.getScope() != null){
@@ -180,7 +181,7 @@ public class Box extends ExpressionInFunctionBody{
                 ClassDef srcType = v.inferType();
                 switch (this.boxMode) {
                     case Box:
-                        if (srcType == PrimitiveClassDef.CLASS_REF && boxType != PrimitiveClassDef.CLASS_REF.getBoxedType()) {
+                        if (srcType == getRoot().CLASSREF() && boxType != getRoot().CLASSREF().getBoxedType()) {
                             code.box_classref(localVar.getVariableSlot(), v.getVariableSlot(), blockCompiler.getFunctionDef().idOfClass(boxType));
                         } else {
                             blockCompiler.getFunctionDef().idOfClass(this.boxType);

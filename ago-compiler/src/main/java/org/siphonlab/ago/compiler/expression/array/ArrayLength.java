@@ -34,13 +34,13 @@ public class ArrayLength extends ExpressionInFunctionBody {
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return PrimitiveClassDef.INT;
+        return getRoot().INT();
     }
 
     @Override
     public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
         if(array instanceof ArrayLiteral arrayLiteral){
-            return new IntLiteral(arrayLiteral.getElements().size());
+            return getRoot().createIntLiteral(arrayLiteral.getElements().size());
         }
         return super.visit(blockCompiler);
     }

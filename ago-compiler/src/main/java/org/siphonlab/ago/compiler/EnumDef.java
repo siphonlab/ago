@@ -17,7 +17,6 @@ package org.siphonlab.ago.compiler;
 
 
 
-import org.agrona.collections.IntHashSet;
 import org.agrona.collections.LongHashSet;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.siphonlab.ago.AgoClass;
@@ -29,7 +28,6 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.*;
-import org.siphonlab.ago.compiler.statement.Return;
 import org.siphonlab.ago.compiler.statement.SwitchCaseStmt;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
@@ -47,8 +45,8 @@ public class EnumDef extends ClassDef{
     private FunctionDef metaClassValueOf;
     private FunctionDef metaClassParse;
 
-    public EnumDef(String name, AgoParser.EnumDeclarationContext enumDeclarationContext) {
-        super(name);
+    public EnumDef(Root root, String name, AgoParser.EnumDeclarationContext enumDeclarationContext) {
+        super(root, name);
         this.classType = TYPE_ENUM;
         this.enumDeclarationContext = enumDeclarationContext;
         this.modifiers |= AgoClass.FINAL;
@@ -85,7 +83,7 @@ public class EnumDef extends ClassDef{
                 enumValues.put(enumName, literalValue = createLiteral(index, unit.sourceLocation(enumConstant)));
                 values.add(index++);
             } else {
-                var l = Literal.parseIntegerLiteral(integerLiteral);
+                var l = Literal.parseIntegerLiteral(getRoot(), integerLiteral);
                 if(l.getTypeCode() != this.enumBasePrimitiveType.getTypeCode()){
                     l = CastStrategy.castLiteral(l, this.enumBasePrimitiveType, unit.sourceLocation(enumConstant));
                 }
@@ -139,7 +137,7 @@ public class EnumDef extends ClassDef{
         var metaClass = getMetaClassDef();
 
         // constructor
-        var constructorDef = new ConstructorDef(AgoClass.CONSTRUCTOR | AgoClass.PRIVATE, "new#");
+        var constructorDef = new ConstructorDef(root, AgoClass.CONSTRUCTOR | AgoClass.PRIVATE, "new#");
         constructorDef.setUnit(this.unit);
         metaClass.addChild(constructorDef);
         constructorDef.setCompilingStage(CompilingStage.AllocateSlots);
@@ -147,7 +145,7 @@ public class EnumDef extends ClassDef{
 
 
         // valueOf
-        var valueOf = new FunctionDef("valueOf",null);
+        var valueOf = new FunctionDef(root, "valueOf",null);
         valueOf.setModifiers(AgoClass.PUBLIC | AgoClass.OVERRIDE);
         valueOf.setUnit(unit);
         metaClass.addChild(valueOf);
@@ -159,12 +157,12 @@ public class EnumDef extends ClassDef{
         this.metaClassValueOf = valueOf;
 
         // parse
-        var parse = new FunctionDef("parse",null);
+        var parse = new FunctionDef(root, "parse",null);
         parse.setModifiers(AgoClass.PUBLIC | AgoClass.OVERRIDE);
         parse.setUnit(unit);
         metaClass.addChild(parse);
         var ps = new Parameter("s",null);
-        ps.setType(PrimitiveClassDef.STRING);
+        ps.setType(root.STRING());
         parse.addParameter(ps);
         parse.setResultType(this);
         parse.setCompilingStage(CompilingStage.AllocateSlots);
@@ -197,7 +195,7 @@ public class EnumDef extends ClassDef{
         Scope metaClassScope = new Scope(1, metaClass);
         for (var field : this.metaFields.values()) {
             try {
-                var creator = new Creator(constructorDef, new ConstClass(this), Arrays.asList(enumValues.get(field.name), new StringLiteral(field.name)), unit.sourceLocation(this.enumDeclarationContext));
+                var creator = new Creator(constructorDef, new ConstClass(this), Arrays.asList(enumValues.get(field.name), getRoot().createStringLiteral(field.name)), unit.sourceLocation(this.enumDeclarationContext));
                 var assign = constructorDef.assign(Var.of(constructorDef, metaClassScope, field), creator);
                 initializers.add(assign);
             } catch (CompilationError e) {
@@ -253,7 +251,7 @@ public class EnumDef extends ClassDef{
             ArrayList<SwitchCaseStmt.SwitchGroup> groups = new ArrayList<>();
             for (Field field : this.metaFields.values()) {
                 SwitchCaseStmt.SwitchGroup group = new SwitchCaseStmt.SwitchGroup();
-                group.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, new StringLiteral(field.name)));
+                group.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, getRoot().createStringLiteral(field.name)));
                 group.addStatement(parse.return_(parse.field(metaScopeVar,field)));
                 groups.add(group);
             }
@@ -270,10 +268,10 @@ public class EnumDef extends ClassDef{
 
     private Literal<?> createLiteral(long value, SourceLocation sourceLocation) {
         return (switch (this.enumBasePrimitiveType.getTypeCode().value){
-            case TypeCode.INT_VALUE -> new IntLiteral((int) value);
-            case TypeCode.BYTE_VALUE -> new ByteLiteral((byte) value);
-            case TypeCode.SHORT_VALUE -> new ShortLiteral((short) value);
-            case TypeCode.LONG_VALUE -> new LongLiteral(value);
+            case TypeCode.INT_VALUE -> getRoot().createIntLiteral((int) value);
+            case TypeCode.BYTE_VALUE -> getRoot().createByteLiteral( (byte) value);
+            case TypeCode.SHORT_VALUE -> getRoot().createShortLiteral((short) value);
+            case TypeCode.LONG_VALUE -> getRoot().createLongLiteral( value);
             default -> throw new RuntimeException("impossible");
         }).setSourceLocation(sourceLocation);
     }
@@ -284,9 +282,9 @@ public class EnumDef extends ClassDef{
         var primitiveTypeContext = this.enumDeclarationContext.primitiveType();
         PrimitiveClassDef primitiveClassDef;
         if(primitiveTypeContext != null){
-            primitiveClassDef = PrimitiveClassDef.fromPrimitiveTypeAst(primitiveTypeContext);
+            primitiveClassDef = Compiler.fromPrimitiveTypeAst(this.getRoot(), primitiveTypeContext);
         } else {
-            primitiveClassDef = PrimitiveClassDef.INT;
+            primitiveClassDef = getRoot().INT();
         }
         this.enumBasePrimitiveType = primitiveClassDef;
         String baseClass = switch (primitiveClassDef.getTypeCode().value){

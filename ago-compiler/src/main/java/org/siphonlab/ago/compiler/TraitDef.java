@@ -33,8 +33,8 @@ public class TraitDef extends ClassDef{
 
     private final AgoParser.TraitDeclarationContext traitDeclaration;
 
-    public TraitDef(String name, AgoParser.TraitDeclarationContext traitDeclaration) {
-        super(name);
+    public TraitDef(Root root, String name, AgoParser.TraitDeclarationContext traitDeclaration) {
+        super(root, name);
         this.traitDeclaration = traitDeclaration;
         this.classType = AgoClass.TYPE_TRAIT;
     }
@@ -155,7 +155,7 @@ public class TraitDef extends ClassDef{
     }
 
     public TraitDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
-        var clone = new TraitDef(name, this.traitDeclaration);
+        var clone = new TraitDef(root, name, this.traitDeclaration);
         this.cloneTo(instantiationArguments, clone);
         return clone;
     }

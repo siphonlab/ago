@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler.expression;
 
+import org.siphonlab.ago.compiler.Root;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
@@ -274,7 +275,7 @@ public class LiteralParser {
     }
 
 
-    public static Literal<?> parseTemplateStringWithoutExpression(AgoParser.LTemplateStringContext lTemplateString) {
+    public static Literal<?> parseTemplateStringWithoutExpression(Root root, AgoParser.LTemplateStringContext lTemplateString) {
         int offset = lTemplateString.getStart().getCharPositionInLine() + 2;    // indent position
 
         // If the first line has no content and directly transitions to a new line,
@@ -321,7 +322,7 @@ public class LiteralParser {
 
 
         String parsedText = sb.toString();
-        return new StringLiteral(parsedText);
+        return root.createStringLiteral(parsedText);
     }
 
 }

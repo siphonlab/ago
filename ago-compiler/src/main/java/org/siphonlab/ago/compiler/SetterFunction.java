@@ -18,11 +18,8 @@ package org.siphonlab.ago.compiler;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.expression.Assign;
 import org.siphonlab.ago.compiler.expression.Scope;
 import org.siphonlab.ago.compiler.expression.Var;
-import org.siphonlab.ago.compiler.statement.ExpressionStmt;
-import org.siphonlab.ago.compiler.statement.Return;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.List;
@@ -32,15 +29,15 @@ public class SetterFunction extends FunctionDef{
     private Field field;
     private final AgoParser.SetterContext setterContext;
 
-    public SetterFunction(Field field, AgoParser.SetterContext setterContext) throws SyntaxError {
-        super(field.name + "#set", null);
+    public SetterFunction(Root root, Field field, AgoParser.SetterContext setterContext) throws SyntaxError {
+        super(root, field.name + "#set", null);
         this.field = field;
         this.setterContext = setterContext;
         this.setUnit(field.getOwnerClass().unit);
         //this.setGenericSource(getter.getGenericSource());
         int visibility = Compiler.commonVisibility(unit, setterContext.commonVisiblility(), Compiler.ModifierTarget.Method);
         this.setModifiers(visibility | AgoClass.SETTER);
-        this.setResultType(PrimitiveClassDef.VOID);
+        this.setResultType(root.VOID());
         this.setSourceLocation(unit.sourceLocation(setterContext));
         this.setCompilingStage(CompilingStage.ParseFields);
     }

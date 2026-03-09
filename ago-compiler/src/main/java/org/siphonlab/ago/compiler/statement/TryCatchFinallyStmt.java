@@ -112,7 +112,7 @@ public class TryCatchFinallyStmt extends Statement{
             ClassDef langException = functionDef.getRoot().getExceptionClass();
 
             if(this.finallyBlock != null){
-                this.finalExit = blockCompiler.acquireTempVar(new IntLiteral(0));
+                this.finalExit = blockCompiler.acquireTempVar(getRoot().createIntLiteral(0));
                 blockCompiler.lockRegister(finalExit);
             }
             this.finalEntrance = blockCompiler.createLabel();

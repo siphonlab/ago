@@ -51,7 +51,7 @@ public class ListElement extends ExpressionInFunctionBody implements Assign.Assi
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.indexExpr = ownerFunction.cast(indexExpr.setParent(this).transform(), PrimitiveClassDef.INT).transform();
+        this.indexExpr = ownerFunction.cast(indexExpr.setParent(this).transform(), getRoot().INT()).transform();
         return this;
     }
 

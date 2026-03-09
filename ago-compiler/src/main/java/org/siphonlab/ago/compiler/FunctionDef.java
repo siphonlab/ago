@@ -63,12 +63,12 @@ public class FunctionDef extends ClassDef {
     private List<ClassDef> throwsExceptions = new ArrayList<>();
     private List<SourceMapEntry> sourceMap;
 
-    public FunctionDef(String name, AgoParser.MethodDeclarationContext methodDecl){
-        this(name, methodDecl, AgoClass.PUBLIC);
+    public FunctionDef(Root root, String name, AgoParser.MethodDeclarationContext methodDecl){
+        this(root, name, methodDecl, AgoClass.PUBLIC);
     }
 
-    public FunctionDef(String name, AgoParser.MethodDeclarationContext methodDecl, int modifiers) {
-        super(appendFix(name, modifiers));
+    public FunctionDef(Root root, String name, AgoParser.MethodDeclarationContext methodDecl, int modifiers) {
+        super(root, appendFix(name, modifiers));
         this.methodDecl = methodDecl;
         this.classType = AgoClass.TYPE_FUNCTION;
         this.modifiers = modifiers;
@@ -134,7 +134,7 @@ public class FunctionDef extends ClassDef {
             ClassDef r = unit.parseType(this, typeOfFunction);
             this.setResultType(r);
         } else {
-            this.setResultType(PrimitiveClassDef.VOID);
+            this.setResultType(root.VOID());
         }
         var formalParameters = methodDecl.formalParameters();
         unit.parseFormalParameters(this, formalParameters);
@@ -410,7 +410,7 @@ public class FunctionDef extends ClassDef {
     }
 
     public FunctionDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
-        var clone = new FunctionDef(name, methodDecl);
+        var clone = new FunctionDef(root, name, methodDecl);
         cloneTo(instantiationArguments, clone);
         return clone;
     }
@@ -447,7 +447,7 @@ public class FunctionDef extends ClassDef {
             Variable variable = entry.getValue();
             this.addLocalVariable(variable.applyTemplate(instantiationArguments, this));
         }
-        this.setResultType(templ.resultType.instantiate(instantiationArguments, null));
+        this.setResultType(templ.getResultType().instantiate(instantiationArguments, null));
 
         this.instantiateFieldsForInterfacesAndTraits();
         this.createFunctionInterface();
@@ -459,15 +459,19 @@ public class FunctionDef extends ClassDef {
     // auto create function interface from `Function0<+R>` `Function1<+R, -P>`
     public void createFunctionInterface() throws CompilationError {
         ClassDef functionBaseClass = getRoot().getFunctionBaseClass();
-        this.setSuperClass((functionBaseClass.instantiate(new InstantiationArguments(functionBaseClass.getTypeParamsContext(), new ClassRefLiteral[]{new ClassRefLiteral(this.resultType)}), null)));
+        ClassDef instantiatedFunctionBase = functionBaseClass.instantiate(new InstantiationArguments(functionBaseClass.getTypeParamsContext(), new ClassRefLiteral[]{this.getResultType().toClassRefLiteral()}), null);
+        if(instantiatedFunctionBase.getCompilingStage().lt(functionBaseClass.getCompilingStage())) {
+            Compiler.processClassTillStage(instantiatedFunctionBase, functionBaseClass.getCompilingStage());
+        }
+        this.setSuperClass(instantiatedFunctionBase);
 
         var interface_ = getRoot().getFunctionInterface(this.parameters.size());
         if(interface_ == null) return;
 
         List<ClassRefLiteral> list = new ArrayList<>(this.parameters.size() + 1);
-        list.add(new ClassRefLiteral(this.resultType));
+        list.add(this.getResultType().toClassRefLiteral());
         for (Parameter p : this.parameters) {
-            ClassRefLiteral refLiteral = new ClassRefLiteral(p.getType());
+            ClassRefLiteral refLiteral = p.getType().toClassRefLiteral();
             list.add(refLiteral);
         }
         var args = list.toArray(new ClassRefLiteral[0]);

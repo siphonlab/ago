@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.Root;
 import org.siphonlab.ago.compiler.Variable;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
@@ -28,11 +29,11 @@ public class ConstValue extends ExpressionBase{
     private final Variable finalVar;
     private final Literal<?> constLiteralValue;
 
-    public ConstValue(Variable finalVar) {
+    public ConstValue(Root root, Variable finalVar) {
         this.finalVar = finalVar;
         Literal<?> v = finalVar.getConstLiteralValue();
         if(v instanceof StringLiteral s){
-            this.constLiteralValue = new StringLiteral(s.getString());
+            this.constLiteralValue = root.createStringLiteral(s.getString());
         } else {
             this.constLiteralValue = v;
         }

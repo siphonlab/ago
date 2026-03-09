@@ -34,8 +34,8 @@ public class MetaClassDef extends ClassDef{
     // depth, default is 1, metaclass of metaclass is 2, the max value is 2
     private final int metaLevel;
 
-    public MetaClassDef(ClassDef instanceClassDef, int metaLevel, AgoParser.MetaclassDeclarationContext metaclassDeclaration) {
-        super(format("Meta@<%s>", instanceClassDef.getFullnameWithoutPackage()));
+    public MetaClassDef(Root root, ClassDef instanceClassDef, int metaLevel, AgoParser.MetaclassDeclarationContext metaclassDeclaration) {
+        super(root, format("Meta@<%s>", instanceClassDef.getFullnameWithoutPackage()));
         this.instanceClassDef = instanceClassDef;
         this.metaclassDeclaration = metaclassDeclaration;
         this.metaLevel = metaLevel;
@@ -119,7 +119,7 @@ public class MetaClassDef extends ClassDef{
 
     public MetaClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
         var instanceClass = this.instanceClassDef.getCachedInstantiatedClass(instantiationArguments);
-        var clone = new MetaClassDef(instanceClass, metaLevel, metaclassDeclaration);
+        var clone = new MetaClassDef(root, instanceClass, metaLevel, metaclassDeclaration);
         this.getParent().addChild(clone);
         super.cloneTo(instantiationArguments, clone);
         return clone;

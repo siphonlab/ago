@@ -60,7 +60,7 @@ public class InspectUtil {
         if(classDef.getTypeParamsContext() != null && classDef.getTypeParamsContext().size() > 0){
             sb.append('<').append(classDef.getTypeParamsContext()).append('>');
         }
-        if(classDef.superClass != null && classDef.superClass != classDef.getRoot().getObjectClass()) {
+        if(classDef.superClass != null && classDef.superClass != classDef.getRoot().getAnyClass()) {
             sb.append(" from ").append(classDef.superClass.getFullname());
         }
         if(classDef.getInterfaces() != null && !classDef.getInterfaces().isEmpty()){

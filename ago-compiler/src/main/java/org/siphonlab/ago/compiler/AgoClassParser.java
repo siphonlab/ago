@@ -290,7 +290,7 @@ public class AgoClassParser {
             TypeInfo[] arguments = argumentsInfo.getArguments();
             for (int i = 0; i < arguments.length; i++) {
                 TypeInfo arg = arguments[i];
-                args[i] = new ClassRefLiteral(mapClass(arg));
+                args[i] = mapClass(arg).toClassRefLiteral();
             }
             ClassContainer parent = agoClass.getParent() == null ? (ClassContainer) templateClass.getParent() : mapClass(agoClass.getParent());
             r = (ClassDef) parent.getOrCreateGenericInstantiationClassDef(templateClass, args, null);
@@ -310,32 +310,36 @@ public class AgoClassParser {
         return args;
     }
 
+    public Root getRoot() {
+        return root;
+    }
+
     private Literal<?> objectToLiteral(Object argument, TypeCode typeCode) throws CompilationError {
         if(argument instanceof String s){
-            return new StringLiteral(s);
+            return getRoot().createStringLiteral(s);
         } else if(argument instanceof Boolean b){
-            return new BooleanLiteral(b);
+            return getRoot().createBooleanLiteral( b);
         } else if(argument instanceof Character c){
-            return new CharLiteral(c);
+            return getRoot().createCharLiteral(c);
         } else if(argument instanceof Float f){
-            return new FloatLiteral(f);
+            return getRoot().createFloatLiteral(f);
         } else if(argument instanceof Double d){
-            return new DoubleLiteral(d);
+            return getRoot().createDoubleLiteral(d);
         } else if(argument instanceof Byte b){
-            return new ByteLiteral(b);
+            return getRoot().createByteLiteral( b);
         } else if(argument instanceof Short s){
-            return new ShortLiteral(s);
+            return getRoot().createShortLiteral(s);
         } else if(argument instanceof Integer i) {
             if (typeCode == TypeCode.INT) {
-                return new IntLiteral(i);
+                return getRoot().createIntLiteral(i);
             } else if (typeCode == TypeCode.CLASS_REF) {
                 String className = classLoader.getStrings().get(i);
-                return new ClassRefLiteral(mapClass(classLoader.getClass(className)));
+                return mapClass(classLoader.getClass(className)).toClassRefLiteral();
             }
         } else if(argument instanceof ClassRefValue classRefValue){
-            return new ClassRefLiteral(mapClass(classLoader.getClass(classRefValue.className())));
+            return mapClass(classLoader.getClass(classRefValue.className())).toClassRefLiteral();
         } else if(argument instanceof Long l){
-            return new LongLiteral(l);
+            return getRoot().createLongLiteral( l);
         } else if(argument == null){
             return root.createNullLiteral();
         }
@@ -353,7 +357,7 @@ public class AgoClassParser {
                 var templateClass = mapClass(classLoader.getClass(gt.getTemplateClass()));
                 return templateClass.findGenericType(gt.getName()).getGenericCodeAvatarClassDef();
             } else {
-                return PrimitiveClassDef.fromTypeCode(typeCode);
+                return root.fromPrimitiveTypeCode(typeCode);
             }
         }
     }
@@ -362,7 +366,7 @@ public class AgoClassParser {
         if(typeDesc.getClassName() != null){
             return mapClass(classLoader.getClass(typeDesc.getClassName()));
         } else {
-            return PrimitiveClassDef.fromTypeCode(typeDesc.getTypeCode());
+            return root.fromPrimitiveTypeCode(typeDesc.getTypeCode());
         }
     }
 
@@ -386,7 +390,7 @@ public class AgoClassParser {
                 assert r.value == typeCode.value;
                 return r.getGenericCodeAvatarClassDef();
             } else {
-                return PrimitiveClassDef.fromTypeCode(typeCode);
+                return root.fromPrimitiveTypeCode(typeCode);
             }
         } else {
             ClassDef r = mapClass(agoClass);
@@ -513,7 +517,7 @@ public class AgoClassParser {
             AgoClass instanceClass = metaClass.getInstanceClass();
             ClassDef instanceClassDef = mapClass(instanceClass);
             if(instanceClassDef == null) return null;
-            var classDef = new MetaClassDef(instanceClassDef, instanceClass instanceof MetaClass ? 2 : 1, null);
+            var classDef = new MetaClassDef(root, instanceClassDef, instanceClass instanceof MetaClass ? 2 : 1, null);
             classDef.setSourceLocation(metaClass.getSourceLocation());
             instanceClassDef.getPackage().addChild(classDef);
             classes.put(agoClass, classDef);
@@ -527,15 +531,15 @@ public class AgoClassParser {
         ClassDef classDef;
         if(agoClass instanceof AgoFunction agoFunction){
             if(agoFunction.isConstructor()){
-                classDef = new ConstructorDef(agoFunction.getModifiers(),  agoFunction.getName());
+                classDef = new ConstructorDef(root, agoFunction.getModifiers(),  agoFunction.getName());
             } else {
-                classDef = new FunctionDef(agoClass.getName(),  null);     // TODO top function
+                classDef = new FunctionDef(root, agoClass.getName(),  null);     // TODO top function
             }
             if(agoFunction instanceof AgoNativeFunction agoNativeFunction){
                 ((FunctionDef)classDef).setNativeEntrance(agoNativeFunction.getNativeEntrance());
             }
         } else {
-            classDef = new ClassDef(agoClass.getName());
+            classDef = new ClassDef(root, agoClass.getName());
             if(agoClass instanceof AgoInterface){
                 classDef.setClassType(AgoClass.TYPE_INTERFACE);
             } else if(agoClass instanceof AgoTrait){
@@ -543,7 +547,7 @@ public class AgoClassParser {
             } else if(agoClass instanceof AgoEnum agoEnum){
                 classDef.setClassType(AgoClass.TYPE_ENUM);
                 TypeCode primitiveType = agoEnum.getBasePrimitiveType();
-                classDef.setEnumBasePrimitiveType(PrimitiveClassDef.fromTypeCode(primitiveType));
+                classDef.setEnumBasePrimitiveType(root.fromPrimitiveTypeCode(primitiveType));
                 var values = new LinkedHashMap<String, Literal<?>>();
                 for (Map.Entry<String, Object> entry : agoEnum.getEnumValues().entrySet()) {
                     values.put(entry.getKey(), objectToLiteral(entry.getValue(),primitiveType));  // TODO source location

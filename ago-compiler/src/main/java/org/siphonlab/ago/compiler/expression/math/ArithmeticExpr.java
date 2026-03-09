@@ -141,95 +141,95 @@ public class ArithmeticExpr extends BiExpression {
             case Add:
                 return switch (this.left.inferType().getTypeCode().value){
                     case INT_VALUE ->
-                            new IntLiteral(((IntLiteral) this.left).value + ((IntLiteral) this.right).value);
+                            getRoot().createIntLiteral(((IntLiteral) this.left).value + ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
-                            new DoubleLiteral(((DoubleLiteral) this.left).value + ((DoubleLiteral) this.right).value);
+                            getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value + ((DoubleLiteral) this.right).value);
                     case BYTE_VALUE  ->
-                            new ByteLiteral((byte) (((ByteLiteral) this.left).value + ((ByteLiteral) this.right).value));
+                            getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value + ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
-                            new CharLiteral((char) (((CharLiteral) this.left).value.charValue() + ((CharLiteral) this.right).value.charValue()));
+                            getRoot().createCharLiteral((char) (((CharLiteral) this.left).value.charValue() + ((CharLiteral) this.right).value.charValue()));
                     case SHORT_VALUE ->
-                            new ShortLiteral((short) (((ShortLiteral) this.left).value + ((ShortLiteral) this.right).value));
+                            getRoot().createShortLiteral((short) (((ShortLiteral) this.left).value + ((ShortLiteral) this.right).value));
                     case FLOAT_VALUE ->
-                            new FloatLiteral(((FloatLiteral) this.left).value + ((FloatLiteral) this.right).value);
+                            getRoot().createFloatLiteral(((FloatLiteral) this.left).value + ((FloatLiteral) this.right).value);
                     case LONG_VALUE ->
-                            new LongLiteral(((LongLiteral) this.left).value + ((LongLiteral) this.right).value);
+                            getRoot().createLongLiteral( ((LongLiteral) this.left).value + ((LongLiteral) this.right).value);
                     default ->
                             throw new TypeMismatchError( String.format("cannot apply '+' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };
             case Substract:
                 return switch (this.left.inferType().getTypeCode().value){
                     case INT_VALUE ->
-                            new IntLiteral(((IntLiteral) this.left).value - ((IntLiteral) this.right).value);
+                            getRoot().createIntLiteral(((IntLiteral) this.left).value - ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
-                            new DoubleLiteral(((DoubleLiteral) this.left).value - ((DoubleLiteral) this.right).value);
+                            getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value - ((DoubleLiteral) this.right).value);
                     case BYTE_VALUE  ->
-                            new ByteLiteral((byte) (((ByteLiteral) this.left).value - ((ByteLiteral) this.right).value));
+                            getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value - ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
-                            new CharLiteral((char) (((CharLiteral) this.left).value.charValue() - ((CharLiteral) this.right).value.charValue()));
+                            getRoot().createCharLiteral((char) (((CharLiteral) this.left).value.charValue() - ((CharLiteral) this.right).value.charValue()));
                     case SHORT_VALUE ->
-                            new ShortLiteral((short) (((ShortLiteral) this.left).value - ((ShortLiteral) this.right).value));
+                            getRoot().createShortLiteral((short) (((ShortLiteral) this.left).value - ((ShortLiteral) this.right).value));
                     case FLOAT_VALUE ->
-                            new FloatLiteral(((FloatLiteral) this.left).value - ((FloatLiteral) this.right).value);
+                            getRoot().createFloatLiteral(((FloatLiteral) this.left).value - ((FloatLiteral) this.right).value);
                     case LONG_VALUE ->
-                            new LongLiteral(((LongLiteral) this.left).value - ((LongLiteral) this.right).value);
+                            getRoot().createLongLiteral( ((LongLiteral) this.left).value - ((LongLiteral) this.right).value);
                     default ->
                             throw new TypeMismatchError( String.format("cannot apply '-' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };
             case Multi:
                 return switch (this.left.inferType().getTypeCode().value){
                     case INT_VALUE ->
-                            new IntLiteral(((IntLiteral) this.left).value * ((IntLiteral) this.right).value);
+                            getRoot().createIntLiteral(((IntLiteral) this.left).value * ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
-                            new DoubleLiteral(((DoubleLiteral) this.left).value * ((DoubleLiteral) this.right).value);
+                            getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value * ((DoubleLiteral) this.right).value);
                     case BYTE_VALUE  ->
-                            new ByteLiteral((byte) (((ByteLiteral) this.left).value * ((ByteLiteral) this.right).value));
+                            getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value * ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
-                            new CharLiteral((char) (((CharLiteral) this.left).value.charValue() * ((CharLiteral) this.right).value.charValue()));
+                            getRoot().createCharLiteral((char) (((CharLiteral) this.left).value.charValue() * ((CharLiteral) this.right).value.charValue()));
                     case SHORT_VALUE ->
-                            new ShortLiteral((short) (((ShortLiteral) this.left).value * ((ShortLiteral) this.right).value));
+                            getRoot().createShortLiteral((short) (((ShortLiteral) this.left).value * ((ShortLiteral) this.right).value));
                     case FLOAT_VALUE ->
-                            new FloatLiteral(((FloatLiteral) this.left).value * ((FloatLiteral) this.right).value);
+                            getRoot().createFloatLiteral(((FloatLiteral) this.left).value * ((FloatLiteral) this.right).value);
                     case LONG_VALUE ->
-                            new LongLiteral(((LongLiteral) this.left).value * ((LongLiteral) this.right).value);
+                            getRoot().createLongLiteral( ((LongLiteral) this.left).value * ((LongLiteral) this.right).value);
                     default ->
                             throw new TypeMismatchError( String.format("cannot apply '*' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };
             case Div:
                 return switch (this.left.inferType().getTypeCode().value){
                     case INT_VALUE ->
-                            new IntLiteral(((IntLiteral) this.left).value / ((IntLiteral) this.right).value);
+                            getRoot().createIntLiteral(((IntLiteral) this.left).value / ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
-                            new DoubleLiteral(((DoubleLiteral) this.left).value / ((DoubleLiteral) this.right).value);
+                            getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value / ((DoubleLiteral) this.right).value);
                     case BYTE_VALUE  ->
-                            new ByteLiteral((byte) (((ByteLiteral) this.left).value / ((ByteLiteral) this.right).value));
+                            getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value / ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
-                            new CharLiteral((char) (((CharLiteral) this.left).value.charValue() / ((CharLiteral) this.right).value.charValue()));
+                            getRoot().createCharLiteral((char) (((CharLiteral) this.left).value.charValue() / ((CharLiteral) this.right).value.charValue()));
                     case SHORT_VALUE ->
-                            new ShortLiteral((short) (((ShortLiteral) this.left).value / ((ShortLiteral) this.right).value));
+                            getRoot().createShortLiteral((short) (((ShortLiteral) this.left).value / ((ShortLiteral) this.right).value));
                     case FLOAT_VALUE ->
-                            new FloatLiteral(((FloatLiteral) this.left).value / ((FloatLiteral) this.right).value);
+                            getRoot().createFloatLiteral(((FloatLiteral) this.left).value / ((FloatLiteral) this.right).value);
                     case LONG_VALUE ->
-                            new LongLiteral(((LongLiteral) this.left).value / ((LongLiteral) this.right).value);
+                            getRoot().createLongLiteral( ((LongLiteral) this.left).value / ((LongLiteral) this.right).value);
                     default ->
                             throw new TypeMismatchError( String.format("cannot apply '/' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };
             case Mod:
                 return switch (this.left.inferType().getTypeCode().value){
                     case INT_VALUE ->
-                            new IntLiteral(((IntLiteral) this.left).value % ((IntLiteral) this.right).value);
+                            getRoot().createIntLiteral(((IntLiteral) this.left).value % ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
-                            new DoubleLiteral(((DoubleLiteral) this.left).value % ((DoubleLiteral) this.right).value);
+                            getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value % ((DoubleLiteral) this.right).value);
                     case BYTE_VALUE  ->
-                            new ByteLiteral((byte) (((ByteLiteral) this.left).value % ((ByteLiteral) this.right).value));
+                            getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value % ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
-                            new CharLiteral((char) (((CharLiteral) this.left).value.charValue() % ((CharLiteral) this.right).value.charValue()));
+                            getRoot().createCharLiteral((char) (((CharLiteral) this.left).value.charValue() % ((CharLiteral) this.right).value.charValue()));
                     case SHORT_VALUE ->
-                            new ShortLiteral((short) (((ShortLiteral) this.left).value % ((ShortLiteral) this.right).value));
+                            getRoot().createShortLiteral((short) (((ShortLiteral) this.left).value % ((ShortLiteral) this.right).value));
                     case FLOAT_VALUE ->
-                            new FloatLiteral(((FloatLiteral) this.left).value % ((FloatLiteral) this.right).value);
+                            getRoot().createFloatLiteral(((FloatLiteral) this.left).value % ((FloatLiteral) this.right).value);
                     case LONG_VALUE ->
-                            new LongLiteral(((LongLiteral) this.left).value % ((LongLiteral) this.right).value);
+                            getRoot().createLongLiteral( ((LongLiteral) this.left).value % ((LongLiteral) this.right).value);
                     default ->
                             throw new TypeMismatchError( String.format("cannot apply '%' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };

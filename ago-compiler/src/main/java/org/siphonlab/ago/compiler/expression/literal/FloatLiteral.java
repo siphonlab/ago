@@ -22,8 +22,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import java.util.Objects;
 
 public class FloatLiteral extends Literal<Float> {
-    public FloatLiteral(Float value) {
-        super(PrimitiveClassDef.FLOAT, value);
+    public FloatLiteral(PrimitiveClassDef FLOAT, Float value) {
+        super(FLOAT, value);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class FloatLiteral extends Literal<Float> {
 
     @Override
     public FloatLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new FloatLiteral(this.value);
+        var r = new FloatLiteral((PrimitiveClassDef) this.classDef, this.value);
         r.setSourceLocation(sourceLocation);
         return r;
     }

@@ -27,8 +27,7 @@ import java.util.Set;
 public class ArrayClassDef extends ClassDef implements ConcreteType{
 
     public ArrayClassDef(Root root, ClassDef elementType) throws CompilationError {
-        super(composeArrayTypeName(elementType));
-        this.root = root;
+        super(root, composeArrayTypeName(elementType));
         this.elementType = elementType;
         this.compilingStage = CompilingStage.ResolveHierarchicalClasses;
     }
@@ -37,7 +36,6 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
         return "[" + componentType.getName();
     }
 
-    private final Root root;
     private ClassDef elementType;
 
     public ClassDef getElementType() {
@@ -59,7 +57,7 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
 
         ClassDef arrayClass = root.getArrayClass();
         this.setSourceLocation(arrayClass.getSourceLocation());
-        ClassDef arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{new ClassRefLiteral(elementType)}), null);
+        ClassDef arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{elementType.toClassRefLiteral()}), null);
         this.setSuperClass(arrayInstantiationType);
         this.registerConcreteType((ConcreteType) arrayInstantiationType);
         resolveMetaclass();

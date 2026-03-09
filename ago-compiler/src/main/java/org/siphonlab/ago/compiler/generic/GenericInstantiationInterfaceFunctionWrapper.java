@@ -36,7 +36,7 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
     private final InstantiationArguments instantiationArguments;
 
     public GenericInstantiationInterfaceFunctionWrapper(InterfaceFunctionWrapper templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
-        super(parent, (FunctionDef) templateClass.getInterfaceFun().instantiate(instantiationArguments,null), templateClass.getWrapperField(), templateClass.getIdentifierContext());
+        super(templateClass.getRoot(), parent, (FunctionDef) templateClass.getInterfaceFun().instantiate(instantiationArguments,null), templateClass.getWrapperField(), templateClass.getIdentifierContext());
         this.templateClass = templateClass;
         this.instantiationArguments = instantiationArguments;
         this.setClassType(templateClass.getClassType());

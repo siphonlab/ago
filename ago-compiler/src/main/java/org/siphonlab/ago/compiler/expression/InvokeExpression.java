@@ -186,9 +186,9 @@ public class InvokeExpression extends ExpressionInFunctionBody{
 
     @Override
     public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
-        if(this.inferType() == PrimitiveClassDef.VOID){
+        if(this.inferType().isVoid()){
             this.termVisit(blockCompiler);
-            return new VoidLiteral().setSourceLocation(this.getSourceLocation());
+            return getRoot().createVoidLiteral().setSourceLocation(this.getSourceLocation());
         } else {
             return super.visit(blockCompiler);
         }

@@ -116,13 +116,13 @@ public class ForEachStmt extends LoopStmt{
 
             CodeBuffer code = blockCompiler.getCode();
 
-            Var.LocalVar i = blockCompiler.acquireTempVar(new IntLiteral(0));
+            Var.LocalVar i = blockCompiler.acquireTempVar(getRoot().createIntLiteral(0));
             blockCompiler.lockRegister(i);
 
             Var.LocalVar array = (Var.LocalVar) expression.visit(blockCompiler);
             blockCompiler.lockRegister(array);
 
-            ownerFunction.assign(i, new IntLiteral(0)).termVisit(blockCompiler);
+            ownerFunction.assign(i, getRoot().createIntLiteral(0)).termVisit(blockCompiler);
             Var.LocalVar length = (Var.LocalVar) new ArrayLength(ownerFunction, array).visit(blockCompiler);
             blockCompiler.lockRegister(length);
 
@@ -134,7 +134,7 @@ public class ForEachStmt extends LoopStmt{
 
             this.body.termVisit(blockCompiler);
 
-            new SelfArithmetic(ownerFunction, i, new IntLiteral(1), SelfArithmetic.Type.Inc).setSourceLocation(enhanceControlPartSourceLocation).termVisit(blockCompiler);
+            new SelfArithmetic(ownerFunction, i, getRoot().createIntLiteral(1), SelfArithmetic.Type.Inc).setSourceLocation(enhanceControlPartSourceLocation).termVisit(blockCompiler);
             code.jump(continueLabel);
 
             exitLabel.here();

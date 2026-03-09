@@ -34,7 +34,7 @@ public class GenericInstantiationPlaceHolder extends ClassDef {
     private final ClassDef scopeClass;
 
     public GenericInstantiationPlaceHolder(ClassDef templateClass, SourceLocation sourceLocation, ClassDef scopeClass) {
-        super(templateClass.getFullname());
+        super(templateClass.getRoot(), templateClass.getFullname());
         this.templateClass = templateClass;
         this.sourceLocation = sourceLocation;
         this.scopeClass = scopeClass;

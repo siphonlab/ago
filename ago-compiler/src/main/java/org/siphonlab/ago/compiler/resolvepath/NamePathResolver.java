@@ -30,7 +30,6 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
-import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
 import org.siphonlab.ago.compiler.generic.GenericTypeCode;
@@ -213,7 +212,7 @@ public class NamePathResolver {
                 ids.add(new Pronoun(namePronounContext, pronounType(pronoun), unit.sourceLocation(pronoun)));
             } else if(possibleName instanceof AgoParser.NamePrimitiveContext namePrimitive){
                 AgoParser.PrimitiveTypeContext primitiveType = namePrimitive.primitiveType();
-                ids.add(new PrimitiveType(primitiveType, PrimitiveClassDef.fromPrimitiveTypeAst(primitiveType), unit.sourceLocation(primitiveType)));
+                ids.add(new PrimitiveType(primitiveType, Compiler.fromPrimitiveTypeAst(unit.getRoot(), primitiveType), unit.sourceLocation(primitiveType)));
             } else {
                 throw new RuntimeException();
             }
@@ -918,7 +917,7 @@ public class NamePathResolver {
             for (int i = 0; i < argument.size(); i++) {
                 AgoParser.TypeArgumentContext typeArgument = argument.get(i);
                 var cls = unit.parseTypeName(scopeClass, typeArgument.declarationType().namePath(), false);
-                args[i] = new ClassRefLiteral(cls);
+                args[i] = cls.toClassRefLiteral();
             }
             //TODO validation arguments
 //            if(templateClass.getGenericTypeParams().size() != args.length){
@@ -1263,7 +1262,7 @@ public class NamePathResolver {
                         return new EnumValue((Var.Field) r, (Field) c);
                     }
                 } else if(c.getConstLiteralValue() != null){
-                    return new ConstValue(c).setSourceLocation(r.getSourceLocation());
+                    return new ConstValue(scopeClass.getRoot(), c).setSourceLocation(r.getSourceLocation());
                 }
                 return r;
             }

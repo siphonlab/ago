@@ -21,8 +21,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 
 public class VoidLiteral extends Literal<Object> {
 
-    public VoidLiteral() {
-        super(PrimitiveClassDef.VOID, null);
+    public VoidLiteral(PrimitiveClassDef VOID) {
+        super(VOID, null);
     }
 
     @Override
@@ -42,7 +42,7 @@ public class VoidLiteral extends Literal<Object> {
 
     @Override
     public VoidLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new VoidLiteral();
+        var r = new VoidLiteral((PrimitiveClassDef) this.classDef);
         r.setSourceLocation(sourceLocation);
         return r;
     }

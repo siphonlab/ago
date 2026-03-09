@@ -22,8 +22,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import java.util.Objects;
 
 public class ByteLiteral extends Literal<Byte> {
-    public ByteLiteral(Byte value) {
-        super(PrimitiveClassDef.BYTE, value);
+    public ByteLiteral(PrimitiveClassDef BYTE, Byte value) {
+        super(BYTE, value);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class ByteLiteral extends Literal<Byte> {
 
     @Override
     public ByteLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new ByteLiteral(this.value);
+        var r = new ByteLiteral((PrimitiveClassDef) this.classDef, this.value);
         r.setSourceLocation(sourceLocation);
         return r;
     }

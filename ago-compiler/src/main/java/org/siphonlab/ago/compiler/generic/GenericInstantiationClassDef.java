@@ -38,7 +38,7 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
     private final InstantiationArguments instantiationArguments;
 
     public GenericInstantiationClassDef(ClassDef templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
-        super(composeName(templateClass, instantiationArguments.getTypeArgumentsArray()));
+        super(templateClass.getRoot(), composeName(templateClass, instantiationArguments.getTypeArgumentsArray()));
         this.templateClass = templateClass;
         this.instantiationArguments = instantiationArguments;
         this.setClassType(templateClass.getClassType());

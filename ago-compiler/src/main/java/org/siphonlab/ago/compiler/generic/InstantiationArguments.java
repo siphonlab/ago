@@ -154,7 +154,7 @@ public class InstantiationArguments {
                 }
             }
         }
-        var arr = newTypeMapping.sequencedValues().stream().map(ClassRefLiteral::new).toArray(ClassRefLiteral[]::new);
+        var arr = newTypeMapping.sequencedValues().stream().map(ClassDef::toClassRefLiteral).toArray(ClassRefLiteral[]::new);
         return new InstantiationArguments(newTypeMapping, arr, sourceTemplate, stillIntermediate, hasIntermediateArgs);
     }
 
@@ -214,7 +214,7 @@ public class InstantiationArguments {
         var context = nearestTempl.getTypeParamsContext();
         var arr = new ClassRefLiteral[context.size()];
         for (int i = 0; i < context.size(); i++) {
-            arr[i] = new ClassRefLiteral(newTypeMapping.get(context.get(i)));
+            arr[i] = newTypeMapping.get(context.get(i)).toClassRefLiteral();
         }
         return new InstantiationArguments(newTypeMapping, arr, nearestTempl, isIntermediate, hasIntermediateArgs);
     }

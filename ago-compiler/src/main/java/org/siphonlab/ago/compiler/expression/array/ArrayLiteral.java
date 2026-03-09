@@ -58,7 +58,7 @@ public class ArrayLiteral extends ExpressionInFunctionBody {
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         int size = elements.size();
 
-        new ArrayCreate(ownerFunction, arrayType,  new IntLiteral(size)).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
+        new ArrayCreate(ownerFunction, arrayType, getRoot().createIntLiteral(size)).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
 
         if(elements.isEmpty()) return;
 
@@ -73,7 +73,7 @@ public class ArrayLiteral extends ExpressionInFunctionBody {
                 blockCompiler.lockRegister(localVar);
                 for (int i = 0; i < size; i++) {
                     Expression element = elements.get(i);
-                    new ArrayPut(ownerFunction, localVar, new IntLiteral(i), element).setSourceLocation(element.getSourceLocation()).visit(blockCompiler);
+                    new ArrayPut(ownerFunction, localVar, getRoot().createIntLiteral(i), element).setSourceLocation(element.getSourceLocation()).visit(blockCompiler);
                 }
                 blockCompiler.releaseRegister(localVar);
             }

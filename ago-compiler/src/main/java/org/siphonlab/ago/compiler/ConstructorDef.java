@@ -25,7 +25,6 @@ import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ConstructorDef extends FunctionDef{
@@ -33,20 +32,22 @@ public class ConstructorDef extends FunctionDef{
 
     private final AgoParser.ConstructorDeclarationContext constructorDeclaration;
 
-    public ConstructorDef(int modifiers, String name) {
-        super(name, null);
+    public ConstructorDef(Root root, int modifiers, String name) {
+        super(root, name, null);
         this.constructorDeclaration = null;
         this.modifiers = modifiers | AgoClass.CONSTRUCTOR;
-        this.setResultType(PrimitiveClassDef.VOID);
     }
 
-    public ConstructorDef(int modifiers, AgoParser.ConstructorDeclarationContext constructorDeclaration) {
-        super(composeName(constructorDeclaration), null);
+    public ConstructorDef(Root root, int modifiers, AgoParser.ConstructorDeclarationContext constructorDeclaration) {
+        super(root, composeName(constructorDeclaration), null);
         this.constructorDeclaration = constructorDeclaration;
         this.modifiers = modifiers | AgoClass.CONSTRUCTOR;
-        this.setResultType(PrimitiveClassDef.VOID);
     }
 
+    @Override
+    public ClassDef getResultType() {
+        return root.VOID();
+    }
 
     private static String composeName(AgoParser.ConstructorDeclarationContext constructorDeclaration) {
         if(constructorDeclaration != null){
@@ -151,8 +152,8 @@ public class ConstructorDef extends FunctionDef{
 
     public ConstructorDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
         var clone = this.constructorDeclaration != null ?
-                new ConstructorDef(this.modifiers, this.constructorDeclaration):
-                new ConstructorDef(this.modifiers,name);
+                new ConstructorDef(root, this.modifiers, this.constructorDeclaration):
+                new ConstructorDef(root, this.modifiers,name);
         this.cloneTo(instantiationArguments, clone);
         return clone;
     }

@@ -20,8 +20,8 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.expression.Literal;
 
 public class CharLiteral extends Literal<Character> {
-    public CharLiteral(Character value) {
-        super(PrimitiveClassDef.CHAR, value);
+    public CharLiteral(PrimitiveClassDef CHAR, Character value) {
+        super(CHAR, value);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class CharLiteral extends Literal<Character> {
 
     @Override
     public CharLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new CharLiteral(this.value);
+        var r = new CharLiteral((PrimitiveClassDef) this.classDef, this.value);
         r.setSourceLocation(sourceLocation);
         return r;
     }

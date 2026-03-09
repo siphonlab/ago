@@ -57,13 +57,13 @@ public class BitNot extends UnaryExpression {
 
     Literal<?> bitNot(Literal<?> literal) throws TypeMismatchError {
         if (literal instanceof  IntLiteral intLiteral){
-            return new IntLiteral(~intLiteral.value).setSourceLocation(this.getSourceLocation());
+            return getRoot().createIntLiteral(~intLiteral.value).setSourceLocation(this.getSourceLocation());
         } else if(literal instanceof ByteLiteral byteLiteral){
-            return new ByteLiteral((byte) ~byteLiteral.value).setSourceLocation(this.getSourceLocation());
+            return getRoot().createByteLiteral( (byte) ~byteLiteral.value).setSourceLocation(this.getSourceLocation());
         } else if(literal instanceof ShortLiteral shortLiteral){
-            return new ShortLiteral((short) ~shortLiteral.value).setSourceLocation(this.getSourceLocation());
+            return getRoot().createShortLiteral((short) ~shortLiteral.value).setSourceLocation(this.getSourceLocation());
         } else if(literal instanceof LongLiteral longLiteral){
-            return new LongLiteral(~longLiteral.value).setSourceLocation(this.getSourceLocation());
+            return getRoot().createLongLiteral( ~longLiteral.value).setSourceLocation(this.getSourceLocation());
         }
         throw new TypeMismatchError("int family value expected", this.getSourceLocation());
     }

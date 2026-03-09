@@ -39,7 +39,7 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
     private final InstantiationArguments instantiationArguments;
 
     public GenericInstantiationFunctionDef(FunctionDef templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
-        super(composeName(templateClass, instantiationArguments.getTypeArgumentsArray()), templateClass.getMethodDecl());
+        super(templateClass.getRoot(), composeName(templateClass, instantiationArguments.getTypeArgumentsArray()), templateClass.getMethodDecl());
         this.templateClass = templateClass;
         this.instantiationArguments = instantiationArguments;
         this.setClassType(templateClass.getClassType());

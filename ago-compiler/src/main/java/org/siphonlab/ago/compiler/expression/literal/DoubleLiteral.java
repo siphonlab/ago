@@ -22,8 +22,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import java.util.Objects;
 
 public class DoubleLiteral extends Literal<Double> {
-    public DoubleLiteral(Double value) {
-        super(PrimitiveClassDef.DOUBLE, value);
+    public DoubleLiteral(PrimitiveClassDef DOUBLE, Double value) {
+        super(DOUBLE, value);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class DoubleLiteral extends Literal<Double> {
 
     @Override
     public DoubleLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new DoubleLiteral(this.value);
+        var r = new DoubleLiteral((PrimitiveClassDef) this.classDef, this.value);
         r.setSourceLocation(sourceLocation);
         return r;
     }

@@ -38,7 +38,7 @@ public class InstanceOf extends ExpressionInFunctionBody {
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return PrimitiveClassDef.BOOLEAN;
+        return getRoot().BOOLEAN();
     }
 
     @Override
@@ -52,9 +52,9 @@ public class InstanceOf extends ExpressionInFunctionBody {
 
     private Literal<Boolean> handleLiteral(Literal<?> literal){
         if (type.isPrimitiveFamily()) {
-            return new BooleanLiteral(literal.getTypeCode() == type.getTypeCode());
+            return getRoot().createBooleanLiteral( literal.getTypeCode() == type.getTypeCode());
         } else if (!type.getTypeCode().isGeneric()) {
-            return new BooleanLiteral(false);
+            return getRoot().createBooleanLiteral( false);
         }
         return null;
     }

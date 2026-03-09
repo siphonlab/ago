@@ -21,7 +21,6 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.generic.*;
-import org.siphonlab.ago.compiler.statement.ExpressionStmt;
 import org.siphonlab.ago.compiler.statement.Return;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
@@ -34,8 +33,8 @@ public class InterfaceFunctionWrapper extends FunctionDef{
     private Field field;
     private ParserRuleContext identifierContext;
 
-    public InterfaceFunctionWrapper(ClassContainer parent, FunctionDef interfaceFun, Field field, ParserRuleContext identifierContext) throws CompilationError {
-        super(interfaceFun.getName(), interfaceFun.getMethodDecl());
+    public InterfaceFunctionWrapper(Root root, ClassContainer parent, FunctionDef interfaceFun, Field field, ParserRuleContext identifierContext) throws CompilationError {
+        super(root, interfaceFun.getName(), interfaceFun.getMethodDecl());
         this.parent = parent;
         this.setInterfaceFun(interfaceFun);
         this.field = field;
@@ -150,7 +149,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
         }
         var invoke = invoke(Invoke.InvokeMode.Invoke,classUnder(fld, this.interfaceFun), arguments, fld.getSourceLocation());
         Expression expr;
-        if (this.getResultType() == PrimitiveClassDef.VOID) {
+        if (this.getResultType() == root.VOID()) {
             expr = invoke;
             blockCompiler.compileExpressions(List.of(expressionStmt(expr), return_()));
         }  else {

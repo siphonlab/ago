@@ -74,7 +74,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                 return;
             }
 
-            var length = blockCompiler.acquireTempVar(PrimitiveClassDef.INT);
+            var length = blockCompiler.acquireTempVar(getRoot().INT());
             blockCompiler.lockRegister(length);
 
             boolean lengthHasValue = false;
@@ -119,14 +119,14 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                             .setSourceLocation(arrayPart.getFirst().getSourceLocation().extend(arrayPart.getLast().getSourceLocation()))
                             .transform();
                     Var.LocalVar r = (Var.LocalVar) arr.visit(blockCompiler);
-                    groups.add(new GroupResult(arr, r, new IntLiteral(arrayPart.size())));
+                    groups.add(new GroupResult(arr, r, getRoot().createIntLiteral(arrayPart.size())));
                     blockCompiler.lockRegister(r);
 
                     if (!lengthHasValue) {
-                        ownerFunction.assign((Var.LocalVar)length, new IntLiteral(arrayPart.size())).termVisit(blockCompiler);
+                        ownerFunction.assign((Var.LocalVar)length, getRoot().createIntLiteral(arrayPart.size())).termVisit(blockCompiler);
                         lengthHasValue = true;
                     } else {
-                        new SelfArithmetic(ownerFunction, length, new IntLiteral(arrayPart.size()), SelfArithmetic.Type.Inc).termVisit(blockCompiler);
+                        new SelfArithmetic(ownerFunction, length, getRoot().createIntLiteral(arrayPart.size()), SelfArithmetic.Type.Inc).termVisit(blockCompiler);
                     }
                     i+= arrayPart.size() - 1;
                 }
@@ -134,9 +134,9 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
 
             new ArrayCreate(ownerFunction, arrayType, length).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
 
-            var destIndex = blockCompiler.acquireTempVar(PrimitiveClassDef.INT);
+            var destIndex = blockCompiler.acquireTempVar(getRoot().INT());
             blockCompiler.lockRegister(destIndex);
-            new IntLiteral(0).outputToLocalVar(destIndex, blockCompiler);   // set to 0
+            getRoot().createIntLiteral(0).outputToLocalVar(destIndex, blockCompiler);   // set to 0
             for (var group : groups) {
                 var groupType = group.result.inferType();
                 boolean solved = false;
@@ -144,7 +144,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                     if(groupType.equals(this.arrayType)) {
                         // Array.copy
                         ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(new ConstClass(arrayType), arrayType.getMetaClassDef().findMethod("copy#")),
-                                List.of(group.result, new IntLiteral(0), localVar, destIndex, group.size), group.expression().getSourceLocation()).termVisit(blockCompiler);
+                                List.of(group.result, getRoot().createIntLiteral(0), localVar, destIndex, group.size), group.expression().getSourceLocation()).termVisit(blockCompiler);
                         new SelfArithmetic(ownerFunction, destIndex, group.size, SelfArithmetic.Type.Inc).termVisit(blockCompiler);
                         solved = true;
                     }
@@ -190,7 +190,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
             if(classDef == this.arrayType) {
                 new ArrayCreate(ownerFunction, arrayType, expandoSize).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
                 ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(new ConstClass(arrayType), arrayType.getMetaClassDef().findMethod("copy#")),
-                        List.of(p, new IntLiteral(0), localVar, new IntLiteral(0), expandoSize), expandoSize.getSourceLocation()).termVisit(blockCompiler);
+                        List.of(p, getRoot().createIntLiteral(0), localVar, getRoot().createIntLiteral(0), expandoSize), expandoSize.getSourceLocation()).termVisit(blockCompiler);
 
                 blockCompiler.releaseRegister(p);
                 return;
@@ -206,7 +206,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
         }
         new ArrayCreate(ownerFunction, arrayType, expandoSize).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
         blockCompiler.lockRegister(expandoSize);
-        var arrayIndex = blockCompiler.acquireTempVar(PrimitiveClassDef.INT);
+        var arrayIndex = blockCompiler.acquireTempVar(getRoot().INT());
         blockCompiler.lockRegister(arrayIndex);
         iterateCopyToArray(localVar, blockCompiler, new GroupResult(expression, p, expandoSize), arrayIndex);
         blockCompiler.releaseRegister(arrayIndex);
@@ -230,7 +230,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
         blockCompiler.lockRegister(it);
         var forEach = new ForEachStmt(ownerFunction, null, it, group.result,
                 ownerFunction.expressionStmt(
-                        ownerFunction.assign(new ArrayElement(ownerFunction, destArray, new SelfArithmetic(ownerFunction, destIndex, new IntLiteral(1), SelfArithmetic.Type.IncPost)),
+                        ownerFunction.assign(new ArrayElement(ownerFunction, destArray, new SelfArithmetic(ownerFunction, destIndex, getRoot().createIntLiteral(1), SelfArithmetic.Type.IncPost)),
                                                 ownerFunction.cast(it, arrayType.getElementType()).transform())
                 ), mode, group.expression.getSourceLocation());
         forEach.termVisit(blockCompiler);

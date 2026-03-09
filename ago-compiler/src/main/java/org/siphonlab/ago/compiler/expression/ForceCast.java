@@ -86,7 +86,7 @@ class ForceCast extends ExpressionInFunctionBody{
                 ownerFunction.assign(localVar, literal).termVisit(blockCompiler);
                 break;
             case CastToBoolean:
-                ownerFunction.assign(localVar, new BooleanLiteral(BooleanLiteral.isTrue(literal)).setSourceLocation(expression.getSourceLocation()).transform()).termVisit(blockCompiler);
+                ownerFunction.assign(localVar, getRoot().createBooleanLiteral( BooleanLiteral.isTrue(literal)).setSourceLocation(expression.getSourceLocation()).transform()).termVisit(blockCompiler);
                 break;
             case CastToAny:
                 var tempVar = blockCompiler.acquireTempVar(this);

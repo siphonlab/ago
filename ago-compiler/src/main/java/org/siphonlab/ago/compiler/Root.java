@@ -19,21 +19,48 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
-import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
-import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
+import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 
 import java.util.*;
 
+import static org.siphonlab.ago.TypeCode.*;
+import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
+import static org.siphonlab.ago.TypeCode.CHAR_VALUE;
+import static org.siphonlab.ago.TypeCode.CLASS_REF_VALUE;
+import static org.siphonlab.ago.TypeCode.DOUBLE_VALUE;
+import static org.siphonlab.ago.TypeCode.FLOAT_VALUE;
+import static org.siphonlab.ago.TypeCode.LONG_VALUE;
+import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
+import static org.siphonlab.ago.TypeCode.STRING_VALUE;
+import static org.siphonlab.ago.TypeCode.VOID_VALUE;
+
 public class Root extends Namespace<Package> {
 
+    private ClassDef ANY_CLASS;
+    private ClassDef PRIMITIVE_CLASS;
     private ClassDef OBJECT_CLASS;
     private ClassDef CLASS_CLASS;
+    private ClassDef PRIMITIVE_NUMBER_CLASS;
     private ClassDef THROWABLE_CLASS;
     private ClassDef EXCEPTION_CLASS;
     private ClassDef RUNTIME_EXCEPTION_CLASS;
+
+    private PrimitiveClassDef VOID;
+    private PrimitiveClassDef BOOLEAN;
+    private PrimitiveClassDef CHAR;
+    private PrimitiveClassDef FLOAT;
+    private PrimitiveClassDef DOUBLE;
+    private PrimitiveClassDef BYTE;
+    private PrimitiveClassDef SHORT;
+    private PrimitiveClassDef INT;
+    private PrimitiveClassDef LONG;
+    private PrimitiveClassDef STRING;
+    private PrimitiveClassDef CLASREF;
+    private NullClassDef NULL;
+
     private ClassDef NUMBER_CLASS;
     private ClassDef INTEGER_CLASS;
     private ClassDef BYTE_CLASS;
@@ -50,12 +77,9 @@ public class Root extends Namespace<Package> {
     private ClassDef CLASS_INTERVAL_CLASS;
     private ClassDef SCOPED_CLASS_INTERVAL_CLASS;
     private ClassDef GENERIC_TYPE_PARAMETER_CLASS;
-    private ClassDef ANY_CLASS;
-    private ClassDef FUNCTION_INTERFACE_BASE;
+    private ClassDef FUNCTION_CLASS;
     private ClassDef FUNCTION_INTERFACE_BASE_OF_ANY;
     private ClassDef NATIVE_FUNCTION_INTERFACE_BASE;
-    private ClassDef PRIMITIVE_TYPE_INTERFACE;
-    private ClassDef PRIMITIVE_NUMBER_TYPE_INTERFACE;
     private ClassDef ITERABLE_INTERFACE;
     private ClassDef ITERATOR_INTERFACE;
 
@@ -75,25 +99,9 @@ public class Root extends Namespace<Package> {
     private ClassDef ANY_READONLY_MAP_CLASS;
     private ClassDef READWRITE_MAP_CLASS;
     private ClassDef ANY_READWRITE_MAP_CLASS;
-    private ClassDef MAP_CLASS;
+    private ClassDef RUN_SPACE_CLASS;
     private ClassDef ANY_MAP_CLASS;
     private ClassDef HASH_MAP_CLASS;
-
-    private ClassDef NULL_CLASS = new ClassDef(TypeCode.NULL.toString()) {
-        {
-            setCompilingStage(CompilingStage.Compiled);
-        }
-
-        @Override
-        public TypeCode getTypeCode() {
-            return TypeCode.NULL;
-        }
-
-        @Override
-        public Root getRoot() {
-            return Root.this;
-        }
-    };
 
     private Map<String, ArrayClassDef> knownArrayTypes = new HashMap<>();
 
@@ -136,8 +144,6 @@ public class Root extends Namespace<Package> {
         if(EXCEPTION_CLASS != null) return EXCEPTION_CLASS;
         return EXCEPTION_CLASS = findByFullname("lang.Exception");
     }
-
-
 
     public synchronized ClassDef getNumberClass(){
         if(NUMBER_CLASS != null) return NUMBER_CLASS;
@@ -197,7 +203,7 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyArrayClass() {
         if (ANY_ARRAY_CLASS != null) return ANY_ARRAY_CLASS;
         try {
-            return ANY_ARRAY_CLASS = getArrayClass().instantiate(new InstantiationArguments(getArrayClass().typeParamsContext, new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}), null);
+            return ANY_ARRAY_CLASS = getArrayClass().instantiate(new InstantiationArguments(getArrayClass().typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -234,8 +240,8 @@ public class Root extends Namespace<Package> {
     }
 
     public synchronized ClassDef getFunctionBaseClass() {
-        if(FUNCTION_INTERFACE_BASE != null) return FUNCTION_INTERFACE_BASE;
-        return FUNCTION_INTERFACE_BASE = findByFullname("lang.Function");
+        if(FUNCTION_CLASS != null) return FUNCTION_CLASS;
+        return FUNCTION_CLASS = findByFullname("lang.Function");
     }
 
     public ClassDef getFunctionBaseOfAnyClass() {
@@ -243,7 +249,7 @@ public class Root extends Namespace<Package> {
         ClassDef functionBaseClass = getFunctionBaseClass();
         try {
             return FUNCTION_INTERFACE_BASE_OF_ANY = functionBaseClass.instantiate(new InstantiationArguments(functionBaseClass.typeParamsContext,
-                    new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}), null);
+                    new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -357,24 +363,16 @@ public class Root extends Namespace<Package> {
         return sortedClassesAndFunctions;
     }
 
-    public ClassDef getPrimitiveTypeInterface() {
-        if (PRIMITIVE_TYPE_INTERFACE != null)
-            return PRIMITIVE_TYPE_INTERFACE;
-        return PRIMITIVE_TYPE_INTERFACE = findByFullname("lang.Primitive");
+    public ClassDef getPrimitiveType() {
+        if (PRIMITIVE_CLASS != null)
+            return PRIMITIVE_CLASS;
+        return PRIMITIVE_CLASS = findByFullname("lang.Primitive");
     }
 
-    public ClassDef getPrimitiveNumberTypeInterface() {
-        if (PRIMITIVE_NUMBER_TYPE_INTERFACE != null)
-            return PRIMITIVE_NUMBER_TYPE_INTERFACE;
-        return PRIMITIVE_NUMBER_TYPE_INTERFACE = findByFullname("lang.PrimitiveNumber");
-    }
-
-    public ClassDef nullClass(){
-        return this.NULL_CLASS;
-    }
-
-    public NullLiteral createNullLiteral(){
-        return new NullLiteral(this.nullClass());
+    public ClassDef getPrimitiveNumberType() {
+        if (PRIMITIVE_NUMBER_CLASS != null)
+            return PRIMITIVE_NUMBER_CLASS;
+        return PRIMITIVE_NUMBER_CLASS = findByFullname("lang.PrimitiveNumber");
     }
 
     public ClassDef getAnyIterableInterface() {
@@ -382,7 +380,7 @@ public class Root extends Namespace<Package> {
         ClassDef iterableInterface = findByFullname("lang.Iterable");
         try {
             return ITERABLE_INTERFACE = iterableInterface.instantiate(new InstantiationArguments(iterableInterface.typeParamsContext,
-                    new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}), null);
+                    new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -391,7 +389,7 @@ public class Root extends Namespace<Package> {
         if (ITERATOR_INTERFACE != null) return ITERATOR_INTERFACE;
         ClassDef iterator = findByFullname("lang.Iterator");
         try {
-            return ITERATOR_INTERFACE = iterator.instantiate(new InstantiationArguments(iterator.typeParamsContext, new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}), null);
+            return ITERATOR_INTERFACE = iterator.instantiate(new InstantiationArguments(iterator.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -412,7 +410,7 @@ public class Root extends Namespace<Package> {
     public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
         ClassDef baseClassDef = getScopedClassInterval();
         ConstructorDef constructor = baseClassDef.getMetaClassDef().getConstructor();
-        return ((ClassContainer)baseClassDef.getParent()).getOrCreateScopedClassInterval(baseClassDef,constructor, new Literal[]{new ClassRefLiteral(lBound), new ClassRefLiteral(uBound)}, returnExisted);
+        return ((ClassContainer)baseClassDef.getParent()).getOrCreateScopedClassInterval(baseClassDef,constructor, new Literal[]{lBound.toClassRefLiteral(), uBound.toClassRefLiteral()}, returnExisted);
     }
 
     private List<ParameterizedClassDef.PlaceHolder> parameterizedClassDefPlaceHolders = new ArrayList<>();
@@ -434,7 +432,7 @@ public class Root extends Namespace<Package> {
         try {
             return ANY_READONLY_LIST_CLASS = getReadonlyListClass().instantiate(
                     new InstantiationArguments(READONLY_LIST_CLASS.typeParamsContext,
-                            new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}),
+                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}),
                     null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
@@ -451,7 +449,7 @@ public class Root extends Namespace<Package> {
         try {
             return ANY_READWRITE_LIST_CLASS = getReadwriteListClass().instantiate(
                     new InstantiationArguments(READWRITE_LIST_CLASS.typeParamsContext,
-                            new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}),
+                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}),
                     null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
@@ -469,8 +467,8 @@ public class Root extends Namespace<Package> {
             return ANY_READONLY_MAP_CLASS = getReadonlyMapClass().instantiate(
                     new InstantiationArguments(READONLY_MAP_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{
-                                    new ClassRefLiteral(this.getAnyClass()),   // K
-                                    new ClassRefLiteral(this.getAnyClass())    // V
+                                    this.getAnyClass().toClassRefLiteral(),   // K
+                                    this.getAnyClass().toClassRefLiteral()    // V
                             }),
                     null);
         } catch (CompilationError e) {
@@ -489,8 +487,8 @@ public class Root extends Namespace<Package> {
             return ANY_READWRITE_MAP_CLASS = getReadwriteMapClass().instantiate(
                     new InstantiationArguments(READWRITE_MAP_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{
-                                    new ClassRefLiteral(this.getAnyClass()),   // K
-                                    new ClassRefLiteral(this.getAnyClass())    // V
+                                    this.getAnyClass().toClassRefLiteral(),   // K
+                                    this.getAnyClass().toClassRefLiteral()    // V
                             }),
                     null);
         } catch (CompilationError e) {
@@ -508,7 +506,7 @@ public class Root extends Namespace<Package> {
         try {
             return ANY_LIST_CLASS = getListClass().instantiate(
                     new InstantiationArguments(LIST_CLASS.typeParamsContext,
-                            new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}),
+                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}),
                     null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
@@ -525,7 +523,7 @@ public class Root extends Namespace<Package> {
         try {
             return ANY_COLLECTION_CLASS = getCollectionClass().instantiate(
                     new InstantiationArguments(COLLECTION_CLASS.typeParamsContext,
-                            new ClassRefLiteral[]{new ClassRefLiteral(this.getAnyClass())}),
+                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}),
                     null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
@@ -534,18 +532,18 @@ public class Root extends Namespace<Package> {
 
 
     public synchronized ClassDef getMapClass() {
-        if (MAP_CLASS != null) return MAP_CLASS;
-        return MAP_CLASS = findByFullname("lang.Map");
+        if (RUN_SPACE_CLASS != null) return RUN_SPACE_CLASS;
+        return RUN_SPACE_CLASS = findByFullname("lang.Map");
     }
 
     public ClassDef getAnyMapClass() {
         if (ANY_MAP_CLASS != null) return ANY_MAP_CLASS;
         try {
             return ANY_MAP_CLASS = getMapClass().instantiate(
-                    new InstantiationArguments(MAP_CLASS.typeParamsContext,
+                    new InstantiationArguments(RUN_SPACE_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{
-                                    new ClassRefLiteral(this.getAnyClass()),   // K
-                                    new ClassRefLiteral(this.getAnyClass())    // V
+                                    this.getAnyClass().toClassRefLiteral(),   // K
+                                    this.getAnyClass().toClassRefLiteral()    // V
                             }),
                     null);
         } catch (CompilationError e) {
@@ -556,5 +554,140 @@ public class Root extends Namespace<Package> {
     public synchronized ClassDef getHashMapClass() {
         if (HASH_MAP_CLASS != null) return HASH_MAP_CLASS;
         return HASH_MAP_CLASS = findByFullname("lang.HashMap");
+    }
+
+    public void resolveLangClasses() {
+        if(this.ANY_CLASS == null) this.ANY_CLASS = findByFullname("lang.Any");
+        if(this.OBJECT_CLASS == null) this.OBJECT_CLASS = findByFullname("lang.Object");
+
+        if(this.PRIMITIVE_CLASS == null) this.PRIMITIVE_CLASS = findByFullname("lang.Primitive");
+        if(this.PRIMITIVE_NUMBER_CLASS == null) this.PRIMITIVE_NUMBER_CLASS = findByFullname("lang.PrimitiveNumber");
+        if(this.VOID == null) this.VOID = findByFullname("void");
+        if(this.CHAR == null) this.CHAR = findByFullname("char");
+        if(this.INT == null) this.INT = findByFullname("int");
+        if(this.LONG == null) this.LONG = findByFullname("long");
+        if(this.BYTE == null) this.BYTE = findByFullname("byte");
+        if(this.SHORT == null) this.SHORT = findByFullname("short");
+        if(this.STRING == null) this.STRING = findByFullname("string");
+        if(this.FLOAT == null) this.FLOAT = findByFullname("float");
+        if(this.BOOLEAN == null) this.BOOLEAN = findByFullname("boolean");
+        if(this.DOUBLE == null) this.DOUBLE = findByFullname("double");
+        if(this.CLASREF == null) this.CLASREF = findByFullname("classref");
+        if(this.NULL == null) this.NULL = findByFullname("null");
+
+        if(this.CLASS_CLASS == null) this.CLASS_CLASS = findByFullname("lang.Class");
+        if(this.CLASS_REF_CLASS == null) this.CLASS_REF_CLASS = findByFullname("lang.ClassRef");
+        if(this.CLASS_INTERVAL_CLASS == null) this.CLASS_INTERVAL_CLASS = findByFullname("lang.ClassInterval");
+        if(this.SCOPED_CLASS_INTERVAL_CLASS == null) this.SCOPED_CLASS_INTERVAL_CLASS = findByFullname("lang.ScopedClassInterval");
+        if(this.GENERIC_TYPE_PARAMETER_CLASS == null) this.GENERIC_TYPE_PARAMETER_CLASS = findByFullname("lang.GenericTypeParameter");
+        if(this.THROWABLE_CLASS == null) this.THROWABLE_CLASS = findByFullname("lang.Throwable");
+        if(this.FUNCTION_CLASS == null) this.FUNCTION_CLASS = findByFullname("lang.Function");
+        if(this.RUN_SPACE_CLASS == null) this.RUN_SPACE_CLASS = findByFullname("lang.RunSpace");
+
+        if(this.INTEGER_CLASS == null) this.INTEGER_CLASS = findByFullname("lang.Integer");
+        if(this.LONG_CLASS == null) this.LONG_CLASS = findByFullname("lang.Long");
+        if(this.BYTE_CLASS == null) this.BYTE_CLASS = findByFullname("lang.Byte");
+        if(this.CHAR_CLASS == null) this.CHAR_CLASS = findByFullname("lang.Char");
+        if(this.SHORT_CLASS == null) this.SHORT_CLASS = findByFullname("lang.Short");
+        if(this.STRING_CLASS == null) this.STRING_CLASS = findByFullname("lang.String");
+        if(this.BOOLEAN_CLASS == null) this.BOOLEAN_CLASS = findByFullname("lang.Boolean");
+        if(this.FLOAT_CLASS == null) this.FLOAT_CLASS = findByFullname("lang.Float");
+        if(this.DOUBLE_CLASS == null) this.DOUBLE_CLASS = findByFullname("lang.Double");
+
+        if(this.ARRAY_CLASS == null) this.ARRAY_CLASS = findByFullname("lang.Array");
+
+    }
+
+    public PrimitiveClassDef VOID() {
+        return VOID;
+    }
+
+    public PrimitiveClassDef INT() {
+        return INT;
+    }
+
+    public PrimitiveClassDef CHAR() {
+        return CHAR;
+    }
+    public PrimitiveClassDef LONG() {return  LONG;}
+    public PrimitiveClassDef SHORT() {return SHORT;}
+    public PrimitiveClassDef BYTE() {return BYTE;}
+    public PrimitiveClassDef FLOAT() {return FLOAT;}
+    public PrimitiveClassDef DOUBLE() {return DOUBLE;}
+    public PrimitiveClassDef BOOLEAN() {return BOOLEAN;}
+    public PrimitiveClassDef STRING() {return STRING;}
+    public PrimitiveClassDef CLASSREF() {return CLASREF;}
+
+    public PrimitiveClassDef fromPrimitiveTypeCode(TypeCode typeCode){
+        if(typeCode == null)
+            throw new RuntimeException("typeCode is null");
+        return switch (typeCode.value) {
+            case BYTE_VALUE -> BYTE;
+            case SHORT_VALUE -> SHORT;
+            case INT_VALUE -> INT;
+            case LONG_VALUE -> LONG;
+            case FLOAT_VALUE -> FLOAT;
+            case DOUBLE_VALUE -> DOUBLE;
+            case CHAR_VALUE -> CHAR;
+            case VOID_VALUE -> VOID;
+            case BOOLEAN_VALUE -> BOOLEAN;
+            case OBJECT_VALUE -> throw new IllegalArgumentException("this class only handle primary type");
+            case STRING_VALUE -> STRING;
+            case CLASS_REF_VALUE -> this.CLASREF;
+
+            default -> throw new IllegalStateException("Unexpected value: " + typeCode);
+        };
+    }
+
+    public IntLiteral createIntLiteral(Integer value) {
+        return new IntLiteral(this.INT, value);
+    }
+
+    public LongLiteral createLongLiteral(Long value) {
+        return new LongLiteral(this.LONG, value);
+    }
+
+    public VoidLiteral createVoidLiteral() {
+        return new VoidLiteral(this.VOID);
+    }
+
+    public BooleanLiteral createBooleanLiteral(Boolean value) {
+        return new BooleanLiteral(this.BOOLEAN, value);
+    }
+
+    public CharLiteral createCharLiteral(Character value) {
+        return new CharLiteral(this.CHAR, value);
+    }
+
+    public FloatLiteral createFloatLiteral(Float value) {
+        return new FloatLiteral(this.FLOAT, value);
+    }
+
+    public DoubleLiteral createDoubleLiteral(Double value) {
+        return new DoubleLiteral(this.DOUBLE, value);
+    }
+
+    public ByteLiteral createByteLiteral(Byte value) {
+        return new ByteLiteral(this.BYTE, value);
+    }
+
+    public ShortLiteral  createShortLiteral(Short value) {
+        return new ShortLiteral(this.SHORT, value);
+    }
+
+    public StringLiteral createStringLiteral(String value) {
+        return new StringLiteral(this.STRING, value);
+    }
+
+    public ClassRefLiteral createClassRefLiteral(ClassDef classRef){
+        return new ClassRefLiteral(this.CLASREF, classRef);
+    }
+
+    public NullLiteral createNullLiteral(ClassDef classDef){
+        return new NullLiteral(classDef);
+    }
+
+    public NullLiteral createNullLiteral(){
+        return new NullLiteral(this.NULL);
     }
 }

@@ -352,7 +352,7 @@ public class FunctionInvocationResolver {
                     // if(v.getTypeCode() == TypeCode.STRING)// maybe we need auto call obj.toString()??
                 } else {
                     // v as Primitive, can only box to Object/Primitive
-                    if(p == p.getRoot().getObjectClass() || p == p.getRoot().getPrimitiveTypeInterface()){
+                    if(p == p.getRoot().getObjectClass() || p == p.getRoot().getPrimitiveType()){
                         return 0.8;
                     } else {
                         // r += 0;
@@ -405,7 +405,7 @@ public class FunctionInvocationResolver {
         public ClassRefLiteral[] toTypeArgs(TypeParamsContext typeParamsContext){
             ClassRefLiteral[] result = new ClassRefLiteral[typeParamsContext.size()];
             for (int i = 0; i < typeParamsContext.size(); i++) {
-                result[i] = new ClassRefLiteral(providedArguments.get(typeParamsContext.get(i)));
+                result[i] = providedArguments.get(typeParamsContext.get(i)).toClassRefLiteral();
             }
             return result;
         }

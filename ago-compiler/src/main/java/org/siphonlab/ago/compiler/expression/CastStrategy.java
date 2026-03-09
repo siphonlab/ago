@@ -73,7 +73,7 @@ public class CastStrategy {
                 return typeKind(a.getLBoundClass());
             }
             return TypeKind.Object;     // rest jobs belong to check type match
-        } else if(classDef.isThatOrDerivedFromThat(root.getPrimitiveTypeInterface())){      // Primitive or PrimitiveNumber
+        } else if(classDef.isThatOrDerivedFromThat(root.getPrimitiveType())){      // Primitive or PrimitiveNumber
             return TypeKind.PrimitiveInterface;
         } else if(classDef.isEnum()){
             return TypeKind.Enum;
@@ -222,6 +222,10 @@ public class CastStrategy {
         return new UnifyTypeResult(l, r, resultType, changed);
     }
 
+    private Root getRoot(){
+        return ownerFunction.getRoot();
+    }
+
     protected PrimitiveClassDef unifyPrimitiveType(PrimitiveClassDef loType, PrimitiveClassDef hiType) {
         var t1 = loType.getTypeCode();
         var t2 = hiType.getTypeCode();
@@ -241,21 +245,21 @@ public class CastStrategy {
                 if (t2 == LONG || t2 == DOUBLE) {
                     return hiType;
                 } else if (t2 == FLOAT) {
-                    return PrimitiveClassDef.DOUBLE;
+                    return getRoot().DOUBLE();
                 }
                 break;
             case FLOAT_VALUE:
                 if (t2 == DOUBLE) {
                     return hiType;
                 } else if (t2 == INT || t2 == LONG) {
-                    return PrimitiveClassDef.DOUBLE;
+                    return getRoot().DOUBLE();
                 }
                 break;
             case LONG_VALUE:
                 if (t2 == FLOAT) {
-                    return PrimitiveClassDef.DOUBLE;
+                    return getRoot().DOUBLE();
                 } else if (t2 == DOUBLE) {
-                    return PrimitiveClassDef.DOUBLE;
+                    return getRoot().DOUBLE();
                 }
         }
         return null;
@@ -395,7 +399,7 @@ public class CastStrategy {
                                 throw new TypeMismatchError("'%s' is not a class expression", this.sourceLocation);
                             }
                             ClassDef value = pair.getValue();
-                            yield new ClassRefLiteral(value);
+                            yield value.toClassRefLiteral();
                         }
                         yield unboxObject(expression,toType, false);
                     }
@@ -565,144 +569,145 @@ public class CastStrategy {
     public static Literal<?> castLiteral(Literal<?> literal, ClassDef toType, SourceLocation sourceLocation) throws CompilationError {
         if(toType == literal.getClassDef()) return literal;
         var toTypeCode = toType.getTypeCode();
+        var root = literal.getClassDef().getRoot();
         if (toTypeCode == TypeCode.BOOLEAN) {
-            return new BooleanLiteral(BooleanLiteral.isTrue(literal));
+            return root.createBooleanLiteral(BooleanLiteral.isTrue(literal));
         } else if (toTypeCode == TypeCode.STRING) {
             String string = String.valueOf(literal.value);
-            return new StringLiteral(string);
+            return root.createStringLiteral(string);
         }
 
         // cast literal directly
         if (literal instanceof CharLiteral c) {
             switch (toTypeCode.value) {
                 case FLOAT_VALUE:
-                    return new FloatLiteral((float) c.value);
+                    return root.createFloatLiteral((float) c.value);
                 case DOUBLE_VALUE:
-                    return new DoubleLiteral((double) c.value);
+                    return root.createDoubleLiteral((double) c.value);
                 case BYTE_VALUE:
-                    return new ByteLiteral((byte) c.value.charValue());
+                    return root.createByteLiteral((byte) c.value.charValue());
                 case SHORT_VALUE:
-                    return new ShortLiteral((short) c.value.charValue());
+                    return root.createShortLiteral((short) c.value.charValue());
                 case INT_VALUE:
-                    return new IntLiteral((int) c.value);
+                    return root.createIntLiteral((int) c.value);
                 case LONG_VALUE:
-                    return new LongLiteral((long) c.value);
+                    return root.createLongLiteral((long) c.value);
             }
         } else if (literal instanceof FloatLiteral f) {
             switch (toTypeCode.value) {
                 case CHAR_VALUE:
-                    return new CharLiteral((char) f.value.intValue());
+                    return root.createCharLiteral((char) f.value.intValue());
                 case DOUBLE_VALUE:
-                    return new DoubleLiteral((double) f.value);
+                    return root.createDoubleLiteral((double) f.value);
                 case BYTE_VALUE:
-                    return new ByteLiteral((byte) f.value.floatValue());
+                    return root.createByteLiteral((byte) f.value.floatValue());
                 case SHORT_VALUE:
-                    return new ShortLiteral(f.value.shortValue());
+                    return root.createShortLiteral(f.value.shortValue());
                 case INT_VALUE:
-                    return new IntLiteral(f.value.intValue());
+                    return root.createIntLiteral(f.value.intValue());
                 case LONG_VALUE:
-                    return new LongLiteral(f.value.longValue());
+                    return root.createLongLiteral(f.value.longValue());
             }
         } else if (literal instanceof DoubleLiteral d) {
             switch (toTypeCode.value) {
                 case CHAR_VALUE:
-                    return new CharLiteral((char) d.value.intValue());
+                    return root.createCharLiteral((char) d.value.intValue());
                 case FLOAT_VALUE:
-                    return new FloatLiteral(d.value.floatValue());
+                    return root.createFloatLiteral(d.value.floatValue());
                 case BYTE_VALUE:
-                    return new ByteLiteral(d.value.byteValue());
+                    return root.createByteLiteral(d.value.byteValue());
                 case SHORT_VALUE:
-                    return new ShortLiteral(d.value.shortValue());
+                    return root.createShortLiteral(d.value.shortValue());
                 case INT_VALUE:
-                    return new IntLiteral(d.value.intValue());
+                    return root.createIntLiteral(d.value.intValue());
                 case LONG_VALUE:
-                    return new LongLiteral(d.value.longValue());
+                    return root.createLongLiteral(d.value.longValue());
             }
         } else if (literal instanceof ByteLiteral b) {
             switch (toTypeCode.value) {
                 case CHAR_VALUE:
-                    return new CharLiteral((char) b.value.intValue());
+                    return root.createCharLiteral((char) b.value.intValue());
                 case FLOAT_VALUE:
-                    return new FloatLiteral(b.value.floatValue());
+                    return root.createFloatLiteral(b.value.floatValue());
                 case DOUBLE_VALUE:
-                    return new DoubleLiteral(b.value.doubleValue());
+                    return root.createDoubleLiteral(b.value.doubleValue());
                 case SHORT_VALUE:
-                    return new ShortLiteral(b.value.shortValue());
+                    return root.createShortLiteral(b.value.shortValue());
                 case INT_VALUE:
-                    return new IntLiteral(b.value.intValue());
+                    return root.createIntLiteral(b.value.intValue());
                 case LONG_VALUE:
-                    return new LongLiteral(b.value.longValue());
+                    return root.createLongLiteral(b.value.longValue());
             }
         } else if (literal instanceof ShortLiteral s) {
             switch (toTypeCode.value) {
                 case CHAR_VALUE:
-                    return new CharLiteral((char) s.value.intValue());
+                    return root.createCharLiteral((char) s.value.intValue());
                 case FLOAT_VALUE:
-                    return new FloatLiteral(s.value.floatValue());
+                    return root.createFloatLiteral(s.value.floatValue());
                 case DOUBLE_VALUE:
-                    return new DoubleLiteral(s.value.doubleValue());
+                    return root.createDoubleLiteral(s.value.doubleValue());
                 case BYTE_VALUE:
-                    return new ByteLiteral(s.value.byteValue());
+                    return root.createByteLiteral(s.value.byteValue());
                 case INT_VALUE:
-                    return new IntLiteral(s.value.intValue());
+                    return root.createIntLiteral(s.value.intValue());
                 case LONG_VALUE:
-                    return new LongLiteral(s.value.longValue());
+                    return root.createLongLiteral(s.value.longValue());
             }
         } else if (literal instanceof IntLiteral i) {
             switch (toTypeCode.value) {
                 case CHAR_VALUE:
-                    return new CharLiteral((char) i.value.intValue());
+                    return root.createCharLiteral((char) i.value.intValue());
                 case FLOAT_VALUE:
-                    return new FloatLiteral(i.value.floatValue());
+                    return root.createFloatLiteral(i.value.floatValue());
                 case DOUBLE_VALUE:
-                    return new DoubleLiteral(i.value.doubleValue());
+                    return root.createDoubleLiteral(i.value.doubleValue());
                 case BYTE_VALUE:
-                    return new ByteLiteral(i.value.byteValue());
+                    return root.createByteLiteral(i.value.byteValue());
                 case SHORT_VALUE:
-                    return new ShortLiteral(i.value.shortValue());
+                    return root.createShortLiteral(i.value.shortValue());
                 case LONG_VALUE:
-                    return new LongLiteral(i.value.longValue());
+                    return root.createLongLiteral(i.value.longValue());
             }
         } else if (literal instanceof LongLiteral l) {
             switch (toTypeCode.value) {
                 case CHAR_VALUE:
-                    return new CharLiteral((char) l.value.intValue());
+                    return root.createCharLiteral((char) l.value.intValue());
                 case FLOAT_VALUE:
-                    return new FloatLiteral(l.value.floatValue());
+                    return root.createFloatLiteral(l.value.floatValue());
                 case DOUBLE_VALUE:
-                    return new DoubleLiteral(l.value.doubleValue());
+                    return root.createDoubleLiteral(l.value.doubleValue());
                 case BYTE_VALUE:
-                    return new ByteLiteral(l.value.byteValue());
+                    return root.createByteLiteral(l.value.byteValue());
                 case SHORT_VALUE:
-                    return new ShortLiteral(l.value.shortValue());
+                    return root.createShortLiteral(l.value.shortValue());
                 case INT_VALUE:
-                    return new IntLiteral(l.value.intValue());
+                    return root.createIntLiteral(l.value.intValue());
             }
         } else if (literal instanceof StringLiteral s) {
             String str = s.getString();
             switch (toTypeCode.value) {
                 case CHAR_VALUE:
                     if(str.isEmpty())
-                        return new CharLiteral('\0');
+                        return root.createCharLiteral('\0');
                     else if(str.length() == 1){
-                        return new CharLiteral(str.charAt(0));
+                        return root.createCharLiteral(str.charAt(0));
                     }
                 case FLOAT_VALUE:
-                    return new FloatLiteral(Float.parseFloat(str));
+                    return root.createFloatLiteral(Float.parseFloat(str));
                 case DOUBLE_VALUE:
-                    return new DoubleLiteral(Double.parseDouble(str));
+                    return root.createDoubleLiteral(Double.parseDouble(str));
                 case BYTE_VALUE:
-                    return new ByteLiteral(Byte.parseByte(str));
+                    return root.createByteLiteral(Byte.parseByte(str));
                 case SHORT_VALUE:
-                    return new ShortLiteral(Short.parseShort(str));
+                    return root.createShortLiteral(Short.parseShort(str));
                 case INT_VALUE:
-                    return new IntLiteral(Integer.parseInt(str));
+                    return root.createIntLiteral(Integer.parseInt(str));
                 case LONG_VALUE:
-                    return new LongLiteral(Long.parseLong(str));
+                    return root.createLongLiteral(Long.parseLong(str));
             }
         } else if(literal instanceof NullLiteral n){
             if(toType.getTypeCode() == OBJECT){
-                return new NullLiteral(toType).setSourceLocation(sourceLocation);
+                return root.createNullLiteral(toType).setSourceLocation(sourceLocation);
             }
         }
         throw new TypeMismatchError(literal.inferType().getTypeCode() + " cannot cast to " + toTypeCode, sourceLocation);

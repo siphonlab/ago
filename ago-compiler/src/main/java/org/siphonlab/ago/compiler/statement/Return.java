@@ -37,7 +37,7 @@ public class Return extends Statement {
 
     public Return(FunctionDef ownerFunction) throws CompilationError {
         super(ownerFunction);
-        this.value = new VoidLiteral();
+        this.value = ownerFunction.getRoot().createVoidLiteral();
     }
 
 

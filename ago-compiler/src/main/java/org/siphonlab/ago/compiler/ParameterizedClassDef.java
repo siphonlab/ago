@@ -21,7 +21,6 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
-import org.siphonlab.ago.compiler.expression.Cast;
 import org.siphonlab.ago.compiler.expression.CastStrategy;
 import org.siphonlab.ago.compiler.expression.EnumValue;
 import org.siphonlab.ago.compiler.expression.Literal;
@@ -97,7 +96,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
         private final List<ReferencingObject> referencingObjects = new ArrayList<>();
 
         public PlaceHolder(ClassDef baseClassDef, AgoParser.ClassCreatorArgumentsContext classCreatorArguments, SourceLocation sourceLocation, ClassDef scopeClass) {
-            super(baseClassDef.getFullname());
+            super(baseClassDef.root, baseClassDef.getFullname());
             this.baseClassDef = baseClassDef;
             this.classCreatorArguments = classCreatorArguments;
             this.sourceLocation = sourceLocation;
@@ -231,7 +230,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     public ParameterizedClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor, Literal<?>[] arguments) {
-        super(composeName(baseClass, arguments));
+        super(baseClass.root, composeName(baseClass, arguments));
         Objects.requireNonNull(baseClass);
         Objects.requireNonNull(parameterizedConstructor);
 
@@ -378,7 +377,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
             if (a instanceof ClassRefLiteral classRefLiteral) {
                 var a2 = classRefLiteral.getClassDefValue().instantiate(instantiationArguments, null);
                 if (a2 != classRefLiteral.getClassDefValue()) {
-                    args[i] = new ClassRefLiteral(a2);
+                    args[i] = a2.toClassRefLiteral();
                 }
             }
         }

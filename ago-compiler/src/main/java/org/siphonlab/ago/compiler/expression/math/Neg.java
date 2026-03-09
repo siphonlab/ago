@@ -50,10 +50,10 @@ public class Neg extends UnaryArithmetic {
         ClassDef type = this.value.inferType();
 
         if(type.getTypeCode() == STRING){   // auto cast to double like js does
-            return new Neg(ownerFunction, ownerFunction.cast(this.value, PrimitiveClassDef.DOUBLE).setSourceLocation(this.getSourceLocation())).setParent(this.getParent()).transform();
+            return new Neg(ownerFunction, ownerFunction.cast(this.value, getRoot().DOUBLE()).setSourceLocation(this.getSourceLocation())).setParent(this.getParent()).transform();
         }
         if(type.getTypeCode() == CHAR){     // char cast to int
-            return new Neg(ownerFunction, ownerFunction.cast(this.value, PrimitiveClassDef.INT).setSourceLocation(this.getSourceLocation())).setParent(this).transform();
+            return new Neg(ownerFunction, ownerFunction.cast(this.value, getRoot().INT()).setSourceLocation(this.getSourceLocation())).setParent(this).transform();
         }
         if(type.getTypeCode() == OBJECT && type.isPrimitiveOrBoxed()){
             return new Neg(ownerFunction, ownerFunction.unbox(this.value).transform()).setParent(this).transform();
@@ -70,12 +70,12 @@ public class Neg extends UnaryArithmetic {
 
     protected Literal<?> neg(Literal<?> literal) throws TypeMismatchError {
         return switch (literal.getTypeCode().value) {
-            case INT_VALUE -> new IntLiteral(-((IntLiteral) literal).value);
-            case DOUBLE_VALUE -> new DoubleLiteral(-((DoubleLiteral) literal).value);
-            case BYTE_VALUE -> new ByteLiteral((byte) -((ByteLiteral) literal).value);
-            case SHORT_VALUE -> new ShortLiteral((short) -((ShortLiteral) literal).value);
-            case FLOAT_VALUE -> new FloatLiteral(-((FloatLiteral) literal).value);
-            case LONG_VALUE -> new LongLiteral(-((LongLiteral) literal).value);
+            case INT_VALUE -> getRoot().createIntLiteral(-((IntLiteral) literal).value);
+            case DOUBLE_VALUE -> getRoot().createDoubleLiteral(-((DoubleLiteral) literal).value);
+            case BYTE_VALUE -> getRoot().createByteLiteral( (byte) -((ByteLiteral) literal).value);
+            case SHORT_VALUE -> getRoot().createShortLiteral((short) -((ShortLiteral) literal).value);
+            case FLOAT_VALUE -> getRoot().createFloatLiteral(-((FloatLiteral) literal).value);
+            case LONG_VALUE -> getRoot().createLongLiteral( -((LongLiteral) literal).value);
             default ->
                     throw new TypeMismatchError(String.format("cannot apply '-' on '%s'", literal.inferType()), sourceLocation);
         };

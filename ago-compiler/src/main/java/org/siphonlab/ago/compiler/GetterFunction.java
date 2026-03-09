@@ -30,8 +30,8 @@ public class GetterFunction extends FunctionDef{
     private Field field;
     private final AgoParser.GetterContext getterContext;
 
-    public GetterFunction(Field field, AgoParser.GetterContext getterContext) throws SyntaxError {
-        super(field.getName() + "#get", null);
+    public GetterFunction(Root root, Field field, AgoParser.GetterContext getterContext) throws SyntaxError {
+        super(root, field.getName() + "#get", null);
         this.field = field;
         this.getterContext = getterContext;
         this.setUnit(field.getOwnerClass().unit);

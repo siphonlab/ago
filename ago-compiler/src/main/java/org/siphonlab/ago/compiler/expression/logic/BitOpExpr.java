@@ -145,45 +145,45 @@ public class BitOpExpr extends BiExpression {
             case BitAnd:
                 return switch (this.left.inferType().getTypeCode().value){
                     case INT_VALUE ->
-                            new IntLiteral(((IntLiteral) this.left).value & ((IntLiteral) this.right).value);
+                            getRoot().createIntLiteral(((IntLiteral) this.left).value & ((IntLiteral) this.right).value);
                     case BYTE_VALUE  ->
-                            new ByteLiteral((byte) (((ByteLiteral) this.left).value & ((ByteLiteral) this.right).value));
+                            getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value & ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
-                            new CharLiteral((char) (((CharLiteral) this.left).value.charValue() & ((CharLiteral) this.right).value.charValue()));
+                            getRoot().createCharLiteral((char) (((CharLiteral) this.left).value.charValue() & ((CharLiteral) this.right).value.charValue()));
                     case SHORT_VALUE ->
-                            new ShortLiteral((short) (((ShortLiteral) this.left).value & ((ShortLiteral) this.right).value));
+                            getRoot().createShortLiteral((short) (((ShortLiteral) this.left).value & ((ShortLiteral) this.right).value));
                     case LONG_VALUE ->
-                            new LongLiteral(((LongLiteral) this.left).value & ((LongLiteral) this.right).value);
+                            getRoot().createLongLiteral( ((LongLiteral) this.left).value & ((LongLiteral) this.right).value);
                     default ->
                             throw new TypeMismatchError( String.format("cannot apply 'band' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };
             case BitOr:
                 return switch (this.left.inferType().getTypeCode().value){
                     case INT_VALUE ->
-                            new IntLiteral(((IntLiteral) this.left).value | ((IntLiteral) this.right).value);
+                            getRoot().createIntLiteral(((IntLiteral) this.left).value | ((IntLiteral) this.right).value);
                     case BYTE_VALUE  ->
-                            new ByteLiteral((byte) (((ByteLiteral) this.left).value | ((ByteLiteral) this.right).value));
+                            getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value | ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
-                            new CharLiteral((char) (((CharLiteral) this.left).value.charValue() | ((CharLiteral) this.right).value.charValue()));
+                            getRoot().createCharLiteral((char) (((CharLiteral) this.left).value.charValue() | ((CharLiteral) this.right).value.charValue()));
                     case SHORT_VALUE ->
-                            new ShortLiteral((short) (((ShortLiteral) this.left).value | ((ShortLiteral) this.right).value));
+                            getRoot().createShortLiteral((short) (((ShortLiteral) this.left).value | ((ShortLiteral) this.right).value));
                     case LONG_VALUE ->
-                            new LongLiteral(((LongLiteral) this.left).value | ((LongLiteral) this.right).value);
+                            getRoot().createLongLiteral( ((LongLiteral) this.left).value | ((LongLiteral) this.right).value);
                     default ->
                             throw new TypeMismatchError( String.format("cannot apply 'bor' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };
             case BitXor:
                 return switch (this.left.inferType().getTypeCode().value){
                     case INT_VALUE ->
-                            new IntLiteral(((IntLiteral) this.left).value ^ ((IntLiteral) this.right).value);
+                            getRoot().createIntLiteral(((IntLiteral) this.left).value ^ ((IntLiteral) this.right).value);
                     case BYTE_VALUE  ->
-                            new ByteLiteral((byte) (((ByteLiteral) this.left).value ^ ((ByteLiteral) this.right).value));
+                            getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value ^ ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
-                            new CharLiteral((char) (((CharLiteral) this.left).value.charValue() ^ ((CharLiteral) this.right).value.charValue()));
+                            getRoot().createCharLiteral((char) (((CharLiteral) this.left).value.charValue() ^ ((CharLiteral) this.right).value.charValue()));
                     case SHORT_VALUE ->
-                            new ShortLiteral((short) (((ShortLiteral) this.left).value ^ ((ShortLiteral) this.right).value));
+                            getRoot().createShortLiteral((short) (((ShortLiteral) this.left).value ^ ((ShortLiteral) this.right).value));
                     case LONG_VALUE ->
-                            new LongLiteral(((LongLiteral) this.left).value ^ ((LongLiteral) this.right).value);
+                            getRoot().createLongLiteral( ((LongLiteral) this.left).value ^ ((LongLiteral) this.right).value);
                     default ->
                             throw new TypeMismatchError( String.format("cannot apply 'bxor' on '%s' and '%s'", this.left.inferType(), this.right.inferType()), sourceLocation);
                 };

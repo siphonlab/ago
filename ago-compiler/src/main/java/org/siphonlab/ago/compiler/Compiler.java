@@ -18,7 +18,6 @@ package org.siphonlab.ago.compiler;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -30,6 +29,7 @@ import org.siphonlab.ago.compiler.expression.literal.ByteLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
 import org.siphonlab.ago.Variance;
+import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +80,7 @@ public class Compiler {
             unit.classNames();
         }
         root.getAndCleanNewFoundClasses();      // skip these new-found classes
+        root.resolveLangClasses();
 
         for (var unit : units) {
             unit.solveRemainImports();
@@ -158,39 +159,16 @@ public class Compiler {
     }
 
     private void setupBoxTypes() {
-        PrimitiveClassDef.BYTE.setBoxedType(root.getByteClass());
-        PrimitiveClassDef.SHORT.setBoxedType(root.getShortClass());
-        PrimitiveClassDef.CHAR.setBoxedType(root.getCharClass());
-        PrimitiveClassDef.INT.setBoxedType(root.getIntegerClass());
-        PrimitiveClassDef.FLOAT.setBoxedType(root.getFloatClass());
-        PrimitiveClassDef.LONG.setBoxedType(root.getLongClass());
-        PrimitiveClassDef.DOUBLE.setBoxedType(root.getDoubleClass());
-        PrimitiveClassDef.STRING.setBoxedType(root.getStringClass());
-        PrimitiveClassDef.BOOLEAN.setBoxedType(root.getBooleanClass());
-        PrimitiveClassDef.CLASS_REF.setBoxedType(root.getClassRefClass());
-
-        PrimitiveClassDef.BYTE.setRoot(root);
-        PrimitiveClassDef.SHORT.setRoot(root);
-        PrimitiveClassDef.CHAR.setRoot(root);
-        PrimitiveClassDef.INT.setRoot(root);
-        PrimitiveClassDef.FLOAT.setRoot(root);
-        PrimitiveClassDef.LONG.setRoot(root);
-        PrimitiveClassDef.DOUBLE.setRoot(root);
-        PrimitiveClassDef.STRING.setRoot(root);
-        PrimitiveClassDef.BOOLEAN.setRoot(root);
-        PrimitiveClassDef.CLASS_REF.setRoot(root);
-
-        PrimitiveClassDef.BYTE.setPrimitiveInterface(root.getPrimitiveNumberTypeInterface());
-        PrimitiveClassDef.SHORT.setPrimitiveInterface(root.getPrimitiveNumberTypeInterface());
-        PrimitiveClassDef.INT.setPrimitiveInterface(root.getPrimitiveNumberTypeInterface());
-        PrimitiveClassDef.FLOAT.setPrimitiveInterface(root.getPrimitiveNumberTypeInterface());
-        PrimitiveClassDef.LONG.setPrimitiveInterface(root.getPrimitiveNumberTypeInterface());
-        PrimitiveClassDef.DOUBLE.setPrimitiveInterface(root.getPrimitiveNumberTypeInterface());
-
-        PrimitiveClassDef.CHAR.setPrimitiveInterface(root.getPrimitiveTypeInterface());
-        PrimitiveClassDef.STRING.setPrimitiveInterface(root.getPrimitiveTypeInterface());
-        PrimitiveClassDef.BOOLEAN.setPrimitiveInterface(root.getPrimitiveTypeInterface());
-        PrimitiveClassDef.CLASS_REF.setPrimitiveInterface(root.getPrimitiveTypeInterface());
+        root.BYTE().setBoxedType(root.getByteClass());
+        root.SHORT().setBoxedType(root.getShortClass());
+        root.CHAR().setBoxedType(root.getCharClass());
+        root.INT().setBoxedType(root.getIntegerClass());
+        root.FLOAT().setBoxedType(root.getFloatClass());
+        root.LONG().setBoxedType(root.getLongClass());
+        root.DOUBLE().setBoxedType(root.getDoubleClass());
+        root.STRING().setBoxedType(root.getStringClass());
+        root.BOOLEAN().setBoxedType(root.getBooleanClass());
+        root.CLASSREF().setBoxedType(root.getClassRefClass());
     }
 
     public static String parseStringLiteral(TerminalNode stringLiteral){
@@ -275,9 +253,9 @@ public class Compiler {
                     Literal<?>[] args;
                     if (typeOfGenericParam != null) {
                         args = scopeClass.unit.parseTypeRange(typeOfGenericParam.typeRange(), templClass);
-                        args = ArrayUtils.add(args, new ByteLiteral(variance.byteValue()));
+                        args = ArrayUtils.add(args, getRoot().createByteLiteral( variance.byteValue()));
                     } else {
-                        args = new Literal<?>[]{new ClassRefLiteral(root.getAnyClass()), new ClassRefLiteral(root.getAnyClass()), new ByteLiteral(Variance.Invariance.byteValue())};
+                        args = new Literal<?>[]{root.getAnyClass().toClassRefLiteral(), root.getAnyClass().toClassRefLiteral(), getRoot().createByteLiteral( Variance.Invariance.byteValue())};
                     }
                     var gt = root.getGenericTypeParameter();
                     SharedGenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt, gt.getMetaClassDef().getConstructor(), args, null);
@@ -291,6 +269,9 @@ public class Compiler {
         }
     }
 
+    public Root getRoot() {
+        return root;
+    }
 
     void inheritsFields() throws CompilationError {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
@@ -650,5 +631,26 @@ public class Compiler {
         return result;
     }
 
+    public static TypeCode typeCodeFromPrimitiveTypeAst(AgoParser.PrimitiveTypeContext primitiveType){
+        var type = switch (primitiveType.start.getType()) {
+            case AgoLexer.BOOLEAN -> TypeCode.BOOLEAN;
+            case AgoLexer.CHAR -> TypeCode.CHAR;
+            case AgoLexer.SHORT -> TypeCode.SHORT;
+            case AgoLexer.INT -> TypeCode.INT;
+            case AgoLexer.LONG -> TypeCode.LONG;
+            case AgoLexer.DOUBLE -> TypeCode.DOUBLE;
+            case AgoLexer.FLOAT -> TypeCode.FLOAT;
+            case AgoLexer.STRING -> TypeCode.STRING;
+            case AgoLexer.BYTE -> TypeCode.BYTE;
+            case AgoLexer.VOID -> TypeCode.VOID;
+            case AgoLexer.CLASSREF -> TypeCode.CLASS_REF;
+            default -> throw new RuntimeException("not supported type " + primitiveType.getText());
+        };
+        return type;
+    }
+
+    public static PrimitiveClassDef fromPrimitiveTypeAst(Root root, AgoParser.PrimitiveTypeContext primitiveType) {
+        return root.fromPrimitiveTypeCode(typeCodeFromPrimitiveTypeAst(primitiveType));
+    }
 
 }

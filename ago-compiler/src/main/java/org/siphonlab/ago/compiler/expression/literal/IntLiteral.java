@@ -22,8 +22,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import java.util.Objects;
 
 public class IntLiteral extends Literal<Integer> {
-    public IntLiteral(Integer value) {
-        super(PrimitiveClassDef.INT, value);
+    public IntLiteral(PrimitiveClassDef INT, Integer value) {
+        super(INT, value);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class IntLiteral extends Literal<Integer> {
 
     @Override
     public IntLiteral withSourceLocation(SourceLocation sourceLocation) {
-        var r = new IntLiteral(this.value);
+        var r = new IntLiteral((PrimitiveClassDef) this.classDef, this.value);
         r.setSourceLocation(sourceLocation);
         return r;
     }

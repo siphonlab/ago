@@ -82,7 +82,7 @@ public class Attribute extends ExpressionInFunctionBody implements Assign.Assign
 
         @Override
         public ClassDef inferType() throws CompilationError {
-            return PrimitiveClassDef.VOID;
+            return getRoot().VOID();
         }
 
         @Override

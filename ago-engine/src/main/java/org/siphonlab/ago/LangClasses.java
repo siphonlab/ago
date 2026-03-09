@@ -17,9 +17,9 @@ package org.siphonlab.ago;
 
 public class LangClasses {
 
+    private final AgoClass anyClass;
     private final AgoClass objectClass;
     private final AgoClass classClass;        //lang.Class
-    private final AgoClass anyClass;
     private final AgoClass classRefClass;
     private final AgoClass classIntervalClass;
     private final AgoClass scopedClassIntervalClass;

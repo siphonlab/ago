@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler;
 
+import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
@@ -30,7 +31,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.expression.*;
-import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -167,7 +167,7 @@ public class Unit {
 
     private ClassDef parseInterfaceDef(AgoParser.InterfaceDeclarationContext interfaceDeclaration, ClassContainer parent) throws CompilationError {
         ClassDef classDef;
-        parent.addChild(classDef = new InterfaceDef(interfaceDeclaration.interfaceName.getText(), interfaceDeclaration));
+        parent.addChild(classDef = new InterfaceDef(root, interfaceDeclaration.interfaceName.getText(), interfaceDeclaration));
         classes.add(classDef);
         classDef.setUnit(this);
         classDef.setSourceLocation(this.sourceLocation(interfaceDeclaration));
@@ -179,7 +179,7 @@ public class Unit {
 
     private ClassDef parseTraitDef(AgoParser.TraitDeclarationContext traitDeclaration, ClassContainer parent) throws CompilationError {
         ClassDef classDef;
-        parent.addChild(classDef = new TraitDef(traitDeclaration.className.getText(), traitDeclaration));
+        parent.addChild(classDef = new TraitDef(root, traitDeclaration.className.getText(), traitDeclaration));
         classes.add(classDef);
         classDef.setUnit(this);
         classDef.setSourceLocation(this.sourceLocation(traitDeclaration));
@@ -191,7 +191,7 @@ public class Unit {
 
     private EnumDef parseEnumDef(AgoParser.EnumDeclarationContext enumDeclaration, ClassContainer parent) throws SyntaxError {
         EnumDef enumDef;
-        parent.addChild(enumDef = new EnumDef(enumDeclaration.identifier().getText(), enumDeclaration));
+        parent.addChild(enumDef = new EnumDef(root, enumDeclaration.identifier().getText(), enumDeclaration));
         classes.add(enumDef);
         enumDef.setUnit(this);
         enumDef.setSourceLocation(sourceLocation(enumDeclaration));
@@ -202,12 +202,38 @@ public class Unit {
 
     private ClassDef parseClassDef(AgoParser.ClassDeclarationContext classDeclaration, ClassContainer parent) throws CompilationError {
         ClassDef classDef;
-        parent.addChild(classDef = new ClassDef(classDeclaration.className.getText(), classDeclaration));
+        if(classDeclaration.className.identifier() != null) {
+            classDef = new ClassDef(root, classDeclaration.className.getText(), classDeclaration);
+        } else if(classDeclaration.className.primitiveType() != null) {
+            AgoParser.PrimitiveTypeContext primitiveType = classDeclaration.className.primitiveType();
+            var type = switch (primitiveType.start.getType()) {
+                case AgoLexer.BOOLEAN -> new PrimitiveClassDef(root, TypeCode.BOOLEAN);
+                case AgoLexer.CHAR -> new PrimitiveClassDef(root, TypeCode.CHAR);
+                case AgoLexer.SHORT -> new PrimitiveClassDef(root, TypeCode.SHORT);
+                case AgoLexer.INT -> new PrimitiveClassDef(root, TypeCode.INT);
+                case AgoLexer.LONG -> new PrimitiveClassDef(root, TypeCode.LONG);
+                case AgoLexer.DOUBLE -> new PrimitiveClassDef(root, TypeCode.DOUBLE);
+                case AgoLexer.FLOAT -> new PrimitiveClassDef(root, TypeCode.FLOAT);
+                case AgoLexer.STRING -> new PrimitiveClassDef(root, TypeCode.STRING);
+                case AgoLexer.BYTE -> new PrimitiveClassDef(root, TypeCode.BYTE);
+                case AgoLexer.VOID -> new PrimitiveClassDef(root, TypeCode.VOID);
+                case AgoLexer.CLASSREF -> new PrimitiveClassDef(root, TypeCode.CLASS_REF);
+                default -> throw new RuntimeException("not supported type " + primitiveType.getText());
+            };
+            classDef = type;
+        } else if (classDeclaration.className.NULL_LITERAL() != null){
+            classDef = new NullClassDef(root);
+        } else {
+            throw new UnsupportedOperationException("unsupported type " + classDeclaration.className.getText());
+        }
+        parent.addChild(classDef);
         classes.add(classDef);
         classDef.setUnit(this);
         classDef.setSourceLocation(this.sourceLocation(classDeclaration));
         classDef.setModifiers(Compiler.classModifiers(this, classDeclaration.classModifier()));
-        classDef.nextCompilingStage(CompilingStage.ParseGenericParams);
+        if(!(classDef instanceof PrimitiveClassDef || classDef instanceof NullClassDef)) {
+            classDef.nextCompilingStage(CompilingStage.ParseGenericParams);
+        }
         addChildClasses(classDef, classDeclaration.classBody());
         return classDef;
     }
@@ -235,7 +261,7 @@ public class Unit {
             }
             depth = 2;
         }
-        var metaclass = new MetaClassDef(instanceClass, depth, metaclassDecl);
+        var metaclass = new MetaClassDef(root, instanceClass, depth, metaclassDecl);
         instanceClass.setMetaClassDef(metaclass);
         metaclass.setUnit(this);
         metaclass.setSourceLocation(sourceLocation(metaclassDecl));
@@ -262,7 +288,11 @@ public class Unit {
             classDef.setSuperClass(superClass);
         } else {
             if (!classDef.isInterfaceOrTrait() && !classDef.isFunction()) {     // the superclass of Function is lang.Function
-                classDef.setSuperClass(root.getObjectClass());
+                if(classDef == root.getAnyClass()){
+                    classDef.setSuperClass(root.getAnyClass());
+                } else {
+                    classDef.setSuperClass(root.getObjectClass());
+                }
             }
         }
 
@@ -341,6 +371,9 @@ public class Unit {
     }
 
     protected void validateHierarchy(ClassDef classDef) throws CompilationError {
+        if(classDef.getSuperClass() != null && classDef.getSuperClass().getCompilingStage().lte(CompilingStage.ValidateHierarchy) && classDef.getSuperClass() != classDef){
+            Compiler.processClassTillStage(classDef.getSuperClass(), CompilingStage.ValidateHierarchy);
+        }
         if (classDef.isInterfaceOrTrait()) {
             validatePermitClassOfInterface(classDef);
         } else {
@@ -348,7 +381,7 @@ public class Unit {
         }
         for(var sp = classDef.getSuperClass(); sp != null; sp = sp.getSuperClass()){
             if(sp.isThatOrDerivedFromThat(classDef)){
-                if(!classDef.getFullname().equals("lang.Object"))
+                if(!classDef.getFullname().equals("lang.Any"))
                     throw resolveError(classDef.getBaseTypeDecl(), "recursive superclass '%s'".formatted(sp.getFullname()));
             }
             if(sp == sp.getSuperClass()) break;
@@ -557,7 +590,7 @@ public class Unit {
            modifiers |= AgoClass.SETTER;
         }
 
-        var fun = new FunctionDef(name, methodDecl, modifiers);
+        var fun = new FunctionDef(root, name, methodDecl, modifiers);
         fun.setUnit(this);
         fun.setSourceLocation(sourceLocation(methodDecl));
         if(classContainer instanceof ClassDef c && c.isInterface()){
@@ -607,7 +640,7 @@ public class Unit {
 
     private void parseConstructorDef(AgoParser.ConstructorDeclarationContext methodDecl, ClassDef classDef) throws CompilationError {
         var modifiers = Compiler.constructorModifier(this, methodDecl.methodStarter());
-        var fun = new ConstructorDef(modifiers, methodDecl);
+        var fun = new ConstructorDef(root, modifiers, methodDecl);
         fun.setUnit(this);
         fun.setSourceLocation(sourceLocation(methodDecl));
         functionDefs.add(fun);
@@ -624,7 +657,7 @@ public class Unit {
 
     protected ClassDef parseType(ClassDef scopeClass, AgoParser.TypeOfVariableContext typeOfVariable, boolean allowGenericPlaceHolder) throws CompilationError {
         if (typeOfVariable == null) {
-            return PrimitiveClassDef.VOID;
+            return root.VOID();
         }
         if (typeOfVariable instanceof AgoParser.AsTypeContext asType) {
             var expr = parseType(scopeClass, asType.variableType(), false, false);
@@ -636,7 +669,7 @@ public class Unit {
             } else if (typeOfVariable instanceof AgoParser.LikeTypeContext likeType) {
                 var type = parseTypeName(scopeClass, likeType.namePath(), false);
                 type = tryExtractFunctionInterfaceInstantiation(likeType, type);
-                args = new Literal[]{new ClassRefLiteral(type), new ClassRefLiteral(root.getAnyClass())};
+                args = new Literal[]{type.toClassRefLiteral(), root.getAnyClass().toClassRefLiteral()};
             } else if(typeOfVariable instanceof AgoParser.AsClassDeclContext classDeclContext){
                 var type = scopeClass.getChild(classDeclContext.classDeclaration().className.getText());
                 assert type != null;        // this class should be already recognized
@@ -653,7 +686,7 @@ public class Unit {
 
     protected ClassDef parseType(ClassDef scopeClass, AgoParser.TypeOfFunctionContext typeOfFunction) throws CompilationError {
         if (typeOfFunction == null) {
-            return PrimitiveClassDef.VOID;
+            return root.VOID();
         }
         if (typeOfFunction instanceof AgoParser.ReturnVariableTypeContext asType) {
             var expr = parseType(scopeClass, asType.variableType(), false, false);
@@ -665,7 +698,7 @@ public class Unit {
             } else if (typeOfFunction instanceof AgoParser.ReturnLikeContext likeType) {
                 var type = parseTypeName(scopeClass, likeType.namePath(), false);
                 type = tryExtractFunctionInterfaceInstantiation(likeType, type);
-                args = new Literal[]{new ClassRefLiteral(type), new ClassRefLiteral(root.getAnyClass())};
+                args = new Literal[]{type.toClassRefLiteral(), root.getAnyClass().toClassRefLiteral()};
             } else {
                 throw new RuntimeException("impossible");
             }
@@ -701,7 +734,7 @@ public class Unit {
         if(to instanceof FunctionDef){
             to = tryExtractFunctionInterfaceInstantiation(typeRange.to, to);
         }
-        var args = new Literal[]{new ClassRefLiteral(from), new ClassRefLiteral(to)};
+        var args = new Literal[]{from.toClassRefLiteral(), to.toClassRefLiteral()};
         return args;
     }
 
@@ -770,7 +803,7 @@ public class Unit {
 
     public ClassDef parseTypeName(ClassDef scopeClass, AgoParser.NamePathContext namePath, boolean allowGenericPlaceHolder) throws CompilationError {
         if (namePath instanceof AgoParser.PrimitiveContext primitive) {
-            return PrimitiveClassDef.fromPrimitiveTypeAst(primitive.primitiveType());
+            return Compiler.fromPrimitiveTypeAst(root, primitive.primitiveType());
         } else if (namePath instanceof AgoParser.FormalNamePathContext formalNamePath) {
             if(formalNamePath.getChildCount() == 1 && formalNamePath.getText().equals("_")){
                 return root.getAnyClass();
@@ -791,7 +824,7 @@ public class Unit {
 
     protected Expression resolveNamePath(FunctionDef ownerFunction, ClassDef scopeClass, AgoParser.NamePathContext namePath, NamePathResolver.ResolveMode resolveMode) throws CompilationError {
         if (namePath instanceof AgoParser.PrimitiveContext primitive) {
-            return new ConstClass(PrimitiveClassDef.fromPrimitiveTypeAst(primitive.primitiveType()));
+            return new ConstClass(Compiler.fromPrimitiveTypeAst(root, primitive.primitiveType()));
         } else if (namePath instanceof AgoParser.FormalNamePathContext formalNamePath) {
             var resolver = new NamePathResolver(resolveMode, this, ownerFunction, scopeClass, formalNamePath);
             return resolver.resolve();
