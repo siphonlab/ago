@@ -16,8 +16,8 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.*;
@@ -102,43 +102,48 @@ public class ClassContainer extends Namespace<ClassDef>{
         return pc;
     }
 
-    public ClassIntervalClassDef getOrCreateClassInterval(ClassDef baseClassDef, ConstructorDef constructorDef, Literal<?>[] arguments, MutableBoolean returnExisted) throws CompilationError {
-        String className = ParameterizedClassDef.composeName(baseClassDef, arguments);
+    public ClassIntervalClassDef getOrCreateClassInterval(ClassDef baseClassDef, ConstructorDef constructorDef, ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
+        String className = ParameterizedClassDef.composeName(baseClassDef, new Literal[]{lBound.toClassRefLiteral(),  uBound.toClassRefLiteral()});
         var existed = this.getChild(className);
         if(existed != null) {
             if(returnExisted != null) returnExisted.setTrue();
             return (ClassIntervalClassDef) existed;
         }
 
-        var pc = new ClassIntervalClassDef(baseClassDef, constructorDef, arguments);
+        var pc = new ClassIntervalClassDef(baseClassDef, constructorDef, lBound, uBound);
         this.addChild(pc);
 
         return pc;
     }
 
-    public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(ClassDef baseClassDef, ConstructorDef constructorDef, Literal<?>[] arguments, MutableBoolean returnExisted) throws CompilationError {
-        String className = ParameterizedClassDef.composeName(baseClassDef, arguments);
+    public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(ClassDef baseClassDef, ConstructorDef constructorDef, ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
+        String className = ParameterizedClassDef.composeName(baseClassDef, new Literal[]{lBound.toClassRefLiteral(), uBound.toClassRefLiteral()});
         var existed = this.getChild(className);
         if(existed != null) {
             if(returnExisted != null) returnExisted.setTrue();
             return (ScopedClassIntervalClassDef) existed;
         }
 
-        var pc = new ScopedClassIntervalClassDef(baseClassDef, constructorDef, arguments);
+        var pc = new ScopedClassIntervalClassDef(baseClassDef, constructorDef, lBound, uBound);
         this.addChild(pc);
 
         return pc;
     }
 
-    public SharedGenericTypeParameterClassDef getOrCreateGenericTypeParameter(ClassDef baseClassDef, ConstructorDef constructorDef, Literal<?>[] arguments, MutableBoolean returnExisted) throws CompilationError {
-        String className = ParameterizedClassDef.composeName(baseClassDef, arguments);
+    public GenericTypeParameterClassDef getOrCreateGenericTypeParameter(ClassDef baseClassDef, ConstructorDef constructorDef,
+                                                                        String typeParamName,
+                                                                        ClassDef lBound, ClassDef uBound,
+                                                                        Variance variance, ClassDef templateClass, int paramIndex, GenericTypeCode genericTypeCode,
+                                                                        MutableBoolean returnExisted) throws CompilationError {
+        Root root = baseClassDef.getRoot();
+        String className = GenericTypeParameterClassDef.composeName(baseClassDef, typeParamName, paramIndex, templateClass, lBound, uBound, variance, ge);
         var existed = this.getChild(className);
         if(existed != null) {
             if(returnExisted != null) returnExisted.setTrue();
-            return (SharedGenericTypeParameterClassDef) existed;
+            return (GenericTypeParameterClassDef) existed;
         }
 
-        var pc = new SharedGenericTypeParameterClassDef(baseClassDef, constructorDef, arguments);
+        var pc = new GenericTypeParameterClassDef(baseClassDef, constructorDef, lBound, uBound, variance, templateClass, paramIndex, genericTypeCode);
         this.addChild(pc);
 
         return pc;

@@ -21,7 +21,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.GenericTypeCode;
-import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
+import org.siphonlab.ago.compiler.generic.GenericTypeParameterClassDef;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.slf4j.Logger;
@@ -668,7 +668,7 @@ public class AgoClassParser {
                 if(gt.getCompilingStage().getValue() <= CompilingStage.ResolveHierarchicalClasses.getValue()){
                     resolveHierarchy(sp.getParameterizedBaseClass(), gt);
                 }
-                SharedGenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt,
+                GenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt,
                         gt.getMetaClassDef().getConstructor(),
                         args, null);
                 typeParamsContext.addGenericTypeParam(genericParameterTypeInfo.getParameterName(), pc, null);

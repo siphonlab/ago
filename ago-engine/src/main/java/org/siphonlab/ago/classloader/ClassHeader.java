@@ -40,6 +40,8 @@ public class ClassHeader {
     protected String fullname;
     protected String sourceFilename;
     final byte type;
+    int typeCode;
+
     int modifiers;
     private final IoBuffer slice;
     protected final AgoClassLoader classLoader;

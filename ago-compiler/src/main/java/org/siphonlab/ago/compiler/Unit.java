@@ -388,9 +388,9 @@ public class Unit {
         }
         ClassDef superClass = classDef.getSuperClass();
         if(superClass != null && classDef.getBaseTypeDecl() != null) {
-            if(classDef.getClassType() == AgoClass.TYPE_CLASS || classDef.getClassType() == AgoClass.TYPE_TRAIT) {
+            if(classDef.getClassType() == AgoClass.TYPE_CLASS || classDef.getClassType() == AgoClass.TYPE_TRAIT || classDef.getClassType() == AgoClass.TYPE_PRIMITIVE_CLASS) {
                 if (superClass.getClassType() != classDef.getClassType()) {
-                    throw resolveError(classDef.getBaseTypeDecl(), "'%s' is not a %s".formatted(superClass.getFullname(), classDef.classType == AgoClass.TYPE_CLASS ? "class" : "trait"));
+                    throw resolveError(classDef.getBaseTypeDecl(), "'%s' is not a %s".formatted(superClass.getFullname(), classDef.isClass() ? "class" : "trait"));
                 }
                 if (superClass.isFinal()) {
                     throw resolveError(classDef.getBaseTypeDecl(), "'%s' is a final class".formatted(superClass.getFullname()));
@@ -663,7 +663,7 @@ public class Unit {
             var expr = parseType(scopeClass, asType.variableType(), false, false);
             return extractType(expr);
         } else {
-            Literal[] args;
+            ClassDef lBound, uBound;
             if (typeOfVariable instanceof AgoParser.AsTypeRangeContext asTypeRange) {
                 args = parseTypeRange(asTypeRange.typeRange(), scopeClass);
             } else if (typeOfVariable instanceof AgoParser.LikeTypeContext likeType) {
@@ -725,7 +725,7 @@ public class Unit {
         return type;
     }
 
-    Literal<?>[] parseTypeRange(AgoParser.TypeRangeContext typeRange, ClassDef scopeClass) throws CompilationError {
+    ClassDef[] parseTypeRange(AgoParser.TypeRangeContext typeRange, ClassDef scopeClass) throws CompilationError {
         var from = parseTypeName(scopeClass, typeRange.from.declarationType().namePath(), false);
         var to = typeRange.to == null ? root.getAnyClass() : parseTypeName(scopeClass, typeRange.to.declarationType().namePath(),false);
         if(from instanceof FunctionDef){
@@ -734,8 +734,7 @@ public class Unit {
         if(to instanceof FunctionDef){
             to = tryExtractFunctionInterfaceInstantiation(typeRange.to, to);
         }
-        var args = new Literal[]{from.toClassRefLiteral(), to.toClassRefLiteral()};
-        return args;
+        return new ClassDef[]{from, to};
     }
 
     public static ClassDef extractType(Expression typeExpr) throws CompilationError {

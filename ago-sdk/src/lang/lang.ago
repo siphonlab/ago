@@ -91,9 +91,15 @@ class ScopedClassInterval from ClassInterval{
 class GenericTypeParameter from ClassInterval{
     metaclass{
         public final variance as byte
-        fun new(lBound as classref, uBound as classref, variance as byte){
+        public final templateClass as classref
+        public final paramIndex as int
+        public final typeCode as int
+        fun new(lBound as classref, uBound as classref, variance as byte, templateClass as classref, paramIndex as int, typeCode as int){
             super(lBound, uBound)
             this.variance = variance
+            this.templateClass = templateClass
+            this.paramIndex = paramIndex
+            this.typeCode = typeCode
         }
     }
 }

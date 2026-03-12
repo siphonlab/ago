@@ -25,9 +25,7 @@ import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.LiteralParser;
-import org.siphonlab.ago.compiler.expression.literal.ByteLiteral;
-import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
-import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
+import org.siphonlab.ago.compiler.generic.GenericTypeParameterClassDef;
 import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -250,15 +248,17 @@ public class Compiler {
                     }
 
                     var typeOfGenericParam = genericTypeParameterContext.typeOfGenericParam();
-                    Literal<?>[] args;
+                    ClassDef[] bound;
                     if (typeOfGenericParam != null) {
-                        args = scopeClass.unit.parseTypeRange(typeOfGenericParam.typeRange(), templClass);
-                        args = ArrayUtils.add(args, getRoot().createByteLiteral( variance.byteValue()));
+                        bound = scopeClass.unit.parseTypeRange(typeOfGenericParam.typeRange(), templClass);
                     } else {
-                        args = new Literal<?>[]{root.getAnyClass().toClassRefLiteral(), root.getAnyClass().toClassRefLiteral(), getRoot().createByteLiteral( Variance.Invariance.byteValue())};
+                        bound = new ClassDef[]{root.getAnyClass(), root.getAnyClass()};
+                        variance = Variance.Invariance;
                     }
                     var gt = root.getGenericTypeParameter();
-                    SharedGenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt, gt.getMetaClassDef().getConstructor(), args, null);
+                    GenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt, gt.getMetaClassDef().getConstructor(),
+                                bound[0], bound[1], variance, templClass, i,
+                            , null);
                     templClass.getTypeParamsContext().addGenericTypeParam(name, pc, genericTypeParameterContext);
                     if (pc.getUnit() == null)
                         pc.setUnit(templClass.getUnit());

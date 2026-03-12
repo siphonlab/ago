@@ -391,7 +391,7 @@ public class ClassFile {
 
     private void putType(IoBuffer buff, ClassDef classDef, ClassDef compilingType) throws CharacterCodingException {
         buff.putInt(compilingType.getTypeCode().getValue());
-        if(compilingType.getTypeCode() instanceof GenericTypeCode genericTypeCode){
+        if(compilingType.getTypeCode() instanceof GenericTypeCode genericTypeCode){     // a GenericTypeCode.GenericCodeAvatarClassDef class, it's not exists in Root registry
             buff.putInt(classDef.idOfKnownConstString(genericTypeCode.getTemplateClass().getFullname()));
             buff.putInt(genericTypeCode.getGenericParamIndex());
         } else if (compilingType.getTypeCode() == TypeCode.OBJECT) {

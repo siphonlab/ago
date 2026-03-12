@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 
@@ -31,6 +32,7 @@ public class PrimitiveClassDef extends ClassDef {
     public PrimitiveClassDef(Root root, TypeCode typeCode) {
         super(root, typeCode.toString());
         this.typeCode = typeCode;
+        this.classType = AgoClass.TYPE_PRIMITIVE_CLASS;
         this.compilingStage = CompilingStage.Compiled;
     }
 

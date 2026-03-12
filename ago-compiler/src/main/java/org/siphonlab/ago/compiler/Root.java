@@ -410,7 +410,7 @@ public class Root extends Namespace<Package> {
     public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
         ClassDef baseClassDef = getScopedClassInterval();
         ConstructorDef constructor = baseClassDef.getMetaClassDef().getConstructor();
-        return ((ClassContainer)baseClassDef.getParent()).getOrCreateScopedClassInterval(baseClassDef,constructor, new Literal[]{lBound.toClassRefLiteral(), uBound.toClassRefLiteral()}, returnExisted);
+        return ((ClassContainer)baseClassDef.getParent()).getOrCreateScopedClassInterval(baseClassDef,constructor, lBound, uBound, returnExisted);
     }
 
     private List<ParameterizedClassDef.PlaceHolder> parameterizedClassDefPlaceHolders = new ArrayList<>();

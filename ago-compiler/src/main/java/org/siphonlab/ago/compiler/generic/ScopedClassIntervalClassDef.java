@@ -25,8 +25,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 
 public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
 
-    public ScopedClassIntervalClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor, Literal<?>[] arguments) {
-        super(baseClass, parameterizedConstructor, arguments);
+    public ScopedClassIntervalClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor, ClassDef lBound, ClassDef uBound) {
+        super(baseClass, parameterizedConstructor, lBound, uBound);
     }
 
     @Override

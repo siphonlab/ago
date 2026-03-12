@@ -37,36 +37,33 @@ import java.util.Set;
  *
  * and {@link GenericCodeAvatarClassDef} shipped the above typecode as a ClassDef, like PrimitiveClassDef shipped primitive typecode
  * GenericTypeCode is scoped within its template class, therefore we put all scope information within it
+ *
+ * GenericTypeParameterClassDef shipped class bound and variance, and GenericTypeCode/GenericCodeAvatarClassDef ships `templateClass` and `genericParamIndex`
+ * we need ship GenericTypeCode to ClassDef to unify Variable type as ClassDef
  */
 public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeCode> {
 
     private final int genericParamIndex;
-    private final SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef;
-    private final ClassDef templateClass;
-    private final AgoParser.GenericTypeParameterContext genericTypeParameterContext;
+    private final GenericTypeParameterClassDef genericTypeParameterClassDef;
 
-    private final GenericCodeAvatarClassDef genericCodeAvatarClassDef;
     private final String name;
 
     protected GenericTypeCode(int genericTypeCode, int genericParamIndex, String name, String description,
-                              SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef,
-                              ClassDef templateClass, AgoParser.GenericTypeParameterContext genericTypeParameterContext) {
+                              GenericTypeParameterClassDef genericTypeParameterClassDef,
+                              ) {
         super(genericTypeCode, description);
         this.name = name;
         this.genericParamIndex = genericParamIndex;
-        this.templateClass = templateClass;
-        this.sharedGenericTypeParameterClassDef = sharedGenericTypeParameterClassDef;
-        this.genericTypeParameterContext = genericTypeParameterContext;
-        this.genericCodeAvatarClassDef = new GenericCodeAvatarClassDef(sharedGenericTypeParameterClassDef.getRoot(), this);
+        this.genericTypeParameterClassDef = genericTypeParameterClassDef;
     }
 
-    public static GenericTypeCode createGeneric(int genericTypeCode, int genericParamIndex, String name, SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef, AgoParser.GenericTypeParameterContext genericTypeParameterContext, ClassDef templateClass){
+    public static GenericTypeCode createGeneric(int genericTypeCode, int genericParamIndex, String name, GenericTypeParameterClassDef genericTypeParameterClassDef, AgoParser.GenericTypeParameterContext genericTypeParameterContext, ClassDef templateClass){
         return new GenericTypeCode(genericTypeCode, genericParamIndex, name, name + "_" + genericParamIndex + "_" + templateClass.getFullname(),
-                sharedGenericTypeParameterClassDef, templateClass, genericTypeParameterContext);
+                genericTypeParameterClassDef, templateClass, genericTypeParameterContext);
     }
 
-    public SharedGenericTypeParameterClassDef getGenericTypeParameterClassDef() {
-        return sharedGenericTypeParameterClassDef;
+    public GenericTypeParameterClassDef getGenericTypeParameterClassDef() {
+        return genericTypeParameterClassDef;
     }
 
     public int getGenericParamIndex() {
@@ -78,16 +75,12 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
     }
 
     public ClassDef getTemplateClass() {
-        return templateClass;
-    }
-
-    public AgoParser.GenericTypeParameterContext getGenericTypeParameterContext() {
-        return genericTypeParameterContext;
+        return ;
     }
 
     @Override
     public int compareTo(GenericTypeCode o) {
-        var r = this.templateClass.getFullname().compareTo(o.templateClass.getFullname());
+        var r = this.genericTypeParameterClassDef.getTemplateClass().getFullname().compareTo(o.genericTypeParameterClassDef.getTemplateClass().getFullname());
         if(r != 0) return r;
         return this.value - o.value;
     }
@@ -102,17 +95,17 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
             setCompilingStage(CompilingStage.Compiled);
         }
         static String composeName(GenericTypeCode genericTypeCode){
-            return "%s_%d_%s|%s".formatted(genericTypeCode.name, genericTypeCode.genericParamIndex, genericTypeCode.templateClass.getFullname(), genericTypeCode.sharedGenericTypeParameterClassDef.getFullname());
+            return "%s_%d_%s|%s".formatted(genericTypeCode.name, genericTypeCode.genericParamIndex, genericTypeCode.templateClass.getFullname(), genericTypeCode.genericTypeParameterClassDef.getFullname());
         }
 
         @Override
         public boolean isThatOrSuperOfThat(ClassDef anotherClass) {
-            return genericTypeCode.sharedGenericTypeParameterClassDef.isThatOrSuperOfThat(anotherClass);
+            return genericTypeCode.genericTypeParameterClassDef.isThatOrSuperOfThat(anotherClass);
         }
 
         @Override
         public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
-            return genericTypeCode.sharedGenericTypeParameterClassDef.asThatOrSuperOfThat(anotherClass, visited);
+            return genericTypeCode.genericTypeParameterClassDef.asThatOrSuperOfThat(anotherClass, visited);
         }
 
         @Override
@@ -122,12 +115,12 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
 
         @Override
         public ClassDef getLBoundClass() {
-            return genericTypeCode.sharedGenericTypeParameterClassDef.getLBoundClass();
+            return genericTypeCode.genericTypeParameterClassDef.getLBoundClass();
         }
 
         @Override
         public ClassDef getUBoundClass() {
-            return genericTypeCode.sharedGenericTypeParameterClassDef.getUBoundClass();
+            return genericTypeCode.genericTypeParameterClassDef.getUBoundClass();
         }
 
         @Override
@@ -171,11 +164,11 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
 
         @Override
         public Root getRoot() {
-            return genericTypeCode.sharedGenericTypeParameterClassDef.getRoot();
+            return genericTypeCode.genericTypeParameterClassDef.getRoot();
         }
     }
 
-    public GenericCodeAvatarClassDef getGenericCodeAvatarClassDef() {
-        return genericCodeAvatarClassDef;
-    }
+//    public GenericCodeAvatarClassDef getGenericCodeAvatarClassDef() {
+//        return genericCodeAvatarClassDef;
+//    }
 }

@@ -26,21 +26,24 @@ import java.util.Set;
 
 public class ClassIntervalClassDef extends ParameterizedClassDef implements ClassBound {
 
-    public ClassIntervalClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor, Literal<?>[] arguments) {
-        super(baseClass, parameterizedConstructor, arguments);
+    private final ClassDef lBound;
+    private final ClassDef uBound;
+
+    public ClassIntervalClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor,
+                                 ClassDef lBound, ClassDef uBound) {
+        super(baseClass, parameterizedConstructor, new Literal[]{lBound.toClassRefLiteral(), uBound.toClassRefLiteral()});
+        this.lBound = lBound;
+        this.uBound = uBound;
     }
 
     @Override
     public ClassDef getLBoundClass() {
-        Root root = this.getRoot();
-        ClassDef classDefValue = ((ClassRefLiteral) this.arguments[0]).getClassDefValue();
-        //return classDefValue == root.getAnyClass() ? root.getObjectClass() : classDefValue;
-        return classDefValue;
+        return lBound;
     }
 
     @Override
     public ClassDef getUBoundClass() {
-        return ((ClassRefLiteral) this.arguments[1]).getClassDefValue();
+        return uBound;
     }
 
     @Override

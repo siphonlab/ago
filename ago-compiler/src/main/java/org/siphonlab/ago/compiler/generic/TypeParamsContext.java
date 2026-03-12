@@ -45,7 +45,7 @@ public class TypeParamsContext {
         this.nextGenericTypeCode = parent.nextGenericTypeCode;
     }
 
-    public void addGenericTypeParam(String name, SharedGenericTypeParameterClassDef pc,
+    public void addGenericTypeParam(String name, GenericTypeParameterClassDef pc,
                                     AgoParser.GenericTypeParameterContext genericTypeParameterContext) {
 
         templateClass.idOfClass(templateClass);

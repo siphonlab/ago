@@ -42,8 +42,7 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-import static org.siphonlab.ago.AgoClass.GENERIC_TEMPLATE_NEG;
-import static org.siphonlab.ago.AgoClass.TYPE_METACLASS;
+import static org.siphonlab.ago.AgoClass.*;
 import static org.siphonlab.ago.compiler.ClassFile.putLiteral;
 
 public class ClassDef extends ClassContainer {
@@ -1438,7 +1437,7 @@ public class ClassDef extends ClassContainer {
     }
 
     public boolean isClass() {
-        return this.classType == AgoClass.TYPE_CLASS || this.classType == TYPE_METACLASS;
+        return this.classType == AgoClass.TYPE_CLASS || this.classType == TYPE_METACLASS || this.classType == TYPE_PRIMITIVE_CLASS;
     }
 
     public boolean isMetaClass(){
