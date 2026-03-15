@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.generic;
 
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
@@ -28,6 +29,12 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
 
     private final ClassDef lBound;
     private final ClassDef uBound;
+
+    public ClassIntervalClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor, Literal<?>[] arguments) {
+        super(baseClass, parameterizedConstructor, arguments);
+        lBound = ((ClassRefLiteral)arguments[0]).getClassDefValue();
+        uBound = ((ClassRefLiteral)arguments[1]).getClassDefValue();
+    }
 
     public ClassIntervalClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor,
                                  ClassDef lBound, ClassDef uBound) {
@@ -83,11 +90,22 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
     public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) {
         ClassIntervalClassDef c = null;
         try {
-            c = this.getParentClass().getOrCreateClassInterval(baseClass.instantiate(instantiationArguments, returnExisted), constructor, mapArguments(instantiationArguments), returnExisted);
+            c = this.getParentClass().getOrCreateClassInterval(baseClass.instantiate(instantiationArguments, null), constructor,
+                                    this.getLBoundClass().instantiate(instantiationArguments, null),
+                                    this.getUBoundClass().instantiate(instantiationArguments, null),
+                                    returnExisted);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
         return c;
+    }
+
+    public static String composeNameOfClassInClassInterval(ClassDef classDef){
+        if(classDef == classDef.getRoot().getAnyClass()){
+            return "_";
+        } else {
+            return classDef.getFullname();
+        }
     }
 
 //    @Override

@@ -117,7 +117,7 @@ public class ClassContainer extends Namespace<ClassDef>{
     }
 
     public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(ClassDef baseClassDef, ConstructorDef constructorDef, ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
-        String className = ParameterizedClassDef.composeName(baseClassDef, new Literal[]{lBound.toClassRefLiteral(), uBound.toClassRefLiteral()});
+        String className = ScopedClassIntervalClassDef.composeName(lBound, uBound);
         var existed = this.getChild(className);
         if(existed != null) {
             if(returnExisted != null) returnExisted.setTrue();
@@ -130,20 +130,39 @@ public class ClassContainer extends Namespace<ClassDef>{
         return pc;
     }
 
-    public GenericTypeParameterClassDef getOrCreateGenericTypeParameter(ClassDef baseClassDef, ConstructorDef constructorDef,
-                                                                        String typeParamName,
-                                                                        ClassDef lBound, ClassDef uBound,
-                                                                        Variance variance, ClassDef templateClass, int paramIndex, GenericTypeCode genericTypeCode,
-                                                                        MutableBoolean returnExisted) throws CompilationError {
-        Root root = baseClassDef.getRoot();
-        String className = GenericTypeParameterClassDef.composeName(baseClassDef, typeParamName, paramIndex, templateClass, lBound, uBound, variance, ge);
+    // call template.getTypeParamsContext.addGenericTypeParam() instead
+    public SharedGenericTypeParameterClassDef getOrCreateGenericTypeParameter(ClassDef langGenericTypeParameter, ConstructorDef constructorDef,
+                                                                              ClassDef lBound, ClassDef uBound, Variance variance,
+                                                                              MutableBoolean returnExisted) throws CompilationError {
+        var arguments = new Literal[]{lBound.toClassRefLiteral(), uBound.toClassRefLiteral(), langGenericTypeParameter.root.createByteLiteral(variance.byteValue())};
+        String className = SharedGenericTypeParameterClassDef.composeName(lBound, uBound, variance);
         var existed = this.getChild(className);
         if(existed != null) {
             if(returnExisted != null) returnExisted.setTrue();
-            return (GenericTypeParameterClassDef) existed;
+            return (SharedGenericTypeParameterClassDef) existed;
         }
 
-        var pc = new GenericTypeParameterClassDef(baseClassDef, constructorDef, lBound, uBound, variance, templateClass, paramIndex, genericTypeCode);
+        var pc = new SharedGenericTypeParameterClassDef(langGenericTypeParameter, constructorDef, arguments);
+        this.addChild(pc);
+
+        return pc;
+    }
+
+    public GenericTypeCodeAvatarClassDef getOrCreateGenericTypeAvatarClassDef(ClassDef langGenericTypeAvatar,
+                                                                              SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef,
+                                                                              ClassDef templateClass,
+                                                                              int paramIndex,
+                                                                              int typeCode,
+                                                                              String paramName,
+                                                                              MutableBoolean returnExisted) throws CompilationError {
+        String className = GenericTypeCodeAvatarClassDef.composeName(sharedGenericTypeParameterClassDef, templateClass, paramName, paramIndex, typeCode);
+        var existed = this.getChild(className);
+        if(existed != null) {
+            if(returnExisted != null) returnExisted.setTrue();
+            return (GenericTypeCodeAvatarClassDef) existed;
+        }
+
+        var pc = new GenericTypeCodeAvatarClassDef(langGenericTypeAvatar, sharedGenericTypeParameterClassDef, templateClass, paramIndex, typeCode, paramName);
         this.addChild(pc);
 
         return pc;

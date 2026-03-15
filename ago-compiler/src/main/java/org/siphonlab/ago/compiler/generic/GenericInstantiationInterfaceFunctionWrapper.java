@@ -110,10 +110,10 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
     }
 
     @Override
-    public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
-        if(super.isAffectedByTemplate(instantiationArguments)) return true; //TODO already instantiated?
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+        if(super.isAffectedByTypeArguments(instantiationArguments)) return true; //TODO already instantiated?
         for (ClassRefLiteral typeArgument : this.getTypeArguments()) {
-            if(typeArgument.getClassDefValue().isAffectedByTemplate(instantiationArguments)){
+            if(typeArgument.getClassDefValue().isAffectedByTypeArguments(instantiationArguments)){
                 return true;
             }
         }

@@ -26,7 +26,7 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
 
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
-import org.siphonlab.ago.compiler.generic.GenericTypeCode;
+import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.FLOAT_VALUE;
@@ -60,9 +60,7 @@ public class CastStrategy {
         Root root = classDef.getRoot();
         if(classDef instanceof PrimitiveClassDef) {
             return TypeKind.Primitive;
-        } else if(classDef instanceof ClassIntervalClassDef || classDef.isDeriveFrom(root.getClassRefClass())) {      // primitive boxer for classref
-            return TypeKind.PrimitiveBoxer;
-        } else if(classDef instanceof GenericTypeCode.GenericCodeAvatarClassDef a){
+        } else if(classDef instanceof GenericTypeCodeAvatarClassDef a){
             if(a.isPrimitiveFamily()){      // <T as [Primitive]>
                 return TypeKind.PrimitiveGeneric;
             }
@@ -73,6 +71,8 @@ public class CastStrategy {
                 return typeKind(a.getLBoundClass());
             }
             return TypeKind.Object;     // rest jobs belong to check type match
+        } else if(classDef instanceof ClassIntervalClassDef || classDef.isDeriveFrom(root.getClassRefClass())) {      // primitive boxer for classref
+            return TypeKind.PrimitiveBoxer;
         } else if(classDef.isThatOrDerivedFromThat(root.getPrimitiveType())){      // Primitive or PrimitiveNumber
             return TypeKind.PrimitiveInterface;
         } else if(classDef.isEnum()){
@@ -88,11 +88,11 @@ public class CastStrategy {
         }
     }
 
-    private ClassDef resolveTerminatedGenericClass(GenericTypeCode.GenericCodeAvatarClassDef genericCodeAvatar, TypeKind typeKind){
+    private ClassDef resolveTerminatedGenericClass(GenericTypeCodeAvatarClassDef genericTypeCodeAvatarClassDef, TypeKind typeKind){
         if(typeKind == TypeKind.Object){
-            return genericCodeAvatar;
+            return genericTypeCodeAvatarClassDef;
         } else {
-            return genericCodeAvatar.getLBoundClass();
+            return genericTypeCodeAvatarClassDef.getLBoundClass();
         }
     }
 
@@ -111,12 +111,12 @@ public class CastStrategy {
         TypeKind rightTypeKind = typeKind(originRightType);
 
         ClassDef leftType, rightType;
-        if(originLeftType instanceof GenericTypeCode.GenericCodeAvatarClassDef a){
+        if(originLeftType instanceof GenericTypeCodeAvatarClassDef a){
             leftType = resolveTerminatedGenericClass(a,leftTypeKind);
         } else {
             leftType = originLeftType;
         }
-        if (originRightType instanceof GenericTypeCode.GenericCodeAvatarClassDef a) {
+        if (originRightType instanceof GenericTypeCodeAvatarClassDef a) {
             rightType = resolveTerminatedGenericClass(a, rightTypeKind);
         } else {
             rightType = originRightType;
@@ -277,7 +277,7 @@ public class CastStrategy {
         }
 
         ClassDef originToType = toType;
-        if (toType instanceof GenericTypeCode.GenericCodeAvatarClassDef a) {
+        if (toType instanceof GenericTypeCodeAvatarClassDef a) {
             toType = resolveTerminatedGenericClass(a, toTypeKind);
         }
 
@@ -307,7 +307,7 @@ public class CastStrategy {
                     case Primitive ->
                         castPrimitive(expression, primitiveFromType, (PrimitiveClassDef) toType);
                     case PrimitiveGeneric ->
-                        forceCastPrimitive(expression, primitiveFromType, (GenericTypeCode.GenericCodeAvatarClassDef) originToType);
+                        forceCastPrimitive(expression, primitiveFromType, (GenericTypeCodeAvatarClassDef) originToType);
                     case PrimitiveBoxer ->
                         boxPrimitive(expression, primitiveFromType, toType);
                     case Enum ->
@@ -550,7 +550,7 @@ public class CastStrategy {
         return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.PrimitiveCast);
     }
 
-    private Expression forceCastPrimitive(Expression expression, PrimitiveClassDef fromType, GenericTypeCode.GenericCodeAvatarClassDef originToType) throws CompilationError {
+    private Expression forceCastPrimitive(Expression expression, PrimitiveClassDef fromType, GenericTypeCodeAvatarClassDef originToType) throws CompilationError {
         if (fromType.getTypeCode() == CLASS_REF) {      // no primitive type can cast to classref
             throw new TypeMismatchError("classref cannot cast to unknown type", this.sourceLocation);
         }

@@ -333,7 +333,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     public static String composeName(ClassDef baseClass, Literal<?>[] arguments) {
-        return baseClass.getName() + "::" + Arrays.stream(arguments).map(Literal::getId).collect(Collectors.joining(","));
+        return baseClass.getName() + "::(" + Arrays.stream(arguments).map(Literal::getId).collect(Collectors.joining(",")) + ")";
     }
 
     @Override
@@ -345,16 +345,29 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
-        if(this.baseClass.isAffectedByTemplate(instantiationArguments)) return true;
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+        if(this.baseClass.isAffectedByTypeArguments(instantiationArguments)) return true;
         for (var arg : this.arguments) {
             if(arg instanceof ClassRefLiteral typeArgument) {
-                if (typeArgument.getClassDefValue().isAffectedByTemplate(instantiationArguments)) {
+                if (typeArgument.getClassDefValue().isAffectedByTypeArguments(instantiationArguments)) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    @Override
+    public boolean isGenericTerminated() {
+        if(!this.baseClass.isGenericTerminated()) return false;
+        for (var arg : this.arguments) {
+            if(arg instanceof ClassRefLiteral typeArgument) {
+                if (!typeArgument.getClassDefValue().isGenericTerminated()) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     @Override
@@ -382,11 +395,6 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
             }
         }
         return args;
-    }
-
-    @Override
-    public boolean isGenericInstantiateRequiredForNew() {
-        return this.baseClass.isGenericInstantiateRequiredForNew();
     }
 
     @Override

@@ -25,13 +25,12 @@ import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
-import org.siphonlab.ago.compiler.generic.GenericTypeCode;
+import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 public class Creator extends ExpressionInFunctionBody{
 
@@ -237,13 +236,13 @@ public class Creator extends ExpressionInFunctionBody{
             boolean isGenericCode;
             int className;
             boolean forGenericInstantiation = false;
-            if (classToNew instanceof GenericTypeCode.GenericCodeAvatarClassDef genericCodeAvatarClassDef) {
+            if (classToNew instanceof GenericTypeCodeAvatarClassDef genericTypeCodeAvatarClassDef) {
                 isGenericCode = true;
-                className = genericCodeAvatarClassDef.getTypeCode().getValue();
+                className = genericTypeCodeAvatarClassDef.getTypeCode().getValue();
             } else {
                 isGenericCode = false;
                 className = scopeFun.idOfClass(classToNew);
-                forGenericInstantiation = classToNew.isGenericInstantiateRequiredForNew();
+                forGenericInstantiation = !classToNew.isGenericTerminated();
             }
             return new NewProps(className, isGenericCode, forGenericInstantiation, classToNew.isNative());
         }

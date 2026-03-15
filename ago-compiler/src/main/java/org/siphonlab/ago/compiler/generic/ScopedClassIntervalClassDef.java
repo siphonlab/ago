@@ -27,13 +27,18 @@ public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
 
     public ScopedClassIntervalClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor, ClassDef lBound, ClassDef uBound) {
         super(baseClass, parameterizedConstructor, lBound, uBound);
+        this.name = composeName(lBound, uBound);
     }
 
     @Override
     public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) {
         ScopedClassIntervalClassDef c = null;
         try {
-            c = this.getParentClass().getOrCreateScopedClassInterval(baseClass.instantiate(instantiationArguments, returnExisted), constructor, mapArguments(instantiationArguments), returnExisted);
+            c = this.getParentClass().getOrCreateScopedClassInterval(baseClass.instantiate(instantiationArguments, null),
+                    constructor,
+                    this.getLBoundClass().instantiate(instantiationArguments, null),
+                    this.getUBoundClass().instantiate(instantiationArguments, null),
+                    returnExisted);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -52,4 +57,9 @@ public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
         }
         return metaClassDef;
     }
+
+    public static String composeName(ClassDef lBound, ClassDef uBound){
+        return '[' + composeNameOfClassInClassInterval(lBound) + '/' + composeNameOfClassInClassInterval(uBound) + ']';
+    }
+
 }

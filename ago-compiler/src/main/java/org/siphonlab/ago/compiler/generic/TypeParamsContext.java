@@ -15,23 +15,25 @@
  */
 package org.siphonlab.ago.compiler.generic;
 
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.compiler.ClassContainer;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.Root;
+import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
-import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+// only for template class
 public class TypeParamsContext {
     private final ClassDef templateClass;
     private TypeParamsContext parent;
-    // "T" -> GenericTypeParameterClassDef::(Animal, Any, 1)
-    // for G<T>, it's GenericParameterizedClassDef base on this template class, GenericParameterizedClassDef has realized argument value, some classref
-    // I didn't create GenericTemplateClassDef for FunctionDef can be Template too, it's a classic diamond problem
-    private final LinkedHashMap<String, GenericTypeCode> genericTypeParamsMap = new LinkedHashMap<>();
-    private final List<GenericTypeCode> genericTypeParams = new ArrayList<>();
+
+    private final LinkedHashMap<String, GenericTypeCodeAvatarClassDef> genericTypeParamsMap = new LinkedHashMap<>();
+    private final List<GenericTypeCodeAvatarClassDef> genericTypeParams = new ArrayList<>();
     private final AtomicInteger nextGenericTypeCode;
 
     public TypeParamsContext(ClassDef templateClass){
@@ -45,16 +47,19 @@ public class TypeParamsContext {
         this.nextGenericTypeCode = parent.nextGenericTypeCode;
     }
 
-    public void addGenericTypeParam(String name, GenericTypeParameterClassDef pc,
-                                    AgoParser.GenericTypeParameterContext genericTypeParameterContext) {
+    public GenericTypeCodeAvatarClassDef createGenericTypeParam(String paramName, SharedGenericTypeParameterClassDef genericTypeParameter, int paramIndex) throws CompilationError {
+
+        Root root = templateClass.getRoot();
+
+        var exists = new MutableBoolean();
+        var r = ((ClassContainer) root.getGenericTypeCodeAvatar().getParent()).getOrCreateGenericTypeAvatarClassDef(root.getGenericTypeCodeAvatar(), genericTypeParameter, templateClass, paramIndex, nextGenericTypeCode.getAndIncrement(), paramName, exists);
 
         templateClass.idOfClass(templateClass);
-        templateClass.registerConcreteType(pc);
+        templateClass.registerConcreteType(genericTypeParameter);
 
-        int index = genericTypeParams.size();
-        GenericTypeCode genericTypeCode = GenericTypeCode.createGeneric(nextGenericTypeCode.getAndIncrement(), index, name, pc, genericTypeParameterContext, templateClass);
-        this.genericTypeParamsMap.put(name, genericTypeCode);
-        this.genericTypeParams.add(genericTypeCode);
+        this.genericTypeParamsMap.put(paramName, r);
+        this.genericTypeParams.add(r);
+        return r;
     }
 
     public InstantiationArguments createDefaultArguments(){
@@ -66,8 +71,8 @@ public class TypeParamsContext {
     public ClassRefLiteral[] createDefaultArgumentsArray() {
         var args = new ClassRefLiteral[this.genericTypeParams.size()];
         for (int i = 0; i < genericTypeParams.size(); i++) {
-            GenericTypeCode genericTypeParam = genericTypeParams.get(i);
-            args[i] = genericTypeParam.getGenericCodeAvatarClassDef().toClassRefLiteral();
+            var genericTypeParam = genericTypeParams.get(i);
+            args[i] = genericTypeParam.toClassRefLiteral();
         }
         return args;
     }
@@ -75,8 +80,8 @@ public class TypeParamsContext {
     /*
         for name path resolver, resolve GenericTypeCode via genericTypeName, i.e. "T"
      */
-    public GenericTypeCode get(String genericTypeName) {
-        return genericTypeParamsMap.getOrDefault(genericTypeName, this.parent == null ? null : this.parent.get(genericTypeName));   //recursive to parent
+    public GenericTypeCodeAvatarClassDef get(String genericTypeName) {
+        return genericTypeParamsMap.get(genericTypeName);   //recursive to parent
     }
 
     public String getName(int index){
@@ -87,10 +92,9 @@ public class TypeParamsContext {
     when apply arguments, enum generic type code one by one to match argument.  i.e. 0, 1, 2
     see TypeArgumentsApplier
      */
-    public GenericTypeCode get(int index){
+    public GenericTypeCodeAvatarClassDef get(int index){
         return genericTypeParams.get(index);    // don't recursive to parent
     }
-
 
     public int size() {
         return genericTypeParams.size();
@@ -103,16 +107,11 @@ public class TypeParamsContext {
 
     @Override
     public String toString() {
-        return genericTypeParamsMap.sequencedValues().stream().map(g -> g.getGenericCodeAvatarClassDef().toString())
+        return genericTypeParamsMap.sequencedValues().stream().map(ClassDef::getFullname)
                 .collect(Collectors.joining(","));
     }
 
-    public ClassDef findByGenericTypeCode(int genericCodeValue) {
-        for (GenericTypeCode genericTypeParam : this.genericTypeParams) {
-            if(genericTypeParam.value == genericCodeValue){
-                return genericTypeParam.getGenericCodeAvatarClassDef();
-            }
-        }
-        return null;
+    public List<GenericTypeCodeAvatarClassDef> getGenericTypeParams() {
+        return genericTypeParams;
     }
 }

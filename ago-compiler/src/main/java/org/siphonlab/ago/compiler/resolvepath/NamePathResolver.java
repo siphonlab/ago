@@ -32,7 +32,7 @@ import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
-import org.siphonlab.ago.compiler.generic.GenericTypeCode;
+import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.*;
@@ -804,7 +804,7 @@ public class NamePathResolver {
         if(allowScopeScan){
             var genericType = scopeClass.findGenericType(id.text());
             if(genericType != null){
-                return new ConstClass(genericType.getGenericCodeAvatarClassDef());
+                return new ConstClass(genericType);
             }
             if(! scopeClass.isInterfaceOrTrait()){
                 var r = resolveSubClassOfScope(new Scope.Local(scopeClass), id, allowMetaScan);
@@ -1137,8 +1137,8 @@ public class NamePathResolver {
             if(exprType instanceof ClassIntervalClassDef classIntervalClassDef){
                 exprType = classIntervalClassDef.getLBoundClass();
                 isClassInterval = true;
-            } else if(exprType instanceof GenericTypeCode.GenericCodeAvatarClassDef genericCodeAvatarClassDef){
-                exprType = genericCodeAvatarClassDef.getLBoundClass();
+            } else if(exprType instanceof GenericTypeCodeAvatarClassDef genericTypeCodeAvatarClassDef){
+                exprType = genericTypeCodeAvatarClassDef.getLBoundClass();
                 isClassInterval = true;
             }
             if(isClassInterval){
@@ -1238,8 +1238,8 @@ public class NamePathResolver {
             if(currType instanceof ClassIntervalClassDef classIntervalClassDef){
                 currType = classIntervalClassDef.getLBoundClass();
                 isClassInterval = true;
-            } else if(currType instanceof GenericTypeCode.GenericCodeAvatarClassDef genericCodeAvatarClassDef){
-                currType = genericCodeAvatarClassDef.getLBoundClass();
+            } else if(currType instanceof GenericTypeCodeAvatarClassDef genericTypeCodeAvatarClassDef){
+                currType = genericTypeCodeAvatarClassDef.getLBoundClass();
                 isClassInterval = true;
             }
             if(isClassInterval){

@@ -23,7 +23,7 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.GenericConcreteType;
-import org.siphonlab.ago.compiler.generic.GenericTypeCode;
+import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,20 +175,20 @@ public class ClassFile {
 
         if(LOGGER.isDebugEnabled()) LOGGER.debug("    generic type params :" + buff.position());
         var genericTypeParams = classDef.getTypeParamsContext();
-        if(classDef.isGenericTemplateOrIntermediate()){
+        if(classDef.isGenericTemplate()){
             assert genericTypeParams.size() > 0;
             buff.putInt(genericTypeParams.size());
             for (int i = 0; i < genericTypeParams.size(); i++) {
-                GenericTypeCode genericTypeCode = genericTypeParams.get(i);
+                var genericTypeParameterClassDef = genericTypeParams.get(i);
                 buff.putPrefixedString(genericTypeParams.getName(i), encoder);        // param name
-                if (classDef == genericTypeCode.getTemplateClass()) {   // owner template class
+                if (classDef == genericTypeParameterClassDef.getTemplateClass()) {   // owner template class
                     buff.putInt(-1);
                 } else {
-                    buff.putInt(classDef.idOfKnownClass(genericTypeCode.getTemplateClass()));
+                    buff.putInt(classDef.idOfKnownClass(genericTypeParameterClassDef.getTemplateClass()));
                 }
-                buff.putInt(genericTypeCode.getGenericParamIndex());             // index
-                buff.putInt(genericTypeCode.value);        // type code
-                buff.putInt(classDef.idOfClass(genericTypeCode.getGenericTypeParameterClassDef()));    // concrete type
+                buff.putInt(genericTypeParameterClassDef.getParamIndex());             // index
+                buff.putInt(genericTypeParameterClassDef.getTypeCode().value);        // type code
+                buff.putInt(classDef.idOfClass(genericTypeParameterClassDef));          // concrete type
             }
         } else {
             buff.putInt(0);
@@ -391,9 +391,9 @@ public class ClassFile {
 
     private void putType(IoBuffer buff, ClassDef classDef, ClassDef compilingType) throws CharacterCodingException {
         buff.putInt(compilingType.getTypeCode().getValue());
-        if(compilingType.getTypeCode() instanceof GenericTypeCode genericTypeCode){     // a GenericTypeCode.GenericCodeAvatarClassDef class, it's not exists in Root registry
-            buff.putInt(classDef.idOfKnownConstString(genericTypeCode.getTemplateClass().getFullname()));
-            buff.putInt(genericTypeCode.getGenericParamIndex());
+        if(compilingType instanceof GenericTypeCodeAvatarClassDef g){     // a GenericTypeCode.GenericCodeAvatarClassDef class, it's not exists in Root registry
+            buff.putInt(classDef.idOfKnownConstString(g.getTemplateClass().getFullname()));
+            buff.putInt(g.getParamIndex());
         } else if (compilingType.getTypeCode() == TypeCode.OBJECT) {
             buff.putInt(classDef.idOfKnownConstString(compilingType.getFullname()));
         }

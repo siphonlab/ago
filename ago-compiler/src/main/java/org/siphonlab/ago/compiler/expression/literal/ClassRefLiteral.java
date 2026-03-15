@@ -60,6 +60,9 @@ public class ClassRefLiteral extends Literal<Integer> {
 
     @Override
     public String getId() {
+        if(classDefValue == classDefValue.getRoot().getAnyClass()){
+            return "C_";
+        }
         return "C%s".formatted(classDefValue.getFullname().replace('.', '$'));
     }
 

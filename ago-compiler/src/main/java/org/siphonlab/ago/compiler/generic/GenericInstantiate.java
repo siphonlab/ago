@@ -133,8 +133,8 @@ public class GenericInstantiate {
 
         TypeParamsContext paramsContext = this.templateClass.getTypeParamsContext();
         for (int i = 0; i < typeArgumentsArray.length; i++) {
-            var p = paramsContext.get(i).getGenericTypeParameterClassDef();
-            var variance = p.getVariance();
+            var p = paramsContext.get(i);
+            var variance = p.getSharedGenericTypeParameterClassDef().getVariance();
             var a1 = typeArgumentsArray[i].getClassDefValue();
             var a2 = anotherClass.getTypeArguments()[i].getClassDefValue();
             switch (variance){
@@ -159,7 +159,7 @@ public class GenericInstantiate {
         r.add(template);
         TypeParamsContext typeParamsContext = template.getTypeParamsContext();
         for (int i = 0; i < typeParamsContext.size(); i++) {
-            r.add(typeParamsContext.get(i).getGenericTypeParameterClassDef());
+            r.add(typeParamsContext.get(i));
         }
 
         if(template instanceof ConcreteType c){
@@ -174,11 +174,7 @@ public class GenericInstantiate {
 
         for (ClassRefLiteral typeArgument : genericSource.instantiationArguments().getTypeArgumentsArray()) {
             var v = typeArgument.getClassDefValue();
-            if(v instanceof GenericTypeCode.GenericCodeAvatarClassDef a){
-                r.add(a.getTypeCode().getGenericTypeParameterClassDef());
-            } else {
-                r.add(typeArgument.getClassDefValue());
-            }
+            r.add(v);
             if(typeArgument.getClassDefValue() instanceof ConcreteType a){
                 r.addAll(a.getConcreteDependencyClasses());
             }

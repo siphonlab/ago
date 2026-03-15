@@ -17,16 +17,14 @@ package org.siphonlab.ago.compiler;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.apache.commons.lang3.ArrayUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.LiteralParser;
-import org.siphonlab.ago.compiler.generic.GenericTypeParameterClassDef;
 import org.siphonlab.ago.Variance;
+import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
@@ -223,7 +221,7 @@ public class Compiler {
 
             AgoParser.GenericTypeParametersContext genericTypeParameters = null;
             if (scopeClass instanceof MetaClassDef) {
-                System.out.println(1);
+//                throw new TypeMismatchError("metaclass cannot be generic template", scopeClass.getUnit().sourceLocation());
                 // metaclass can be involved by its class in generic, but has no generic type param itself
             } else {
                 genericTypeParameters = scopeClass.getGenericTypeParametersContextAST();
@@ -231,6 +229,7 @@ public class Compiler {
             if (genericTypeParameters != null) {
                 var templClass = scopeClass;
                 templClass.shiftToTemplate();
+                TypeParamsContext templClassTypeParamsContext = templClass.getTypeParamsContext();
 
                 List<AgoParser.GenericTypeParameterContext> genericTypeParameter = genericTypeParameters.genericTypeParameter();
                 for (int i = 0; i < genericTypeParameter.size(); i++) {
@@ -255,15 +254,15 @@ public class Compiler {
                         bound = new ClassDef[]{root.getAnyClass(), root.getAnyClass()};
                         variance = Variance.Invariance;
                     }
+
                     var gt = root.getGenericTypeParameter();
-                    GenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt, gt.getMetaClassDef().getConstructor(),
-                                bound[0], bound[1], variance, templClass, i,
-                            , null);
-                    templClass.getTypeParamsContext().addGenericTypeParam(name, pc, genericTypeParameterContext);
-                    if (pc.getUnit() == null)
+                    var pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt, gt.getMetaClassDef().getConstructor(), bound[0], bound[1], variance, null);
+                    templClass.getTypeParamsContext().createGenericTypeParam(name, pc, i);
+                    if (pc.getUnit() == null) {
                         pc.setUnit(templClass.getUnit());
+                        pc.setSourceLocation(templClass.getUnit().sourceLocation(typeOfGenericParam));
+                    }
                 }
-                //templClass.makePlaceHolderGenericSource();
             }
             scopeClass.nextCompilingStage(CompilingStage.ResolveHierarchicalClasses);    // to ExpandHierarchicalClasses
         }

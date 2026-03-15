@@ -665,11 +665,14 @@ public class Unit {
         } else {
             ClassDef lBound, uBound;
             if (typeOfVariable instanceof AgoParser.AsTypeRangeContext asTypeRange) {
-                args = parseTypeRange(asTypeRange.typeRange(), scopeClass);
+                var args = parseTypeRange(asTypeRange.typeRange(), scopeClass);
+                lBound = args[0];
+                uBound = args[1];
             } else if (typeOfVariable instanceof AgoParser.LikeTypeContext likeType) {
                 var type = parseTypeName(scopeClass, likeType.namePath(), false);
                 type = tryExtractFunctionInterfaceInstantiation(likeType, type);
-                args = new Literal[]{type.toClassRefLiteral(), root.getAnyClass().toClassRefLiteral()};
+                lBound = type;
+                uBound = root.getAnyClass();
             } else if(typeOfVariable instanceof AgoParser.AsClassDeclContext classDeclContext){
                 var type = scopeClass.getChild(classDeclContext.classDeclaration().className.getText());
                 assert type != null;        // this class should be already recognized
@@ -678,7 +681,7 @@ public class Unit {
                 throw new RuntimeException("impossible");
             }
             ClassDef classInterval = root.getScopedClassInterval();
-            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), args, null);
+            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
             scopeClass.registerConcreteType(pc);
             return pc;
         }
@@ -692,18 +695,21 @@ public class Unit {
             var expr = parseType(scopeClass, asType.variableType(), false, false);
             return extractType(expr);
         } else {
-            Literal[] args;
+            ClassDef lBound, uBound;
             if (typeOfFunction instanceof AgoParser.ReturnTypeRangeContext asTypeRange) {
-                args = parseTypeRange(asTypeRange.typeRange(), scopeClass);
+                var args = parseTypeRange(asTypeRange.typeRange(), scopeClass);
+                lBound = args[0];
+                uBound = args[1];
             } else if (typeOfFunction instanceof AgoParser.ReturnLikeContext likeType) {
                 var type = parseTypeName(scopeClass, likeType.namePath(), false);
                 type = tryExtractFunctionInterfaceInstantiation(likeType, type);
-                args = new Literal[]{type.toClassRefLiteral(), root.getAnyClass().toClassRefLiteral()};
+                lBound = type;
+                uBound = root.getAnyClass();
             } else {
                 throw new RuntimeException("impossible");
             }
             ClassDef classInterval = root.getScopedClassInterval();
-            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), args, null);
+            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
             scopeClass.registerConcreteType(pc);
             return pc;
         }

@@ -19,7 +19,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.generic.GenericTypeCode;
+import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
@@ -99,7 +99,7 @@ public class MetaClassDef extends ClassDef{
     }
 
     @Override
-    public GenericTypeCode findGenericType(String genericTypeName) {
+    public GenericTypeCodeAvatarClassDef findGenericType(String genericTypeName) {
         return instanceClassDef.findGenericType(genericTypeName);
     }
 
@@ -113,8 +113,8 @@ public class MetaClassDef extends ClassDef{
     }
 
     @Override
-    public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
-        return this.getInstanceClassDef().isAffectedByTemplate(instantiationArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+        return this.getInstanceClassDef().isAffectedByTypeArguments(instantiationArguments);
     }
 
     public MetaClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
@@ -131,12 +131,8 @@ public class MetaClassDef extends ClassDef{
     }
 
     @Override
-    public boolean isGenericInstantiateRequiredForNew() {
-        return this.instanceClassDef.isGenericInstantiateRequiredForNew();
-    }
-
-    public boolean isInGenericInstantiation(){
-        return this.instanceClassDef.isInGenericInstantiation();
+    public boolean isGenericTerminated() {
+        return this.instanceClassDef.isGenericTerminated();
     }
 
     public boolean isInGenericTemplate(){

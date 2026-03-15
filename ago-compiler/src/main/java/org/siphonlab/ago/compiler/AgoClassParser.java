@@ -20,8 +20,6 @@ import org.siphonlab.ago.classloader.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
-import org.siphonlab.ago.compiler.generic.GenericTypeCode;
-import org.siphonlab.ago.compiler.generic.GenericTypeParameterClassDef;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.slf4j.Logger;
@@ -355,7 +353,7 @@ public class AgoClassParser {
                 assert typeInfo instanceof GenericTypeInfo;
                 GenericTypeInfo gt = (GenericTypeInfo) typeInfo;
                 var templateClass = mapClass(classLoader.getClass(gt.getTemplateClass()));
-                return templateClass.findGenericType(gt.getName()).getGenericCodeAvatarClassDef();
+                return templateClass.findGenericType(gt.getName());
             } else {
                 return root.fromPrimitiveTypeCode(typeCode);
             }
@@ -373,22 +371,23 @@ public class AgoClassParser {
     private ClassDef mapClass(ClassDef ownerClass, AgoClass agoClass, TypeCode typeCode) throws CompilationError {
         if(typeCode != TypeCode.OBJECT){
             if(typeCode.isGeneric()){
-                GenericTypeCode r = ownerClass.findGenericType(typeCode.toString());
+                var r = ownerClass.findGenericType(typeCode.toString());
                 if(r == null){
                     if(ownerClass.getGenericSource() != null) {
                         r = ownerClass.getTemplateClass().findGenericType(typeCode.toShortString());
                     }
                 }
-                if(r == null){
-                    if(ownerClass.getGenericSource().instantiationArguments().isIntermediate()){
-                        r = ownerClass.getGenericSource().instantiationArguments().findGenericTypeCode(typeCode.toString());
-                    }
-                }
-                if(r == null){
-                    throw new RuntimeException("can't find generic code '%d' or template class from '%s'".formatted(typeCode.value, ownerClass));
-                }
-                assert r.value == typeCode.value;
-                return r.getGenericCodeAvatarClassDef();
+                //TODO GenericTypeParameterClassDef
+//                if(r == null){
+//                    if(ownerClass.getGenericSource().instantiationArguments().isIntermediate()){
+//                        r = ownerClass.getGenericSource().instantiationArguments().findGenericTypeCode(typeCode.toString());
+//                    }
+//                }
+//                if(r == null){
+//                    throw new RuntimeException("can't find generic code '%d' or template class from '%s'".formatted(typeCode.value, ownerClass));
+//                }
+//                assert r.value == typeCode.value;
+                return r;
             } else {
                 return root.fromPrimitiveTypeCode(typeCode);
             }
@@ -668,10 +667,16 @@ public class AgoClassParser {
                 if(gt.getCompilingStage().getValue() <= CompilingStage.ResolveHierarchicalClasses.getValue()){
                     resolveHierarchy(sp.getParameterizedBaseClass(), gt);
                 }
-                GenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt,
-                        gt.getMetaClassDef().getConstructor(),
-                        args, null);
-                typeParamsContext.addGenericTypeParam(genericParameterTypeInfo.getParameterName(), pc, null);
+                //TODO addGenericTypeParam
+//                GenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt,
+//                        gt.getMetaClassDef().getConstructor(),
+//                        args, null);
+//                typeParamsContext.addGenericTypeParam();
+//                for (Namespace<?> element : templClass.getAllDescendants().getUniqueElements()) {
+//                    if(element instanceof ClassDef child) {
+//                        child.cloneParentTemplateTypeParameters(templClassTypeParamsContext);
+//                    }
+//                }
             }
         }
         classDef.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);

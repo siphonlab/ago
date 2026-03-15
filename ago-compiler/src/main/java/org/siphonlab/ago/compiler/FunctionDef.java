@@ -27,7 +27,7 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.logic.Not;
-import org.siphonlab.ago.compiler.generic.GenericTypeCode;
+import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.statement.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -401,8 +401,8 @@ public class FunctionDef extends ClassDef {
             Parameter anotherParam = anotherParameters.get(i);
             Parameter myParam = this.parameters.get(i);
             if (anotherParam.getType() != myParam.getType() && !(
-                    myParam.getType() instanceof GenericTypeCode.GenericCodeAvatarClassDef &&
-                    anotherParam.getType() instanceof GenericTypeCode.GenericCodeAvatarClassDef)){
+                    myParam.getType() instanceof GenericTypeCodeAvatarClassDef &&
+                    anotherParam.getType() instanceof GenericTypeCodeAvatarClassDef)){
                 return false;
             }
         }

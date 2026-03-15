@@ -83,7 +83,7 @@ public class PrimitiveClassDef extends ClassDef {
     }
 
     @Override
-    public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
         return false;
     }
 
@@ -99,8 +99,8 @@ public class PrimitiveClassDef extends ClassDef {
     }
 
     @Override
-    public boolean isGenericInstantiateRequiredForNew() {
-        return false;
+    public boolean isGenericTerminated() {
+        return true;
     }
 
     public boolean isNumber(){

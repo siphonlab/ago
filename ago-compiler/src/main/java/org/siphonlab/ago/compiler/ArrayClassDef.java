@@ -90,6 +90,10 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
 
     @Override
     public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        if(!this.isAffectedByTypeArguments(arguments)) {
+            if(returnExisted != null) returnExisted.setTrue();
+            return this;
+        }
         return cloneForInstantiate(arguments,returnExisted);
     }
 
@@ -119,13 +123,13 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
-        return this.elementType.isAffectedByTemplate(instantiationArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+        return this.elementType.isAffectedByTypeArguments(instantiationArguments);
     }
 
     @Override
-    public boolean isGenericInstantiateRequiredForNew() {
-        return this.getElementType().isGenericInstantiateRequiredForNew();
+    public boolean isGenericTerminated() {
+        return this.elementType.isGenericTerminated();
     }
 
     @Override

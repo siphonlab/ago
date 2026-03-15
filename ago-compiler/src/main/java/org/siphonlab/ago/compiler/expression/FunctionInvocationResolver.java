@@ -17,10 +17,7 @@ package org.siphonlab.ago.compiler.expression;
 
 
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
-import org.siphonlab.ago.compiler.generic.GenericSource;
-import org.siphonlab.ago.compiler.generic.GenericTypeCode;
-import org.siphonlab.ago.compiler.generic.TypeParamsContext;
+import org.siphonlab.ago.compiler.generic.*;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -196,7 +193,7 @@ public class FunctionInvocationResolver {
             return parameterType;
         }
         var root = method.getRoot();
-        if(parameterType instanceof GenericTypeCode.GenericCodeAvatarClassDef a) {
+        if(parameterType instanceof GenericTypeCodeAvatarClassDef a) {
             resolveResult.regTypeArg(a.getTypeCode(), argType);
             if (resolveResult.error != null) return argType;
         } else if(parameterType instanceof VarArgs varArgs){
@@ -208,7 +205,7 @@ public class FunctionInvocationResolver {
                     return argType;
                 }
             }
-        } else if(parameterType.isGenericTemplateOrIntermediate()){
+        } else if(parameterType.isGenericType()){
             GenericSource pSource = parameterType.getGenericSource();
             ClassDef template = pSource.originalTemplate();
             for (ClassDef ac : argType.getAllAncestors(true)) {
@@ -368,7 +365,7 @@ public class FunctionInvocationResolver {
                 } else if(p.isThatOrSuperOfThat(v)){
                     return 0.8;
                 }
-            } else if(v.isGenericType() && v instanceof GenericTypeCode.GenericCodeAvatarClassDef a){
+            } else if(v.isGenericType() && v instanceof GenericTypeCodeAvatarClassDef a){
                 return evaluateScoreOfOneArgument(p, a.getLBoundClass()) * .72;
             }
         }
@@ -387,7 +384,7 @@ public class FunctionInvocationResolver {
         }
 
         public void regTypeArg(GenericTypeCode genericTypeCode, ClassDef argType){
-            if(!genericTypeCode.getGenericTypeParameterClassDef().isThatOrSuperOfThat(argType)){
+            if(!genericTypeCode.getGenericTypeCodeAvatar().isThatOrSuperOfThat(argType)){       //TODO the original is SharedGenericTypeParameter
                 this.error = new ResolveError("'%s' is not compatible for '%s'".formatted(argType.getFullname(), genericTypeCode.toShortString()), sourceLocation);
             }
             var existed = providedArguments.putIfAbsent(genericTypeCode, argType);

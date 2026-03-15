@@ -15,14 +15,7 @@
  */
 package org.siphonlab.ago.compiler.generic;
 
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.CompilingStage;
-import org.siphonlab.ago.compiler.Root;
-import org.siphonlab.ago.compiler.parser.AgoParser;
-
-import java.util.Set;
 
 /**
  * {@link GenericTypeCode} separates the TypeCode(value >= GENERIC_TYPE_START, and combine its GenericTypeParameterClassDef
@@ -35,7 +28,7 @@ import java.util.Set;
  * `class G<T typecode is 0x10, T2 type code is 0x11>`, `class G2<T typecode is 0x00>`
  * the typecode are use for mark types for fields and slots, and other cases which depends on `T`
  *
- * and {@link GenericCodeAvatarClassDef} shipped the above typecode as a ClassDef, like PrimitiveClassDef shipped primitive typecode
+ * and {@link GenericTypeCodeAvatarClassDef} shipped the above typecode as a ClassDef, like PrimitiveClassDef shipped primitive typecode
  * GenericTypeCode is scoped within its template class, therefore we put all scope information within it
  *
  * GenericTypeParameterClassDef shipped class bound and variance, and GenericTypeCode/GenericCodeAvatarClassDef ships `templateClass` and `genericParamIndex`
@@ -44,26 +37,14 @@ import java.util.Set;
 public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeCode> {
 
     private final int genericParamIndex;
-    private final GenericTypeParameterClassDef genericTypeParameterClassDef;
+    private GenericTypeCodeAvatarClassDef genericTypeCodeAvatarClassDef;
 
     private final String name;
 
-    protected GenericTypeCode(int genericTypeCode, int genericParamIndex, String name, String description,
-                              GenericTypeParameterClassDef genericTypeParameterClassDef,
-                              ) {
+    public GenericTypeCode(int genericTypeCode, int genericParamIndex, String name, String description) {
         super(genericTypeCode, description);
         this.name = name;
         this.genericParamIndex = genericParamIndex;
-        this.genericTypeParameterClassDef = genericTypeParameterClassDef;
-    }
-
-    public static GenericTypeCode createGeneric(int genericTypeCode, int genericParamIndex, String name, GenericTypeParameterClassDef genericTypeParameterClassDef, AgoParser.GenericTypeParameterContext genericTypeParameterContext, ClassDef templateClass){
-        return new GenericTypeCode(genericTypeCode, genericParamIndex, name, name + "_" + genericParamIndex + "_" + templateClass.getFullname(),
-                genericTypeParameterClassDef, templateClass, genericTypeParameterContext);
-    }
-
-    public GenericTypeParameterClassDef getGenericTypeParameterClassDef() {
-        return genericTypeParameterClassDef;
     }
 
     public int getGenericParamIndex() {
@@ -74,101 +55,18 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
         return name;
     }
 
-    public ClassDef getTemplateClass() {
-        return ;
-    }
-
     @Override
     public int compareTo(GenericTypeCode o) {
-        var r = this.genericTypeParameterClassDef.getTemplateClass().getFullname().compareTo(o.genericTypeParameterClassDef.getTemplateClass().getFullname());
+        var r = this.genericTypeCodeAvatarClassDef.getTemplateClass().getFullname().compareTo(o.genericTypeCodeAvatarClassDef.getTemplateClass().getFullname());
         if(r != 0) return r;
         return this.value - o.value;
     }
 
-    public static class GenericCodeAvatarClassDef extends ClassDef implements ClassBound{
-
-        private final GenericTypeCode genericTypeCode;
-
-        public GenericCodeAvatarClassDef(Root root, GenericTypeCode genericTypeCode) {
-            super(root, composeName(genericTypeCode));    // this class is just for placeholder, has no package
-            this.genericTypeCode = genericTypeCode;
-            setCompilingStage(CompilingStage.Compiled);
-        }
-        static String composeName(GenericTypeCode genericTypeCode){
-            return "%s_%d_%s|%s".formatted(genericTypeCode.name, genericTypeCode.genericParamIndex, genericTypeCode.templateClass.getFullname(), genericTypeCode.genericTypeParameterClassDef.getFullname());
-        }
-
-        @Override
-        public boolean isThatOrSuperOfThat(ClassDef anotherClass) {
-            return genericTypeCode.genericTypeParameterClassDef.isThatOrSuperOfThat(anotherClass);
-        }
-
-        @Override
-        public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
-            return genericTypeCode.genericTypeParameterClassDef.asThatOrSuperOfThat(anotherClass, visited);
-        }
-
-        @Override
-        public GenericTypeCode getTypeCode() {
-            return genericTypeCode;
-        }
-
-        @Override
-        public ClassDef getLBoundClass() {
-            return genericTypeCode.genericTypeParameterClassDef.getLBoundClass();
-        }
-
-        @Override
-        public ClassDef getUBoundClass() {
-            return genericTypeCode.genericTypeParameterClassDef.getUBoundClass();
-        }
-
-        @Override
-        public String toString() {
-            if(this.compilingStage != CompilingStage.Compiled){
-                return "(GenericCodeAvatar %s %s %s)".formatted(this.getFullname(), this.genericTypeCode, this.compilingStage);
-            }
-            return "(GenericCodeAvatar %s %s)".formatted(this.getFullname(), this.genericTypeCode);
-        }
-
-        @Override
-        public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
-            return instantiationArguments.mapType(this.genericTypeCode) != this;
-        }
-
-        @Override
-        public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) {
-            if(returnExisted != null) returnExisted.setTrue();
-            return arguments.mapType(this.genericTypeCode);
-        }
-
-        @Override
-        public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) {
-            return instantiationArguments.mapType(this.genericTypeCode);
-        }
-
-        @Override
-        public boolean isGenericInstantiateRequiredForNew() {
-            return false;
-        }
-
-        @Override
-        public boolean isPrimitiveFamily() {
-            return this.getLBoundClass().isPrimitiveFamily();
-        }
-
-        @Override
-        public boolean isPrimitiveNumberFamily() {
-            return this.getLBoundClass().isPrimitiveNumberFamily();
-        }
-
-        @Override
-        public Root getRoot() {
-            return genericTypeCode.genericTypeParameterClassDef.getRoot();
-        }
+    public void setGenericTypeCodeAvatar(GenericTypeCodeAvatarClassDef genericTypeCodeAvatarClassDef) {
+        this.genericTypeCodeAvatarClassDef = genericTypeCodeAvatarClassDef;
     }
 
-//    public GenericCodeAvatarClassDef getGenericCodeAvatarClassDef() {
-//        return genericCodeAvatarClassDef;
-//    }
+    public GenericTypeCodeAvatarClassDef getGenericTypeCodeAvatar() {
+        return genericTypeCodeAvatarClassDef;
+    }
 }

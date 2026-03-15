@@ -18,7 +18,6 @@ package org.siphonlab.ago.compiler;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
@@ -77,6 +76,7 @@ public class Root extends Namespace<Package> {
     private ClassDef CLASS_INTERVAL_CLASS;
     private ClassDef SCOPED_CLASS_INTERVAL_CLASS;
     private ClassDef GENERIC_TYPE_PARAMETER_CLASS;
+    private ClassDef GENERIC_TYPE_CODE_AVATAR_CLASS;
     private ClassDef FUNCTION_CLASS;
     private ClassDef FUNCTION_INTERFACE_BASE_OF_ANY;
     private ClassDef NATIVE_FUNCTION_INTERFACE_BASE;
@@ -227,6 +227,10 @@ public class Root extends Namespace<Package> {
     public synchronized ClassDef getGenericTypeParameter(){
         if(GENERIC_TYPE_PARAMETER_CLASS != null) return GENERIC_TYPE_PARAMETER_CLASS;
         return GENERIC_TYPE_PARAMETER_CLASS = findByFullname("lang.GenericTypeParameter");
+    }
+    public synchronized ClassDef getGenericTypeCodeAvatar(){
+        if(GENERIC_TYPE_CODE_AVATAR_CLASS != null) return GENERIC_TYPE_CODE_AVATAR_CLASS;
+        return GENERIC_TYPE_CODE_AVATAR_CLASS = findByFullname("lang.GenericTypeCodeAvatar");
     }
 
     public synchronized ClassDef getAnyClass(){

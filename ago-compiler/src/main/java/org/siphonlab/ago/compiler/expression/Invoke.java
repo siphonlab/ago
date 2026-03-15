@@ -26,7 +26,6 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
-import org.siphonlab.ago.compiler.expression.literal.VoidLiteral;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 
 import java.util.ArrayList;
@@ -230,7 +229,7 @@ public class Invoke extends ExpressionInFunctionBody{
         if(receiverVar == null) receiverVar = blockCompiler.acquireTempVar(new SomeInstance(ownerFunction, resolvedFunctionDef).setSourceLocation(((Expression)maybeFunction).getSourceLocation()));
         SlotDef resultSlot = receiverVar.getVariableSlot();
         var fun = blockCompiler.getFunctionDef();
-        boolean resolvedFunctionDefGenericInstantiateRequired = resolvedFunctionDef.isGenericInstantiateRequiredForNew();
+        boolean resolvedFunctionDefGenericInstantiateRequired = !resolvedFunctionDef.isGenericTerminated();
         if(maybeFunction instanceof ConstClass constClass){
             var n = Creator.NewProps.resolve(fun, resolvedFunctionDef);
             code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));

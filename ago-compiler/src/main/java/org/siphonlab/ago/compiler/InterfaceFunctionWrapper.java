@@ -55,18 +55,16 @@ public class InterfaceFunctionWrapper extends FunctionDef{
     @Override
     public void resolveHierarchicalClasses() throws CompilationError {
         super.resolveHierarchicalClasses();
-        if (interfaceFun.isGenericTemplate()) {
+        if (interfaceFun.getTypeParamsContext() instanceof TypeParamsContext templateTypeParamsContext) {
             // create my template parameters and map interfaceFun to instantiation of my type args
-            TypeParamsContext typeParamsContext = interfaceFun.getTypeParamsContext();
             this.shiftToTemplate();
-            for (int i = 0; i < typeParamsContext.size(); i++) {
-                GenericTypeCode genericTypeCode = typeParamsContext.get(i);
-                this.typeParamsContext.addGenericTypeParam(genericTypeCode.getName(), genericTypeCode.getGenericTypeParameterClassDef(), genericTypeCode.getGenericTypeParameterContext());
+            for (int i = 0; i < templateTypeParamsContext.size(); i++) {
+                var g = templateTypeParamsContext.get(i);
+                this.typeParamsContext.createGenericTypeParam(g.getName(), g.getSharedGenericTypeParameterClassDef(), g.getParamIndex());
             }
             GenericConcreteType instantiatedFun = this.getOrCreateGenericInstantiationClassDef(interfaceFun, this.typeParamsContext.createDefaultArgumentsArray(), null);
             this.registerConcreteType(instantiatedFun);
             this.setInterfaceFun((FunctionDef) instantiatedFun);
-
             Compiler.processClassTillStage(this.interfaceFun, this.getCompilingStage());
         }
     }

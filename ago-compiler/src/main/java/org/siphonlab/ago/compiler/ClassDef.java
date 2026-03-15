@@ -698,29 +698,11 @@ public class ClassDef extends ClassContainer {
     }
 
     /**
-     * generic template or intermediate template that can accept TypeArguments
-     * @return
-     */
-    public boolean isGenericTemplateOrIntermediate(){
-        return (this.modifiers & AgoClass.GENERIC_TEMPLATE) != 0;
-    }
-
-    /**
      * indicate it's generic template, not include intermediate template, that can can accept ClassRef[]
      * @return
      */
     public boolean isGenericTemplate(){
-        return this.typeParamsContext != null;
-    }
-
-    public boolean isInGenericInstantiation(){
-        if ((this.modifiers & AgoClass.GENERIC_INSTANTIATION) != 0)
-            return true;
-
-        if (this.parent instanceof ClassDef p) {
-            return p.isInGenericInstantiation();
-        }
-        return false;
+        return (this.modifiers & AgoClass.GENERIC_TEMPLATE) != 0;
     }
 
     public boolean isInGenericTemplate(){
@@ -1094,10 +1076,8 @@ public class ClassDef extends ClassContainer {
 
         if(dependency.isDependingOn(this)) return false;
         this.dependencies.add(dependency);
-        if(dependency instanceof ConcreteType cd) {
+        if(dependency instanceof ConcreteType cd) {     // GenericTypeAvatarClassDef included
             registerConcreteType(cd);
-        } else if(dependency instanceof GenericTypeCode.GenericCodeAvatarClassDef r){
-            registerConcreteType(r.getTypeCode().getGenericTypeParameterClassDef());
         } else {
             if(!dependency.isPrimitive())
                 this.idOfClass(dependency);
@@ -1187,6 +1167,9 @@ public class ClassDef extends ClassContainer {
 
     public void shiftToTemplate() {
         this.setModifiers(this.modifiers | AgoClass.GENERIC_TEMPLATE);
+        var existed = this.getTypeParamsContext();
+        if(existed != null) throw new  IllegalStateException(this + " is already template class");
+
         TypeParamsContext parentParams = null;
         for(var p = this.getParentClass(); p != null; p = p.getParentClass()){
             if(p.isGenericTemplate()){
@@ -1285,55 +1268,47 @@ public class ClassDef extends ClassContainer {
     public GenericConcreteType getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, MutableBoolean returnExisted) throws CompilationError {
         InstantiationArguments args = new InstantiationArguments(templateClass.getGenericSource() == null ? templateClass.getTypeParamsContext() : templateClass.getGenericSource().originalTemplate().getTypeParamsContext(), typeArguments);
         if(this.getGenericSource() != null){
-            args = this.getGenericSource().instantiationArguments().applyChild(args);
+            args = args.applyParent(this.getGenericSource().instantiationArguments());
         }
         return (GenericConcreteType)templateClass.instantiate(args, returnExisted);
     }
 
     public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        var templ = this;
+        if(!this.isAffectedByTypeArguments(arguments)) {
+            if(returnExisted != null) returnExisted.setTrue();
+            return this;
+        }
+        ClassDef templ;
         InstantiationArguments args;
         GenericSource genericSource = this.getGenericSource();
         if(genericSource != null){
             templ = genericSource.originalTemplate();
             var myArgs = genericSource.instantiationArguments();
-            if(myArgs.isIntermediate()){
-                args = this.mixInstantiationArgs(arguments);
-                if(args.equals(myArgs)){
-                    if (returnExisted != null) returnExisted.setTrue();
-                    return this;
-                }
-            } else if(!templ.isAffectedByTemplate(arguments)) {
-                if(returnExisted != null) returnExisted.setTrue();
+            args = myArgs.apply(arguments);
+            if(myArgs.equals(args)){
+                if (returnExisted != null) returnExisted.setTrue();
                 return this;
-            } else {
-                args = this.mixInstantiationArgs(arguments);
             }
         } else {
-            if(!templ.isAffectedByTemplate(arguments)) {
-                if(returnExisted != null) returnExisted.setTrue();
-                return this;
-            }
-            args = arguments.takeFor(templ);
-            assert args != null;
+            templ = this;
+            args = arguments;
+        }
+
+        if(templ.isGenericTemplate()) {
+            var argsForMe = args.takeFor(templ);
+            assert argsForMe.equals(args);      // assert never happen child has full arguments and to instantiate parent template
         }
 
         var existed = templ.getCachedInstantiatedClass(args);
         if(existed != null) {
+            //TODO the children should already instantiated if arguments has no instantiate-child-first problem
             if (!args.equals(arguments) && !this.instantiatingChildren.contains(args)) {    // arguments changed, try children
                 this.instantiateChildren(existed, args);
             }
             if(returnExisted != null) returnExisted.setTrue();
             return existed;
         } else {
-            if(templ.isGenericTemplateOrIntermediate() && args.getSourceTemplate() == templ){
-                var parent = this.parent;
-                if(this.parent instanceof ClassDef c){
-                    InstantiationArguments argsForParent = args.takeFor(c);
-                    if(argsForParent != null) {
-                        parent = c.instantiate(argsForParent, null);
-                    }
-                }
+            if(templ.isGenericTemplate() && args.getSourceTemplate() == templ){
                 if(templ instanceof FunctionDef templFun){
                     if(templFun instanceof InterfaceFunctionWrapper interfaceFunctionWrapper){
                         return new GenericInstantiationInterfaceFunctionWrapper(interfaceFunctionWrapper, (ClassContainer) parent, args);
@@ -1353,14 +1328,20 @@ public class ClassDef extends ClassContainer {
         this.instantiatingChildren.add(arguments);
         for (ClassDef child : this.getUniqueChildren()) {
             if(!this.gotFromInherited(child)){
+                InstantiationArguments childArgs;
+                if(child.getGenericSource() != null){
+                    childArgs = child.getGenericSource().instantiationArguments().applyParent(arguments);
+                } else {
+                    childArgs = arguments.withoutTemplate();
+                }
                 var returnExisted = new MutableBoolean();
-                ClassDef instantiated = child.instantiate(arguments, returnExisted);
+                ClassDef instantiated = child.instantiate(childArgs, returnExisted);
                 if(returnExisted.isFalse() && !(child instanceof GenericConcreteType)) {      // GenericInstantiationClassDef will append to parent automatically
                     instantiatedClass.addChild(instantiated);
                 }
-                if(child.getGenericSource() != null){
-                    child.getTemplateClass().putInstantiatedClassToCache(instantiatedClass.mixInstantiationArgs(arguments), instantiated);
-                }
+//                if(child.getGenericSource() != null){
+//                    child.getTemplateClass().putInstantiatedClassToCache(childArgs, instantiated);
+//                }
             }
         }
         this.instantiatingChildren.remove(arguments);
@@ -1388,22 +1369,20 @@ public class ClassDef extends ClassContainer {
         this.putInstantiatedClassToCache(instantiationArguments, instantiateClass);
 
         if(instantiationArguments.getSourceTemplate() != this){
-            var args = instantiationArguments.takeFor(this);
-            if(args != null){
-                this.putInstantiatedClassToCache(args, instantiateClass);
-            }
+            this.putInstantiatedClassToCache(instantiationArguments, instantiateClass);
+//            var args = instantiationArguments.takeFor(this);
+//            if(args != null){
+//                this.putInstantiatedClassToCache(args, instantiateClass);
+//            }
         }
 
         if(instantiateClass instanceof GenericConcreteType) {
             instantiateClass.setModifiers((this.getModifiers() & GENERIC_TEMPLATE_NEG) | AgoClass.GENERIC_INSTANTIATION);
-            if (instantiationArguments.isIntermediate()) {  // for intermediate class, there is no TypeParamsContext, instead of forwardable Arguments
-                instantiateClass.setModifiers(instantiateClass.getModifiers() | AgoClass.GENERIC_TEMPLATE);
-            }
         } else {
             // inner template classes or inner normal classes
             instantiateClass.setModifiers(this.getModifiers());
             if(this.isGenericTemplate()){
-                instantiateClass.setTypeParamsContext(this.getTypeParamsContext());
+                instantiateClass.setTypeParamsContext(this.getTypeParamsContext());     // TODO TypeParamsContext may associated with instantiationArguments
             }
         }
         instantiateClass.setUnit(this.getUnit());
@@ -1420,8 +1399,7 @@ public class ClassDef extends ClassContainer {
         instantiateChildren(instantiateClass, instantiationArguments);
     }
 
-    public GenericTypeCode findGenericType(String genericTypeName) {
-        //TODO TypeParamsContext already recusive its parent template
+    public GenericTypeCodeAvatarClassDef findGenericType(String genericTypeName) {
         var t = this.typeParamsContext;
         if(t == null){
             if(this.parent instanceof ClassDef p) {
@@ -1429,7 +1407,7 @@ public class ClassDef extends ClassContainer {
             }
             return null;
         }
-        var r = t.get(genericTypeName);      // TypeParamsContext.get(name) will recursive its parent
+        var r = t.get(genericTypeName);
         if(r == null && this.parent instanceof ClassDef p){
             return p.findGenericType(genericTypeName);
         }
@@ -1490,7 +1468,7 @@ public class ClassDef extends ClassContainer {
             }
             list.add(instantiate);
         }
-        this.setInterfaces(list);        // TODO parameterized interfaces
+        this.setInterfaces(list);
         if(templ.getSuperClass() != null) {
             this.setSuperClass(templ.getSuperClass().instantiate(instantiationArguments, null));       // TODO and parameterized superclass
         }
@@ -1650,8 +1628,8 @@ public class ClassDef extends ClassContainer {
 
         TypeParamsContext paramsContext = this.getTemplateClass().getTypeParamsContext();
         for (int i = 0; i < typeArgumentsArray.length; i++) {
-            var p = paramsContext.get(i).getGenericTypeParameterClassDef();
-            var variance = p.getVariance();
+            var p = paramsContext.get(i);
+            var variance = p.getSharedGenericTypeParameterClassDef().getVariance();
             var a1 = typeArgumentsArray[i].getClassDefValue();
             if (a1 == anotherClass.getRoot().getAnyClass()) return true;
             var a2 = anotherArguments[i].getClassDefValue();
@@ -1729,20 +1707,42 @@ public class ClassDef extends ClassContainer {
         return child.getParent() != this && child.getParent() instanceof ClassDef classDef && this.isDeriveFrom(classDef);
     }
 
-    public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
-        return instantiationArguments.canApplyToTemplate(this);
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+        for(ClassDef p = this; p != null; p = p.getParentClass()){
+            if(p.isGenericTemplate()){
+                var r = instantiationArguments.canApplyOnTemplate(p);
+                if(r) return true;
+            }
+        }
+        if(this.getSuperClass() != null && this.getSuperClass() != this){
+            if(this.getSuperClass().isAffectedByTypeArguments(instantiationArguments)) return true;
+        }
+        if(this.getInterfaces() != null){
+            for (ClassDef anInterface : this.getInterfaces()) {
+                if(anInterface.isAffectedByTypeArguments(instantiationArguments)) return true;
+            }
+        }
+        if(this.genericSource != null){
+            if(this.genericSource.instantiationArguments().canApply(instantiationArguments)){
+                return true;
+            }
+        }
+        if(this.permitClass != null){
+            if(this.permitClass.isAffectedByTypeArguments(instantiationArguments)) return true;
+        }
+        return false;
     }
 
-    /**
-     * only for org.siphonlab.ago.compile.expression.Creator.NewProps#resolve(org.siphonlab.ago.compile.ClassDef, org.siphonlab.ago.compile.ClassDef)
-     * @return
-     */
-    public boolean isGenericInstantiateRequiredForNew() {
-        if(this.parent instanceof ClassDef cp){
-            return cp.isGenericInstantiateRequiredForNew();
-        }
-        return this.isGenericTemplateOrIntermediate();
-    }
+//    /**
+//     * only for org.siphonlab.ago.compile.expression.Creator.NewProps#resolve(org.siphonlab.ago.compile.ClassDef, org.siphonlab.ago.compile.ClassDef)
+//     * @return
+//     */
+//    public boolean isGenericInstantiateRequiredForNew() {
+//        if(this.parent instanceof ClassDef cp){
+//            return cp.isGenericInstantiateRequiredForNew();
+//        }
+//        return this.isGenericTemplateOrIntermediate();
+//    }
 
     public void setTypeParamsContext(TypeParamsContext typeParamsContext) {
         this.typeParamsContext = typeParamsContext;
@@ -1763,56 +1763,6 @@ public class ClassDef extends ClassContainer {
             }
         }
         return null;
-    }
-
-    public InstantiationArguments mixInstantiationArgs(InstantiationArguments args) throws CompilationError {
-        assert (this.getGenericSource() != null);
-        var existedArgs = this.getGenericSource().instantiationArguments();
-        ClassDef mySourceTmpl = this.getGenericSource().originalTemplate();
-        var remappedValue = false;
-        if(existedArgs.valuesMatch(args)){
-            existedArgs = mapTypeValues(existedArgs, args);
-            remappedValue = true;
-        }
-        if(existedArgs.getSourceTemplate() == mySourceTmpl){
-            if(existedArgs.isIntermediate()) {
-                existedArgs = existedArgs.applyIntermediate(args);
-                if (mySourceTmpl.belongsTo(args.getSourceTemplate())) {
-                    return args.applyChild(existedArgs);
-                } else if(args.getSourceTemplate().belongsTo(mySourceTmpl)){
-                    return existedArgs.applyChild(args);
-                } else {
-                    return existedArgs;
-                }
-            }
-        }
-        if(args.getSourceTemplate().belongsTo(existedArgs.getSourceTemplate())) {
-            return existedArgs.applyChild(args);
-        } else if(existedArgs.getSourceTemplate().belongsTo(args.getSourceTemplate())){
-            return args.applyChild(existedArgs);
-        } else {
-            if(remappedValue) return existedArgs;
-            return existedArgs.size() >= args.size() ? existedArgs : args;
-        }
-    }
-
-    private InstantiationArguments mapTypeValues(InstantiationArguments existedTypeArguments, InstantiationArguments instantiationArguments) throws CompilationError {
-        ClassRefLiteral[] typeArgumentsArray = existedTypeArguments.getTypeArgumentsArray();
-        ClassRefLiteral[] newArray = new ClassRefLiteral[typeArgumentsArray.length];
-        for (int i = 0; i < typeArgumentsArray.length; i++) {
-            ClassRefLiteral classRefLiteral = typeArgumentsArray[i];
-            var c = classRefLiteral.getClassDefValue();
-            var b = false;
-            if (c.getGenericSource() != null) {
-                InstantiationArguments innerArgs = c.getGenericSource().instantiationArguments();
-                if (instantiationArguments.canApplyToTemplate(c) || innerArgs.valuesMatch(instantiationArguments)) {
-                    b = true;
-                    newArray[i] = c.instantiate(instantiationArguments, null).toClassRefLiteral();
-                }
-            }
-            if(!b) newArray[i] = classRefLiteral;
-        }
-        return new InstantiationArguments(existedTypeArguments.getSourceTemplate().getTypeParamsContext(), newArray);
     }
 
     // compile fields initializer codes
@@ -1921,8 +1871,12 @@ public class ClassDef extends ClassContainer {
         this.sourceLocation = sourceLocation;
     }
 
+    /**
+     * whether I have type parameters, ignore my superclass, interfaces, and other related classes
+     * @return
+     */
     public boolean isGenericType() {
-        return this.getTypeCode().isGeneric() || this.getGenericSource() != null && this.getGenericSource().instantiationArguments().isIntermediate();
+        return this.getTypeCode().isGeneric() || this.getGenericSource() != null && !this.getGenericSource().instantiationArguments().isTerminated();
     }
 
     public Set<ClassDef> getAllAncestors(boolean includeSelf) {
@@ -1947,5 +1901,26 @@ public class ClassDef extends ClassContainer {
 
         }
         return set;
+    }
+
+    public boolean isGenericTerminated() {
+        if(this.isInGenericTemplate()) return false;
+        if(this.getSuperClass() != null && this.getSuperClass() != this){
+            if(!this.getSuperClass().isGenericTerminated()) return false;
+        }
+        if(this.getInterfaces() != null){
+            for (ClassDef anInterface : this.getInterfaces()) {
+                if(!anInterface.isGenericTerminated()) return false;
+            }
+        }
+        if(this.genericSource != null){
+            if(!this.genericSource.instantiationArguments().isTerminated()){
+                return false;
+            }
+        }
+        if(this.permitClass != null){
+            if(!this.permitClass.isGenericTerminated()) return false;
+        }
+        return true;
     }
 }

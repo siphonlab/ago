@@ -91,15 +91,28 @@ class ScopedClassInterval from ClassInterval{
 class GenericTypeParameter from ClassInterval{
     metaclass{
         public final variance as byte
+        fun new(lBound as classref, uBound as classref, variance as byte){
+            super(lBound, uBound)
+            this.variance = variance
+        }
+    }
+}
+
+// for `t as T`, give a placeholder class to indicate generic type code T
+class GenericTypeCodeAvatar{
+    metaclass{
+        public final genericTypeParameterClass as classref
+//        public final assignedClass as GenericTypeParameter;       // when T was bound, that means, instantiated, `t as T` will replaced by `t as TypeArgument`, so this value will never assigned
         public final templateClass as classref
         public final paramIndex as int
         public final typeCode as int
-        fun new(lBound as classref, uBound as classref, variance as byte, templateClass as classref, paramIndex as int, typeCode as int){
-            super(lBound, uBound)
-            this.variance = variance
-            this.templateClass = templateClass
-            this.paramIndex = paramIndex
-            this.typeCode = typeCode
+        public final name as string
+        fun new(genericTypeParameterClass as classref, templateClass as classref, paramIndex as int, typeCode as int, name as string){
+            this.genericTypeParameterClass = genericTypeParameterClass;
+            this.templateClass = templateClass;
+            this.paramIndex = paramIndex;
+            this.typeCode = typeCode;
+            this.name = name;
         }
     }
 }

@@ -40,7 +40,7 @@ public class NullClassDef extends ClassDef {
     }
 
     @Override
-    public boolean isAffectedByTemplate(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
         return false;
     }
 
@@ -53,11 +53,6 @@ public class NullClassDef extends ClassDef {
     public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) {
         if(returnExisted!=null) returnExisted.setTrue();
         return this;
-    }
-
-    @Override
-    public boolean isGenericInstantiateRequiredForNew() {
-        return false;
     }
 
 }
