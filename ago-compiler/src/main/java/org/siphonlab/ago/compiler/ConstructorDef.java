@@ -117,7 +117,9 @@ public class ConstructorDef extends FunctionDef{
     @Override
     public boolean addDependency(ClassDef dependency) {
         if(this.isEmptyArgs()){
-            return this.getParentClass().addDependency(dependency);
+            if(this.getParentClass() != null) {     // maybe not appended to parent, i.e. instantiating
+                return this.getParentClass().addDependency(dependency);
+            }
         }
         return true;    // ignore it
     }

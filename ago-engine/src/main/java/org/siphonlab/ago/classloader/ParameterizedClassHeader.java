@@ -21,6 +21,7 @@ import org.siphonlab.ago.ParameterizedClassInfo;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.siphonlab.ago.AgoClass.*;
 import static org.siphonlab.ago.classloader.LoadingStage.*;
@@ -29,7 +30,6 @@ public class ParameterizedClassHeader extends ClassHeader {
     final String baseClass;
     final String constructor;
     final Object[] arguments;
-    private ClassHeader baseClassHeader;
 
     public ParameterizedClassHeader(String fullname, String baseClass, String metaClass, String constructor, Object[] arguments, AgoClassLoader classLoader) {
         super(fullname, TYPE_CLASS, PUBLIC, null, classLoader);
@@ -40,28 +40,27 @@ public class ParameterizedClassHeader extends ClassHeader {
     }
 
     @Override
-    public boolean processLoadClassName(Map<String, ClassHeader> headers, MutableObject<ClassHeader> createdClass) {
+    public boolean processLoadClassName(MutableObject<ClassHeader> createdClass) {
         if(this.loadingStage != LoadClassNames) return true;
-        var base = headers.get(baseClass);
+        var base = classLoader.getClassHeader(baseClass);
         if(base == null) return false;
         if(base.loadingStage == LoadClassNames) {
-            if(!base.processLoadClassName(headers, createdClass)) return false;
+            if(!base.processLoadClassName(createdClass)) return false;
         }
-        base.copyToClone(this, headers);        // copyToClone will overwrite stage
+        base.copyToClone(this);        // copyToClone will overwrite stage
         this.loadingStage = LoadClassNames;
         this.nextStage();
         return true;
     }
 
     @Override
-    public boolean resolveHierarchicalClasses(Map<String, ClassHeader> headers) {
+    public boolean resolveHierarchicalClasses() {
         if(this.loadingStage != LoadingStage.ResolveHierarchicalClasses) return true;
 
-        var base = this.baseClassHeader == null ? this.baseClassHeader = headers.get(baseClass) : this.baseClassHeader;
+        var base = this.getBaseClassHeader();
         if(base.loadingStage == LoadingStage.ResolveHierarchicalClasses){
-            if(!base.resolveHierarchicalClasses(headers)) return false;
+            if(!base.resolveHierarchicalClasses()) return false;
         }
-        this.baseClassHeader = base;
         this.setMetaClass(base.getMetaClass());
         this.setSuperClass(base.getSuperClass());
         this.setPermitClass(base.getPermitClass());
@@ -70,19 +69,24 @@ public class ParameterizedClassHeader extends ClassHeader {
         return true;
     }
 
-    public boolean parseFields(Map<String, ClassHeader> headers) {
+    @Override
+    public ClassHeader clone(ClassHeader newParent) {
+        throw new UnsupportedOperationException("TOOD");
+    }
+
+    public boolean parseFields() {
         if(this.loadingStage != LoadingStage.ParseFields) return true;
 
-        var base = this.baseClassHeader == null ? this.baseClassHeader = headers.get(baseClass) : this.baseClassHeader;
+        var base = this.getBaseClassHeader();
         if(base.loadingStage == LoadingStage.ParseFields){
-            if(!base.parseFields(headers)) return false;
+            if(!base.parseFields()) return false;
         }
 
         this.fields = base.fields;
         this.slotDescs = base.slotDescs;
         if(this.isFunction()) {
             this.functionParams = base.functionParams;
-            this.functionResultType = base.functionResultType;
+            this.setFunctionResultType(base.functionResultType);
             this.functionVariables = base.functionVariables;
             this.nativeFunctionEntrance = base.nativeFunctionEntrance;
             this.functionResultSlot = base.functionResultSlot;
@@ -99,12 +103,12 @@ public class ParameterizedClassHeader extends ClassHeader {
     }
 
     @Override
-    public boolean instantiateFunctionFamily(Map<String, ClassHeader> headers) {
+    public boolean instantiateFunctionFamily() {
         if (this.loadingStage != InstantiateFunctionFamily) return true;
 
-        var base = this.baseClassHeader;
+        var base = this.getBaseClassHeader();
         if (base.loadingStage == LoadingStage.InstantiateFunctionFamily) {
-            if (!base.instantiateFunctionFamily(headers))
+            if (!base.instantiateFunctionFamily())
                 return false;
         }
 
@@ -122,15 +126,15 @@ public class ParameterizedClassHeader extends ClassHeader {
     }
 
     public List<ClassHeader> getChildren() {
-        return this.baseClassHeader.getChildren();
+        return this.getBaseClassHeader().getChildren();
     }
 
     @Override
-    public boolean parseCode(Map<String, ClassHeader> headers) {
+    public boolean parseCode() {
         if (this.loadingStage != LoadingStage.ParseCode) return false;
-        var base = this.baseClassHeader;
+        var base = this.getBaseClassHeader();
         if (base.loadingStage == LoadingStage.ParseCode) {
-            if (!base.parseCode(headers)) return false;
+            if (!base.parseCode()) return false;
         }
         if (this.isFunction()){
             this.compiledCode = base.compiledCode.slice();
@@ -141,18 +145,18 @@ public class ParameterizedClassHeader extends ClassHeader {
     }
 
     @Override
-    public AgoClass buildClass(Map<String, ClassHeader> headers) {
+    public AgoClass buildClass() {
         if(this.loadingStage != BuildClass) return this.agoClass;
-        var baseClass = this.baseClassHeader;
+        var baseClass = this.getBaseClassHeader();
         if(baseClass.loadingStage == BuildClass){
-            var r = baseClass.buildClass(headers);
+            var r = baseClass.buildClass();
             if(r == null) return null;
         }
-        if(headers.get(baseClass.getMetaClass()).loadingStage.value <= BuildClass.value){
+        if(classLoader.getClassHeader(baseClass.getMetaClass()).loadingStage.value <= BuildClass.value){
             return null;
         }
 
-        var r = super.buildClass(headers);
+        var r = super.buildClass();
         r.setParameterizedBaseClass(baseClass.agoClass);
         this.setLoadingStage(LoadingStage.ResolveFunctionIndex);
         return r;
@@ -160,7 +164,7 @@ public class ParameterizedClassHeader extends ClassHeader {
 
     @Override
     void collectMethods(Map<String, ClassHeader> headers) {
-        ClassHeader baseClass = this.baseClassHeader;
+        ClassHeader baseClass = this.getBaseClassHeader();
         if(baseClass.getLoadingStage() == CollectMethods){
             baseClass.collectMethods(headers);
         }
@@ -176,16 +180,16 @@ public class ParameterizedClassHeader extends ClassHeader {
     void setConcreteTypeInfo(Map<String, ClassHeader> headers) {
         super.setConcreteTypeInfo(headers);
 
-        ClassHeader baseClass = this.baseClassHeader;
+        ClassHeader baseClass = this.getBaseClassHeader();
         var metaOfBase = headers.get(baseClass.getMetaClass());
         var constructor = metaOfBase.agoClass.findMethod(this.constructor);
         agoClass.setConcreteTypeInfo(new ParameterizedClassInfo(baseClass.agoClass, constructor,arguments));
     }
 
     @Override
-    public boolean isAffectedBy(Map<String, ClassHeader> headers, GenericTypeArguments genericTypeArguments) {
-        ClassHeader baseClass = this.baseClassHeader;
-        if(baseClass.isAffectedBy(headers, genericTypeArguments)) return true;
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
+        ClassHeader baseClass = classLoader.getClassHeader(this.baseClass);
+        if(baseClass.isAffectedByTypeArguments(typeArguments)) return true;
 //        for (var arg : this.arguments) {
 //            if(arg instanceof ClassHeader header) {    //TODO classref as parameter
 //                if (typeArgument.getClassDefValue().isAffectedByTemplate(instantiationArguments)) {
@@ -195,4 +199,35 @@ public class ParameterizedClassHeader extends ClassHeader {
 //        }
         return false;
     }
+
+    @Override
+    public boolean isReady() {
+        switch (this.loadingStage){
+            case LoadClassNames:
+                if(!isReady(this.baseClass)) {
+                    return false;
+                }
+                for (Object argument : this.arguments) {
+                    if(argument instanceof ClassRefValue classRefValue){
+                        if(!isReady(classRefValue.className())) return false;
+                    }
+                }
+                return true;
+            default:
+                return super.isReady();
+        }
+    }
+
+    public ClassHeader getBaseClassHeader() {
+        return Objects.requireNonNull(classLoader.getClassHeader(this.baseClass));
+    }
+
+    public static String composeNameOfClassInClassInterval(String className){
+        if(className.equals("lang.Any")){
+            return "_";
+        } else {
+            return className.replace('.', '/');
+        }
+    }
+
 }

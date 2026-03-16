@@ -15,15 +15,23 @@
  */
 package org.siphonlab.ago.classloader;
 
-public class GenericTypeCode {
-    String templateClass;
+import org.siphonlab.ago.TypeCode;
+
+public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeCode> {
     int paramIndex;
     String name;
-    String sharedGenericTypeParameterClass;
+    GenericTypeCodeAvatarClassHeader genericTypeCodeAvatarClassHeader;
 
-    GenericCodeAvatarClassHeader genericCodeAvatarClassHeader;
+    public GenericTypeCode(int genericTypeCode, int paramIndex, String name, String description){
+        super(genericTypeCode, description);
+        this.name = name;
+        this.paramIndex = paramIndex;
+    }
 
-    public static class GenericCodeAvatarClassHeader{
-
+    @Override
+    public int compareTo(GenericTypeCode o) {
+        var r = this.genericTypeCodeAvatarClassHeader.templateClassName.compareTo(o.genericTypeCodeAvatarClassHeader.templateClassName);
+        if(r != 0) return r;
+        return this.value - o.value;
     }
 }

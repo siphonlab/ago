@@ -17,7 +17,6 @@ package org.siphonlab.ago.classloader;
 
 import org.agrona.collections.IntArrayList;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.function.FailableRunnable;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.*;
@@ -30,6 +29,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -58,6 +58,9 @@ public class AgoClassLoader implements ClassManager{
 
     final SlotsCreatorFactory slotsCreatorFactory;
      private LangClasses langClasses;
+
+    Map<String, ConcreteTypeDesc> concreteTypeDescs = new HashMap<>();
+    private List<TypeDesc> typeDescs = new ArrayList<>();
 
 
     public AgoClassLoader(MetaClass theMeta, SlotsCreatorFactory slotsCreatorFactory) {
@@ -95,11 +98,32 @@ public class AgoClassLoader implements ClassManager{
         loadClasses(buffers);
     }
 
+    ClassHeader getClassHeader(String className) {
+        return headers.get(className);
+    }
+
+    public Map<String, ClassHeader> getHeaders() {
+        return headers;
+    }
+
     public void loadClasses(IoBuffer[] buffers) throws IOException {
+        initPrimitiveClassHeaders();
+
         // stage: LoadClassNames
         for (IoBuffer buffer : buffers) {
             loadClassNames(buffer);
         }
+        processConcreteTypes();
+        var solvedTypes = new ArrayList<TypeDesc>();
+        for (TypeDesc typeDesc : this.typeDescs) {
+            var h = headers.get(typeDesc.className);
+            if(h != null) {
+                typeDesc.onSolved(h);
+                solvedTypes.add(typeDesc);
+            }
+        }
+        this.typeDescs.removeAll(solvedTypes);
+
         // expand children of concrete types
         processStage(LoadingStage.LoadClassNames);
 
@@ -142,6 +166,20 @@ public class AgoClassLoader implements ClassManager{
         }
     }
 
+    private void initPrimitiveClassHeaders() {
+//        this.headers.put("void", new PrimitiveClassHeader("void", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("string", new PrimitiveClassHeader("string", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("boolean", new PrimitiveClassHeader("boolean", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("char", new PrimitiveClassHeader("char", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("float", new PrimitiveClassHeader("float", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("double", new PrimitiveClassHeader("double", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("byte", new PrimitiveClassHeader("byte", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("short", new PrimitiveClassHeader("short", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("int", new PrimitiveClassHeader("int", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("long", new PrimitiveClassHeader("long", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+//        this.headers.put("classref", new PrimitiveClassHeader("classref", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
+    }
+
     void processStage(LoadingStage stage){
         int initialSize = headers.size();
         var toSolve = new LinkedList<ClassHeader>();
@@ -154,17 +192,27 @@ public class AgoClassLoader implements ClassManager{
                     switch (classHeader.loadingStage){
                         case LoadClassNames:    {
                             MutableObject<ClassHeader> createdClass = new MutableObject<>();
-                            r = classHeader.processLoadClassName(headers, createdClass);
+                            if(classHeader.isReady()) {
+                                r = classHeader.processLoadClassName(createdClass);
+                            }
                             if(createdClass.get() != null){
                                 toSolve.add(createdClass.get());
                             }
                         }
                         break;
-                        case ResolveHierarchicalClasses:    r = classHeader.resolveHierarchicalClasses(headers); break;
-                        case ParseFields:   r = classHeader.parseFields(headers); break;
-                        case InstantiateFunctionFamily:   r = classHeader.instantiateFunctionFamily(headers); break;
-                        case ParseCode:     r = classHeader.parseCode(headers); break;
-                        case BuildClass:    r = (classHeader.buildClass(headers) != null); break;
+                        case ResolveHierarchicalClasses:    {
+                            if(classHeader.isReady()) {
+                                r = classHeader.resolveHierarchicalClasses();
+                            }
+                        } break;
+                        case ParseFields:   {
+                            if(classHeader.isReady()) {
+                                r = classHeader.parseFields();
+                            }
+                        } break;
+                        case InstantiateFunctionFamily:   r = classHeader.instantiateFunctionFamily(); break;
+                        case ParseCode:     r = classHeader.parseCode(); break;
+                        case BuildClass:    r = (classHeader.buildClass() != null); break;
                         case ResolveFunctionIndex:   resolveFunctionIndex(classHeader); r = true; break;
                     }
                     if(!r || classHeader.loadingStage.value <= stage.value)
@@ -320,16 +368,19 @@ public class AgoClassLoader implements ClassManager{
         }
         // generic type params
         cnt = buffer.getInt();
-        var genericTypeParamDescs = new GenericTypeDesc[cnt];
+        var genericTypeCodeAvatarClassHeaders = new GenericTypeCodeAvatarClassHeader[cnt];
         for (int i = 0; i < cnt; i++) {
-            String paramName = buffer.getPrefixedString(decoder);
-            int ownerClass = buffer.getInt();
-            String templateClass = ownerClass == -1 ? classFullName : strings[ownerClass];     // owner template class
-            int index = buffer.getInt();                        // index of GenericTypeCode
-            int t = buffer.getInt();                            // GenericTypeCode
-            String classParamType = strings[buffer.getInt()];   // a SharedGenericTypeParameterClassDef
-            var typeCode = new TypeCode(t, paramName);
-            genericTypeParamDescs[i] = new GenericTypeDesc(typeCode, classParamType, templateClass, index, paramName);
+            String name = strings[buffer.getInt()];
+            int finalI = i;
+            var t = new TypeDesc(0, name);
+            t.addOnSolvedListener(classHeader -> {
+                genericTypeCodeAvatarClassHeaders[finalI] = (GenericTypeCodeAvatarClassHeader) classHeader;
+            });
+            typeDescs.add(t);
+//            ClassHeader classHeader = headers.get(name);
+//            if(classHeader == null)
+//                throw new IllegalStateException("ClassHeader '%s' is null".formatted(name));
+//            genericTypeCodeAvatarClassHeaders[i] = (GenericTypeCodeAvatarClassHeader) classHeader;
         }
         // methods
         cnt = buffer.getInt();
@@ -339,10 +390,12 @@ public class AgoClassLoader implements ClassManager{
         }
 
         ClassHeader header;
-        if(type == TYPE_METACLASS){
+        if(type == TYPE_METACLASS) {
             var metaClassHeader = new MetaClassHeader(classFullName, type, modifiers, buffer.getSlice(start, end - start), this);
             metaClassHeader.setDependencies(dependencies);
             header = metaClassHeader;
+        } else if(type == TYPE_PRIMITIVE_CLASS){
+            header = new PrimitiveClassHeader(classFullName, type, modifiers, buffer.getSlice(start, end - start), this);
         } else {
             header = new ClassHeader(classFullName, type, modifiers, buffer.getSlice(start, end - start), this);
         }
@@ -358,7 +411,7 @@ public class AgoClassLoader implements ClassManager{
             header.setEnumBasePrimitiveType(enumBasePrimitiveType);
             header.setEnumValues(enumValues);
         }
-        header.genericTypeParamDescs = genericTypeParamDescs;
+        header.genericTypeParams = genericTypeCodeAvatarClassHeaders;
         if(stringsOfParent == null || type == TYPE_METACLASS) {
             header.strings = strings;
         }
@@ -408,7 +461,7 @@ public class AgoClassLoader implements ClassManager{
         headers.put(header.fullname, header);
     }
 
-    private static String extractName(String classFullName) {
+    protected static String extractName(String classFullName) {
         int length = classFullName.length();
         int start = 0;
         int depth = 0;
@@ -441,17 +494,152 @@ public class AgoClassLoader implements ClassManager{
         return classFullName.substring(start);
     }
 
+    static class ConcreteTypeDesc{
+        String fullname;
+    }
+
+    static class ArrayConcreteTypeDesc extends ConcreteTypeDesc{
+        String arrayClassName;
+        TypeDesc elementType;
+
+        public ArrayConcreteTypeDesc(String arrayClassFullName, String arrayClassName, TypeDesc elementType) {
+            this.fullname = arrayClassFullName;
+            this.arrayClassName = arrayClassName;
+            this.elementType = elementType;
+        }
+    }
+
+    static class ParameterizedClassConcreteTypeDesc extends ConcreteTypeDesc{
+        byte specialType;
+        String baseClass;
+        String metaClass;
+        String constructor;
+        Object[] arguments;
+
+        public ParameterizedClassConcreteTypeDesc(byte specialType, String fullname, String baseClass, String metaClass, String constructor, Object[] arguments) {
+            this.specialType = specialType;
+            this.fullname = fullname;
+            this.baseClass = baseClass;
+            this.metaClass = metaClass;
+            this.constructor = constructor;
+            this.arguments = arguments;
+        }
+    }
+
+    static class GenericInstantiationClassConcreteTypeDesc extends ConcreteTypeDesc{
+        String templateClass;
+        TypeDesc[] arguments;
+        String metaclass;
+        String superclass;
+        String parentClass;
+        String[] interfaces;
+
+        public GenericInstantiationClassConcreteTypeDesc(String fullname, String templateClass, TypeDesc[] arguments, String metaclass, String superclass, String parentClass, String[] interfaces) {
+            this.fullname = fullname;
+            this.templateClass = templateClass;
+            this.arguments = arguments;
+            this.metaclass = metaclass;
+            this.superclass = superclass;
+            this.parentClass = parentClass;
+            this.interfaces = interfaces;
+        }
+    }
+
+    static final class TypeDesc {
+        private final int typeCode;
+        private final String className;
+
+        TypeDesc(int typeCode, String className) {
+            this.typeCode = typeCode;
+            this.className = className;
+        }
+
+        public int typeCode() {return typeCode;}
+
+        public String className() {return className;}
+
+        private final List<Consumer<ClassHeader>> onSolved = new ArrayList<>();
+
+        public void addOnSolvedListener(Consumer<ClassHeader> consumer){
+            onSolved.add(consumer);
+        }
+        public void onSolved(ClassHeader classHeader){
+            for (Consumer<ClassHeader> consumer : this.onSolved) {
+                consumer.accept(classHeader);
+            }
+        }
+    }
+
+    private void processConcreteTypes(){
+        var ls = new LinkedList<>(concreteTypeDescs.values());
+        while(!ls.isEmpty()){
+            var concreteTypeDesc = ls.remove();
+            if(concreteTypeDesc instanceof ArrayConcreteTypeDesc arrayConcreteTypeDesc){
+                ClassHeader elementType = this.headers.get(arrayConcreteTypeDesc.elementType.className);
+                if(elementType != null || !this.concreteTypeDescs.containsKey(arrayConcreteTypeDesc.elementType.className)){
+                    ArrayTypeHeader header = new ArrayTypeHeader(arrayConcreteTypeDesc.fullname, arrayConcreteTypeDesc.arrayClassName, arrayConcreteTypeDesc.elementType.className, this);
+                    header.setClassId(headers.size());
+                    registerNewClass(header);
+                } else {
+                    ls.add(concreteTypeDesc);
+                }
+            } else if(concreteTypeDesc instanceof ParameterizedClassConcreteTypeDesc desc){
+                boolean ready = true;
+                if(headers.containsKey(desc.baseClass)){
+                    Object[] arguments = desc.arguments;
+                    for(var arg : arguments){
+                        if(arg instanceof ClassRefValue classRefValue){
+                            if(!headers.containsKey(classRefValue.className()) && concreteTypeDescs.containsKey(classRefValue.className())){
+                                ready = false;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    ready = false;
+                }
+                if(!ready){
+                    ls.add(concreteTypeDesc);
+                } else {
+                    ParameterizedClassHeader header = switch (desc.specialType) {
+                        case 0 -> new ParameterizedClassHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
+                        case 1 -> new GenericTypeCodeAvatarClassHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
+                        case 2 -> new SharedGenericTypeParameterClassHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
+                        case 3 -> new ScopedClassIntervalClassHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
+                        default -> throw new IllegalArgumentException("unknown special parameterized class '%d' for '%s'".formatted(desc.specialType, desc.fullname));
+                    };
+                    header.setName(extractName(desc.fullname));
+                    registerNewClass(header);
+                }
+            } else if(concreteTypeDesc instanceof GenericInstantiationClassConcreteTypeDesc desc){
+                for (TypeDesc argument : desc.arguments) {
+                    if(!headers.containsKey(argument.className) && concreteTypeDescs.containsKey(argument.className)){  // will process later
+                        ls.add(concreteTypeDesc);
+                        break;
+                    }
+                }
+                if(!headers.containsKey(desc.fullname)) {
+                    var args = Arrays.stream(desc.arguments).map(TypeDesc::className).toArray(String[]::new);
+                    var header = new GenericInstantiationClassHeader(desc.fullname, desc.templateClass, args, this);
+                    header.setName(extractName(desc.fullname));
+                    header.parentClassName = desc.parentClass;
+                    registerNewClass(header);
+                    header.setMetaClass(desc.metaclass.isEmpty() ? null : desc.metaclass);
+                    header.setSuperClass(desc.superclass.isEmpty() ? null : desc.superclass);
+                    header.setInterfaces(desc.interfaces);
+                }
+            }
+        }
+        this.concreteTypeDescs.clear();
+    }
+
     private void readConcreteType(IoBuffer buffer, String[] strings) throws CharacterCodingException {
         int kind = buffer.get();
         if(kind == 1){
             String arrayClassFullName = strings[buffer.getInt()];
             String arrayClassName = buffer.getPrefixedString(decoder);
             var elementType = readType(buffer, strings);
-            headers.computeIfAbsent(arrayClassFullName, n -> {
-                ArrayTypeHeader header = new ArrayTypeHeader(arrayClassFullName, arrayClassName, elementType, this);
-                header.setClassId(headers.size());
-                return header;
-            });
+            this.concreteTypeDescs.put(arrayClassFullName, new ArrayConcreteTypeDesc(arrayClassFullName, arrayClassName, elementType));
         } else if(kind == 2) {
             readParameterizedClass(buffer, strings);
         } else if(kind == 3) {
@@ -460,6 +648,7 @@ public class AgoClassLoader implements ClassManager{
     }
 
     private void readParameterizedClass(IoBuffer buffer, String[] strings) throws CharacterCodingException {
+        byte specialType = buffer.get();
         String fullname = buffer.getPrefixedString(decoder);
         String baseClass = buffer.getPrefixedString(decoder);
         String metaClass = buffer.getPrefixedString(decoder);
@@ -469,10 +658,7 @@ public class AgoClassLoader implements ClassManager{
         for (int i = 0; i < argumentLength; i++) {
             arguments[i] = readLiteral(buffer,strings);
         }
-        if(headers.containsKey(fullname)) return;
-        var header = new ParameterizedClassHeader(fullname, baseClass, metaClass, constructor, arguments, this);
-        header.setName(extractName(fullname));
-        registerNewClass(header);
+        this.concreteTypeDescs.put(fullname, new ParameterizedClassConcreteTypeDesc(specialType, fullname, baseClass, metaClass, constructor, arguments));
     }
 
     public Object readLiteral(IoBuffer buffer, String[] strings){
@@ -499,6 +685,58 @@ public class AgoClassLoader implements ClassManager{
                 };
     }
 
+    // dependency classes are super class, interfaces, and permit class, they may be isolated class, and may be nested class too
+    // className must come within template, and maybe already instantiated, but only associated with instantiationArguments
+    // i.e. class H<U> from G<U>.Inner, now to instantiate H<U=Dog>, the className must be G<U>.Inner, no G<T>.Inner nor G<Dog>.Inner
+    // and the instantiationArguments must be U=Dog
+    public ClassHeader instantiateDependencyClass(String className, InstantiationArguments instantiationArguments){
+        var h = getClassHeader(className);
+        if(h != null) {
+            if(!h.isAffectedByTypeArguments(instantiationArguments)) return h;
+            var existed = h.getSourceTemplate().getCachedInstantiatedClass(instantiationArguments);
+            if (existed != null) return existed;
+        }
+        String originalClassName = className;
+        List<String> path  = new LinkedList<>();
+        while(true) {
+            path.addFirst(className);
+            var c = extractName(className);
+            if (className.length() == c.length()) {
+                break;
+            } else {
+                var parent = className.substring(0, className.length() - c.length() - 1);
+                if (getClassHeader(parent) == null) {
+                    // it's a package, if it's a class it must be written with concrete types
+                    break;
+                } else {
+                    className = parent;
+                }
+            }
+        }
+        ClassHeader header;
+        String el = path.getFirst();     // the most out class
+        header = getClassHeader(el);
+        InstantiationArguments args = instantiationArguments.withoutNames();
+        if(header instanceof GenericInstantiationClassHeader g || header.isGenericTemplate()){
+            // cannot suggest name
+        } else {
+            instantiationArguments.setSuggestionFullname(el);
+            instantiationArguments.setSuggestionName(header.name);
+        }
+        h = header.instantiate(args);      // auto process to children
+        if(path.size() == 1) return h;
+
+        var it = path.iterator(); it.next();
+        ClassHeader parent;
+        while (it.hasNext()) {
+            parent= h;
+            String name = it.next();
+            h = parent.getSourceTemplate().instantiateChild(parent, instantiationArguments, getClassHeader(name));
+        }
+
+        return Objects.requireNonNull(h);
+    }
+
     private void readGenericParameterizedClass(IoBuffer buffer, String[] strings) throws CharacterCodingException {
         String fullname = buffer.getPrefixedString(decoder);
         String templateClass = buffer.getPrefixedString(decoder);
@@ -516,15 +754,7 @@ public class AgoClassLoader implements ClassManager{
             interfaces[i] = buffer.getPrefixedString(decoder);
         }
 
-        if(headers.containsKey(fullname)) return;
-
-        var header = new GenericInstantiationClassHeader.PlaceHolder(fullname, templateClass, arguments, this);
-        header.setName(extractName(fullname));
-        header.parentClassName = parentClass;
-        registerNewClass(header);
-        header.setMetaClass(metaclass.isEmpty() ? null : metaclass);
-        header.setSuperClass(superclass.isEmpty() ? null : superclass);
-        header.setInterfaces(interfaces);
+        this.concreteTypeDescs.put(fullname, new GenericInstantiationClassConcreteTypeDesc(fullname, templateClass, arguments, metaclass, superclass, parentClass, interfaces));
     }
 
     void parseBody(ClassHeader header) {
@@ -549,7 +779,8 @@ public class AgoClassLoader implements ClassManager{
         header.fields = fields;
 
         if(header.isFunction()) {
-            header.functionResultType = readType(buffer, strings);
+            TypeDesc functionResultType = readType(buffer, strings);
+            header.setFunctionResultType(functionResultType.className());
             // params
             var paramCount = buffer.getInt();
             var parameters = new VariableDesc[paramCount];
@@ -663,8 +894,8 @@ public class AgoClassLoader implements ClassManager{
         for (int i = 0; i < slotDescs.length; i++) {
             SlotDesc desc = slotDescs[i];
             var type = desc.type();
-            var c = type.typeCode == OBJECT ? classByName.get(type.className) : null;
-            AgoSlotDef agoSlotDef = new AgoSlotDef(desc.index(), desc.name(), type.typeCode, c);
+            var c = type.getTypeCode() == OBJECT ? classByName.get(type.fullname) : null;
+            AgoSlotDef agoSlotDef = new AgoSlotDef(desc.index(), desc.name(), type.getTypeCode(), c);
             slotDefs[i] = agoSlotDef;
             assert i == agoSlotDef.getIndex();
         }
@@ -672,22 +903,22 @@ public class AgoClassLoader implements ClassManager{
 
         agoClass.setFields(buildVariables(agoClass, header.fields).map(v -> (AgoField)v).toArray(AgoField[]::new));
 
-        if (!header.isInGenericTemplate(headers)) {   // template class doesn't create slots, but still create fields and function
+        if (!header.isInGenericTemplate()) {   // template class doesn't create slots, but still create fields and function
             agoClass.setSlotsCreator(slotsCreatorFactory.generateSlotsCreator(agoClass));
         }
 
         if(agoClass instanceof AgoFunction agoFunction){
-            agoFunction.setResultType(header.functionResultType.typeCode, classByName.get(header.functionResultType.className));
+            agoFunction.setResultType(header.getFunctionResultType().getTypeCode(), classByName.get(header.getFunctionResultType().fullname));
             agoFunction.setParameters(buildVariables(agoClass, header.functionParams).map(v -> (AgoParameter)v).toArray(AgoParameter[]::new));
             if (agoFunction instanceof AgoNativeFunction nativeFunction) {
                 nativeFunction.setResultSlot(header.functionResultSlot);
-                if(!header.isInGenericTemplate(headers)) {
+                if(!header.isInGenericTemplate()) {
                     generateNativeCaller(nativeFunction);
                 }
             } else {
                 agoFunction.setVariables(buildVariables(agoClass, header.functionVariables).toArray(AgoVariable[]::new));
             }
-            if(!header.isInGenericTemplate(headers)) {
+            if(!header.isInGenericTemplate()) {
                 agoFunction.setCode(new CodeTransformer(this, header, headers).transformCode());
             } else {
                 int[] arr = new int[header.compiledCode.remaining() / 4];
@@ -731,11 +962,11 @@ public class AgoClassLoader implements ClassManager{
         if(variables == null) return Stream.of();
         return Arrays.stream(variables).map(v -> {
             var type = v.variableKind;
-            var agoClass = v.type.typeCode == OBJECT ? classByName.get(v.type.className) : null;
+            var agoClass = v.getType().getTypeCode() == OBJECT ? classByName.get(v.getType().fullname) : null;
             var r = switch (type) {
-                case Field -> new AgoField(v.name, v.modifiers, v.type.typeCode, agoClass, v.slotIndex, owner, v.constLiteralValue);
-                case Parameter -> new AgoParameter(v.name, v.modifiers, v.type.typeCode, agoClass, v.slotIndex, (AgoFunction) owner, v.constLiteralValue);
-                case Variable -> new AgoVariable(v.name, v.modifiers, v.type.typeCode, agoClass, v.slotIndex, v.constLiteralValue);
+                case Field -> new AgoField(v.name, v.modifiers, v.getType().getTypeCode(), agoClass, v.slotIndex, owner, v.constLiteralValue);
+                case Parameter -> new AgoParameter(v.name, v.modifiers, v.getType().getTypeCode(), agoClass, v.slotIndex, (AgoFunction) owner, v.constLiteralValue);
+                case Variable -> new AgoVariable(v.name, v.modifiers, v.getType().getTypeCode(), agoClass, v.slotIndex, v.constLiteralValue);
                 case null, default -> throw new UnsupportedOperationException();
             };
             r.setSourceLocation(v.getSourceLocation());
@@ -799,7 +1030,8 @@ public class AgoClassLoader implements ClassManager{
             int index = buffer.getInt();
             String name = strings[buffer.getInt()];
             var type = readType(buffer, strings);
-            slotDescs[i] = new SlotDesc(index, name, type);
+            SlotDesc slotDesc = new SlotDesc(index, name, type.className(), this);
+            slotDescs[i] = slotDesc;
         }
         return slotDescs;
     }
@@ -808,8 +1040,6 @@ public class AgoClassLoader implements ClassManager{
         var header = this.headers.get(agoClass.getFullname());
         return header.getSlots();
     }
-
-
 
     protected int idOfString(String string) {
         Integer i = this.stringTable.get(string);
@@ -824,30 +1054,28 @@ public class AgoClassLoader implements ClassManager{
 
     private TypeDesc readType(IoBuffer buff, String[] strings) {
         int typeCodeValue = buff.getInt();
+        TypeDesc result;
         if(typeCodeValue >= GENERIC_TYPE_START){
-            String templateClass = strings[buff.getInt()];
-            int parameterIndex = buff.getInt();
-            var h = headers.get(templateClass);
-            if(h == null) {
-                var r = new GenericTypeDesc(templateClass, parameterIndex);
-                return r;
+            String className = strings[buff.getInt()];
+            result = new TypeDesc(typeCodeValue, className);
+        } else {
+            TypeCode typeCode = of(typeCodeValue);
+            if (typeCode == OBJECT) {
+                String className = strings[buff.getInt()];
+                result = new TypeDesc(typeCodeValue, className);
             } else {
-                return h.genericTypeParamDescs[parameterIndex];
+                result = new TypeDesc(typeCodeValue, typeCode.toString());
             }
         }
-        TypeCode typeCode = of(typeCodeValue);
-        if (typeCode == OBJECT) {
-            String className = strings[buff.getInt()];
-            return new TypeDesc(typeCode, className);
-        }
-        return new TypeDesc(typeCode, null);
+        this.typeDescs.add(result);
+        return result;
     }
 
     private VariableDesc readVariable(IoBuffer buff, String[] strings, String sourceFilename){
         var type = buff.get();
         int modifiers = buff.getInt();
         String name = strings[buff.getInt()];
-        TypeDesc typeDesc = readType(buff, strings);
+        var typeDesc = readType(buff, strings);
         int slotIndex = buff.getInt();
         var vt = switch(type){
             case 1 -> VariableDesc.VariableKind.Variable;
@@ -864,7 +1092,7 @@ public class AgoClassLoader implements ClassManager{
             constLiteralValue = null;
         }
         SourceLocation sourceLocation = readSourceLocation(buff,sourceFilename);
-        return new VariableDesc(name, modifiers, vt, typeDesc, slotIndex, constLiteralValue, sourceLocation);
+        return new VariableDesc(name, modifiers, vt, typeDesc.className(), slotIndex, constLiteralValue, sourceLocation, this);
     }
 
 
@@ -913,7 +1141,7 @@ public class AgoClassLoader implements ClassManager{
         }
 
         if(header instanceof GenericInstantiationClassHeader genericInstantiationClassHeader){
-            var templateHeader = genericInstantiationClassHeader.templateClass;
+            var templateHeader = genericInstantiationClassHeader.getSourceTemplate();
             if(templateHeader.loadingStage == LoadingStage.ResolveFunctionIndex)
                 resolveFunctionIndex(templateHeader);
         }
@@ -924,7 +1152,7 @@ public class AgoClassLoader implements ClassManager{
             }
             // non-private methods
             for (var methodDesc : header.methods) {
-                var f = header.findMethod(methodDesc, headers);
+                var f = header.findMethod(methodDesc);
                 if((f.getVisibility() & PRIVATE) != PRIVATE){   // PUBLIC or PROTECTED
                     var index = header.nonPrivateFunctionIndexes.get(methodDesc.getName());
                     if(index == null){
@@ -941,7 +1169,7 @@ public class AgoClassLoader implements ClassManager{
             int publicMethodIndexEnd = header.nonPrivateFunctionIndexes.size();
             var privateFunctionIndexes = new HashMap<String, Integer>();
             for (var methodDesc : header.methods) {
-                var f = header.findMethod(methodDesc, headers);
+                var f = header.findMethod(methodDesc);
                 if((f.getVisibility() & PRIVATE) == PRIVATE){
                     var index = privateFunctionIndexes.get(methodDesc.getName());
                     if(index == null){

@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 import static org.siphonlab.ago.AgoClass.*;
 import static org.siphonlab.ago.TypeCode.OBJECT;
@@ -39,8 +38,7 @@ public class ClassHeader {
 
     protected String fullname;
     protected String sourceFilename;
-    final byte type;
-    int typeCode;
+    byte type;
 
     int modifiers;
     private final IoBuffer slice;
@@ -68,12 +66,12 @@ public class ClassHeader {
     Map<String, Integer> nonPrivateFunctionIndexes = new HashMap<>();
     Map<String, MethodDesc> methodsByName = new HashMap<>();
 
-    GenericTypeDesc[] genericTypeParamDescs;
+    GenericTypeCodeAvatarClassHeader[]  genericTypeParams;
 
     protected GenericSource genericSource;
 
     protected VariableDesc[] fields;
-    public TypeDesc functionResultType;
+    protected String functionResultType;
     protected VariableDesc[] functionParams;
     String nativeFunctionEntrance;
     protected VariableDesc[] functionVariables;
@@ -86,7 +84,7 @@ public class ClassHeader {
 
     protected IntSortedArraySet handledInstructions = new IntSortedArraySet();
     private boolean bodyParsed = false;
-    private String permitClass;
+    protected String permitClass;
     private TypeCode enumBasePrimitiveType;
     private Map<String, Object> enumValues;
     private SourceLocation sourceLocation;
@@ -188,6 +186,10 @@ public class ClassHeader {
         this.buffEnd = end;
     }
 
+    public TypeCode getTypeCode(){
+        return OBJECT;
+    }
+
     @Override
     public String toString() {
         return "(Header %s %s %s to %s)".formatted(this.fullname, this.classId, buffStart, buffEnd);
@@ -205,14 +207,14 @@ public class ClassHeader {
         return blobOffset == -1 ? this.parent.getBlobOffset() : this.blobOffset;
     }
 
-    public boolean instantiateFunctionFamily(Map<String, ClassHeader> headers) {
+    public boolean instantiateFunctionFamily() {
         if (this.loadingStage != InstantiateFunctionFamily)
             return true;
 
         if(this.children != null){
             for (ClassHeader child : this.children) {
                 if(child instanceof GenericInstantiationClassHeader && child.isFunction()){
-                    child.instantiateFunctionFamily(headers);
+                    child.instantiateFunctionFamily();
                 }
             }
         }
@@ -222,14 +224,14 @@ public class ClassHeader {
     }
 
 
-    public boolean isInGenericTemplate(Map<String, ClassHeader> headers) {
+    public boolean isInGenericTemplate() {
         for (var h = this; h != null; h = h.parent) {
             if(h instanceof ParameterizedClassHeader p){
-                h = headers.get(p.baseClass);
+                h = this.classLoader.getClassHeader(p.baseClass);
             }
             if ((h.modifiers & GENERIC_TEMPLATE) == GENERIC_TEMPLATE) {
                 return true;
-            } else if(h instanceof MetaClassHeader metaClassHeader && metaClassHeader.instanceClass instanceof ClassHeader i && i.isInGenericTemplate(headers)){
+            } else if(h instanceof MetaClassHeader metaClassHeader && metaClassHeader.instanceClass instanceof ClassHeader i && i.isInGenericTemplate()){
                 return true;
             }
         }
@@ -244,51 +246,29 @@ public class ClassHeader {
         return (this.modifiers & GENERIC_INSTANTIATION) == GENERIC_INSTANTIATION;
     }
 
-    public static boolean isGenericType(TypeDesc typeDesc, Map<String, ClassHeader> headers){
-        if(typeDesc instanceof GenericTypeDesc) return true;
-        if(typeDesc.getTypeCode() == OBJECT){
-            var c = headers.get(typeDesc.getClassName());
-            // concrete types
-            return isGenericType(c,headers);
-        }
-        return false;
-    }
-
-    public static boolean isGenericType(ClassHeader header, Map<String, ClassHeader> headers){
-        // concrete types
-        if(header instanceof ArrayTypeHeader arrayTypeHeader){
-            return isGenericType(arrayTypeHeader.elementType, headers);
-        } else if(header instanceof GenericInstantiationClassHeader instantiationClassHeader){
-            return instantiationClassHeader.isInGenericTemplate(headers);
-        } else if(header instanceof ParameterizedClassHeader parameterizedClassHeader){
-            return isGenericType(headers.get(parameterizedClassHeader.baseClass), headers);
-        }
-        return false;
-    }
-
     public String[] loadStrings(){
         if(this.strings == null) return this.parent != null ? this.parent.loadStrings() : null;
         return this.strings;
     }
 
-    public ClassHeader clone(ClassHeader newParent, Map<String, ClassHeader> headers){
+    public ClassHeader clone(ClassHeader newParent){
         if (this.parent == null || !this.fullname.startsWith(this.parent.fullname)) {
             return this;
         }
         String fullname = newParent.fullname + '.' + this.name;
-        var existed = headers.get(fullname);
+        var existed = classLoader.getClassHeader(fullname);
         if(existed != null) return existed;
 
         var inst = new ClassHeader(fullname, this.type, this.modifiers, this.slice != null ? this.slice.slice() : null, this.classLoader);
         inst.setName(this.name);
-        copyToClone(inst, headers);
+        copyToClone(inst);
         inst.parent = newParent;
         classLoader.registerNewClass(inst);
         return inst;
     }
-    protected void copyToClone(ClassHeader inst, Map<String, ClassHeader> headers){
+    protected void copyToClone(ClassHeader inst){
         inst.strings = this.strings;
-        inst.genericTypeParamDescs = this.genericTypeParamDescs;
+        inst.genericTypeParams = this.genericTypeParams;
         inst.setSuperClass(this.superClass);
         inst.setPermitClass(this.permitClass);
         inst.setInterfaces(this.interfaces);
@@ -296,94 +276,150 @@ public class ClassHeader {
         inst.setSlots(this.slotDescs);
 
         if(this.isFunction()) {
-            inst.functionResultType = this.functionResultType;
+            inst.setFunctionResultType(this.functionResultType);
             inst.functionParams = this.functionParams;
             inst.functionVariables = this.functionVariables;
             inst.nativeFunctionEntrance = this.nativeFunctionEntrance;
         }
 
-        inst.genericTypeParamDescs = this.genericTypeParamDescs;
         inst.fields = this.fields;
         inst.genericSource = this.genericSource;
         inst.setLoadingStage(loadingStage);
         inst.setSourceHeader(this);
         if (this.children != null) {
-            inst.setChildren(new ArrayList<>(this.children.stream().map(c -> c.clone(inst, headers)).toList()));
+            inst.setChildren(new ArrayList<>(this.children.stream().map(c -> c.clone(inst)).toList()));
             inst.setMethods(mapMethods(this.methods, this.children, inst.children));
         }
     }
 
-    // I am a child of template, I apply template and got an instantiated class
-    public ClassHeader tryInstantiate(ClassHeader newParent, Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
-        if (this.parent != null && !this.fullname.startsWith(this.parent.fullname)) {  // inherited child
-            return this;
-        }
-        if(!typeArguments.canApplyToTemplate(this, headers)){
-            typeArguments.canApplyToTemplate(this, headers);
-            return this;
-        }
-        var existed = this.findInstantiatedClass(typeArguments);
-        if(existed != null) return existed;
+    private Set<InstantiationArguments> instantiatingChildren = new HashSet<>();
 
-        return instantiate(newParent, headers, typeArguments);
-    }
+    protected ClassHeader instantiate(InstantiationArguments typeArguments) {
+        if(!this.isAffectedByTypeArguments(typeArguments)) return this;
 
-    protected ClassHeader instantiate(ClassHeader newParent, Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
-        String name;
-        String fullname;
         ClassHeader inst;
 
-        if(this.isGenericTemplate() && typeArguments.sourceTemplate == this) {
-            name = GenericInstantiationClassHeader.composeClassName(this.name, typeArguments);
-            fullname = newParent == null ? extractPackagePrefix() + name : newParent.fullname + '.' + name;
-            inst = new GenericInstantiationClassHeader(fullname, this.type, this, typeArguments, this.classLoader);
-        } else if(this instanceof MetaClassHeader metaClassHeader){
-            String[] names = GenericInstantiationClassHeader.composeMetaClassName(metaClassHeader.instanceClass, typeArguments, headers);
-            name = names[0];
-            fullname = names[1];
-            inst = metaClassHeader.instantiateMetaClass(newParent, fullname, headers, typeArguments);
-            if(LOGGER.isDebugEnabled()) LOGGER.debug("%s apply template and got inst %s".formatted(this.fullname, inst.fullname));
-            inst.setName(name);
-            return inst;
-        } else {
-            name = this.name;
-            fullname = newParent == null ? extractPackagePrefix() + name : newParent.fullname + '.' + name;
-            inst = new ClassHeader(fullname, this.type, this.modifiers, this.slice != null ? this.slice.slice() : null, this.classLoader);
-        }
-        if(LOGGER.isDebugEnabled()) LOGGER.debug("%s apply template and got inst %s".formatted(this.fullname, inst.fullname));
-        inst.setName(name);
-        var r = this.applyInstantiation(inst, typeArguments, newParent, headers, classHeader -> {
-            if (this.isGenericTemplate() && typeArguments.sourceTemplate == this) {
-                String name2 = GenericInstantiationClassHeader.composeClassName(this.name, typeArguments);
-                String fullname2 = newParent == null ? extractPackagePrefix() + name2 : newParent.fullname + '.' + name2;
-                if(!name2.equals(classHeader.name)) {
-                    classHeader.fullname = fullname2;
-                    classHeader.name = name2;
-                }
-            } else if (this instanceof MetaClassHeader metaClassHeader) {
-                //
-            } else {
-                //
+        ClassHeader templ;
+        InstantiationArguments args;
+        GenericSource genericSource = this.genericSource;
+        if(genericSource != null){
+            templ = Objects.requireNonNull(classLoader.getClassHeader(genericSource.sourceTemplate()));
+            var myArgs = genericSource.typeArguments();
+            args = myArgs.apply(typeArguments, classLoader);
+            if(myArgs.equals(args)){
+                return this;
             }
-        });
-        if(r == inst) {
-            classLoader.registerNewClass(inst);
         } else {
-            inst = r;   // use existed
+            templ = this;
+            args = typeArguments;
         }
 
-        if(inst instanceof GenericInstantiationClassHeader && this.isFunction() && newParent != null){
-            newParent.registerFunctionInstantiation(inst, headers);
-            instantiateFunctionFamily(newParent, inst, 1, headers, typeArguments);
+        if(templ.isGenericTemplate()) {
+            args = args.takeFor(templ);
+//            var argsForMe = args.takeFor(templ);
+//            assert argsForMe.equals(args);      // assert never happen child has full arguments and to instantiate parent template
         }
+
+        var newParent = typeArguments.getParentClassHeader();
+
+        var existed = templ.getCachedInstantiatedClass(args);
+        String name = typeArguments.getSuggestionName();
+        String fullname = typeArguments.getSuggestionFullname();
+        if(existed != null) {
+            //TODO the children should already instantiated if arguments has no instantiate-child-first problem
+            if (!args.equals(typeArguments) && !this.instantiatingChildren.contains(args)) {    // arguments changed, try children
+                this.instantiateChildren(existed, args);
+            }
+            return existed;
+        } else {
+            if(templ instanceof MetaClassHeader metaClassHeader) {
+                if (name == null) {
+                    String[] names = GenericInstantiationClassHeader.composeMetaClassName(metaClassHeader.instanceClass, args);
+                    name = names[0];
+                    fullname = names[1];
+                }
+                assert newParent == null;
+                inst = metaClassHeader.instantiateMetaClass(newParent, fullname, args);
+                if (LOGGER.isDebugEnabled()) LOGGER.debug("%s apply template and got inst %s".formatted(templ.fullname, inst.fullname));
+                inst.setName(name);
+                return inst;
+            } else if(templ.isGenericTemplate() && args.sourceTemplate == templ) {
+                if(name == null) {
+                    assert newParent == null;
+                    name = GenericInstantiationClassHeader.composeClassName(templ.name, args);
+                    fullname = newParent == null ? extractPackagePrefix() + name : newParent.fullname + '.' + name;
+                }
+                inst = new GenericInstantiationClassHeader(fullname, templ.type, templ.fullname, args, this.classLoader);
+                inst.setName(name);
+                templ.putInstantiatedClassToCache(args, inst);
+            } else {
+                assert fullname != null;
+                existed = this.classLoader.getClassHeader(fullname);        // some arguments for parent may never match me, but I won't know I already created
+                if(existed != null) {
+                    templ.putInstantiatedClassToCache(args, existed);
+                    return existed;
+                }
+//                name = this.name;
+//                fullname = newParent == null ? extractPackagePrefix() + name : newParent.fullname + '.' + name;
+                inst = new ClassHeader(fullname, templ.type, templ.modifiers, templ.slice != null ? templ.slice.slice() : null, templ.classLoader);
+                inst.name = name;
+                templ.putInstantiatedClassToCache(args, inst);
+            }
+        }
+        this.classLoader.registerNewClass(inst);
+        this.applyInstantiation(inst, args, newParent);
 
         return inst;
     }
 
-    void registerFunctionInstantiation(ClassHeader inst, Map<String, ClassHeader> headers) {
+    protected void instantiateChildren(ClassHeader instantiatedClass, InstantiationArguments arguments) {
+        this.instantiatingChildren.add(arguments);
+        for (var child : this.children) {
+            if(child.parent == this){
+                instantiateChild(instantiatedClass, arguments, child);
+            }
+        }
+        this.instantiatingChildren.remove(arguments);
+    }
+
+    public ClassHeader instantiateChild(ClassHeader instantiatedClass, InstantiationArguments arguments, ClassHeader child) {
+        InstantiationArguments childArgs;
+        if(child.genericSource != null){
+            childArgs = child.genericSource.typeArguments().applyParent(arguments, classLoader);
+        } else {
+            childArgs = arguments.withoutTemplate();
+            childArgs.sourceTemplate = arguments.sourceTemplate;
+        }
+
+        var names = composeGenericInstanceNames(instantiatedClass.fullname, child, childArgs);
+        childArgs.setSuggestionName(names[0]);
+        childArgs.setSuggestionFullname(names[1]);
+        childArgs.setParentClassHeader(instantiatedClass);
+
+        var instantiated = child.instantiate(childArgs);
+        if(!instantiatedClass.children.contains(instantiated)) {
+            instantiatedClass.addChild(instantiated);
+        }
+        return instantiated;
+    }
+
+    private static String[] composeGenericInstanceNames(String parentName, ClassHeader child, InstantiationArguments childArgs) {
+        if(child.isGenericTemplate() && childArgs.sourceTemplate == child) {
+            String name = GenericInstantiationClassHeader.composeClassName(child.name, childArgs);
+            String fullname = parentName + '.' + name;
+            return new String[]{name, fullname};
+        } else if(child instanceof MetaClassHeader metaClassHeader){
+            return GenericInstantiationClassHeader.composeMetaClassName(metaClassHeader.instanceClass, childArgs);
+        } else {
+            return new String[]{child.name, parentName + '.' + child.name};
+        }
+    }
+
+
+    void registerFunctionInstantiation(ClassHeader inst) {
         MethodDesc methodDesc = new MethodDesc(inst.name, inst.fullname);
         this.addMethod(methodDesc);
-        assert this.findMethod(methodDesc, headers) != null;
+        assert this.findMethod(methodDesc) != null;
     }
 
     private void addMethod(MethodDesc methodDesc) {
@@ -394,57 +430,57 @@ public class ClassHeader {
         this.methodsByName.put(methodDesc.getName(), methodDesc);
     }
 
-    void instantiateFunctionFamily(ClassHeader parent, ClassHeader instantiationOfThis, int depth, Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
-        if(StringUtils.isNotEmpty(parent.superClass)){
-            ClassHeader superClass = headers.get(parent.superClass);
-            if(superClass == parent) return;
-            ClassHeader overriddenFunction = superClass.getSameSignatureFunction(this);
-            if(overriddenFunction != null){
-                overriddenFunction.tryInstantiate(superClass, headers, new GenericTypeArguments(overriddenFunction.getSourceTemplate(), typeArguments.getTypeArgumentsArray(), headers));
-            }
-            for (String interfaceName : parent.getInterfaces()) {
-                var interface_ = headers.get(interfaceName);
-                overriddenFunction = interface_.getSameSignatureFunction(this);
-                if (overriddenFunction != null) {
-                    overriddenFunction.tryInstantiate(superClass, headers, new GenericTypeArguments(overriddenFunction.getSourceTemplate(), typeArguments.getTypeArgumentsArray(), headers));
-                }
-            }
-        }
+//    void instantiateFunctionFamily(ClassHeader parent, ClassHeader instantiationOfThis, int depth, Map<String, ClassHeader> headers, InstantiationArguments typeArguments) {
+//        if(StringUtils.isNotEmpty(parent.superClass)){
+//            ClassHeader superClass = headers.get(parent.superClass);
+//            if(superClass == parent) return;
+//            ClassHeader overriddenFunction = superClass.getSameSignatureFunction(this);
+//            if(overriddenFunction != null){
+//                overriddenFunction.instantiate(superClass, new InstantiationArguments(overriddenFunction.getSourceTemplate(), typeArguments.getTypeArgumentsArray(), headers));
+//            }
+//            for (String interfaceName : parent.getInterfaces()) {
+//                var interface_ = headers.get(interfaceName);
+//                overriddenFunction = interface_.getSameSignatureFunction(this);
+//                if (overriddenFunction != null) {
+//                    overriddenFunction.instantiate(superClass, new InstantiationArguments(overriddenFunction.getSourceTemplate(), typeArguments.getTypeArgumentsArray(), headers));
+//                }
+//            }
+//        }
+//
+//        broadcastSubInstantiationMethod(parent, instantiationOfThis, depth, headers, typeArguments);
+//
+//    }
 
-        broadcastSubInstantiationMethod(parent, instantiationOfThis, depth, headers, typeArguments);
+//    private void broadcastSubInstantiationMethod(ClassHeader parent, ClassHeader instantiationOfThis, int depth, Map<String, ClassHeader> headers, InstantiationArguments typeArguments) {
+//        for (ClassHeader sub : headers.values()) {
+//            boolean isSub = false;
+//            if(StringUtils.equals(sub.getSuperClass(), parent.fullname)){
+//                isSub = true;
+//            } else {
+//                if (sub.interfaces != null && (parent.type == TYPE_INTERFACE || parent.type == TYPE_TRAIT)) {
+//                    for (String anInterface : sub.interfaces) {
+//                        if(StringUtils.equals(anInterface, parent.fullname)){
+//                            isSub = true;
+//                            break;
+//                        }
+//                    }
+//                }
+//            }
+//            if(isSub){
+//                var newFun = sub.getSameSignatureFunction(this);
+//                if(newFun != null && newFun != this){       // have a new(overridden) version, instantiate with the new version
+//                    newFun.instantiate(sub, typeArguments);
+//                } else {
+//                    newFun = instantiationOfThis;       // won't add child to sub, only save to methods
+//                    parent.addMethod(new MethodDesc(instantiationOfThis.name, instantiationOfThis.fullname));
+//                }
+//                broadcastSubInstantiationMethod(sub,newFun,depth + 1, headers,typeArguments);
+//            }
+//        }
+//    }
 
-    }
-
-    private void broadcastSubInstantiationMethod(ClassHeader parent, ClassHeader instantiationOfThis, int depth, Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
-        for (ClassHeader sub : headers.values()) {
-            boolean isSub = false;
-            if(StringUtils.equals(sub.getSuperClass(), parent.fullname)){
-                isSub = true;
-            } else {
-                if (sub.interfaces != null && (parent.type == TYPE_INTERFACE || parent.type == TYPE_TRAIT)) {
-                    for (String anInterface : sub.interfaces) {
-                        if(StringUtils.equals(anInterface, parent.fullname)){
-                            isSub = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            if(isSub){
-                var newFun = sub.getSameSignatureFunction(this);
-                if(newFun != null && newFun != this){       // have a new(overridden) version, instantiate with the new version
-                    newFun.tryInstantiate(sub, headers, typeArguments);
-                } else {
-                    newFun = instantiationOfThis;       // won't add child to sub, only save to methods
-                    parent.addMethod(new MethodDesc(instantiationOfThis.name, instantiationOfThis.fullname));
-                }
-                broadcastSubInstantiationMethod(sub,newFun,depth + 1, headers,typeArguments);
-            }
-        }
-    }
-
-    private ClassHeader getSourceTemplate() {
-        if(this.genericSource != null) return this.genericSource.sourceTemplate();
+    public ClassHeader getSourceTemplate() {
+        if(this.genericSource != null) return Objects.requireNonNull(classLoader.getClassHeader(this.genericSource.sourceTemplate()));
         return this;
     }
 
@@ -462,7 +498,7 @@ public class ClassHeader {
         for (int i = 0; i < anotherParameters.length; i++) {
             var anotherParam = anotherParameters[i];
             var myParam = functionParams[i];
-            if (!anotherParam.type.equals(this.functionParams[i].type) || !(myParam.type instanceof GenericTypeDesc && anotherParam.type instanceof GenericTypeDesc)){
+            if (!anotherParam.type.equals(this.functionParams[i].type) || !(myParam.getType() instanceof GenericTypeCodeAvatarClassHeader && anotherParam.getType() instanceof GenericTypeCodeAvatarClassHeader)){
                 return false;
             }
         }
@@ -502,53 +538,33 @@ public class ClassHeader {
     }
 
 
-    protected void applyInstantiation(ClassHeader inst, GenericTypeArguments typeArguments, ClassHeader newParent, Map<String, ClassHeader> headers) {
-        applyInstantiation(inst,typeArguments,newParent,headers, null);
-    }
     // for child of template ClassHeader from org.siphonlab.ago.classloader.ClassHeader.instantiate
     // for template GenericInstantiationClassDef from GenericInstantiationClassHeader.PlaceHolder.resolve
-    protected ClassHeader applyInstantiation(ClassHeader inst, GenericTypeArguments typeArguments, ClassHeader newParent, Map<String, ClassHeader> headers, Consumer<ClassHeader> callback) {
-        if(this.genericSource != null){
-            GenericTypeArguments mixInstantiationArgs = mixInstantiationArgs(typeArguments, headers);
-            if(mixInstantiationArgs != null)
-                return this.genericSource.sourceTemplate().applyInstantiation(inst, mixInstantiationArgs, newParent, headers, callback);
-        }
+    protected ClassHeader applyInstantiation(ClassHeader inst, InstantiationArguments typeArguments, ClassHeader newParent) {
         if(inst.name == null) inst.name = name;
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s apply template to %s".formatted(this.fullname, inst.fullname));
-        inst.genericSource = new GenericSource(this, typeArguments);
-        if(typeArguments.resolvePlaceHolderArguments(headers)){
-            var existed = this.findInstantiatedClass(typeArguments);
-            if(existed != null){
-                if(existed.getLoadingStage().value <= ResolveHierarchicalClasses.value) {
-                    assert headers.containsKey(existed.fullname());
-                    inst = existed;
-                } else{
-                    return existed;
-                }
-            } else {
-                // after typeArguments.resolvePlaceHolderArguments() found an existed instance, that means, some '<NA>' become available, use existed instance instead
-                if (callback != null) callback.accept(inst);
-            }
-        }
-        assert !typeArguments.toString().contains("NA");
-        this.registerGenericInstantiationClass(typeArguments, inst);
+        inst.genericSource = new GenericSource(this.fullname, typeArguments);
+        this.putInstantiatedClassToCache(typeArguments, inst);
         inst.strings = this.strings;
         inst.parent = newParent;
         if (newParent != null) newParent.addChild(inst);
-        inst.genericTypeParamDescs = this.genericTypeParamDescs;
         // create slots later
         inst.setSuperClass(this.superClass);
+        inst.type = this.type;
+        if(inst instanceof GenericInstantiationClassHeader){
+            inst.modifiers = (this.modifiers & GENERIC_TEMPLATE_NEG) | AgoClass.GENERIC_INSTANTIATION;
+        } else {
+            inst.modifiers = this.modifiers;
+        }
+        inst.setSourceLocation(this.sourceLocation);
         inst.setInterfaces(this.interfaces);    // apply instantiation for interface at resolveHierarchicalClasses, LN748
         inst.setPermitClass(this.permitClass);
         inst.setSlots(this.slotDescs);
         inst.fields = this.fields;
-        if (this.children != null) {
-            ClassHeader finalInst = inst;
-            inst.setChildren(new ArrayList<>(this.children.stream().map(c -> c.tryInstantiate(finalInst, headers, typeArguments)).toList()));
-            inst.setMethods(mapMethods(this.methods, this.children, inst.children));
-        } else {
-            inst.setMethods(this.methods);
-        }
+
+        instantiateChildren(inst, typeArguments);
+        inst.setMethods(this.methods);
+
         inst.setLoadingStage(ResolveHierarchicalClasses);
         return inst;
     }
@@ -569,17 +585,17 @@ public class ClassHeader {
     }
 
     private GenericVMCodeTransformer genericVMCodeTransformer = new GenericVMCodeTransformer(this);
-    private IoBuffer applyTemplateOnCode(IoBuffer code, GenericTypeArguments genericTypeArguments, ClassHeader instantFunction, Map<String, ClassHeader> headers) {
+    private IoBuffer applyTemplateOnCode(IoBuffer code, InstantiationArguments instantiationArguments, ClassHeader instantFunction) {
         if ((this.modifiers & NATIVE) == NATIVE) return code;
-        return genericVMCodeTransformer.transform(code, genericTypeArguments, instantFunction, headers);
+        return genericVMCodeTransformer.transform(code, instantiationArguments, instantFunction);
     }
 
     public boolean isNativeClass() {
         return this.type == TYPE_CLASS && ((this.modifiers & NATIVE) == NATIVE);
     }
 
-    public ClassHeader findMethod(MethodDesc methodDesc, Map<String, ClassHeader> headers) {
-        var r = headers.get(methodDesc.getFullname());
+    public ClassHeader findMethod(MethodDesc methodDesc) {
+        var r = classLoader.getClassHeader(methodDesc.getFullname());
         if(r == null)
             throw new RuntimeException("'%s' not found, its fullname is '%s'".formatted(methodDesc.getName(), methodDesc.getFullname()));
         return r;
@@ -615,162 +631,89 @@ public class ClassHeader {
     }
 
 
-    protected Map<GenericTypeArguments, ClassHeader> instantiatedClasses;
+    protected Map<InstantiationArguments, ClassHeader> instantiatedClasses;
     private boolean instantiateClassesHasUnsolvedGenericTypeDesc = false;
-    public void registerGenericInstantiationClass(GenericTypeArguments typeArguments, ClassHeader instantiation){
+    public void putInstantiatedClassToCache(InstantiationArguments typeArguments, ClassHeader instantiation){
         if(this.genericSource != null){
-            this.genericSource.sourceTemplate().registerGenericInstantiationClass(typeArguments, instantiation);
+            this.getSourceTemplate().putInstantiatedClassToCache(typeArguments, instantiation);
             return;
         }
         if(this.instantiatedClasses == null) this.instantiatedClasses = new HashMap<>();
         this.instantiatedClasses.put(typeArguments, instantiation);
-        if(typeArguments.hasUnsolvedGenericTypeDesc()){
-            this.instantiateClassesHasUnsolvedGenericTypeDesc = true;
-        }
     }
-    public ClassHeader findInstantiatedClass(GenericTypeArguments genericTypeArguments){
+    public ClassHeader getCachedInstantiatedClass(InstantiationArguments instantiationArguments){
         if(this.genericSource != null){
-            return this.genericSource.sourceTemplate().findInstantiatedClass(genericTypeArguments);
+            return this.getSourceTemplate().getCachedInstantiatedClass(instantiationArguments);
         }
         if(instantiatedClasses == null) return null;
-        return instantiatedClasses.get(genericTypeArguments);
+        return instantiatedClasses.get(instantiationArguments);
     }
 
-    public boolean isAffectedBy(Map<String, ClassHeader> headers, GenericTypeArguments genericTypeArguments){
-        return genericTypeArguments.canApplyToTemplate(this, headers);
-    }
-
-    /**
-     * resolve existed instantiation class, or create a new instantiation
-     */
-    public ClassHeader resolveTemplateInstantiation(Map<String, ClassHeader> headers,  GenericTypeArguments typeArguments){
-        if(this.genericSource == null){
-            if(this.isInGenericTemplate(headers)) {
-                var args = typeArguments.takeFor(this, headers);
-                if (args == null) return this;
-                assert args.size() <= typeArguments.size();
-                return findOrCreateInstantiation(headers, args);
-            } else {
-                return this;
-            }
-        } else {
-            GenericTypeArguments args = mixInstantiationArgs(typeArguments, headers);
-            if(args == null) return this;
-            // assert args.size() >= typeArguments.size();  // Function1<R=Foo, Bar> -> Function<R=Foo>
-            return this.findOrCreateInstantiation(headers, args);
-        }
-    }
-
-    public GenericTypeArguments mixInstantiationArgs(GenericTypeArguments args, Map<String, ClassHeader> headers){
-        if(this.genericSource == null) return args;
-        GenericTypeArguments existedArgs = this.genericSource.typeArguments();
-        ClassHeader mySourceTempl = this.genericSource.sourceTemplate();
-        // not like compile time, generic source may be already set to child of intermediate class
-        // ~~if(mySourceTempl == existedArgs.sourceTemplate())~~
-        var remappedValue = false;
-        if(existedArgs.valuesMatch(args, headers)){
-            existedArgs = mapTypeValues(existedArgs, args, headers);
-            remappedValue = true;
-        }
-        if(existedArgs.isIntermediate()) {
-            existedArgs = existedArgs.applyIntermediate(args, headers);
-            if(mySourceTempl.belongsTo(args.sourceTemplate)){
-                return args.applyChild(existedArgs, headers);
-            } else if(args.sourceTemplate.belongsTo(mySourceTempl)){
-                return existedArgs.applyChild(args, headers);
-            } else {
-                return existedArgs;
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments){
+        for(var p = this; p != null; p = p.parent){
+            if(p.isGenericTemplate()){
+                var r = typeArguments.canApplyOnTemplate(p);
+                if(r) return true;
             }
         }
-        if(!args.canApplyToTemplate(this,headers)) {
-            if(remappedValue) return existedArgs;
-            return null;
-        }
-        if(args.sourceTemplate.belongsTo(existedArgs.sourceTemplate)){
-            return existedArgs.applyChild(args, headers);
-        } else if(existedArgs.sourceTemplate.belongsTo(args.sourceTemplate)){
-            return args.applyChild(existedArgs, headers);
-        } else {
-            if(remappedValue) return existedArgs;
-            return existedArgs.size() >= args.size() ? existedArgs : args;
-        }
-    }
-
-    private GenericTypeArguments mapTypeValues(GenericTypeArguments existedTypeArguments, GenericTypeArguments instantiationArguments, Map<String, ClassHeader> headers) {
-        var typeArgumentsArray = existedTypeArguments.getTypeArgumentsArray();
-        var newArray = new TypeDesc[typeArgumentsArray.length];
-        boolean set = false;
-        for (int i = 0; i < typeArgumentsArray.length; i++) {
-            var typeDesc = typeArgumentsArray[i];
-            if(typeDesc.typeCode != OBJECT) {
-                newArray[i] = typeDesc;
-                continue;
+        if(this.superClass != null){
+            var superClass = classLoader.getClassHeader(this.superClass);
+            if(superClass != this) {
+                if (superClass.isAffectedByTypeArguments(typeArguments))return true;
             }
-            var c = headers.get(typeDesc.getClassName());
-            var b = false;
-            if (c.genericSource != null) {
-                var innerArgs = c.genericSource.typeArguments();
-                if (instantiationArguments.canApplyToTemplate(c, headers) || innerArgs.valuesMatch(instantiationArguments, headers)) {
-                    b = true;
-                    newArray[i] = typeDesc.applyTemplate(headers, instantiationArguments);
-                }
-            }
-            if(!b) newArray[i] = typeDesc;
-            if(b) set = true;
         }
-        if(!set) return existedTypeArguments;
-        return new GenericTypeArguments(existedTypeArguments.getSourceTemplate(), newArray, headers);
-    }
-
-    private ClassHeader findOrCreateInstantiation(Map<String, ClassHeader> headers, GenericTypeArguments typeArguments){
-        var existed = this.findInstantiatedClass(typeArguments);
-        if(existed != null) return existed;
-        ClassHeader parentInst;
-        ClassHeader templ;
+        if(this.getInterfaces() != null){
+            for (var anInterface : this.getInterfaces()) {
+                var i =  classLoader.getClassHeader(anInterface);
+                if(i.isAffectedByTypeArguments(typeArguments)) return true;
+            }
+        }
         if(this.genericSource != null){
-            templ = this.genericSource.sourceTemplate();
-        } else {
-            templ = this;
+            if(this.genericSource.typeArguments().canApply(typeArguments)){
+                return true;
+            }
         }
-        if(this.parent != null && this.parent.isAffectedBy(headers, typeArguments)){  // therefore it's not for any parent
-            parentInst = this.parent.resolveTemplateInstantiation(headers, typeArguments.takeFor(this.parent, headers));
-        } else {
-            parentInst = this.parent;
+        if(this.permitClass != null){
+            var p =  classLoader.getClassHeader(this.permitClass);
+            if(p.isAffectedByTypeArguments(typeArguments)) return true;
         }
+        return false;
 
-        return templ.instantiate(parentInst, headers, typeArguments);
     }
 
     public void nextStage() {
         this.setLoadingStage(loadingStage.nextStage());
     }
 
-    public boolean resolveHierarchicalClasses(Map<String, ClassHeader> headers) {
+    ClassHeader getSuperClassHeader(){
+        if(this.superClass == null) return null;
+        return Objects.requireNonNull(classLoader.getClassHeader(this.superClass));
+    }
+
+    public boolean resolveHierarchicalClasses() {
         if(this.loadingStage != ResolveHierarchicalClasses) return true;
 
+        var headers = classLoader.getHeaders();
         if(this.genericSource != null) {
-            ClassHeader templ = this.genericSource.sourceTemplate();
-            GenericTypeArguments typeArguments = this.genericSource.typeArguments();
-            if(!typeArguments.resolvePlaceHolderArguments(headers)) return false;
+            ClassHeader templ = this.getSourceTemplate();
+            InstantiationArguments typeArguments = this.genericSource.typeArguments();
             if (StringUtils.isNotEmpty(templ.metaClass)) {
-                MetaClassHeader metaClassHeader = (MetaClassHeader) headers.get(templ.metaClass);
-                var appliedMetaClassHeader = (MetaClassHeader) metaClassHeader.tryInstantiate(metaClassHeader.parent, headers, typeArguments);
+                MetaClassHeader metaClassHeader = (MetaClassHeader) classLoader.getClassHeader(templ.metaClass);
+                var names = GenericInstantiationClassHeader.composeMetaClassName(metaClassHeader.instanceClass, typeArguments);
+                var appliedMetaClassHeader = (MetaClassHeader) metaClassHeader.instantiateMetaClass(null, names[1], typeArguments);
                 appliedMetaClassHeader.setInstanceClass(this);
+                appliedMetaClassHeader.setName(names[0]);
                 this.metaClass = appliedMetaClassHeader.fullname;
             } else {
                 assert StringUtils.isEmpty(this.metaClass);
             }
             if(templ.superClass != null) {
                 if (!headers.containsKey(templ.superClass)) return false;
-                TypeDesc superType = new TypeDesc(OBJECT, this.superClass);
-                if (!superType.resolveGenericTypeDescPlaceHolder(headers)) return false;
-                this.setSuperClass(superType.applyTemplate(headers, typeArguments).className);
+                this.setSuperClass(classLoader.instantiateDependencyClass(templ.superClass, typeArguments).fullname);
             }
             if(templ.permitClass != null){
                 if(!headers.containsKey(templ.permitClass)) return false;
-                TypeDesc permitClass = new TypeDesc(OBJECT, templ.permitClass);
-                if (!permitClass.resolveGenericTypeDescPlaceHolder(headers)) return false;
-                this.setPermitClass(permitClass.applyTemplate(headers, typeArguments).className);
+                this.setPermitClass(classLoader.instantiateDependencyClass(templ.permitClass, typeArguments).fullname);
             }
 
             String[] interfaces = templ.interfaces;
@@ -781,11 +724,11 @@ public class ClassHeader {
                 var applied = new String[interfaces.length];
                 for (int i = 0; i < interfaces.length; i++) {
                     String interface_ = interfaces[i];
-                    var interfaceHeader = headers.get(interface_);
-                    if(this.isFunction() && interfaceHeader.isPermitForFunction(headers) && interfaceHeader.isGenericTemplate()){
+                    var interfaceHeader = classLoader.getClassHeader(interface_);
+                    if(this.isFunction() && interfaceHeader.isPermitForFunction() && interfaceHeader.isGenericTemplate()){
                         applied[i] = interface_; // skip, till parse fields, for params not loaded
                     } else {
-                        applied[i] = interfaceHeader.resolveTemplateInstantiation(headers, typeArguments).fullname;
+                        applied[i] = classLoader.instantiateDependencyClass(interface_, typeArguments).fullname;
                     }
                 }
                 this.setInterfaces(applied);
@@ -795,9 +738,9 @@ public class ClassHeader {
                 boolean changed = false;
                 for (int i = 0; i < methodDescs.size(); i++) {
                     MethodDesc methodDesc = methodDescs.get(i);
-                    var m = headers.get(methodDesc.getFullname());
+                    var m = classLoader.getClassHeader(methodDesc.getFullname());
                     if (m.parent != this) {       // inherited
-                        var mInst = m.resolveTemplateInstantiation(headers, typeArguments);
+                        var mInst = classLoader.instantiateDependencyClass(methodDesc.getFullname(), typeArguments);
                         if(mInst != m) {
                             changed = true;
                             methodDescs.set(i, new MethodDesc(mInst.getName(), mInst.fullname()));
@@ -811,7 +754,7 @@ public class ClassHeader {
 
         } else {
             if (StringUtils.isNotEmpty(this.getMetaClass())) {
-                MetaClassHeader metaClassHeader = (MetaClassHeader) headers.get(this.getMetaClass());
+                MetaClassHeader metaClassHeader = (MetaClassHeader) classLoader.getClassHeader(this.getMetaClass());
                 metaClassHeader.setInstanceClass(this);
             }
         }
@@ -819,9 +762,9 @@ public class ClassHeader {
         return true;
     }
 
-    private boolean isPermitForFunction(Map<String, ClassHeader> headers){
+    private boolean isPermitForFunction(){
         if(this.permitClass == null) return false;
-        var permitClass = headers.get(this.permitClass);
+        var permitClass = classLoader.getClassHeader(this.permitClass);
         if(permitClass.getSourceTemplate() != null && permitClass.getSourceTemplate().fullname.equals("lang.Function")){
             return true;
         }
@@ -836,60 +779,45 @@ public class ClassHeader {
         return false;
     }
 
-    private ClassHeader applyFunctionInterface(ClassHeader interfaceHeader, Map<String, ClassHeader> headers) {
+    private ClassHeader applyFunctionInterface(ClassHeader interfaceHeader) {
         if(interfaceHeader.genericSource != null){
-            interfaceHeader = interfaceHeader.genericSource.sourceTemplate();
+            interfaceHeader = interfaceHeader.getSourceTemplate();
         }
-        TypeDesc[] arr = new TypeDesc[this.functionParams == null ? 1 : this.functionParams.length + 1];
-        arr[0] = this.functionResultType;
+        ClassHeader[] arr = new ClassHeader[this.functionParams == null ? 1 : this.functionParams.length + 1];
+        arr[0] = this.getFunctionResultType();
         if(this.functionParams != null) {
             for (int i = 0; i < functionParams.length; i++) {
-                arr[i + 1] = functionParams[i].type;
+                arr[i + 1] = functionParams[i].getType();
             }
         }
-        var a = new GenericTypeArguments(interfaceHeader, arr, headers);
-        return interfaceHeader.tryInstantiate(interfaceHeader.parent, headers, a);
+        var a = new InstantiationArguments(interfaceHeader, arr, this.classLoader.getHeaders());
+        return interfaceHeader.instantiate(a);
     }
 
-    boolean resolvePlaceHolderKeyInstantiatedClassed(Map<String, ClassHeader> headers){
-        if(this.instantiatedClasses != null && instantiateClassesHasUnsolvedGenericTypeDesc){
-            var h = new HashMap<GenericTypeArguments, ClassHeader>();
-            for (Map.Entry<GenericTypeArguments, ClassHeader> entry : this.instantiatedClasses.entrySet()) {
-                var arg = entry.getKey();
-                if(!arg.resolvePlaceHolderArguments(headers)) return false;
-                h.put(arg, entry.getValue());
-            }
-            this.instantiatedClasses = h;
-        }
-        return true;
-    }
-
-    public boolean parseFields(Map<String, ClassHeader> headers) {
+    public boolean parseFields() {
         if(this.loadingStage != ParseFields) return true;
 
         if(this.genericSource != null) {
-            ClassHeader templ = this.genericSource.sourceTemplate();
-            if(!templ.resolvePlaceHolderKeyInstantiatedClassed(headers)) return false;
+            ClassHeader templ = this.getSourceTemplate();
 
-            GenericTypeArguments typeArguments = this.genericSource.typeArguments();
-            if(!typeArguments.resolvePlaceHolderArguments(headers)) return false;
+            InstantiationArguments typeArguments = this.genericSource.typeArguments();
             if(templ.loadingStage == ParseFields){
-                if(!templ.parseFields(headers)) return false;
+                if(!templ.parseFields()) return false;
             }
 
-            this.fields = Arrays.stream(templ.fields).map(f -> f.applyTemplate(headers, typeArguments)).toArray(VariableDesc[]::new);
-            var slots = Arrays.stream(templ.slotDescs).map(slotDesc -> slotDesc.applyTemplate(headers, typeArguments)).toArray(SlotDesc[]::new);
+            this.fields = Arrays.stream(templ.fields).map(f -> f.applyTemplate(typeArguments)).toArray(VariableDesc[]::new);
+            var slots = Arrays.stream(templ.slotDescs).map(slotDesc -> slotDesc.applyTemplate(typeArguments)).toArray(SlotDesc[]::new);
             this.setSlots(slots);
 
             if (this.isFunction()) {
-                if (templ.functionResultType != null) {
-                    this.functionResultType = templ.functionResultType.applyTemplate(headers, typeArguments);
+                if (templ.getFunctionResultType() != null) {
+                    this.setFunctionResultType(classLoader.instantiateDependencyClass(templ.functionResultType, typeArguments).fullname);
                 }
                 if (templ.functionParams != null) {
-                    this.functionParams = Arrays.stream(templ.functionParams).map(f -> f.applyTemplate(headers, typeArguments)).toArray(VariableDesc[]::new);
+                    this.functionParams = Arrays.stream(templ.functionParams).map(f -> f.applyTemplate(typeArguments)).toArray(VariableDesc[]::new);
                 }
                 if (templ.functionVariables != null) {
-                    this.functionVariables = Arrays.stream(templ.functionVariables).map(f -> f.applyTemplate(headers, typeArguments)).toArray(VariableDesc[]::new);
+                    this.functionVariables = Arrays.stream(templ.functionVariables).map(f -> f.applyTemplate(typeArguments)).toArray(VariableDesc[]::new);
                 }
                 this.nativeFunctionEntrance = templ.nativeFunctionEntrance;
                 this.functionResultSlot = templ.functionResultSlot;
@@ -897,9 +825,9 @@ public class ClassHeader {
                 var applied = new String[interfaces.length];
                 for (int i = 0; i < interfaces.length; i++) {
                     String interface_ = interfaces[i];
-                    var interfaceHeader = headers.get(interface_);
-                    if (this.isFunction() && interfaceHeader.isPermitForFunction(headers) && interfaceHeader.isGenericTemplate()) {
-                        applied[i] = applyFunctionInterface(interfaceHeader,headers).fullname;
+                    var interfaceHeader = classLoader.getClassHeader(interface_);
+                    if (this.isFunction() && interfaceHeader.isPermitForFunction() && interfaceHeader.isGenericTemplate()) {
+                        applied[i] = applyFunctionInterface(interfaceHeader).fullname;
                     } else {
                         applied[i] = interface_;
                     }
@@ -907,64 +835,22 @@ public class ClassHeader {
                 this.setInterfaces(applied);
             }
         } else {
-            if(!this.resolvePlaceHolderKeyInstantiatedClassed(headers)) return false;
-
             classLoader.parseBody(this);
-
-            for (VariableDesc field : this.fields) {
-                if(!field.resolveGenericTypeDescPlaceHolder(headers)) return false;
-            }
-            for (SlotDesc slotDesc : this.slotDescs) {
-                if(!slotDesc.resolveGenericTypeDescPlaceHolder(headers)) {
-                    slotDesc.resolveGenericTypeDescPlaceHolder(headers);
-                    return false;
-                }
-            }
-            if(this.genericTypeParamDescs != null){
-                GenericTypeDesc[] typeParamDescs = this.genericTypeParamDescs;
-                for (int i = 0; i < typeParamDescs.length; i++) {
-                    GenericTypeDesc g = typeParamDescs[i];
-                    if (g.isPlaceHolder) {
-                        GenericTypeDesc resolved = g.resolveExactType(headers);
-                        if (resolved == null) return false;
-                        genericTypeParamDescs[i] = resolved;
-                    }
-                }
-            }
-            if(this.isFunction()){
-                if(this.functionResultType != null){
-                    if(this.functionResultType instanceof GenericTypeDesc g && g.isPlaceHolder){
-                        GenericTypeDesc resolved = g.resolveExactType(headers);
-                        if(resolved == null) return false;
-                        this.functionResultType = resolved;
-                    }
-                }
-                if(this.functionParams != null){
-                    for (VariableDesc functionParam : functionParams) {
-                        if(!functionParam.resolveGenericTypeDescPlaceHolder(headers)) return false;
-                    }
-                }
-                if(this.functionVariables != null){
-                    for (VariableDesc functionVariable : functionVariables) {
-                        if(!functionVariable.resolveGenericTypeDescPlaceHolder(headers)) return false;
-                    }
-                }
-            }
         }
         this.setLoadingStage(InstantiateFunctionFamily);
         return true;
     }
 
-    public boolean parseCode(Map<String, ClassHeader> headers) {
+    public boolean parseCode() {
         if(this.loadingStage != ParseCode) return false;
         if(this.genericSource != null){
             if(this.isFunction()) {
-                ClassHeader template = genericSource.sourceTemplate();
-                if (this.isInGenericTemplate(headers)) {
+                ClassHeader template = getSourceTemplate();
+                if (this.isInGenericTemplate()) {
                     this.compiledCode = template.compiledCode;
                 } else {
                     var functionCode = template.compiledCode.slice();
-                    IoBuffer applied = template.applyTemplateOnCode(functionCode, genericSource.typeArguments(), this, headers);
+                    IoBuffer applied = template.applyTemplateOnCode(functionCode, genericSource.typeArguments(), this);
                     this.compiledCode = applied.rewind();
                 }
                 this.sourceMap = template.sourceMap;
@@ -974,21 +860,21 @@ public class ClassHeader {
         return true;
     }
 
-    public AgoClass buildClass(Map<String, ClassHeader> headers){
+    public AgoClass buildClass(){
         if(this.loadingStage != BuildClass) return this.agoClass;
 
         if(this.genericSource != null){
-            var templ = this.genericSource.sourceTemplate();
+            var templ = this.getSourceTemplate();
             if(templ.loadingStage == BuildClass){
-                templ.buildClass(headers);
+                templ.buildClass();
             }
         }
 
         MetaClass metaClass;
         if(StringUtils.isNotEmpty(this.getMetaClass())){
-            var metaHeader = headers.get(this.getMetaClass());
+            var metaHeader = classLoader.getClassHeader(this.getMetaClass());
             if(metaHeader.loadingStage == BuildClass){
-                metaClass = (MetaClass) metaHeader.buildClass(headers);
+                metaClass = (MetaClass) metaHeader.buildClass();
                 if(metaClass == null) return null;
             } else {
                 metaClass = (MetaClass) metaHeader.agoClass;
@@ -1069,7 +955,7 @@ public class ClassHeader {
         return false;
     }
 
-    public boolean processLoadClassName(Map<String, ClassHeader> headers, MutableObject<ClassHeader> createdClass) {
+    public boolean processLoadClassName(MutableObject<ClassHeader> createdClass) {
         if(this.loadingStage == LoadClassNames){
             this.nextStage();
         }
@@ -1097,12 +983,12 @@ public class ClassHeader {
         var methods = new ArrayList<AgoFunction>();
         if(this.methods != null) {
             for (var method : this.methods) {
-                var f = this.findMethod(method, headers);
+                var f = this.findMethod(method);
                 method.setFunctionClassHeader(f);
                 int functionIndex = method.getMethodIndex();
                 if (functionIndex <= methods.size() - 1) {
                     if (methods.get(functionIndex) != null) {
-                        this.findMethod(method, headers);
+                        this.findMethod(method);
                         throw new RuntimeException("funId collision");
                     }
                     methods.set(functionIndex, (AgoFunction) f.agoClass);
@@ -1120,20 +1006,23 @@ public class ClassHeader {
     }
 
     void setConcreteTypeInfo(Map<String, ClassHeader> headers){
-        if(this.genericSource != null && genericSource.sourceTemplate() == genericSource.typeArguments().sourceTemplate){
-            GenericTypeArguments genericTypeArguments = genericSource.typeArguments();
-            var typeInfos = Arrays.stream(genericTypeArguments.getTypeArgumentsArray()).map(t ->
-                    t.toTypeInfo(headers)
-            ).toArray(TypeInfo[]::new);
-            agoClass.setConcreteTypeInfo(new GenericArgumentsInfo(genericSource.sourceTemplate().agoClass, typeInfos));
-        }
-
-        if(this.isGenericTemplate() && this.genericSource == null){
-            var parameters = Arrays.stream(this.genericTypeParamDescs).map(p ->
-                    p.toGenericParameterTypeInfo(p.name, headers.get(p.getClassName()).agoClass, headers)
-            ).toArray(GenericParameterTypeInfo[]::new);
-            agoClass.setConcreteTypeInfo(new GenericTypeParametersInfo(parameters));
-        }
+        throw new UnsupportedOperationException("TODO");
+//        if(this.genericSource != null) {
+//            InstantiationArguments instantiationArguments = genericSource.typeArguments();
+//            if (instantiationArguments.sourceTemplate != null && Objects.equals(genericSource.sourceTemplate(), instantiationArguments.sourceTemplate.fullname)) {
+//                var typeInfos = Arrays.stream(instantiationArguments.getTypeArgumentsArray()).map(t ->
+//                        t.toTypeInfo(headers)
+//                ).toArray(TypeInfo[]::new);
+//                agoClass.setConcreteTypeInfo(new GenericArgumentsInfo(genericSource.sourceTemplate().agoClass, typeInfos));
+//            }
+//        }
+//
+//        if(this.isGenericTemplate() && this.genericSource == null){
+//            var parameters = Arrays.stream(this.genericTypeParamDescs).map(p ->
+//                    p.toGenericParameterTypeInfo(p.name, classLoader.getClassHeader(p.getClassName()).agoClass, headers)
+//            ).toArray(GenericParameterTypeInfo[]::new);
+//            agoClass.setConcreteTypeInfo(new GenericTypeParametersInfo(parameters));
+//        }
     }
 
     void buildInterfaceMethodMap(Map<String, ClassHeader> headers){
@@ -1143,9 +1032,9 @@ public class ClassHeader {
             int maxClassId = 0;
             for (int k = 0; k < interfaces.length; k++) {
                 String interface_ = interfaces[k];
-                var interfaceHeader = headers.get(interface_);
+                var interfaceHeader = classLoader.getClassHeader(interface_);
                 if(interfaceHeader.genericSource != null){
-                    interfaceHeader = interfaceHeader.genericSource.sourceTemplate();
+                    interfaceHeader = interfaceHeader.getSourceTemplate();
                 }
                 int[] map = new int[interfaceHeader.methods.size()];
 
@@ -1210,4 +1099,55 @@ public class ClassHeader {
         return sourceHeader;
     }
 
+    public boolean isGenericTerminated() {
+        return false;
+    }
+
+    public boolean isReady(String className){
+        var classHeader = this.classLoader.getClassHeader(className);
+        if(classHeader == null) return false;
+//        if(!classHeader.isReady()) return false;      // not sure
+        return true;
+    }
+
+    public boolean isReady(){
+        switch (this.loadingStage){
+            case LoadClassNames:
+                return true;
+            case ResolveHierarchicalClasses:
+                if(this.superClass != null && !this.superClass.equals(this.fullname)) {
+                    if(!isReady(this.superClass)) return false;
+                }
+                if(this.interfaces != null){
+                    for (String anInterface : this.interfaces) {
+                        if(!isReady(anInterface)) return false;
+                    }
+
+                }
+                if(this.permitClass != null) {
+                    if(!isReady(this.permitClass)) return false;
+                }
+                return true;
+            default:
+                if(this.isFunction()){
+                    if(this.functionResultType != null) {
+                        if(!isReady(functionResultType)) return false;
+                    }
+                }
+                if(this.slotDescs != null) {
+                    for (SlotDesc slotDesc : this.slotDescs) {
+                        if (!isReady(slotDesc.type)) return false;
+                    }
+                }
+                return true;
+        }
+    }
+
+    public ClassHeader getFunctionResultType() {
+        return classLoader.getClassHeader(functionResultType);
+    }
+
+    public void setFunctionResultType(String functionResultType) {
+        this.functionResultType = functionResultType;
+    }
 }

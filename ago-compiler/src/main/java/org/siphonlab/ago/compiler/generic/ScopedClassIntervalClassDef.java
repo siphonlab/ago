@@ -59,7 +59,7 @@ public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
     }
 
     public static String composeName(ClassDef lBound, ClassDef uBound){
-        return '[' + composeNameOfClassInClassInterval(lBound) + '/' + composeNameOfClassInClassInterval(uBound) + ']';
+        return '[' + composeNameOfClassInClassInterval(lBound) + '~' + composeNameOfClassInClassInterval(uBound) + ']';
     }
 
 }

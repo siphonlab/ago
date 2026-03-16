@@ -18,141 +18,107 @@ package org.siphonlab.ago.classloader;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.AgoClass;
-import org.siphonlab.ago.ArrayInfo;
-import org.siphonlab.ago.TypeCode;
 
 import java.util.Map;
+import java.util.Objects;
 
 import static org.siphonlab.ago.AgoClass.*;
-import static org.siphonlab.ago.TypeCode.OBJECT;
 import static org.siphonlab.ago.classloader.LoadingStage.BuildClass;
 import static org.siphonlab.ago.classloader.LoadingStage.LoadClassNames;
 
 public class ArrayTypeHeader extends ClassHeader {
 
-    protected TypeDesc elementType;
+    private final String elementTypeName;
+    protected ClassHeader elementType;
 
-    public ArrayTypeHeader(String fullname, String name, TypeDesc elementType, AgoClassLoader classLoader) {
+    public ArrayTypeHeader(String fullname, String name, String elementTypeName, AgoClassLoader classLoader) {
         super(fullname, TYPE_CLASS, PUBLIC, null, classLoader);
-        this.elementType = elementType;
+        this.elementTypeName = elementTypeName;
         this.name = name;
     }
 
-
-    @Override
-    public ClassHeader tryInstantiate(ClassHeader newParent, Map<String, ClassHeader> headers, GenericTypeArguments genericTypeArguments) {
-        if (this.parent != null && !this.fullname.startsWith(this.parent.fullname)) {
-            return this;
+    public ClassHeader getElementType() {
+        if(this.elementType == null){
+            this.elementType = Objects.requireNonNull(classLoader.getClassHeader(this.elementTypeName));
         }
-        TypeDesc elementInst = elementType.applyTemplate(headers, genericTypeArguments);
-        var p = composeName(newParent, elementInst, headers);
-        var existed = headers.get(p.getRight());
-        if(existed != null) return existed;
-
-        return instantiate(newParent, headers, genericTypeArguments);
+        return this.elementType;
     }
 
-    private static Pair<String, String> composeName(ClassHeader newParent, TypeDesc elementDesc, Map<String, ClassHeader> headers){
+    private static Pair<String, String> composeName(ClassHeader elementClassHeader, Map<String, ClassHeader> headers){
         String name;
         String fullname;
-        if (newParent == null) {
-            if(elementDesc.typeCode.isObject()) {
-                var el = headers.get(elementDesc.getClassName());
-                name = '[' + el.getName();
+        if(elementClassHeader.getTypeCode().isObject()) {
+            var el = headers.get(elementClassHeader.fullname());
+            name = '[' + el.getName();
+            fullname = el.extractPackagePrefix() + name;
+        } else if(elementClassHeader instanceof GenericTypeCodeAvatarClassHeader g){
+            if(g.fullname != null){
+                var el = headers.get(g.fullname);
+                name = '[' + g.getName();
                 fullname = el.extractPackagePrefix() + name;
-            } else if(elementDesc instanceof GenericTypeDesc g){
-                if(g.className != null){
-                    var el = headers.get(g.className);
-                    name = '[' + g.asClassNamePart();
-                    fullname = el.extractPackagePrefix() + name;
-                } else {
-                    name = '[' + g.asClassNamePart();
-                    fullname = name;
-                }
             } else {
-                name = '[' + elementDesc.asClassNamePart();
+                name = '[' + g.getName();
                 fullname = name;
             }
         } else {
-            name = '[' + elementDesc.asClassNamePart();
-            fullname = newParent.fullname() + '[' + elementDesc.asClassNamePart();
+            name = '[' + elementClassHeader.getName();
+            fullname = name;
         }
         return Pair.of(name, fullname);
     }
 
-    @Override
-    protected ClassHeader instantiate(ClassHeader newParent, Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
-        boolean b = false;
-        if(elementType instanceof GenericTypeDesc g){
-            if(g.isPlaceHolder){
-                this.elementType = g = g.resolveExactType(headers);
-            }
-            if(typeArguments.canApplyToTemplate(headers.get(g.templateClass), headers)) {
-                b = true;
-            }
-        } else if(elementType.getTypeCode() == OBJECT && typeArguments.canApplyToTemplate(headers.get(elementType.getClassName()), headers)){
-            b = true;
-        }
-        if(!b) return this;
 
-        TypeDesc elementInst = elementType.applyTemplate(headers, typeArguments);
-        var p = composeName(newParent, elementInst, headers);
+    @Override
+    protected ClassHeader instantiate(InstantiationArguments typeArguments) {
+        if(!this.isAffectedByTypeArguments(typeArguments)) return this;
+
+        var elementInst = classLoader.instantiateDependencyClass(getElementType().fullname, typeArguments);
+        var p = composeName(elementInst, this.classLoader.getHeaders());
         String fullname = p.getRight();
         String name = p.getLeft();
-        var existed = headers.get(fullname);
+        var existed = classLoader.getClassHeader(fullname);
         if(existed != null) return existed;
-        var inst = new ArrayTypeHeader(fullname, name, elementInst, classLoader);
-        inst.setClassId(headers.size());
+        var inst = new ArrayTypeHeader(fullname, name, elementInst.fullname, classLoader);
+        inst.setClassId(classLoader.getHeaders().size());
         classLoader.registerNewClass(inst);
-        applyInstantiation(inst, typeArguments, newParent, headers);
+        applyInstantiation(inst, typeArguments, parent);
         return inst;
     }
 
     @Override
-    public boolean isAffectedBy(Map<String, ClassHeader> headers, GenericTypeArguments genericTypeArguments) {
-        if(elementType.typeCode == TypeCode.OBJECT){
-            var h = headers.get(elementType.className);
-            return h.isAffectedBy(headers, genericTypeArguments);
-        } else if(elementType instanceof GenericTypeDesc g){
-            return genericTypeArguments.containsType(g);
-        }
-        return false;
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
+        return this.getElementType().isAffectedByTypeArguments(typeArguments);
     }
 
     @Override
-    public ClassHeader resolveTemplateInstantiation(Map<String, ClassHeader> headers,  GenericTypeArguments typeArguments) {
-        return this.tryInstantiate(this.parent, headers, typeArguments);
-    }
-
-    @Override
-    public boolean processLoadClassName(Map<String, ClassHeader> headers, MutableObject<ClassHeader> createdClass) {
+    public boolean processLoadClassName(MutableObject<ClassHeader> createdClass) {
         if(this.loadingStage != LoadClassNames) return true;
         this.nextStage();
         return true;
     }
 
     @Override
-    public boolean resolveHierarchicalClasses(Map<String, ClassHeader> headers) {
+    public boolean resolveHierarchicalClasses() {
         if(this.loadingStage != LoadingStage.ResolveHierarchicalClasses) return true;
 
-        var arrayBase = headers.get("lang.Array");
+        var arrayBase = classLoader.getClassHeader("lang.Array");
         if(arrayBase.loadingStage == LoadingStage.ResolveHierarchicalClasses){
-            arrayBase.resolveHierarchicalClasses(headers);
+            arrayBase.resolveHierarchicalClasses();
         }
-        var instantiation = arrayBase.resolveTemplateInstantiation(headers, new GenericTypeArguments(arrayBase, new TypeDesc[]{this.elementType}, headers));
+        var instantiation = arrayBase.instantiate(new InstantiationArguments(arrayBase, new ClassHeader[]{this.getElementType()}, classLoader.getHeaders()));
         this.setSuperClass(instantiation.fullname);
         this.setChildren(instantiation.getChildren());
         this.setMethods(instantiation.methods.stream().map(
                 m -> new MethodDesc(m.getName(),m.getFullname())
                 ).toList());
         this.strings = arrayBase.strings;
-        var instantiationMetaClass = headers.get(instantiation.getMetaClass());
+        var instantiationMetaClass = classLoader.getClassHeader(instantiation.getMetaClass());
         String metaFullname = this.extractPackagePrefix() + "Meta@<" + this.name + ">";
-        var existed = headers.get(metaFullname);
+        var existed = classLoader.getClassHeader(metaFullname);
         if(existed == null){
             var metaHeader = new MetaClassHeader(metaFullname, TYPE_METACLASS, instantiationMetaClass.modifiers, instantiationMetaClass.getSlice().slice(), instantiationMetaClass.classLoader);
             metaHeader.setSuperClass(instantiationMetaClass.fullname);
-            metaHeader.resolveHierarchicalClasses(headers);
+            metaHeader.resolveHierarchicalClasses();
             classLoader.registerNewClass(metaHeader);
             this.setMetaClass(metaHeader.fullname);
             metaHeader.setInstanceClass(this);
@@ -179,18 +145,12 @@ public class ArrayTypeHeader extends ClassHeader {
     }
      */
 
-    public boolean parseFields(Map<String, ClassHeader> headers) {
+    public boolean parseFields() {
         if(this.loadingStage != LoadingStage.ParseFields) return true;
 
-        if(this.elementType instanceof GenericTypeDesc g && g.isPlaceHolder){
-            GenericTypeDesc exactType = g.resolveExactType(headers);
-            if(exactType == null) return false;
-            this.elementType = exactType;
-        }
-
-        var arrayBase = headers.get(this.superClass);
+        var arrayBase = classLoader.getClassHeader(this.superClass);
         if(arrayBase.loadingStage == LoadingStage.ParseFields){
-            if(!arrayBase.parseFields(headers)) return false;
+            if(!arrayBase.parseFields()) return false;
         }
 
         this.fields = arrayBase.fields;
@@ -201,17 +161,23 @@ public class ArrayTypeHeader extends ClassHeader {
     }
 
     @Override
-    public AgoClass buildClass(Map<String, ClassHeader> headers) {
+    public AgoClass buildClass() {
         if(this.loadingStage != BuildClass) return this.agoClass;
-        if(this.elementType.typeCode == OBJECT) {
-            var eleClass = headers.get(elementType.className);
-            if (eleClass.loadingStage == BuildClass){
-                var r = eleClass.buildClass(headers);
-                if (r == null) return null;
-            }
-        }
-        var agoClass = super.buildClass(headers);
-        agoClass.setConcreteTypeInfo(new ArrayInfo(this.elementType.toTypeInfo(headers)));
-        return agoClass;
+        throw new UnsupportedOperationException("TODO");
+//        if(this.elementType.typeCode == OBJECT) {
+//            var eleClass = headers.get(elementType.className);
+//            if (eleClass.loadingStage == BuildClass){
+//                var r = eleClass.buildClass(headers);
+//                if (r == null) return null;
+//            }
+//        }
+//        var agoClass = super.buildClass(headers);
+//        agoClass.setConcreteTypeInfo(new ArrayInfo(this.elementType.toTypeInfo(headers)));
+//        return agoClass;
+    }
+
+    @Override
+    public boolean isReady() {
+        return isReady(this.elementTypeName);
     }
 }

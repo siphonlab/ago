@@ -32,15 +32,17 @@ import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
 public class GenericVMCodeTransformer {
 
     private final ClassHeader myClassHeader;
+    private final AgoClassLoader classLoader;
 
-    private Map<GenericTypeArguments, IoBuffer> genericCodeCache = new HashMap<>();
+    private Map<InstantiationArguments, IoBuffer> genericCodeCache = new HashMap<>();
 
     public GenericVMCodeTransformer(ClassHeader classHeader){
         this.myClassHeader = classHeader;
+        this.classLoader = classHeader.classLoader;
     }
 
-    public IoBuffer transform(IoBuffer bodyCodeBuffer, GenericTypeArguments genericTypeArguments, ClassHeader instantFunction, Map<String, ClassHeader> headers){
-        var existed = genericCodeCache.get(genericTypeArguments);
+    public IoBuffer transform(IoBuffer bodyCodeBuffer, InstantiationArguments instantiationArguments, ClassHeader instantFunction){
+        var existed = genericCodeCache.get(instantiationArguments);
         if (existed != null) {
             return existed;
         }
@@ -75,10 +77,10 @@ public class GenericVMCodeTransformer {
                             case Array.array_get_vav:
 
                             case Return.return_v:
-                                code.putInt(code.position() - 4, instruction2 | (genericTypeArguments.mapTypeCode(type) << 16));
+                                code.putInt(code.position() - 4, instruction2 | (instantiationArguments.mapTypeCode(type) << 16));
                                 break;
                             case Accept.accept_v:
-                                code.putInt(code.position() - 4, instruction2 | (genericTypeArguments.mapTypeCode(type) << 16));
+                                code.putInt(code.position() - 4, instruction2 | (instantiationArguments.mapTypeCode(type) << 16));
                                 break;
 
                             case Array.array_create_vCc:
@@ -86,17 +88,17 @@ public class GenericVMCodeTransformer {
                                 if (instruction == Array.array_create_g_vCc || instruction == Array.array_create_g_vCv) {
                                     // replace opcode to array_create_o
                                     code.putInt(code.position() - 4, instruction == Array.array_create_g_vCc ? Array.array_create_o_vCc : Array.array_create_o_vCv);
-                                    var c = (ArrayTypeHeader)instantiateClassName(code, 1, strings, genericTypeArguments, instantFunction, headers);
-                                    if(c.elementType.typeCode != TypeCode.OBJECT){
-                                        code.putInt(code.position() - 4, instruction2 | (c.elementType.typeCode.value << 16));
+                                    var c = (ArrayTypeHeader)instantiateClassName(code, 1, strings, instantiationArguments, instantFunction);
+                                    if(c.getElementType().getTypeCode() != TypeCode.OBJECT){
+                                        code.putInt(code.position() - 4, instruction2 | (c.getElementType().getTypeCode().value << 16));
                                     }
                                 } else {
-                                    code.putInt(code.position() - 4, instruction2 | (genericTypeArguments.mapTypeCode(type) << 16));
+                                    code.putInt(code.position() - 4, instruction2 | (instantiationArguments.mapTypeCode(type) << 16));
                                 }
                                 break;
                             }
                             case Move.move_copy_ooC:
-                                instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                                instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                                 break;
                         }
                     }
@@ -105,24 +107,24 @@ public class GenericVMCodeTransformer {
                 case NewGeneric.OP:
                     switch (instruction) {
                         case NewGeneric.newG_vC: {
-                            var classHeader = instantiateClassName(code, 1, strings, genericTypeArguments, instantFunction, headers);
+                            var classHeader = instantiateClassName(code, 1, strings, instantiationArguments, instantFunction);
                             replaceWithInstruction(code, classHeader.isNativeClass() ? New.newn_vC : New.new_vC);
                             break;
                         }
                         case NewGeneric.newg_vC: {
-                            var instantiation = updateGenericCodeClass(code, 1, strings, genericTypeArguments, instantFunction, headers);
+                            var instantiation = updateGenericCodeClass(code, 1, strings, instantiationArguments, instantFunction);
                             replaceWithInstruction(code, instantiation.isNativeClass() ? New.newn_vC : New.new_vC);
                             break;
                         }
 
                         case NewGeneric.newG_child_voC: {
-                            var instantiation = instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            var instantiation = instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                             replaceWithInstruction(code, instantiation.isNativeClass() ? New.newn_child_voC : New.new_child_voC);
                             break;
                         }
 
                         case NewGeneric.newG_method_voCm: {
-                            var instantiation = instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            var instantiation = instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                             if (instantiation.type == TYPE_INTERFACE || instantiation.type == TYPE_TRAIT) {
                                 replaceWithInstruction(code, New.new_method_voIm);
                             } else {
@@ -133,13 +135,13 @@ public class GenericVMCodeTransformer {
                         }
                         case NewGeneric.newG_method_voTm: {
                             replaceWithNew(code, New.new_method_voCm);
-                            instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                             isMethod = true;
                             break;
                         }
                         case NewGeneric.newg_method_voCm: {
                             replaceWithNew(code, instruction);
-                            var instantiation = updateGenericCodeClass(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            var instantiation = updateGenericCodeClass(code, 2, strings, instantiationArguments, instantFunction);
                             if (instantiation.type == TYPE_INTERFACE || instantiation.type == TYPE_TRAIT) {
                                 replaceWithInstruction(code, New.new_method_voIm);
                             }
@@ -148,34 +150,34 @@ public class GenericVMCodeTransformer {
                         }
                         case NewGeneric.newg_method_voTm: {
                             replaceWithNew(code, New.new_method_voCm);
-                            updateGenericCodeClass(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            updateGenericCodeClass(code, 2, strings, instantiationArguments, instantFunction);
                             isMethod = true;
                             break;
                         }
 //                    case New.new_cls_method_vCm:
                         case NewGeneric.newg_scope_child_vcC: {
-                            var cls = updateGenericCodeClass(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            var cls = updateGenericCodeClass(code, 2, strings, instantiationArguments, instantFunction);
                             replaceWithInstruction(code, cls.isNativeClass() ? New.newn_scope_child_vcC : New.new_scope_child_vcC);
                             break;
                         }
                         case NewGeneric.newG_scope_child_vcC: {
-                            var cls = instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            var cls = instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                             replaceWithInstruction(code, cls.isNativeClass() ? New.newn_scope_child_vcC : New.new_scope_child_vcC);
                             break;
                         }
                         case NewGeneric.newG_scope_method_vcCm:
                             replaceWithNew(code, instruction);
-                            instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                             isMethod = true;
                             break;
                         case NewGeneric.newg_scope_method_vcCm:
                             replaceWithNew(code, instruction);
-                            updateGenericCodeClass(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            updateGenericCodeClass(code, 2, strings, instantiationArguments, instantFunction);
                             isMethod = true;
                             break;
                         case NewGeneric.newG_scope_method_fix_vcCm:
                             replaceWithNew(code, instruction);
-                            instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                            instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                             isMethod = true;
                             break;
                     }
@@ -184,14 +186,14 @@ public class GenericVMCodeTransformer {
                 case InstanceOf.OP: {
                     var type = (instruction & OpCode.DTYPE_MASK) >> 16;
                     if (type >= GENERIC_TYPE_START) {
-                        var typeDesc = genericTypeArguments.mapType(type);
-                        int instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (typeDesc.typeCode.value << 16);
+                        var typeDesc = instantiationArguments.mapType(type);
+                        int instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (typeDesc.getTypeCode().value << 16);
                         replaceWithInstruction(code, instruction2);
-                        if(typeDesc.typeCode.isObject()){
-                            instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                        if(typeDesc.getTypeCode().isObject()){
+                            instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                         }
                     } else if(type == TypeCode.OBJECT_VALUE){
-                        instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                        instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                     }
                     break;
                 }
@@ -202,7 +204,7 @@ public class GenericVMCodeTransformer {
                         var typeCode = (instruction & OpCode.DTYPE_MASK) >> 16;
                         if (typeCode >= GENERIC_TYPE_START) {
                             int instruction2 = instruction & OpCode.DTYPE_MASK_NEG;
-                            code.putInt(code.position() - 4, instruction2 | (genericTypeArguments.mapTypeCode(typeCode) << 16));
+                            code.putInt(code.position() - 4, instruction2 | (instantiationArguments.mapTypeCode(typeCode) << 16));
                         }
                     }
                     break;
@@ -222,23 +224,23 @@ public class GenericVMCodeTransformer {
                 case GreaterEquals.OP:
                 case Box.OP: {
                     if(instruction == Box.unbox_force_vot){
-                        updateGenericCodeClass(code,2,strings,genericTypeArguments,instantFunction,headers);
+                        updateGenericCodeClass(code,2,strings, instantiationArguments,instantFunction);
                     } else {
                         var type = (instruction & OpCode.DTYPE_MASK) >> 16;
                         if (type >= GENERIC_TYPE_START) {
-                            int instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (genericTypeArguments.mapTypeCode(type) << 16);
+                            int instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (instantiationArguments.mapTypeCode(type) << 16);
                             replaceWithInstruction(code, instruction2);
                         }
                         switch (instruction) {
                             case Box.box_C_vC:
-                                instantiateClassName(code, 1, strings, genericTypeArguments, instantFunction, headers);
+                                instantiateClassName(code, 1, strings, instantiationArguments, instantFunction);
                                 break;
                             case Box.box_C_vCC:
-                                instantiateClassName(code, 1, strings, genericTypeArguments, instantFunction, headers);
-                                instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                                instantiateClassName(code, 1, strings, instantiationArguments, instantFunction);
+                                instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                                 break;
                             case Box.box_C_vvC:
-                                instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                                instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                                 break;
                         }
                     }
@@ -249,38 +251,38 @@ public class GenericVMCodeTransformer {
                     if(instruction == Cast.cast_object_vvtC){
                         var typeCode = code.getInt(code.position() + 2 * 4);
                         if(typeCode >= GENERIC_TYPE_START) {
-                            updateGenericCodeAndClassName(code, 2, typeCode, genericTypeArguments, headers, instantFunction);
+                            updateGenericCodeAndClassName(code, 2, typeCode, instantiationArguments, instantFunction);
                         } else {
-                            instantiateClassName(code,3,strings,genericTypeArguments, instantFunction, headers);
+                            instantiateClassName(code,3,strings, instantiationArguments, instantFunction);
                         }
                     } else if(instruction == Cast.cast_to_any_vtCvtC){
                         // vtC
                         var typeCode = code.getInt(code.position() + 1 * 4);
                         if (typeCode >= GENERIC_TYPE_START) {
-                            updateGenericCodeAndClassName(code, 1, typeCode, genericTypeArguments, headers, instantFunction);
+                            updateGenericCodeAndClassName(code, 1, typeCode, instantiationArguments, instantFunction);
                         } else {
                             if(typeCode == OBJECT_VALUE) {
-                                instantiateClassName(code, 2, strings, genericTypeArguments, instantFunction, headers);
+                                instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                             }
                         }
                         // ...vtC
                         typeCode = code.getInt(code.position() + 4 * 4);
                         if (typeCode >= GENERIC_TYPE_START) {
-                            updateGenericCodeAndClassName(code, 4, typeCode, genericTypeArguments, headers, instantFunction);
+                            updateGenericCodeAndClassName(code, 4, typeCode, instantiationArguments, instantFunction);
                         } else {
                             if(typeCode == OBJECT_VALUE) {
-                                instantiateClassName(code, 5, strings, genericTypeArguments, instantFunction, headers);
+                                instantiateClassName(code, 5, strings, instantiationArguments, instantFunction);
                             }
                         }
                     } else {
                         var type = (instruction & OpCode.DTYPE_MASK) >> 16;
                         int instruction2 = instruction;
                         if (type >= GENERIC_TYPE_START) {
-                            instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (genericTypeArguments.mapTypeCode(type) << 16);
+                            instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (instantiationArguments.mapTypeCode(type) << 16);
                         }
                         var t2 = (instruction & 0x0000ff00) >> 8;
                         if (t2 >= GENERIC_TYPE_START) {
-                            instruction2 = (instruction2 & 0xffff00ff) | (genericTypeArguments.mapTypeCode(t2) << 8);
+                            instruction2 = (instruction2 & 0xffff00ff) | (instantiationArguments.mapTypeCode(t2) << 8);
                         }
                         if (instruction2 != instruction)
                             replaceWithInstruction(code, instruction2);
@@ -302,18 +304,18 @@ public class GenericVMCodeTransformer {
             code.skip((OpCode.SIZE_MASK & instruction) * 4);
         }
 
-        genericCodeCache.put(genericTypeArguments, code);
+        genericCodeCache.put(instantiationArguments, code);
         return code;
     }
 
-    private static void updateGenericCodeAndClassName(IoBuffer code, int offset, int genericTypeCode, GenericTypeArguments genericTypeArguments, Map<String, ClassHeader> headers, ClassHeader instantFunction) {
+    private void updateGenericCodeAndClassName(IoBuffer code, int offset, int genericTypeCode, InstantiationArguments instantiationArguments, ClassHeader instantFunction) {
         if(genericTypeCode < GENERIC_TYPE_START) return;
 
-        var mapped = genericTypeArguments.mapType(genericTypeCode);
+        var mapped = instantiationArguments.mapType(genericTypeCode);
         if (mapped != null) {
             code.putInt(code.position() + offset * 4, mapped.getTypeCode().value);
             if(mapped.getTypeCode().value == TypeCode.OBJECT_VALUE) {
-                code.putInt(code.position() + (offset + 1) * 4, headers.get(mapped.className).classId);
+                code.putInt(code.position() + (offset + 1) * 4, classLoader.getClassHeader(mapped.fullname).classId);
             } else {
                 code.putInt(code.position() + (offset + 1) * 4, -1);
             }
@@ -330,15 +332,14 @@ public class GenericVMCodeTransformer {
         codeBuffer.putInt(codeBuffer.position() - 4, newInstruction);
     }
 
-    private ClassHeader instantiateClassName(IoBuffer codeBuffer, int offset, String[] strings, GenericTypeArguments genericTypeArguments, ClassHeader instantFunction, Map<String, ClassHeader> headers) {
+    private ClassHeader instantiateClassName(IoBuffer codeBuffer, int offset, String[] strings, InstantiationArguments instantiationArguments, ClassHeader instantFunction) {
         int pos = codeBuffer.position();
         codeBuffer.skip(offset * 4);
         int classNameId = codeBuffer.getInt();
         String className = strings[classNameId];
-        ClassHeader cls = headers.get(className);
-        ClassHeader instantiation = cls.resolveTemplateInstantiation(headers, genericTypeArguments);
+        ClassHeader instantiation = classLoader.instantiateDependencyClass(className, instantiationArguments);
         if (instantiation == null) {
-            cls.resolveTemplateInstantiation(headers, genericTypeArguments);
+            throw new RuntimeException("null instantiation: " + className);
         }
         codeBuffer.putInt(codeBuffer.position() - 4, instantiation.classId);
         instantFunction.handledInstructions.add(pos);
@@ -346,12 +347,12 @@ public class GenericVMCodeTransformer {
         return instantiation;
     }
 
-    private ClassHeader updateGenericCodeClass(IoBuffer codeBuffer, int offset, String[] strings, GenericTypeArguments genericTypeArguments, ClassHeader instantFunction, Map<String, ClassHeader> headers) {
+    private ClassHeader updateGenericCodeClass(IoBuffer codeBuffer, int offset, String[] strings, InstantiationArguments instantiationArguments, ClassHeader instantFunction) {
         int pos = codeBuffer.position();
         codeBuffer.skip(offset * 4);
         int genericCode = codeBuffer.getInt();
-        String className = genericTypeArguments.mapTypeCodeToClassName(genericCode);
-        ClassHeader header = headers.get(className);
+        String className = instantiationArguments.mapTypeCodeToClassName(genericCode);
+        ClassHeader header = classLoader.getClassHeader(className);
         codeBuffer.putInt(codeBuffer.position() - 4, header.classId);
         instantFunction.handledInstructions.add(pos);
         codeBuffer.position(pos);

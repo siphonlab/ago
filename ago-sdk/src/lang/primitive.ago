@@ -13,26 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-final class void from Primitive{}
+final class void from Primitive::(0){}
 
-final class boolean from Primitive{}
+final class string from Primitive::(3){}
 
-final class char from Primitive{}
+final class boolean from Primitive::(4){}
 
-final class float from PrimitiveNumber{}
+final class char from Primitive::(5){}
 
-final class double from PrimitiveNumber{}
+final class float from PrimitiveNumber::(6){}
 
-final class byte from PrimitiveNumber{}
+final class double from PrimitiveNumber::(7){}
 
-final class short from PrimitiveNumber{}
+final class byte from PrimitiveNumber::(8){}
 
-final class int from PrimitiveNumber{}
+final class short from PrimitiveNumber::(9){}
 
-final class long from PrimitiveNumber{}
+final class int from PrimitiveNumber::(10){}
 
-final class string from Primitive{}
+final class long from PrimitiveNumber::(11){}
 
-final class classref from Primitive{}
+final class classref from Primitive::(12){}
 
-final class null from Object{}
+final class null from Object{}          // type code should be 2, but must derived from Object

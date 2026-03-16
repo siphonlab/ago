@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.generic;
 
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.*;
@@ -104,7 +105,7 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
         if(classDef == classDef.getRoot().getAnyClass()){
             return "_";
         } else {
-            return classDef.getFullname();
+            return classDef.getFullname().replace('.', '/');
         }
     }
 

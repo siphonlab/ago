@@ -360,13 +360,13 @@ public class AgoClassParser {
         }
     }
 
-    private ClassDef mapClass(TypeDesc typeDesc) throws CompilationError {
-        if(typeDesc.getClassName() != null){
-            return mapClass(classLoader.getClass(typeDesc.getClassName()));
-        } else {
-            return root.fromPrimitiveTypeCode(typeDesc.getTypeCode());
-        }
-    }
+//    private ClassDef mapClass(TypeDesc typeDesc) throws CompilationError {
+//        if(typeDesc.getClassName() != null){
+//            return mapClass(classLoader.getClass(typeDesc.getClassName()));
+//        } else {
+//            return root.fromPrimitiveTypeCode(typeDesc.getTypeCode());
+//        }
+//    }
 
     private ClassDef mapClass(ClassDef ownerClass, AgoClass agoClass, TypeCode typeCode) throws CompilationError {
         if(typeCode != TypeCode.OBJECT){

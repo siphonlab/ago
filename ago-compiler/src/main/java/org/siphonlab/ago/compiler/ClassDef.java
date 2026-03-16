@@ -1036,7 +1036,7 @@ public class ClassDef extends ClassContainer {
     public void setMetaClassDef(MetaClassDef metaClassDef) {
         this.metaClassDef = metaClassDef;
         if(metaClassDef != null) {
-            this.dependencies.add(metaClassDef);
+            this.addDependency(metaClassDef);
         }
     }
 
@@ -1074,7 +1074,7 @@ public class ClassDef extends ClassContainer {
         if(dependency instanceof PrimitiveClassDef) return true;
         if(dependency == this || this.dependencies.contains(dependency)) return true;
 
-        if(dependency.isDependingOn(this)) return false;
+        if(dependency.isDependingOn(this, 0)) return false;
         this.dependencies.add(dependency);
         if(dependency instanceof ConcreteType cd) {     // GenericTypeAvatarClassDef included
             registerConcreteType(cd);
@@ -1085,10 +1085,13 @@ public class ClassDef extends ClassContainer {
         return true;
     }
 
-    public boolean isDependingOn(ClassDef classDef) {
+    public boolean isDependingOn(ClassDef classDef, int depth) {
+        if(depth > 100){
+            System.out.println(1);
+        }
         if(this == classDef) return false;
         for (ClassDef dependency : this.dependencies) {
-            if(dependency == classDef || dependency.isDependingOn(classDef)) return true;
+            if(dependency == classDef || dependency.isDependingOn(classDef, depth + 1)) return true;
         }
         return false;
     }
@@ -1153,7 +1156,7 @@ public class ClassDef extends ClassContainer {
             return this.getParentClass().getOrCreateArrayType(elementType, returnExisted);
         }
         ArrayClassDef arrayType = this.unit.getRoot().getOrCreateArrayType(elementType, returnExisted);
-        this.registerConcreteType(arrayType);
+        this.registerConcreteType((ConcreteType) arrayType);
         if(!elementType.isPrimitive()) this.idOfConstString(elementType.getFullname());
         return arrayType;
     }
@@ -1196,6 +1199,20 @@ public class ClassDef extends ClassContainer {
 
     public TypeParamsContext getTypeParamsContext() {
         return typeParamsContext;
+    }
+
+    public void registerConcreteType(ClassDef classDef) {
+        for(var c = classDef; c!= null; c = c.getParentClass()){
+            if(c instanceof ConcreteType concreteType){
+                registerConcreteType(concreteType);
+            } else {
+                if(c.getConcreteTypes() != null){
+                    for (ConcreteType concreteType : c.getConcreteTypes().values()) {
+                        registerConcreteType(concreteType);
+                    }
+                }
+            }
+        }
     }
 
     public void registerConcreteType(ConcreteType concreteType) {
@@ -1381,9 +1398,10 @@ public class ClassDef extends ClassContainer {
         } else {
             // inner template classes or inner normal classes
             instantiateClass.setModifiers(this.getModifiers());
-            if(this.isGenericTemplate()){
-                instantiateClass.setTypeParamsContext(this.getTypeParamsContext());     // TODO TypeParamsContext may associated with instantiationArguments
-            }
+            // instantiation class hasn't type parameters
+//            if(this.isGenericTemplate()){
+//                instantiateClass.setTypeParamsContext(this.getTypeParamsContext());     // TODO TypeParamsContext may associated with instantiationArguments
+//            }
         }
         instantiateClass.setUnit(this.getUnit());
         instantiateClass.setSourceLocation(this.getSourceLocation());        //TODO the source location assign to template's source location?
@@ -1394,6 +1412,10 @@ public class ClassDef extends ClassContainer {
             targetFun.setCommonName(tempFun.getCommonName());
             targetFun.setThrowsExceptions(tempFun.getThrowsExceptions());
         }
+        for (ClassDef argument : instantiationArguments.getAllArguments()) {
+            instantiateClass.registerConcreteType(argument);
+        }
+
         instantiateClass.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);      // ParseClassName and ParseGenericParams skipped, it will enter ResolveHierarchicalClasses and ParseField soon
 
         instantiateChildren(instantiateClass, instantiationArguments);
@@ -1470,10 +1492,18 @@ public class ClassDef extends ClassContainer {
         }
         this.setInterfaces(list);
         if(templ.getSuperClass() != null) {
-            this.setSuperClass(templ.getSuperClass().instantiate(instantiationArguments, null));       // TODO and parameterized superclass
+            ClassDef instantiated = templ.getSuperClass().instantiate(instantiationArguments, null);
+            if(instantiated instanceof ConcreteType concreteType){
+                this.registerConcreteType(concreteType);
+            }
+            this.setSuperClass(instantiated);       // TODO and parameterized superclass
         }
         if(templ.isInterfaceOrTrait() && templ.getPermitClass() != null){
-            this.setPermitClass(templ.getPermitClass().instantiate(instantiationArguments, null));
+            ClassDef instantiated = templ.getPermitClass().instantiate(instantiationArguments, null);
+            if(instantiated instanceof ConcreteType concreteType){
+                this.registerConcreteType(concreteType);
+            }
+            this.setPermitClass(instantiated);
         }
 
         this.instantiateMetaClass();

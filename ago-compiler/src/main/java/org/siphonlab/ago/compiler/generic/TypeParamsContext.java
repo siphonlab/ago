@@ -19,6 +19,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.ClassContainer;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.ConcreteType;
 import org.siphonlab.ago.compiler.Root;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
@@ -55,7 +56,7 @@ public class TypeParamsContext {
         var r = ((ClassContainer) root.getGenericTypeCodeAvatar().getParent()).getOrCreateGenericTypeAvatarClassDef(root.getGenericTypeCodeAvatar(), genericTypeParameter, templateClass, paramIndex, nextGenericTypeCode.getAndIncrement(), paramName, exists);
 
         templateClass.idOfClass(templateClass);
-        templateClass.registerConcreteType(genericTypeParameter);
+        templateClass.registerConcreteType((ConcreteType) r);
 
         this.genericTypeParamsMap.put(paramName, r);
         this.genericTypeParams.add(r);

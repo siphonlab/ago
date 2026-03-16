@@ -16,7 +16,6 @@
 package org.siphonlab.ago.classloader;
 
 import org.apache.mina.core.buffer.IoBuffer;
-import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.opcode.*;
 import org.siphonlab.ago.opcode.compare.Equals;
 import org.siphonlab.ago.opcode.compare.InstanceOf;
@@ -103,8 +102,8 @@ public class CodeTransformer {
         int p = methodDesc.getMethodIndex();
         var method = headers.get(methodDesc.getFullname());
         assert clazz.getMethod(p) == method.agoClass;
-        if(method.isInGenericTemplate(headers) && this.header.genericSource != null){
-            method = method.resolveTemplateInstantiation(headers, this.header.genericSource.typeArguments());
+        if(method.isInGenericTemplate() && this.header.genericSource != null){
+            method = classLoader.instantiateDependencyClass(methodDesc.getFullname(), this.header.genericSource.typeArguments());
             p = methodDesc.getMethodIndex();
             assert clazz.getMethod(p).getName().equals(method.agoClass.getName());
         }

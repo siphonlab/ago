@@ -204,7 +204,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                     throw scopeClass.unit.resolveError(classCreatorArguments, "no constructor in '%s' matched given arguments".formatted(baseClassDef.getFullname()));
 
                 var pc = ((ClassContainer) baseClassDef.getParent()).getOrCreateParameterizedClass(baseClassDef, metaConstructorDef, literalArguments, null);
-                scopeClass.registerConcreteType(pc);
+                scopeClass.registerConcreteType((ConcreteType) pc);
 
                 for (ReferencingObject referencingObject : this.referencingObjects) {
                     if(referencingObject instanceof RefViaSuperClass refViaSuperClass){
@@ -212,13 +212,13 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                     } else if(referencingObject instanceof RefViaInterface refViaInterface) {
                         List<ClassDef> interfaces = refViaInterface.classDef.getInterfaces();
                         interfaces.set(interfaces.indexOf(this), pc);
-                        refViaInterface.classDef.registerConcreteType(pc);
+                        refViaInterface.classDef.registerConcreteType((ConcreteType) pc);
                     } else if (referencingObject instanceof RefViaPermitClass refViaPermitClass) {
                         refViaPermitClass.classDef.setPermitClass(pc);
-                        refViaPermitClass.classDef.registerConcreteType(pc);
+                        refViaPermitClass.classDef.registerConcreteType((ConcreteType) pc);
                     } else if(referencingObject instanceof RefViaVariable refViaVariable){
                         refViaVariable.variable.setType(pc);
-                        refViaVariable.variable.ownerClass.registerConcreteType(pc);
+                        refViaVariable.variable.ownerClass.registerConcreteType((ConcreteType) pc);
                     } else if(referencingObject instanceof RefViaFunctionResult refViaFunctionResult){
                         ((FunctionDef)refViaFunctionResult.classDef).setResultType(pc);
                     }
@@ -246,9 +246,16 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
             this.setPermitClass(baseClass.getPermitClass());
         }
         this.setInterfaces(new ArrayList<>(baseClass.getInterfaces()));
-        this.addDependency(baseClass);
+        this.registerConcreteType(baseClass);
 
         this.setConstructor(baseClass.getConstructor());
+
+        this.registerConcreteType(baseClass);
+        for (Literal<?> argument : arguments) {
+            if(argument instanceof ClassRefLiteral classRefLiteral){
+                this.registerConcreteType(classRefLiteral.getClassDefValue());
+            }
+        }
 
         if(baseClass.getCompilingStage().getValue() >= CompilingStage.InheritsFields.getValue())
             this.compilingStage = CompilingStage.ParseFields;

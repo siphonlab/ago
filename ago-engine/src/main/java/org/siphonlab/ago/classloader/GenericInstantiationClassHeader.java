@@ -18,7 +18,6 @@ package org.siphonlab.ago.classloader;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.AgoClass;
-import org.siphonlab.ago.TypeCode;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,37 +27,46 @@ import static org.siphonlab.ago.classloader.LoadingStage.*;
 
 public class GenericInstantiationClassHeader extends ClassHeader {
 
-    final ClassHeader templateClass;
-    private String parentClassName;
+    final String templateClass;
+    private String[] argumentNames;
+    private InstantiationArguments arguments;
+    protected String parentClassName;
 
-    public GenericInstantiationClassHeader(String fullname, byte type, ClassHeader templateClass, GenericTypeArguments genericTypeArguments, AgoClassLoader classLoader) {
-        super(fullname, type, 0, null, classLoader);
-        this.genericSource = new GenericSource(templateClass, genericTypeArguments);
+    public GenericInstantiationClassHeader(String fullname, String templateClass, String[] arguments, AgoClassLoader agoClassLoader) {
+        super(fullname, (byte) 0, 0, null, agoClassLoader);
+        this.fullname = fullname;
         this.templateClass = templateClass;
+        this.argumentNames = arguments;
     }
 
-    private static int composeModifiers(ClassHeader templateClass, GenericTypeArguments arguments) {
-        var modifiers = (templateClass.modifiers & GENERIC_TEMPLATE_NEG) | AgoClass.GENERIC_INSTANTIATION;
-        if(arguments.isIntermediate()){
-            return modifiers | AgoClass.GENERIC_TEMPLATE;
+    public GenericInstantiationClassHeader(String fullname, byte type,String templateClass, InstantiationArguments instantiationArguments, AgoClassLoader classLoader) {
+        super(fullname, type, 0, null, classLoader);
+        this.genericSource = new GenericSource(templateClass, instantiationArguments);
+        this.templateClass = templateClass;
+        this.arguments = instantiationArguments;
+        if(instantiationArguments.getTypeArgumentsArray() != null) {
+            this.argumentNames = Arrays.stream(instantiationArguments.getTypeArgumentsArray()).map(a -> a.fullname()).toArray(String[]::new);
         }
-        return modifiers;
     }
 
-    public static String composeClassName(String baseTemplateName, GenericTypeArguments genericTypeArguments) {
-        return baseTemplateName + "<" + Arrays.stream(genericTypeArguments.getTypeArgumentsArray())
-                    .map(TypeDesc::asClassNamePart).collect(Collectors.joining(",")) + ">";
+    private static int composeModifiers(ClassHeader templateClass) {
+        return (templateClass.modifiers & GENERIC_TEMPLATE_NEG) | AgoClass.GENERIC_INSTANTIATION;
     }
 
-    public static String[] composeMetaClassName(ClassHeader instanceTemplate, GenericTypeArguments genericTypeArguments, Map<String, ClassHeader> headers) {
-        var instance = instanceTemplate.resolveTemplateInstantiation(headers, genericTypeArguments);
+    public static String composeClassName(String baseTemplateName, InstantiationArguments instantiationArguments) {
+        return baseTemplateName + "<" + Arrays.stream(instantiationArguments.getTypeArgumentsArray())
+                    .map(ClassHeader::fullname).collect(Collectors.joining(",")) + ">";
+    }
+
+    public static String[] composeMetaClassName(ClassHeader instanceTemplate, InstantiationArguments instantiationArguments) {
+        var instance = instanceTemplate.classLoader.instantiateDependencyClass(instanceTemplate.fullname, instantiationArguments);
         String name = "Meta@<" + instance.name + ">";
         var parent = instanceTemplate.parent;
         if(parent != null) {
             String fullCalssName = instance.name;       // full class name without package, parent.parent...me
             List<ClassHeader> parents = new ArrayList<>();
             for(; parent != null; parent = parent.parent){
-                parents.add(parent.resolveTemplateInstantiation(headers, genericTypeArguments));
+                parents.add(parent.instantiate(instantiationArguments));
             }
             for (int i = 0; i < parents.size(); i++) {
                 ClassHeader p = parents.get(i);
@@ -77,18 +85,18 @@ public class GenericInstantiationClassHeader extends ClassHeader {
     }
 
     @Override
-    public ClassHeader clone(ClassHeader newParent, Map<String, ClassHeader> headers) {
+    public ClassHeader clone(ClassHeader newParent) {
         if (this.parent == null || !this.fullname.startsWith(this.parent.fullname)) {
             return this;
         }
         String fullname = newParent.fullname + '.' + this.name;
-        var existed = headers.get(fullname);
+        var existed = classLoader.getClassHeader(fullname);
         if (existed != null)
             return existed;
 
         var inst = new GenericInstantiationClassHeader(fullname, this.type, this.templateClass, this.genericTypeArguments(), this.classLoader);
         inst.setName(this.name);
-        copyToClone(inst, headers);
+        copyToClone(inst);
         inst.parent = newParent;
         inst.modifiers = this.modifiers;
         classLoader.registerNewClass(inst);
@@ -96,113 +104,153 @@ public class GenericInstantiationClassHeader extends ClassHeader {
     }
 
     @Override
-    public boolean isAffectedBy(Map<String, ClassHeader> headers, GenericTypeArguments genericTypeArguments) {
-        return super.isAffectedBy(headers, genericTypeArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
+        return super.isAffectedByTypeArguments(typeArguments);
     }
 
-    public GenericTypeArguments genericTypeArguments(){
-        return genericSource.typeArguments();
+    public InstantiationArguments genericTypeArguments(){
+        if(genericSource != null) {
+            return genericSource.typeArguments();
+        } else {
+            if(this.arguments != null) return this.arguments;
+
+            InstantiationArguments args = new InstantiationArguments(this.getSourceTemplate(),
+                    Arrays.stream(this.argumentNames).map(a -> Objects.requireNonNull(classLoader.getClassHeader(a))).toArray(ClassHeader[]::new), this.classLoader.getHeaders());
+            args.setSuggestionFullname(this.fullname);
+            args.setSuggestionName(this.name);
+            if(StringUtils.isNotEmpty(this.parentClassName)) {
+                args.setParentClassHeader(Objects.requireNonNull(this.classLoader.getClassHeader(this.parentClassName)));
+                this.parent = args.getParentClassHeader();
+            }
+            return this.arguments = args;
+        }
     }
 
     @Override
     public String toString() {
-        return "(GenericInstantiationHeader %s %s [%s])".formatted(this.fullname, this.classId, this.genericTypeArguments());
+        return "(GenericInstantiationHeader %s %s [%s])".formatted(this.fullname, this.classId, StringUtils.join(this.argumentNames, ','));
     }
 
     @Override
-    public boolean processLoadClassName(Map<String, ClassHeader> headers, MutableObject<ClassHeader> createdClass) {
+    public boolean processLoadClassName(MutableObject<ClassHeader> createdClass) {
         if(this.loadingStage == LoadClassNames){
             this.nextStage();
         }
         if(StringUtils.isNotEmpty(this.parentClassName)){
-            ClassHeader parent = headers.get(this.parentClassName);
+            ClassHeader parent = classLoader.getClassHeader(this.parentClassName);
             if(parent == null) return false;
             this.parent = parent;
             parent.addChild(this);
         }
         var args = this.genericTypeArguments();
         if(this.parent != null && this.parent.genericSource != null){
-            args = this.parent.genericSource.typeArguments().applyChild(args, headers);
+            throw new UnsupportedOperationException("TODO");
+//            args = this.parent.genericSource.typeArguments().applyChild(args, headers);
         }
-        this.templateClass.applyInstantiation(this, args, this.parent, headers);
+        this.getSourceTemplate().applyInstantiation(this, args, this.parent);
         return true;
     }
 
     @Override
-    public boolean parseFields(Map<String, ClassHeader> headers) {
-        if(this.loadingStage != ParseFields) return true;
-
-        if (this.templateClass != null && this.templateClass.loadingStage == ParseFields) {
-            if (!this.templateClass.parseFields(headers)) return false;
-        }
-
-        GenericTypeArguments typeArguments = this.genericSource.typeArguments();
-        if(!typeArguments.resolvePlaceHolderArguments(headers)) return false;
-
-        this.modifiers = composeModifiers(templateClass, typeArguments);
-
-        return super.parseFields(headers);
+    public ClassHeader getSourceTemplate() {
+        return Objects.requireNonNull(classLoader.getClassHeader(templateClass));
     }
 
-    public boolean instantiateFunctionFamily(Map<String, ClassHeader> headers){
+    @Override
+    public boolean parseFields() {
+        if(this.loadingStage != ParseFields) return true;
+
+        var templateClass = getSourceTemplate();
+        if (templateClass != null && templateClass.loadingStage == ParseFields) {
+            if (!templateClass.parseFields()) return false;
+        }
+
+        InstantiationArguments typeArguments = this.genericSource.typeArguments();
+
+        this.modifiers = composeModifiers(templateClass);
+
+        return super.parseFields();
+    }
+
+    public boolean instantiateFunctionFamily(){
         if (this.loadingStage != InstantiateFunctionFamily)
             return true;
 
-        if (this.templateClass.isFunction() && StringUtils.isNotEmpty(this.parentClassName)) {
-            ClassHeader parent = headers.get(this.parentClassName);
+        var templateClass = getSourceTemplate();
+        if (templateClass.isFunction() && StringUtils.isNotEmpty(this.parentClassName)) {
+            ClassHeader parent = classLoader.getClassHeader(this.parentClassName);
             if(parent != null) {
-                parent.registerFunctionInstantiation(this, headers);
-                this.templateClass.instantiateFunctionFamily(parent, this, 0, headers, this.genericTypeArguments());
+                parent.registerFunctionInstantiation(this);
+                throw new UnsupportedOperationException("TODO");
+//                templateClass.instantiateFunctionFamily(headers);
+                //this.templateClass.instantiateFunctionFamily(parent, this, 0, headers, this.genericTypeArguments());
             }
         }
         this.nextStage();
         return true;
     }
 
-    public static class PlaceHolder extends ClassHeader{
+//    public static class PlaceHolder extends ClassHeader{
+//
+//        final String templateClassName;
+//        final TypeDesc[] arguments;
+//        public String parentClassName;
+//
+//        /**
+//         * sometimes template class is still not loaded in headers, put this placeholder in headers, after all classed loaded, call `resolve` to replace with GenericInstantiationClassHeader
+//         */
+//        public PlaceHolder(String fullname, String templateClassName, TypeDesc[] arguments, AgoClassLoader classLoader) {
+//            super(fullname, (byte)0, 0, null, classLoader);
+//            this.templateClassName = templateClassName;
+//            this.arguments = arguments;
+//        }
+//
+//        private GenericInstantiationClassHeader resolve(Map<String, ClassHeader> headers){
+//            var template = headers.get(templateClassName);
+//            GenericInstantiationClassHeader g = new GenericInstantiationClassHeader(fullname, template.type, template, new InstantiationArguments(template, arguments, headers), this.classLoader);
+//            g.setClassId(this.classId);
+//            g.setName(this.name);
+//            g.setMetaClass(this.getMetaClass());
+//            g.setSuperClass(this.superClass);
+//            g.setInterfaces(this.interfaces);
+//            g.setPermitClass(this.getPermitClass());
+//            g.parentClassName = parentClassName;
+//
+//            return g;
+//        }
+//
+//        @Override
+//        public boolean processLoadClassName(Map<String, ClassHeader> headers, MutableObject<ClassHeader> createdClass) {
+//            if(this.loadingStage != LoadClassNames) return true;
+//            ClassHeader templ = headers.get(templateClassName);
+//            if(templ == null) return false;
+//
+//            var inst = resolve(headers);
+//            headers.put(inst.fullname, inst);
+//            // now the arguments is not available, don't register to cache
+////            inst.genericTypeArguments().resolvePlaceHolderArguments(headers);
+////            templ.registerGenericInstantiationClass(inst.genericTypeArguments(), inst);
+//            this.nextStage();
+//            createdClass.setValue(inst);
+//
+//            return true;
+//        }
+//    }
 
-        final String templateClassName;
-        final TypeDesc[] arguments;
-        public String parentClassName;
-
-        /**
-         * sometimes template class is still not loaded in headers, put this placeholder in headers, after all classed loaded, call `resolve` to replace with GenericInstantiationClassHeader
-         */
-        public PlaceHolder(String fullname, String templateClassName, TypeDesc[] arguments, AgoClassLoader classLoader) {
-            super(fullname, (byte)0, 0, null, classLoader);
-            this.templateClassName = templateClassName;
-            this.arguments = arguments;
-        }
-
-        private GenericInstantiationClassHeader resolve(Map<String, ClassHeader> headers){
-            var template = headers.get(templateClassName);
-            GenericInstantiationClassHeader g = new GenericInstantiationClassHeader(fullname, template.type, template, new GenericTypeArguments(template, arguments, headers), this.classLoader);
-            g.setClassId(this.classId);
-            g.setName(this.name);
-            g.setMetaClass(this.getMetaClass());
-            g.setSuperClass(this.superClass);
-            g.setInterfaces(this.interfaces);
-            g.setPermitClass(this.getPermitClass());
-            g.parentClassName = parentClassName;
-
-            return g;
-        }
-
-        @Override
-        public boolean processLoadClassName(Map<String, ClassHeader> headers, MutableObject<ClassHeader> createdClass) {
-            if(this.loadingStage != LoadClassNames) return true;
-            ClassHeader templ = headers.get(templateClassName);
-            if(templ == null) return false;
-
-            var inst = resolve(headers);
-            headers.put(inst.fullname, inst);
-            // now the arguments is not available, don't register to cache
-//            inst.genericTypeArguments().resolvePlaceHolderArguments(headers);
-//            templ.registerGenericInstantiationClass(inst.genericTypeArguments(), inst);
-            this.nextStage();
-            createdClass.setValue(inst);
-
-            return true;
+    @Override
+    public boolean isReady() {
+        switch (this.loadingStage){
+            case LoadClassNames:
+                if(!isReady(this.templateClass)) return false;
+                for (String argumentName : this.argumentNames) {
+                    if(!isReady(argumentName)) return false;
+                }
+                if(StringUtils.isNotEmpty(this.parentClassName)) {
+                    if (!isReady(this.parentClassName)) return false;
+                }
+                return true;
+            default:
+                return super.isReady();
         }
     }
 }

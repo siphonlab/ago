@@ -24,6 +24,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
+import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
+import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,16 +181,8 @@ public class ClassFile {
             assert genericTypeParams.size() > 0;
             buff.putInt(genericTypeParams.size());
             for (int i = 0; i < genericTypeParams.size(); i++) {
-                var genericTypeParameterClassDef = genericTypeParams.get(i);
-                buff.putPrefixedString(genericTypeParams.getName(i), encoder);        // param name
-                if (classDef == genericTypeParameterClassDef.getTemplateClass()) {   // owner template class
-                    buff.putInt(-1);
-                } else {
-                    buff.putInt(classDef.idOfKnownClass(genericTypeParameterClassDef.getTemplateClass()));
-                }
-                buff.putInt(genericTypeParameterClassDef.getParamIndex());             // index
-                buff.putInt(genericTypeParameterClassDef.getTypeCode().value);        // type code
-                buff.putInt(classDef.idOfClass(genericTypeParameterClassDef));          // concrete type
+                var genericTypeCodeAvatarClassDef = genericTypeParams.get(i);
+                buff.putInt(classDef.idOfClass(genericTypeCodeAvatarClassDef));
             }
         } else {
             buff.putInt(0);
@@ -389,12 +383,9 @@ public class ClassFile {
         putSourceLocation(buff,variable.getSourceLocation());
     }
 
-    private void putType(IoBuffer buff, ClassDef classDef, ClassDef compilingType) throws CharacterCodingException {
+    private void putType(IoBuffer buff, ClassDef classDef, ClassDef compilingType) {
         buff.putInt(compilingType.getTypeCode().getValue());
-        if(compilingType instanceof GenericTypeCodeAvatarClassDef g){     // a GenericTypeCode.GenericCodeAvatarClassDef class, it's not exists in Root registry
-            buff.putInt(classDef.idOfKnownConstString(g.getTemplateClass().getFullname()));
-            buff.putInt(g.getParamIndex());
-        } else if (compilingType.getTypeCode() == TypeCode.OBJECT) {
+        if (compilingType.getTypeCode() == TypeCode.OBJECT || compilingType instanceof GenericTypeCodeAvatarClassDef) {
             buff.putInt(classDef.idOfKnownConstString(compilingType.getFullname()));
         }
     }
@@ -413,6 +404,16 @@ public class ClassFile {
                 putType(buffer, ownerClass,arrayClassDef.getElementType());
             } else if (concreteType instanceof ParameterizedClassDef pc) {
                 buffer.put((byte) 2);
+                // some special type
+                if(pc instanceof GenericTypeCodeAvatarClassDef) {
+                    buffer.put((byte) 1);
+                } else if(pc instanceof SharedGenericTypeParameterClassDef){
+                    buffer.put((byte) 2);
+                } else if(pc instanceof ScopedClassIntervalClassDef){
+                    buffer.put((byte) 3);
+                } else {
+                    buffer.put((byte) 0);
+                }
                 buffer.putPrefixedString(pc.getFullname(), encoder);
                 buffer.putPrefixedString(pc.getBaseClass().getFullname(), encoder);
                 buffer.putPrefixedString(pc.getBaseClass().getMetaClassDef().getFullname(), encoder);

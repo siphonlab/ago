@@ -18,9 +18,7 @@ package org.siphonlab.ago.classloader;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.*;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 import static org.siphonlab.ago.classloader.LoadingStage.BuildClass;
@@ -39,17 +37,17 @@ public class MetaClassHeader extends ClassHeader {
     }
 
     @Override
-    public boolean isInGenericTemplate(Map<String, ClassHeader> headers) {
-        if(super.isInGenericTemplate(headers)) return true;
+    public boolean isInGenericTemplate() {
+        if(super.isInGenericTemplate()) return true;
         if(this.instanceClass != null){
-            return this.instanceClass.isInGenericTemplate(headers);
+            return this.instanceClass.isInGenericTemplate();
         }
         return false;
     }
 
     @Override
-    public boolean isAffectedBy(Map<String, ClassHeader> headers, GenericTypeArguments genericTypeArguments) {
-        return this.instanceClass.isAffectedBy(headers, genericTypeArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
+        return this.instanceClass.isAffectedByTypeArguments(typeArguments);
     }
 
     public ClassHeader getInstanceClass() {
@@ -60,35 +58,36 @@ public class MetaClassHeader extends ClassHeader {
         this.instanceClass = instanceClass;
     }
 
-    public MetaClassHeader instantiateMetaClass(ClassHeader newParent, String fullname, Map<String, ClassHeader> headers, GenericTypeArguments genericTypeArguments) {
+    public MetaClassHeader instantiateMetaClass(ClassHeader newParent, String fullname, InstantiationArguments instantiationArguments) {
+        assert newParent == null;
         var inst = new MetaClassHeader(fullname, this.type, this.modifiers, this.getSlice().slice(), classLoader);
         classLoader.registerNewClass(inst);
         inst.setDependencies(this.dependencies);
         //inst.instanceClass = this.instanceClass;  set instanceClass outside
-        applyInstantiation(inst, genericTypeArguments, newParent, headers);
-        this.registerGenericInstantiationClass(genericTypeArguments, inst);
+        applyInstantiation(inst, instantiationArguments, newParent);
+        this.putInstantiatedClassToCache(instantiationArguments, inst);
         return inst;
     }
 
     @Override
-    public ClassHeader clone(ClassHeader newParent, Map<String, ClassHeader> headers) {
+    public ClassHeader clone(ClassHeader newParent) {
         if (!this.fullname.startsWith(this.parent.fullname)) {
             return this;
         }
         String fullname = newParent.fullname + '.' + this.name;
-        var existed = headers.get(fullname);
+        var existed = classLoader.getClassHeader(fullname);
         if (existed != null) return existed;
 
         var inst = new MetaClassHeader(fullname, this.type, this.modifiers, this.getSlice() != null ? this.getSlice().slice() : null, this.classLoader);
-        inst.setClassId(headers.size());
-        copyToClone(inst, headers);
+        inst.setClassId(classLoader.getHeaders().size());
+        copyToClone(inst);
         inst.parent = newParent;
         classLoader.registerNewClass(inst);
         return inst;
     }
 
     @Override
-    public AgoClass buildClass(Map<String, ClassHeader> headers) {
+    public AgoClass buildClass() {
         if(this.loadingStage != BuildClass) return this.agoClass;
 
 //        for (String dependency : this.dependencies) {
@@ -101,17 +100,17 @@ public class MetaClassHeader extends ClassHeader {
 //                }
 //            }
 //        }
-        return super.buildClass(headers);
+        return super.buildClass();
     }
 
     @Override
-    public boolean parseFields(Map<String, ClassHeader> headers) {
+    public boolean parseFields() {
         if(this.loadingStage != LoadingStage.ParseFields) return true;
 
         if(this.instanceClass instanceof ArrayTypeHeader){
-            var base = headers.get(this.superClass);
+            var base = classLoader.getClassHeader(this.superClass);
             if(base.loadingStage == LoadingStage.ParseFields){
-                if(!base.parseFields(headers)) return false;
+                if(!base.parseFields()) return false;
             }
 
             this.fields = Arrays.stream(base.fields).filter(f -> !Modifier.isPrivate(base.modifiers)).toArray(VariableDesc[]::new);
@@ -123,7 +122,7 @@ public class MetaClassHeader extends ClassHeader {
             this.setMethods(base.methods);
             this.setLoadingStage(InstantiateFunctionFamily);
         } else {
-            super.parseFields(headers);
+            super.parseFields();
         }
         return true;
     }

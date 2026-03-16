@@ -20,7 +20,12 @@ class Any{      // root of all Primitive and Object
 }
 
 class Primitive from Any{
-
+    metaclass{
+        final typeCode as int
+        fun new(typeCode as int){
+            this.typeCode = typeCode;
+        }
+    }
 }
 class PrimitiveNumber from Primitive{
 

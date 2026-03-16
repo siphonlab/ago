@@ -80,7 +80,7 @@ public class SharedGenericTypeParameterClassDef extends ClassIntervalClassDef{
             case Covariance ->   new StringBuilder("+");
             case Contravariance ->   new StringBuilder("-");
         };
-        sb.append('[').append(composeNameOfClassInClassInterval(lBound)).append('/').append(composeNameOfClassInClassInterval(uBound)).append(']');
+        sb.append("[").append(composeNameOfClassInClassInterval(lBound)).append('~').append(composeNameOfClassInClassInterval(uBound)).append(']');
         return sb.toString();
     }
 

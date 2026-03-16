@@ -352,7 +352,7 @@ public class BlockCompiler {
                 ){
                     var t = initializerExpr.inferType();
                     var scopedClassIntervalClassDef = root.getOrCreateScopedClassInterval(t, t, null);
-                    functionDef.registerConcreteType(scopedClassIntervalClassDef);
+                    functionDef.registerConcreteType((ConcreteType) scopedClassIntervalClassDef);
                     inferred = t;
                     initializerExpr = new CastToScopedClassRef(functionDef, initializerExpr, scopedClassIntervalClassDef).transform();
                 } else {

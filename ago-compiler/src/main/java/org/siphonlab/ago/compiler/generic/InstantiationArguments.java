@@ -332,4 +332,8 @@ public class InstantiationArguments {
     public ClassDef getSourceTemplate() {
         return sourceTemplate;
     }
+
+    public Collection<ClassDef> getAllArguments() {
+        return this.typeMapping.values();
+    }
 }

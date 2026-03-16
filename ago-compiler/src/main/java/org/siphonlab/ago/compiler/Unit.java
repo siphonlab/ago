@@ -220,6 +220,7 @@ public class Unit {
                 case AgoLexer.CLASSREF -> new PrimitiveClassDef(root, TypeCode.CLASS_REF);
                 default -> throw new RuntimeException("not supported type " + primitiveType.getText());
             };
+            type.setClassDeclaration(classDeclaration);
             classDef = type;
         } else if (classDeclaration.className.NULL_LITERAL() != null){
             classDef = new NullClassDef(root);
@@ -484,7 +485,7 @@ public class Unit {
         if(classDef.dependencies.contains(dependency)){
             throw resolveError(dependencyAst, "duplicated dependency '%s' found".formatted(dependency));
         }
-        if(classDef.isDependingOn(dependency)){
+        if(classDef.isDependingOn(dependency, 0)){
             throw resolveError(dependencyAst, "recursive dependency '%s' found".formatted(dependency));
         }
         classDef.addDependency(dependency);
@@ -682,7 +683,7 @@ public class Unit {
             }
             ClassDef classInterval = root.getScopedClassInterval();
             var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
-            scopeClass.registerConcreteType(pc);
+            scopeClass.registerConcreteType((ConcreteType) pc);
             return pc;
         }
     }
@@ -710,7 +711,7 @@ public class Unit {
             }
             ClassDef classInterval = root.getScopedClassInterval();
             var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
-            scopeClass.registerConcreteType(pc);
+            scopeClass.registerConcreteType((ConcreteType) pc);
             return pc;
         }
     }
@@ -886,7 +887,7 @@ public class Unit {
                     ArrayClassDef arrayType = fun.getOrCreateArrayType(paramType, null);
                     parameter.setType(arrayType);
                     parameter.setSourceLocation(sourceLocation(varArgsParameter));
-                    fun.registerConcreteType(arrayType);
+                    fun.registerConcreteType((ConcreteType) arrayType);
                     fun.addParameter(parameter);
                     varArgsParam = varArgsParameter;
                 } else {

@@ -15,40 +15,31 @@
  */
 package org.siphonlab.ago.classloader;
 
-import org.siphonlab.ago.TypeCode;
-
-import java.util.Map;
 import java.util.Objects;
 
 public final class SlotDesc {
     private final int index;
     private final String name;
-    private TypeDesc type;
+    protected String type;
+    private final AgoClassLoader agoClassLoader;
 
-    public SlotDesc(int index, String name, TypeDesc type) {
+    public SlotDesc(int index, String name, String type, AgoClassLoader agoClassLoader) {
         this.index = index;
         this.name = name;
         this.type = type;
+        this.agoClassLoader = agoClassLoader;
     }
 
-    SlotDesc applyTemplate(Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
-        var newType = this.type.applyTemplate(headers, typeArguments);
-        if (newType != this.type) {
-            return new SlotDesc(this.index(), this.name, newType);
+    public ClassHeader type() {
+        return Objects.requireNonNull(agoClassLoader.getClassHeader(this.type));
+    }
+
+    SlotDesc applyTemplate(InstantiationArguments typeArguments) {
+        var newType = agoClassLoader.instantiateDependencyClass(type, typeArguments).fullname;
+        if (!Objects.equals(newType, type)) {
+            return new SlotDesc(this.index(), this.name, newType, this.agoClassLoader);
         }
         return this;
-    }
-
-    public boolean resolveGenericTypeDescPlaceHolder(Map<String, ClassHeader> headers) {
-        if(this.type instanceof GenericTypeDesc genericTypeDesc && genericTypeDesc.isPlaceHolder){
-            GenericTypeDesc resolved = genericTypeDesc.resolveExactType(headers);
-            if(resolved == null) return false;
-            this.type = resolved;
-        }
-        if(this.type.typeCode == TypeCode.OBJECT){
-            return this.type.resolveGenericTypeDescPlaceHolder(headers);
-        }
-        return true;
     }
 
     public int index() {
@@ -57,10 +48,6 @@ public final class SlotDesc {
 
     public String name() {
         return name;
-    }
-
-    public TypeDesc type() {
-        return type;
     }
 
     @Override
@@ -78,7 +65,7 @@ public final class SlotDesc {
         return Objects.hash(index, name, type);
     }
 
-    public void setType(TypeDesc type) {
+    public void setType(String type) {
         this.type = type;
     }
 

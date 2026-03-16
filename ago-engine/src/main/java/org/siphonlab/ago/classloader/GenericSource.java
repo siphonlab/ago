@@ -15,5 +15,5 @@
  */
 package org.siphonlab.ago.classloader;
 
-public record GenericSource(ClassHeader sourceTemplate, GenericTypeArguments typeArguments) {
+public record GenericSource(String sourceTemplate, InstantiationArguments typeArguments) {
 }

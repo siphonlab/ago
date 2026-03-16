@@ -18,7 +18,9 @@ package org.siphonlab.ago.compiler;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import static org.siphonlab.ago.TypeCode.*;
 
@@ -33,9 +35,18 @@ public class PrimitiveClassDef extends ClassDef {
         super(root, typeCode.toString());
         this.typeCode = typeCode;
         this.classType = AgoClass.TYPE_PRIMITIVE_CLASS;
-        this.compilingStage = CompilingStage.Compiled;
+        this.compilingStage = CompilingStage.ResolveHierarchicalClasses;
     }
 
+    void setClassDeclaration(AgoParser.ClassDeclarationContext classDeclaration){
+        this.classDeclaration = classDeclaration;
+    }
+
+    @Override
+    public void resolveHierarchicalClasses() throws CompilationError {
+        super.resolveHierarchicalClasses();
+        this.setCompilingStage(CompilingStage.Compiled);
+    }
 
     public TypeCode getTypeCode() {
         return typeCode;

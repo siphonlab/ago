@@ -463,6 +463,7 @@ public class FunctionDef extends ClassDef {
         if(instantiatedFunctionBase.getCompilingStage().lt(functionBaseClass.getCompilingStage())) {
             Compiler.processClassTillStage(instantiatedFunctionBase, functionBaseClass.getCompilingStage());
         }
+        this.registerConcreteType((ConcreteType) instantiatedFunctionBase);
         this.setSuperClass(instantiatedFunctionBase);
 
         var interface_ = getRoot().getFunctionInterface(this.parameters.size());

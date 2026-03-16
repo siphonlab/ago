@@ -18,12 +18,15 @@ package org.siphonlab.ago.compiler.generic;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.compiler.ClassContainer;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.ConcreteType;
 import org.siphonlab.ago.compiler.ParameterizedClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
+
+import static org.siphonlab.ago.compiler.generic.ClassIntervalClassDef.composeNameOfClassInClassInterval;
 
 public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implements Comparable<GenericTypeCodeAvatarClassDef> {
 
@@ -37,10 +40,11 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
         sharedGenericTypeParameterClassDef = (SharedGenericTypeParameterClassDef) ((ClassRefLiteral)arguments[0]).getClassDefValue();
         templateClass = ((ClassRefLiteral)arguments[1]).getClassDefValue();
         paramIndex = ((IntLiteral)arguments[2]).value;
-        String paramName = ((StringLiteral)arguments[3]).getString();
-        typeCode = new GenericTypeCode(((IntLiteral)arguments[2]).value, paramIndex, paramName,  paramName + "_" + paramIndex + "_" + templateClass.getFullname());
+        String paramName = ((StringLiteral)arguments[4]).getString();
+        typeCode = new GenericTypeCode(((IntLiteral)arguments[3]).value, paramIndex, paramName,  paramName + "_" + paramIndex + "_" + templateClass.getFullname());
         this.typeCode.setGenericTypeCodeAvatar(this);
         this.name = composeName(sharedGenericTypeParameterClassDef, templateClass, paramName, paramIndex, typeCode.value);
+        this.registerConcreteType((ConcreteType) sharedGenericTypeParameterClassDef);
     }
 
     public GenericTypeCodeAvatarClassDef(ClassDef langGenericTypeAvatar,
@@ -63,6 +67,7 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
         this.typeCode = new GenericTypeCode(typeCode, paramIndex, paramName,  paramName + "_" + paramIndex + "_" + templateClass.getFullname());
         this.typeCode.setGenericTypeCodeAvatar(this);
         this.name = composeName(sharedGenericTypeParameterClassDef, templateClass, paramName, paramIndex, typeCode);
+        this.registerConcreteType((ConcreteType) sharedGenericTypeParameterClassDef);
     }
 
     @Override
@@ -93,10 +98,8 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
                 r, this.templateClass, this.paramIndex, this.typeCode.value, this.typeCode.getName(), returnExisted);
     }
 
-    // the baseClass is lang.GenericTypeParameter
     public static String composeName(SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef, ClassDef templateClass, String typeParamName, int paramIndex, int genericTypeCodeValue) {
-        var root = sharedGenericTypeParameterClassDef.getRoot();
-        return "%s_%d_%s_%d|%s".formatted(typeParamName, paramIndex, templateClass.getFullname(), genericTypeCodeValue, sharedGenericTypeParameterClassDef.getFullname());
+        return "%s_%d_%s_%d|%s".formatted(typeParamName, paramIndex, composeNameOfClassInClassInterval(templateClass), genericTypeCodeValue, composeNameOfClassInClassInterval(sharedGenericTypeParameterClassDef));
     }
 
     public SharedGenericTypeParameterClassDef getSharedGenericTypeParameterClassDef() {

@@ -51,11 +51,6 @@ public class MetaClassDef extends ClassDef{
     }
 
     @Override
-    public boolean addDependency(ClassDef dependency) {
-        return super.addDependency(dependency);
-    }
-
-    @Override
     public AgoParser.ClassBodyContext getClassBody() {
         return this.metaclassDeclaration == null? null : this.metaclassDeclaration.classBody();
     }

@@ -17,6 +17,9 @@ package org.siphonlab.ago;
 
 public class TypeCode {
     public static final int VOID_VALUE = 0;      // -1 in java
+    public static final int OBJECT_VALUE = 1;  // -1 in java
+    public static final int NULL_VALUE = 2;
+    public static final int STRING_VALUE = 3;
     public static final int BOOLEAN_VALUE = 4;
     public static final int CHAR_VALUE = 5;
     public static final int FLOAT_VALUE = 6;
@@ -25,9 +28,6 @@ public class TypeCode {
     public static final int SHORT_VALUE = 9;
     public static final int INT_VALUE = 10;
     public static final int LONG_VALUE = 11;
-    public static final int OBJECT_VALUE = 1;  // -1 in java
-    public static final int NULL_VALUE = 2;
-    public static final int STRING_VALUE = 3;
     public static final int CLASS_REF_VALUE = 12;  // 0x0c
 
     public static final int MAX_VALUE = 0x0f;   // 0 - 0x0f, from 0x10 it's generic type variable index (n-0x10)

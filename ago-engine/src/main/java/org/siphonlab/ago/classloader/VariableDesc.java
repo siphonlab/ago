@@ -16,29 +16,30 @@
 package org.siphonlab.ago.classloader;
 
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.TypeCode;
 
-import java.util.Map;
+import java.util.Objects;
 
 public class VariableDesc {
 
     enum VariableKind {Variable, Field, Parameter}
 
-    public VariableDesc(String name, int modifiers, VariableKind variableKind, TypeDesc type,
-                        int slotIndex, Object constLiteralValue, SourceLocation sourceLocation) {
+    public VariableDesc(String name, int modifiers, VariableKind variableKind, String type,
+                        int slotIndex, Object constLiteralValue, SourceLocation sourceLocation, AgoClassLoader agoClassLoader) {
         this.name = name;
         this.modifiers = modifiers;
         this.variableKind = variableKind;
-        this.type = type;
         this.slotIndex = slotIndex;
         this.constLiteralValue = constLiteralValue;
         this.sourceLocation = sourceLocation;
+        this.type = type;
+        this.agoClassLoader = agoClassLoader;
     }
 
     final int modifiers;
     VariableKind variableKind;
     String name;
-    TypeDesc type;
+    String type;
+    private final AgoClassLoader agoClassLoader;
     int slotIndex;
     final Object constLiteralValue;
 
@@ -48,37 +49,13 @@ public class VariableDesc {
         return slotIndex;
     }
 
-    VariableDesc applyTemplate(Map<String, ClassHeader> headers, GenericTypeArguments typeArguments) {
-        if(!ClassHeader.isGenericType(this.type, headers)) return this;
-
-        if (this.type instanceof GenericTypeDesc genericTypeDesc) {
-            var instantiateParamClass = genericTypeDesc.applyTemplate(headers, typeArguments);
-            return new VariableDesc(name, modifiers, variableKind, instantiateParamClass, slotIndex, constLiteralValue, sourceLocation);
-        } else if(this.type.typeCode == TypeCode.OBJECT){
-            var cls = headers.get(this.type.className);
-            assert cls != null;
-            if (cls instanceof ArrayTypeHeader arrayTypeHeader) {
-                var newCls = arrayTypeHeader.tryInstantiate(arrayTypeHeader.parent, headers, typeArguments);
-                var newType = new TypeDesc(TypeCode.OBJECT, newCls.fullname);
-                return new VariableDesc(name, modifiers, variableKind, newType, slotIndex, constLiteralValue, sourceLocation);
-            } else if(cls instanceof GenericInstantiationClassHeader genericInstantiationClassHeader){
-                ClassHeader inst = genericInstantiationClassHeader.resolveTemplateInstantiation(headers, typeArguments);
-                return new VariableDesc(name, modifiers, variableKind, new TypeDesc(TypeCode.OBJECT, inst.fullname), slotIndex, constLiteralValue, sourceLocation);
-            }
-        }
-        throw new UnsupportedOperationException();
+    VariableDesc applyTemplate(InstantiationArguments typeArguments) {
+        var t = agoClassLoader.instantiateDependencyClass(this.type, typeArguments);
+        return new VariableDesc(name, modifiers, variableKind, t.fullname(), slotIndex, constLiteralValue, sourceLocation,  agoClassLoader);
     }
 
-    public boolean resolveGenericTypeDescPlaceHolder(Map<String, ClassHeader> headers) {
-        if(this.type instanceof GenericTypeDesc genericTypeDesc && genericTypeDesc.isPlaceHolder){
-            GenericTypeDesc resolved = genericTypeDesc.resolveExactType(headers);
-            if(resolved == null) return false;
-            this.type = resolved;
-        }
-        if(this.type.typeCode == TypeCode.OBJECT){
-            return this.type.resolveGenericTypeDescPlaceHolder(headers);
-        }
-        return true;
+    public ClassHeader getType() {
+        return Objects.requireNonNull(this.agoClassLoader.getClassHeader(this.type));
     }
 
     public void setSourceLocation(SourceLocation sourceLocation) {
