@@ -37,12 +37,14 @@ public class TypeParamsContext {
     private final List<GenericTypeCodeAvatarClassDef> genericTypeParams = new ArrayList<>();
     private final AtomicInteger nextGenericTypeCode;
 
-    public TypeParamsContext(ClassDef templateClass){
+    private InstantiationArguments defaultInstantiationArguments;
+
+    public TypeParamsContext(ClassDef templateClass) throws CompilationError {
         this.templateClass = templateClass;
         nextGenericTypeCode = new AtomicInteger(TypeCode.GENERIC_TYPE_START);
     }
 
-    public TypeParamsContext(ClassDef templateClass, TypeParamsContext parent){
+    public TypeParamsContext(ClassDef templateClass, TypeParamsContext parent) throws CompilationError {
         this.templateClass = templateClass;
         this.parent = parent;
         this.nextGenericTypeCode = parent.nextGenericTypeCode;
@@ -63,10 +65,18 @@ public class TypeParamsContext {
         return r;
     }
 
-    public InstantiationArguments createDefaultArguments(){
+    private InstantiationArguments createDefaultArguments() throws CompilationError {
         var args = createDefaultArgumentsArray();
 
-        return new InstantiationArguments(this, args);
+        var r = new InstantiationArguments(this, args);
+        if(this.parent != null){
+            r = r.applyParent(this.parent.defaultInstantiationArguments);
+        }
+        return r;
+    }
+
+    public InstantiationArguments getDefaultInstantiationArguments() throws CompilationError {
+        return defaultInstantiationArguments == null ? defaultInstantiationArguments = createDefaultArguments() : defaultInstantiationArguments;
     }
 
     public ClassRefLiteral[] createDefaultArgumentsArray() {

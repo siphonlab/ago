@@ -16,8 +16,9 @@
 package org.siphonlab.ago.compiler.generic;
 
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 /// `originalTemplate + arguments = instantiation class`.
-public record GenericSource(ClassDef originalTemplate, InstantiationArguments instantiationArguments) {
+public record GenericSource(ClassDef originalTemplate, InstantiationArguments instantiationArguments, ClassRefLiteral[] typeArguments) {
 
 }
