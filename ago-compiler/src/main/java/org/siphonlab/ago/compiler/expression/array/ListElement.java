@@ -44,7 +44,7 @@ public class ListElement extends ExpressionInFunctionBody implements Assign.Assi
             throw new SyntaxError("list expected", list.getSourceLocation());
         }
         this.listType = listType;
-        elementType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+        elementType = listType.getGenericSource().typeArguments()[0].getClassDefValue();
         this.indexExpr = indexExpr;
         this.accessor = this.listType.findMethod("get#index");
     }

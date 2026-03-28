@@ -378,13 +378,13 @@ public class NamePathResolver {
         }
         Expression toExpr(Pronoun id, NamePathResolver resolver) throws CompilationError {
             PronounType pronounType = id.pronounType;
-            ClassDef c;
-            if(classDef.isGenericTemplate()){
-                c = classDef.instantiate(classDef.getTypeParamsContext().createDefaultArguments(), null);
-                scopeClass.registerConcreteType((ConcreteType) c);
-            } else {
-                c = classDef;
-            }
+            ClassDef c = classDef;
+//            if(classDef.isGenericTemplate()){
+//                c = classDef.instantiate(classDef.getTypeParamsContext().createDefaultArguments(), null);
+//                scopeClass.registerConcreteType((ConcreteType) c);
+//            } else {
+//                c = classDef;
+//            }
             switch (pronounResolveResultKind()) {
                 case Scope:
                     if(pronounType.isSuper()){
@@ -924,7 +924,7 @@ public class NamePathResolver {
 //                //throw new CompilationError("")
 //            }
             var pc = ((ClassContainer) templateClass.getParent()).getOrCreateGenericInstantiationClassDef(templateClass, args, null);
-            scopeClass.registerConcreteType(pc);
+            if(pc instanceof ConcreteType c) scopeClass.registerConcreteType(c);
             scopeClass.idOfClass(templateClass);
             Compiler.processClassTillStage((ClassDef) pc,scopeClass.getCompilingStage());
 

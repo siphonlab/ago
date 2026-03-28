@@ -20,9 +20,7 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
-import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 
 import java.util.List;
 import java.util.Objects;
@@ -44,7 +42,7 @@ public class ListPut extends ExpressionInFunctionBody {
             throw new SyntaxError("writable list expected", list.getSourceLocation());
         }
         this.list = list;
-        this.elementType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+        this.elementType = listType.getGenericSource().typeArguments()[0].getClassDefValue();
         this.indexExpr = indexExpr;
         this.value = value;
         this.accessor = listType.findMethod("set#index");

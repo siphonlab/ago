@@ -19,6 +19,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.generic.GenericInstantiationClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 
 import java.util.List;
@@ -58,8 +59,11 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
         ClassDef arrayClass = root.getArrayClass();
         this.setSourceLocation(arrayClass.getSourceLocation());
         ClassDef arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{elementType.toClassRefLiteral()}), null);
+        if(!(arrayInstantiationType instanceof GenericInstantiationClassDef)){
+            arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{elementType.toClassRefLiteral()}), null);
+        }
         this.setSuperClass(arrayInstantiationType);
-        this.registerConcreteType((ConcreteType) arrayInstantiationType);
+        if(arrayInstantiationType instanceof ConcreteType c) this.registerConcreteType(c);
         resolveMetaclass();
         this.setCompilingStage(CompilingStage.InheritsFields);
         try {

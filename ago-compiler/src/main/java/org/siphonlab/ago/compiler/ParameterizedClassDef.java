@@ -161,7 +161,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                     throw new ResolveError("no metaclass for '%s'".formatted(baseClassDef.getFullname()), sourceLocation);
 
                 for (FunctionDef constructor : baseClassDef.getMetaClassDef().getConstructors()) {
-                    if(constructor.getGenericSource() != null){
+                    if(constructor.isGenericInstantiation()){
                         if(constructor.getCompilingStage().lte(CompilingStage.InheritsFields)){
                             Compiler.processClassTillStage(constructor,CompilingStage.InheritsFields);
                         }

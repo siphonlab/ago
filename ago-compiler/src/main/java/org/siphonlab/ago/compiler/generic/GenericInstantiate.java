@@ -124,11 +124,11 @@ public class GenericInstantiate {
     }
 
     public ClassRefLiteral[] getTypeArguments() {
-        return this.instantiationArguments.getTypeArgumentsArray();
+        return ((GenericConcreteType)instantiateClass).getTypeArguments();
     }
 
     private boolean isTypeArgumentsMatch(GenericInstantiate anotherClass) {
-        ClassRefLiteral[] typeArgumentsArray = this.instantiationArguments.getTypeArgumentsArray();
+        ClassRefLiteral[] typeArgumentsArray = this.getTypeArguments();
         if(anotherClass.getTypeArguments().length != typeArgumentsArray.length) return false;
 
         TypeParamsContext paramsContext = this.templateClass.getTypeParamsContext();
@@ -172,7 +172,7 @@ public class GenericInstantiate {
             }
         }
 
-        for (ClassRefLiteral typeArgument : genericSource.instantiationArguments().getTypeArgumentsArray()) {
+        for (ClassRefLiteral typeArgument : genericSource.typeArguments()) {
             var v = typeArgument.getClassDefValue();
             r.add(v);
             if(typeArgument.getClassDefValue() instanceof ConcreteType a){

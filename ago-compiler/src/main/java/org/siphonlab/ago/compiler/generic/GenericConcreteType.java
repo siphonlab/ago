@@ -16,7 +16,9 @@
 package org.siphonlab.ago.compiler.generic;
 
 import org.siphonlab.ago.compiler.ConcreteType;
+import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 public interface GenericConcreteType extends ConcreteType {
 
+    ClassRefLiteral[] getTypeArguments();
 }

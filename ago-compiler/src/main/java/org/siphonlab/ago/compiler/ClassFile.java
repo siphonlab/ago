@@ -428,8 +428,9 @@ public class ClassFile {
 
                 buffer.put((byte) 3);
                 buffer.putPrefixedString(pc.getFullname(), encoder);
-                buffer.putPrefixedString(classDef.getTemplateClass().getFullname(), encoder);
-                ClassRefLiteral[] typeArgumentsArray = classDef.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+                ClassDef templateClass = classDef.getTemplateClass();
+                buffer.putPrefixedString(templateClass.getFullname(), encoder);
+                ClassRefLiteral[] typeArgumentsArray = classDef.getGenericSource().instantiationArguments().takeFor(templateClass);
                 buffer.putInt(typeArgumentsArray.length);       // it's different with typeMapping.size
                 for (ClassRefLiteral argument : typeArgumentsArray) {
                     putType(buffer, ownerClass, argument.getClassDefValue());

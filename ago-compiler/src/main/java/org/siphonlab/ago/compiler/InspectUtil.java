@@ -70,7 +70,7 @@ public class InspectUtil {
             sb.append("()").append(" as ").append(functionDef.getResultType().getFullname()).append(':').append(functionDef.getNativeResultSlot());
         }
         sb.append("{\n");
-        if(classDef.getGenericSource() != null){
+        if(classDef.isGenericInstantiation()){
             sb.append("\t".repeat(tabDepth + 1)).append("generic source:\n");
             sb.append("\t".repeat(tabDepth + 2));
             sb.append(" template: ").append(classDef.getGenericSource().originalTemplate().getFullname()).append('\n');
@@ -130,7 +130,7 @@ public class InspectUtil {
             sb.append("\n");
         }
         sb.append("\t".repeat(tabDepth + 1)).append("code:\n");
-        if(classDef.isFunction() && classDef.getGenericSource() == null) {
+        if(classDef.isFunction() && !classDef.isGenericInstantiation()) {
             FunctionDef functionDef = (FunctionDef) classDef;
             if(functionDef.getBody() != null){
                 sb.append(inspectCode(functionDef.getBody(), tabDepth + 2));

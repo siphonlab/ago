@@ -263,6 +263,7 @@ public class Compiler {
                         pc.setSourceLocation(templClass.getUnit().sourceLocation(typeOfGenericParam));
                     }
                 }
+                templClass.createTemplateDefaultGenericSource();
             }
             scopeClass.nextCompilingStage(CompilingStage.ResolveHierarchicalClasses);    // to ExpandHierarchicalClasses
         }

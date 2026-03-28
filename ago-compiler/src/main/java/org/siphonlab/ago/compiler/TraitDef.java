@@ -105,7 +105,7 @@ public class TraitDef extends ClassDef{
     public boolean parseFields() throws CompilationError {
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
-        if(this.getGenericSource() != null){
+        if(this.isGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.InheritsFields);
             return false;
         }
@@ -113,7 +113,7 @@ public class TraitDef extends ClassDef{
 
         if(this.permitClass != null && this.permitClass != getRoot().getObjectClass()){
             if(this.fieldForPermitClass == null){
-                String fldName = "@permit_" + (permitClass.getGenericSource() == null? permitClass.getName(): permitClass.getGenericSource().originalTemplate().getName());
+                String fldName = "@permit_" + (!permitClass.isGenericInstantiation() ? permitClass.getName(): permitClass.getGenericSource().originalTemplate().getName());
                 for(var i = 0; ;i++) {
                     String s = fldName + "_" + i;
                     if (this.fields.containsKey(s)) {

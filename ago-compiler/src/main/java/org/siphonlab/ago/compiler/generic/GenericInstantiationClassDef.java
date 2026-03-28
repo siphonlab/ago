@@ -38,9 +38,10 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
     private final InstantiationArguments instantiationArguments;
 
     public GenericInstantiationClassDef(ClassDef templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
-        super(templateClass.getRoot(), composeName(templateClass, instantiationArguments.getTypeArgumentsArray()));
+        super(templateClass.getRoot(), composeName(templateClass, instantiationArguments.takeFor(templateClass)));
         this.templateClass = templateClass;
         this.instantiationArguments = instantiationArguments;
+        this.setGenericSource(new GenericSource(templateClass, instantiationArguments, instantiationArguments.takeFor(templateClass)));
         this.setClassType(templateClass.getClassType());
         if(parent != null) parent.addChild(this);
 
@@ -94,7 +95,7 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
     }
 
     public ClassRefLiteral[] getTypeArguments() {
-        return this.instantiationArguments.getTypeArgumentsArray();
+        return this.instantiationArguments.takeFor(this.templateClass);
     }
 
     @Override

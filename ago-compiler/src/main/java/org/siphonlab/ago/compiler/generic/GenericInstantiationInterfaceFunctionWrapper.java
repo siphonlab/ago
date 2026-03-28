@@ -39,6 +39,7 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
         super(templateClass.getRoot(), parent, (FunctionDef) templateClass.getInterfaceFun().instantiate(instantiationArguments,null), templateClass.getWrapperField(), templateClass.getIdentifierContext());
         this.templateClass = templateClass;
         this.instantiationArguments = instantiationArguments;
+        this.setGenericSource(new GenericSource(templateClass, instantiationArguments, instantiationArguments.takeFor(templateClass)));
         this.setClassType(templateClass.getClassType());
         if(parent != null) parent.addChild(this);
 
@@ -61,7 +62,7 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
     }
 
     public ClassRefLiteral[] getTypeArguments() {
-        return this.instantiationArguments.getTypeArgumentsArray();
+        return this.instantiationArguments.takeFor(this.templateClass);
     }
 
     @Override

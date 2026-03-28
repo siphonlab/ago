@@ -151,7 +151,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                 } else {
                     // copyTo#offset_length
                     var collectionClass = ownerFunction.getRoot().getAnyCollectionClass().asThatOrSuperOfThat(groupType);
-                    if(collectionClass.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue() == this.arrayType.getElementType()) {
+                    if(collectionClass.getGenericSource().typeArguments()[0].getClassDefValue() == this.arrayType.getElementType()) {
                         ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(group.result, collectionClass.findMethod("copyTo#offset_length")),
                                         List.of(localVar, destIndex, group.size),
                                         group.expression.getSourceLocation())
@@ -198,7 +198,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
         } else {
             var collectionClass = ownerFunction.getRoot().getAnyCollectionClass().asThatOrSuperOfThat(classDef);
             expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("size#get")), Collections.emptyList(), expression.getSourceLocation()).visit(blockCompiler);
-            if(collectionClass.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue() == this.arrayType.getElementType()) {
+            if(collectionClass.getGenericSource().typeArguments()[0].getClassDefValue() == this.arrayType.getElementType()) {
                 ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, collectionClass.findMethod("toArray#")), Collections.emptyList(), expression.getSourceLocation())
                         .outputToLocalVar(localVar, blockCompiler);
                 return;

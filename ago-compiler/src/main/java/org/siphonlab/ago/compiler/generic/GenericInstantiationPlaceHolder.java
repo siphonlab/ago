@@ -15,10 +15,7 @@
  */
 package org.siphonlab.ago.compiler.generic;
 
-import org.siphonlab.ago.compiler.ClassContainer;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.SourceLocation;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.expression.Expression;
@@ -50,7 +47,7 @@ public class GenericInstantiationPlaceHolder extends ClassDef {
 
     public ClassDef resolve(ClassRefLiteral[] args) throws CompilationError {
         var pc = ((ClassContainer) templateClass.getParent()).getOrCreateGenericInstantiationClassDef(templateClass, args, null);
-        scopeClass.registerConcreteType(pc);
+        if(pc instanceof ConcreteType c) scopeClass.registerConcreteType(c);
         scopeClass.idOfClass(templateClass);
         return (ClassDef) pc;
     }

@@ -45,7 +45,7 @@ public class MapPut extends ExpressionInFunctionBody {
         }
         this.map = map;
 
-        ClassRefLiteral[] typeArgumentsArray = mapType.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+        ClassRefLiteral[] typeArgumentsArray = mapType.getGenericSource().typeArguments();
         this.keyType = typeArgumentsArray[0].getClassDefValue();
         this.valueType = typeArgumentsArray[1].getClassDefValue();
 

@@ -28,7 +28,7 @@ import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 
 import static org.siphonlab.ago.compiler.generic.ClassIntervalClassDef.composeNameOfClassInClassInterval;
 
-public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implements Comparable<GenericTypeCodeAvatarClassDef> {
+public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implements Comparable<GenericTypeCodeAvatarClassDef>, ClassBound {
 
     private final SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef;
     private final ClassDef templateClass;

@@ -52,7 +52,7 @@ public class GetterFunction extends FunctionDef{
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
 
-        if(this.getGenericSource() != null){
+        if(this.isGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.InheritsFields);
             return true;
         }
@@ -69,7 +69,7 @@ public class GetterFunction extends FunctionDef{
     public void compileBody() throws CompilationError {
         if(this.getCompilingStage() != CompilingStage.CompileMethodBody) return;
 
-        if(this.getGenericSource() != null){
+        if(this.isGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.Compiled);
             return;
         }

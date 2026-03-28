@@ -168,10 +168,10 @@ public class ClassContainer extends Namespace<ClassDef>{
         return pc;
     }
 
-    public GenericConcreteType getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, MutableBoolean returnExisted) throws CompilationError {
         // template class is not intermediate template class
-        InstantiationArguments args = new InstantiationArguments(templateClass.getGenericSource() == null ? templateClass.getTypeParamsContext() : templateClass.getGenericSource().originalTemplate().getTypeParamsContext(), typeArguments);
-        return (GenericConcreteType)templateClass.instantiate(args, returnExisted);
+        InstantiationArguments args = new InstantiationArguments(templateClass.isGenericTemplate() ? templateClass.getTypeParamsContext() : templateClass.getGenericSource().originalTemplate().getTypeParamsContext(), typeArguments);
+        return templateClass.instantiate(args, returnExisted);
     }
 
 

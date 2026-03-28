@@ -120,7 +120,7 @@ public class FunctionDef extends ClassDef {
     public boolean parseFields() throws CompilationError {
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
-        if(this.getGenericSource() != null){
+        if(this.isGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.ValidateHierarchy);
             return true;
         }
@@ -248,7 +248,7 @@ public class FunctionDef extends ClassDef {
 
     @Override
     public void inheritsFields() throws CompilationError {
-        if(this.getGenericSource() != null) {
+        if(this.isGenericInstantiation()) {
             this.instantiateFields();
             return;
         }
@@ -300,7 +300,7 @@ public class FunctionDef extends ClassDef {
 
         super.allocateSlotsForFields();
 
-        if(this.getGenericSource() != null) return;     // slots already created by instantiateSlots
+        if(this.isGenericInstantiation()) return;     // slots already created by instantiateSlots
 
         // usually the variables come from BlockCompiler, for VarDeclaration
         // that means, this.localVariables is empty
@@ -463,7 +463,9 @@ public class FunctionDef extends ClassDef {
         if(instantiatedFunctionBase.getCompilingStage().lt(functionBaseClass.getCompilingStage())) {
             Compiler.processClassTillStage(instantiatedFunctionBase, functionBaseClass.getCompilingStage());
         }
-        this.registerConcreteType((ConcreteType) instantiatedFunctionBase);
+        if(instantiatedFunctionBase instanceof ConcreteType c){
+            this.registerConcreteType(c);
+        }
         this.setSuperClass(instantiatedFunctionBase);
 
         var interface_ = getRoot().getFunctionInterface(this.parameters.size());
@@ -477,7 +479,7 @@ public class FunctionDef extends ClassDef {
         }
         var args = list.toArray(new ClassRefLiteral[0]);
         var instantiated = interface_.instantiate(new InstantiationArguments(interface_.getTypeParamsContext(), args), null);
-        this.registerConcreteType((ConcreteType) instantiated);
+        if(instantiated instanceof ConcreteType c) this.registerConcreteType(c);
         this.addImplementedInterface(instantiated);
         assert this.functionInterfaceInstantiation == null;
         this.functionInterfaceInstantiation = instantiated;
@@ -493,7 +495,7 @@ public class FunctionDef extends ClassDef {
 
     public void compileBody() throws CompilationError {
         if(this.getCompilingStage() != CompilingStage.CompileMethodBody) return;
-        if(this.getGenericSource() != null){
+        if(this.isGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.Compiled);
             return;
         }

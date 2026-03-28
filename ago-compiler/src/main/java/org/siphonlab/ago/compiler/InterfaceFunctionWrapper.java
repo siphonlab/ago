@@ -62,8 +62,9 @@ public class InterfaceFunctionWrapper extends FunctionDef{
                 var g = templateTypeParamsContext.get(i);
                 this.typeParamsContext.createGenericTypeParam(g.getName(), g.getSharedGenericTypeParameterClassDef(), g.getParamIndex());
             }
-            GenericConcreteType instantiatedFun = this.getOrCreateGenericInstantiationClassDef(interfaceFun, this.typeParamsContext.createDefaultArgumentsArray(), null);
-            this.registerConcreteType(instantiatedFun);
+            this.createTemplateDefaultGenericSource();
+            var instantiatedFun = this.getOrCreateGenericInstantiationClassDef(interfaceFun, this.typeParamsContext.createDefaultArgumentsArray(), null);
+            if(instantiatedFun instanceof ConcreteType c) this.registerConcreteType(c);
             this.setInterfaceFun((FunctionDef) instantiatedFun);
             Compiler.processClassTillStage(this.interfaceFun, this.getCompilingStage());
         }
@@ -74,7 +75,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
 
-        if(this.getGenericSource() != null){
+        if(this.isGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.ValidateHierarchy);
             return true;
         }
@@ -132,7 +133,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
 
         // if interfaceFun is an instantiation, needn't compileBody, otherwise it will compileBody by itself
 
-        if(this.getGenericSource() != null){
+        if(this.isGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.Compiled);
             return;
         }
@@ -173,15 +174,15 @@ public class InterfaceFunctionWrapper extends FunctionDef{
     @Override
     public void cloneTo(InstantiationArguments instantiationArguments, ClassDef instantiateClass) throws CompilationError {
 
-        instantiateClass.setGenericSource(new GenericSource(this, instantiationArguments));
+        instantiateClass.setGenericSource(new GenericSource(this, instantiationArguments, null));
         this.putInstantiatedClassToCache(instantiationArguments, instantiateClass);
 
-        if (instantiationArguments.getSourceTemplate() != this) {
-            var args = instantiationArguments.takeFor(this);
-            if (args != null) {
-                this.putInstantiatedClassToCache(args, instantiateClass);
-            }
-        }
+//        if (instantiationArguments.getSourceTemplate() != this) {
+//            var args = instantiationArguments.takeFor(this);
+//            if (args != null) {
+//                this.putInstantiatedClassToCache(args, instantiateClass);
+//            }
+//        }
 
         instantiateClass.setUnit(this.getUnit());
         instantiateClass.setSourceLocation(this.getSourceLocation());        //TODO the source location assign to template's source location?

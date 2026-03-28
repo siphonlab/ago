@@ -46,7 +46,7 @@ public class MapValue extends ExpressionInFunctionBody implements Assign.Assigne
             throw new SyntaxError("map expected", map.getSourceLocation());
         }
         this.mapType = mapType;
-        ClassRefLiteral[] typeArgumentsArray = mapType.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+        ClassRefLiteral[] typeArgumentsArray = mapType.getGenericSource().typeArguments();
         this.keyType = typeArgumentsArray[0].getClassDefValue();
         this.valueType = typeArgumentsArray[1].getClassDefValue();
         this.indexExpr = indexExpr;

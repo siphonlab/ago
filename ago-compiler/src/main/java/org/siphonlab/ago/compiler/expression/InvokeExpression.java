@@ -83,7 +83,7 @@ public class InvokeExpression extends ExpressionInFunctionBody{
     @Override
     protected Expression transformInner() throws CompilationError {
         var genericSource = accordingFunction.getGenericSource();
-        var typeArguments = genericSource.instantiationArguments().getTypeArgumentsArray();
+        var typeArguments = genericSource.typeArguments();
         this.resultType = typeArguments[0].getClassDefValue();
         if(this.arguments.size() != typeArguments.length - 1){
             throw new ResolveError("'%d' arguments expected, but '%d' provided".formatted(typeArguments.length - 1, arguments.size()), sourceLocation);

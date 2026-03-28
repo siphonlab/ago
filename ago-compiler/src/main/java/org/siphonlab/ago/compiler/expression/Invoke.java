@@ -379,7 +379,7 @@ public class Invoke extends ExpressionInFunctionBody{
         if(paramsContext != null) {
             ClassRefLiteral[] typeArgs = r.toTypeArgs(paramsContext);
             var pc = ownerFunction.getOrCreateGenericInstantiationClassDef(r.functionDef, typeArgs, null);
-            ownerFunction.registerConcreteType(pc);
+            if(pc instanceof ConcreteType c) ownerFunction.registerConcreteType(c);
             ownerFunction.idOfClass(r.functionDef);
             return (FunctionDef) pc;        // GenericInstantiationFunctionDef
         } else {

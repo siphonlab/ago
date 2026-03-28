@@ -35,7 +35,7 @@ public class InvokeFunctor extends ExpressionInFunctionBody{
             return functor.inferType();
         } else {
             // Function<R>
-            return functor.inferType().getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+            return functor.inferType().getGenericSource().typeArguments()[0].getClassDefValue();
         }
     }
 

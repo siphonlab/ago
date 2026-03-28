@@ -208,10 +208,11 @@ public class FunctionInvocationResolver {
         } else if(parameterType.isGenericType()){
             GenericSource pSource = parameterType.getGenericSource();
             ClassDef template = pSource.originalTemplate();
+            ClassRefLiteral[] pArr = pSource.instantiationArguments().takeFor(template);
+
             for (ClassDef ac : argType.getAllAncestors(true)) {
                 if(template == ac.getTemplateClass()){
-                    var pArr = pSource.instantiationArguments().getTypeArgumentsArray();
-                    var aArr = ac.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+                    var aArr = ac.getGenericSource().instantiationArguments().takeFor(template);
                     if(pArr.length == aArr.length) {
                         for (int i = 0; i < pArr.length; i++) {
                             ClassRefLiteral p = pArr[i];
@@ -230,8 +231,8 @@ public class FunctionInvocationResolver {
 
 //        } else if(root.getAnyArrayClass().isThatOrSuperOfThat(parameterType)){
 //            if(root.getAnyClass().isThatOrSuperOfThat(argType)){
-//                var el1 = parameterType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
-//                var el2 = argType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+//                var el1 = parameterType.getGenericSource().typeArguments()[0].getClassDefValue();
+//                var el2 = argType.getGenericSource().typeArguments()[0].getClassDefValue();
 //                var el = indicateGenericType(el1,el2,resolveResult);
 //                if(el != el1){
 //                    return argType;

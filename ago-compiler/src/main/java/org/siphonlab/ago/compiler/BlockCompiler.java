@@ -944,7 +944,7 @@ public class BlockCompiler {
         ClassDef eleType;
         if(listTypeExpr != null){
             var listType = root.getAnyListClass().asThatOrSuperOfThat(arrayType);
-            eleType = listType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+            eleType = listType.getGenericSource().typeArguments()[0].getClassDefValue();
             arrayType = null;
         } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
             throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
@@ -1010,18 +1010,18 @@ public class BlockCompiler {
         } else {
             var t= root.getAnyListClass().asThatOrSuperOfThat(groupType);
             if(t != null){
-                return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.List);
+                return new CollectionElementType(t, t.getGenericSource().typeArguments()[0].getClassDefValue(), CollectionType.List);
             }
             t= root.getAnyCollectionClass().asThatOrSuperOfThat(groupType);
             if(t != null){
-                return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Collection);
+                return new CollectionElementType(t,t.getGenericSource().typeArguments()[0].getClassDefValue(), CollectionType.Collection);
             }
             t = root.getAnyIterableInterface().asThatOrSuperOfThat(groupType);
             if(t != null){
-                return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Iterable);
+                return new CollectionElementType(t,t.getGenericSource().typeArguments()[0].getClassDefValue(), CollectionType.Iterable);
             } else {
                 t = root.getAnyIteratorInterface().asThatOrSuperOfThat(groupType);
-                return new CollectionElementType(t, t.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue(), CollectionType.Iterator);
+                return new CollectionElementType(t,t.getGenericSource().typeArguments()[0].getClassDefValue(), CollectionType.Iterator);
             }
         }
     }
@@ -1037,7 +1037,7 @@ public class BlockCompiler {
                 r = new CollectionElementDef(el, true, arrayClassDef.getElementType());
             } else {
                 ClassDef it = root.getAnyIterableInterface().asThatOrSuperOfThat(expandoType);
-                var t = it.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0];
+                var t = it.getGenericSource().typeArguments()[0];
                 r = new CollectionElementDef(el, true, t.getClassDefValue());
             }
         } else {
@@ -1070,9 +1070,9 @@ public class BlockCompiler {
                         root.getStringClass().toClassRefLiteral(),
                         root.getObjectClass().toClassRefLiteral()
                 }, null);
-                functionDef.registerConcreteType(m);
+                if(m instanceof ConcreteType c) functionDef.registerConcreteType(c);
                 functionDef.idOfClass(root.getHashMapClass());
-                objectType = (ClassDef) m;
+                objectType = m;
                 objectTypeExpr = new ConstClass(objectType);
             } else {
                 var first = objectLiteral.propertyAssignment(0);
@@ -1082,7 +1082,7 @@ public class BlockCompiler {
                     var expr = this.expression(ps.expression());
                     var t = expr.inferType();
                     if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        ClassRefLiteral[] typeArgumentsArray = t.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+                        ClassRefLiteral[] typeArgumentsArray = t.getGenericSource().typeArguments();
                         keyType = typeArgumentsArray[0].getClassDefValue();
                         valueType = typeArgumentsArray[1].getClassDefValue();
                     } else {
@@ -1093,7 +1093,7 @@ public class BlockCompiler {
                         keyType.toClassRefLiteral(),
                         valueType.toClassRefLiteral()
                 }, null);
-                functionDef.registerConcreteType(m);
+                if(m instanceof ConcreteType c) functionDef.registerConcreteType(c);
                 functionDef.idOfClass(root.getHashMapClass());
                 objectType = (ClassDef) m;
                 objectTypeExpr = new ConstClass(objectType);
@@ -1110,7 +1110,7 @@ public class BlockCompiler {
 
             var statements = new ArrayList<Statement>();
             var mapType = root.getAnyMapClass().asThatOrSuperOfThat(objectType);
-            ClassRefLiteral[] arr = mapType.getGenericSource().instantiationArguments().getTypeArgumentsArray();
+            ClassRefLiteral[] arr = mapType.getGenericSource().typeArguments();
             ClassDef keyType = arr[0].getClassDefValue();
             ClassDef valueType = arr[1].getClassDefValue();
             for (PropertyAssignmentContext pa : propertyAssignments) {
@@ -1500,7 +1500,7 @@ public class BlockCompiler {
             if(enhancedForControl.declarationType() != null){
                 type = unit.parseTypeName(functionDef, enhancedForControl.declarationType().namePath(),false);
             } else {
-                var arg = concreteType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0];
+                var arg = concreteType.getGenericSource().typeArguments()[0];
                 type = arg.getClassDefValue();
             }
             Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);

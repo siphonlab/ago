@@ -47,7 +47,7 @@ public class ArrayElement extends ExpressionInFunctionBody implements Assign.Ass
         if(arrayType instanceof ArrayClassDef arrayClassDef){
             elementType = arrayClassDef.getElementType();
         } else {
-            elementType = arrayType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+            elementType = arrayType.getGenericSource().typeArguments()[0].getClassDefValue();
         }
         this.indexExpr = indexExpr;
     }

@@ -41,7 +41,7 @@ public class ArrayPut extends ExpressionInFunctionBody {
             throw new TypeMismatchError("'%s' is not an array".formatted(array), array.getSourceLocation());
         }
         this.array = array;
-        this.elementType = arrayType instanceof ArrayClassDef arrayClassDef? arrayClassDef.getElementType() : arrayType.getGenericSource().instantiationArguments().getTypeArgumentsArray()[0].getClassDefValue();
+        this.elementType = arrayType instanceof ArrayClassDef arrayClassDef? arrayClassDef.getElementType() : arrayType.getGenericSource().typeArguments()[0].getClassDefValue();
         this.indexExpr = indexExpr;
         this.value = value;
     }

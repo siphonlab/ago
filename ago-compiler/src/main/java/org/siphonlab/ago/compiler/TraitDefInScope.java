@@ -46,7 +46,7 @@ public class TraitDefInScope extends TraitDef{
     private static AgoParser.TraitDeclarationContext getDeclaration(ClassDef baseTrait) {
         if(baseTrait instanceof TraitDef b){
             return b.getTraitDeclaration();
-        } else if(baseTrait.getGenericSource() != null) {
+        } else if(baseTrait.isGenericInstantiation()) {
             var g = baseTrait.getGenericSource();
             return getDeclaration(g.originalTemplate());
         } else if(baseTrait instanceof ParameterizedClassDef parameterizedClassDef){
@@ -58,7 +58,7 @@ public class TraitDefInScope extends TraitDef{
     private static AgoParser.DeclarationTypeContext getPermitDeclaration(ClassDef baseTrait) {
         if(baseTrait instanceof TraitDef b){
             return b.getPermitTypeDecl();
-        } else if(baseTrait.getGenericSource() != null) {
+        } else if(baseTrait.isGenericInstantiation()) {
             var g = baseTrait.getGenericSource();
             assert g.originalTemplate() instanceof TraitDef;
             return ((TraitDef) g.originalTemplate()).getPermitTypeDecl();
