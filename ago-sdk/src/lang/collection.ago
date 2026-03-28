@@ -21,10 +21,11 @@ interface Collection<T> from Iterable<T>{
     fun add(item as T);
     fun clear();
     fun contains(item as T) as boolean;
+    fun remove(item as T) as boolean;
+
     fun copyTo#offset(arr as T[], arrayOffset as int);
     fun copyTo#arr(arr as T[]);
     fun copyTo#offset_length(arr as T[], arrayOffset as int, length as int);
-    fun remove(item as T) as boolean;
     fun toArray() as T[];
 }
 
