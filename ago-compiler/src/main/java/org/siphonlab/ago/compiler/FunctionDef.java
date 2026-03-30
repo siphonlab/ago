@@ -527,7 +527,7 @@ public class FunctionDef extends ClassDef {
         } else if (body instanceof AgoParser.MBEmptyContext || body == null) {
             if (this.isAbstract()) {
                 //
-            } else if(this.resultType.getTypeCode() == TypeCode.VOID) {
+            } else if(this.resultType == null || this.resultType.getTypeCode() == TypeCode.VOID) {
                 new BlockCompiler(this.unit, this, new ArrayList<>()).compile();
             } else {
                 throw new UnsupportedOperationException("TODO");        //TODO
