@@ -77,10 +77,6 @@ public class InstantiationArguments {
         return this.flatString;
     }
 
-    public ClassDef mapType(GenericTypeCodeAvatarClassDef genericTypeCodeAvatarClassDef){
-        return typeMapping.getOrDefault(genericTypeCodeAvatarClassDef, genericTypeCodeAvatarClassDef);
-    }
-
     @Override
     public int hashCode() {
         return this.flatString.hashCode();

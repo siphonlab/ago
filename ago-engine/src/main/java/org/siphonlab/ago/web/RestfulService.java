@@ -157,7 +157,7 @@ public class RestfulService {
         HttpRequest httpRequest = (HttpRequest) restService.getNativePayload();
         AgoNativeFunction function = nativeFrame.getAgoClass();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) function.getConcreteTypeInfo();
-        TypeInfo expectedType = genericArgumentsInfo.getArguments()[genericArgumentsInfo.getArguments().length - 1];
+        var expectedType = genericArgumentsInfo.getArguments()[genericArgumentsInfo.getArguments().length - 1];
         httpRequest.aggregate().thenAcceptAsync(r ->{
             Reader reader = r.content().toReader(StandardCharsets.UTF_8);
             try {

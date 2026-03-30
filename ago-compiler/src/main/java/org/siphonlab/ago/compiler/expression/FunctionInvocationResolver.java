@@ -231,8 +231,8 @@ public class FunctionInvocationResolver {
 
 //        } else if(root.getAnyArrayClass().isThatOrSuperOfThat(parameterType)){
 //            if(root.getAnyClass().isThatOrSuperOfThat(argType)){
-//                var el1 = parameterType.getGenericSource().typeArguments()[0].getClassDefValue();
-//                var el2 = argType.getGenericSource().typeArguments()[0].getClassDefValue();
+//                var el1 = parameterType.getGenericSource().instantiationArguments()[0].getClassDefValue();
+//                var el2 = argType.getGenericSource().instantiationArguments()[0].getClassDefValue();
 //                var el = indicateGenericType(el1,el2,resolveResult);
 //                if(el != el1){
 //                    return argType;

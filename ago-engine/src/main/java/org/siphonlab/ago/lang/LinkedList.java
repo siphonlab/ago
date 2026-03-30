@@ -263,7 +263,7 @@ public class LinkedList {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         Object ls = instance.getNativePayload();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var typeInfo = genericArgumentsInfo.getArguments()[0];
         switch (typeInfo.getTypeCode().value){
             case INT_VALUE:
                 callFrame.finishInt(((java.util.LinkedList<Integer>) ls).get(index));
@@ -395,7 +395,7 @@ public class LinkedList {
         NativeInstance iteratorInstance = (NativeInstance) callFrame.getParentScope();
         Iterator iterator = (Iterator) iteratorInstance.getNativePayload();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var typeInfo = genericArgumentsInfo.getArguments()[0];
         switch (typeInfo.getTypeCode().value){
             case INT_VALUE:
                 callFrame.finishInt(((Iterator<Integer>)iterator).next());

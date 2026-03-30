@@ -114,6 +114,11 @@ public class Root extends Namespace<Package> {
 
     public Root() {
         super("");
+        addNullClassDef();
+    }
+
+    private void addNullClassDef() {
+        this.getDefaultPackage().addChild(NULL = new NullClassDef(this));
     }
 
     public Package createPackage(String packageName) {
@@ -577,7 +582,6 @@ public class Root extends Namespace<Package> {
         if(this.BOOLEAN == null) this.BOOLEAN = findByFullname("boolean");
         if(this.DOUBLE == null) this.DOUBLE = findByFullname("double");
         if(this.CLASREF == null) this.CLASREF = findByFullname("classref");
-        if(this.NULL == null) this.NULL = findByFullname("null");
 
         if(this.CLASS_CLASS == null) this.CLASS_CLASS = findByFullname("lang.Class");
         if(this.CLASS_REF_CLASS == null) this.CLASS_REF_CLASS = findByFullname("lang.ClassRef");
@@ -693,5 +697,17 @@ public class Root extends Namespace<Package> {
 
     public NullLiteral createNullLiteral(){
         return new NullLiteral(this.NULL);
+    }
+
+    public Package getDefaultPackage() {
+        Package defaultPackage = getChild("");
+        if(defaultPackage == null) {
+            return this.createPackage("");
+        }
+        return defaultPackage;
+    }
+
+    public NullClassDef NULL() {
+        return NULL;
     }
 }

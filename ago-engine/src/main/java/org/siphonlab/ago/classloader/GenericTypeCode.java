@@ -20,7 +20,7 @@ import org.siphonlab.ago.TypeCode;
 public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeCode> {
     int paramIndex;
     String name;
-    GenericTypeCodeAvatarClassHeader genericTypeCodeAvatarClassHeader;
+    String genericTypeCodeAvatarClass;
 
     public GenericTypeCode(int genericTypeCode, int paramIndex, String name, String description){
         super(genericTypeCode, description);
@@ -30,7 +30,7 @@ public class GenericTypeCode extends TypeCode implements Comparable<GenericTypeC
 
     @Override
     public int compareTo(GenericTypeCode o) {
-        var r = this.genericTypeCodeAvatarClassHeader.templateClassName.compareTo(o.genericTypeCodeAvatarClassHeader.templateClassName);
+        var r = this.genericTypeCodeAvatarClass.compareTo(o.genericTypeCodeAvatarClass);
         if(r != 0) return r;
         return this.value - o.value;
     }

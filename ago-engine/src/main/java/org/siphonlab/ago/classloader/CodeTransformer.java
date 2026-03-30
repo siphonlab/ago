@@ -102,8 +102,8 @@ public class CodeTransformer {
         int p = methodDesc.getMethodIndex();
         var method = headers.get(methodDesc.getFullname());
         assert clazz.getMethod(p) == method.agoClass;
-        if(method.isInGenericTemplate() && this.header.genericSource != null){
-            method = classLoader.instantiateDependencyClass(methodDesc.getFullname(), this.header.genericSource.typeArguments());
+        if(method.isInGenericTemplate() && this.header.isGenericInstantiation()){
+            method = classLoader.instantiateDependencyClass(methodDesc.getFullname(), this.header.genericSource.instantiationArguments());
             p = methodDesc.getMethodIndex();
             assert clazz.getMethod(p).getName().equals(method.agoClass.getName());
         }

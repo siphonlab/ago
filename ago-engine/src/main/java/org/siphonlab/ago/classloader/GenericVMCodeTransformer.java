@@ -32,13 +32,11 @@ import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
 public class GenericVMCodeTransformer {
 
     private final ClassHeader myClassHeader;
-    private final AgoClassLoader classLoader;
 
     private Map<InstantiationArguments, IoBuffer> genericCodeCache = new HashMap<>();
 
     public GenericVMCodeTransformer(ClassHeader classHeader){
         this.myClassHeader = classHeader;
-        this.classLoader = classHeader.classLoader;
     }
 
     public IoBuffer transform(IoBuffer bodyCodeBuffer, InstantiationArguments instantiationArguments, ClassHeader instantFunction){
@@ -315,7 +313,7 @@ public class GenericVMCodeTransformer {
         if (mapped != null) {
             code.putInt(code.position() + offset * 4, mapped.getTypeCode().value);
             if(mapped.getTypeCode().value == TypeCode.OBJECT_VALUE) {
-                code.putInt(code.position() + (offset + 1) * 4, classLoader.getClassHeader(mapped.fullname).classId);
+                code.putInt(code.position() + (offset + 1) * 4, getClassLoader().getClassHeader(mapped.fullname).classId);
             } else {
                 code.putInt(code.position() + (offset + 1) * 4, -1);
             }
@@ -337,7 +335,7 @@ public class GenericVMCodeTransformer {
         codeBuffer.skip(offset * 4);
         int classNameId = codeBuffer.getInt();
         String className = strings[classNameId];
-        ClassHeader instantiation = classLoader.instantiateDependencyClass(className, instantiationArguments);
+        ClassHeader instantiation = getClassLoader().instantiateDependencyClass(className, instantiationArguments);
         if (instantiation == null) {
             throw new RuntimeException("null instantiation: " + className);
         }
@@ -352,11 +350,14 @@ public class GenericVMCodeTransformer {
         codeBuffer.skip(offset * 4);
         int genericCode = codeBuffer.getInt();
         String className = instantiationArguments.mapTypeCodeToClassName(genericCode);
-        ClassHeader header = classLoader.getClassHeader(className);
+        ClassHeader header = getClassLoader().getClassHeader(className);
         codeBuffer.putInt(codeBuffer.position() - 4, header.classId);
         instantFunction.handledInstructions.add(pos);
         codeBuffer.position(pos);
         return header;
     }
 
+    private AgoClassLoader getClassLoader() {
+        return myClassHeader.classLoader;
+    }
 }

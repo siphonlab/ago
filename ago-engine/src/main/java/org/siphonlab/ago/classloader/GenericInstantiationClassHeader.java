@@ -17,6 +17,7 @@ package org.siphonlab.ago.classloader;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.jetbrains.annotations.UnknownNullability;
 import org.siphonlab.ago.AgoClass;
 
 import java.util.*;
@@ -41,11 +42,12 @@ public class GenericInstantiationClassHeader extends ClassHeader {
 
     public GenericInstantiationClassHeader(String fullname, byte type,String templateClass, InstantiationArguments instantiationArguments, AgoClassLoader classLoader) {
         super(fullname, type, 0, null, classLoader);
-        this.genericSource = new GenericSource(templateClass, instantiationArguments);
+        ClassRefValue[] typeArguments = instantiationArguments.takeFor(classLoader.getClassHeader(templateClass));
+        this.genericSource = new GenericSource(templateClass, instantiationArguments, typeArguments);
         this.templateClass = templateClass;
         this.arguments = instantiationArguments;
-        if(instantiationArguments.getTypeArgumentsArray() != null) {
-            this.argumentNames = Arrays.stream(instantiationArguments.getTypeArgumentsArray()).map(a -> a.fullname()).toArray(String[]::new);
+        if(typeArguments != null) {
+            this.argumentNames = Arrays.stream(typeArguments).map(ClassRefValue::className).toArray(String[]::new);
         }
     }
 
@@ -53,9 +55,8 @@ public class GenericInstantiationClassHeader extends ClassHeader {
         return (templateClass.modifiers & GENERIC_TEMPLATE_NEG) | AgoClass.GENERIC_INSTANTIATION;
     }
 
-    public static String composeClassName(String baseTemplateName, InstantiationArguments instantiationArguments) {
-        return baseTemplateName + "<" + Arrays.stream(instantiationArguments.getTypeArgumentsArray())
-                    .map(ClassHeader::fullname).collect(Collectors.joining(",")) + ">";
+    public static String composeClassName(String baseTemplateName, ClassRefValue[] instantiationArguments) {
+        return baseTemplateName + "<" + Arrays.stream(instantiationArguments).map(ClassRefValue::className).collect(Collectors.joining(",")) + ">";
     }
 
     public static String[] composeMetaClassName(ClassHeader instanceTemplate, InstantiationArguments instantiationArguments) {
@@ -66,7 +67,7 @@ public class GenericInstantiationClassHeader extends ClassHeader {
             String fullCalssName = instance.name;       // full class name without package, parent.parent...me
             List<ClassHeader> parents = new ArrayList<>();
             for(; parent != null; parent = parent.parent){
-                parents.add(parent.instantiate(instantiationArguments));
+                parents.add(parent.instantiate(instantiationArguments, null, null, null));
             }
             for (int i = 0; i < parents.size(); i++) {
                 ClassHeader p = parents.get(i);
@@ -94,7 +95,7 @@ public class GenericInstantiationClassHeader extends ClassHeader {
         if (existed != null)
             return existed;
 
-        var inst = new GenericInstantiationClassHeader(fullname, this.type, this.templateClass, this.genericTypeArguments(), this.classLoader);
+        var inst = new GenericInstantiationClassHeader(fullname, this.type, this.templateClass, this.arguments, this.classLoader);
         inst.setName(this.name);
         copyToClone(inst);
         inst.parent = newParent;
@@ -110,18 +111,18 @@ public class GenericInstantiationClassHeader extends ClassHeader {
 
     public InstantiationArguments genericTypeArguments(){
         if(genericSource != null) {
-            return genericSource.typeArguments();
+            return genericSource.instantiationArguments();
         } else {
             if(this.arguments != null) return this.arguments;
 
             InstantiationArguments args = new InstantiationArguments(this.getSourceTemplate(),
-                    Arrays.stream(this.argumentNames).map(a -> Objects.requireNonNull(classLoader.getClassHeader(a))).toArray(ClassHeader[]::new), this.classLoader.getHeaders());
-            args.setSuggestionFullname(this.fullname);
-            args.setSuggestionName(this.name);
-            if(StringUtils.isNotEmpty(this.parentClassName)) {
-                args.setParentClassHeader(Objects.requireNonNull(this.classLoader.getClassHeader(this.parentClassName)));
-                this.parent = args.getParentClassHeader();
-            }
+                    Arrays.stream(this.argumentNames).map(a -> Objects.requireNonNull(classLoader.getClassHeader(a))).toArray(ClassHeader[]::new));
+//            args.setSuggestionFullname(this.fullname);
+//            args.setSuggestionName(this.name);
+//            if(StringUtils.isNotEmpty(this.parentClassName)) {
+//                args.setParentClassHeader(Objects.requireNonNull(this.classLoader.getClassHeader(this.parentClassName)));
+//                this.parent = args.getParentClassHeader();
+//            }
             return this.arguments = args;
         }
     }
@@ -143,9 +144,9 @@ public class GenericInstantiationClassHeader extends ClassHeader {
             parent.addChild(this);
         }
         var args = this.genericTypeArguments();
-        if(this.parent != null && this.parent.genericSource != null){
+        if(this.parent != null && this.parent.isGenericInstantiation()){
             throw new UnsupportedOperationException("TODO");
-//            args = this.parent.genericSource.typeArguments().applyChild(args, headers);
+//            args = this.parent.genericSource.instantiationArguments().applyChild(args, headers);
         }
         this.getSourceTemplate().applyInstantiation(this, args, this.parent);
         return true;
@@ -165,7 +166,7 @@ public class GenericInstantiationClassHeader extends ClassHeader {
             if (!templateClass.parseFields()) return false;
         }
 
-        InstantiationArguments typeArguments = this.genericSource.typeArguments();
+        InstantiationArguments typeArguments = this.genericSource.instantiationArguments();
 
         this.modifiers = composeModifiers(templateClass);
 
@@ -181,9 +182,7 @@ public class GenericInstantiationClassHeader extends ClassHeader {
             ClassHeader parent = classLoader.getClassHeader(this.parentClassName);
             if(parent != null) {
                 parent.registerFunctionInstantiation(this);
-                throw new UnsupportedOperationException("TODO");
-//                templateClass.instantiateFunctionFamily(headers);
-                //this.templateClass.instantiateFunctionFamily(parent, this, 0, headers, this.genericTypeArguments());
+                templateClass.instantiateFunctionFamily(parent, this, 0, this.genericTypeArguments());
             }
         }
         this.nextStage();

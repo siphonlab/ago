@@ -16,6 +16,7 @@ public class GenericTypeCodeAvatarClassHeader extends ParameterizedClassHeader i
         int typeCode = (Integer)arguments[3];
         String paramName = (String) arguments[4];
         this.typeCode = new GenericTypeCode(typeCode, paramIndex, paramName, paramName + "_" + paramIndex + "_" + templateClassName);
+        this.typeCode.genericTypeCodeAvatarClass = fullname;
     }
 
     @Override
@@ -50,4 +51,16 @@ public class GenericTypeCodeAvatarClassHeader extends ParameterizedClassHeader i
                         composeNameOfClassInClassInterval(sharedGenericTypeParameterClassName));
     }
 
+    @Override
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+        if(instantiationArguments.typeMapping.containsKey(this)){
+            return true;
+        }
+        return classLoader.getClassHeader(this.sharedGenericTypeParamClassName).isAffectedByTypeArguments(instantiationArguments);
+    }
+
+    @Override
+    protected ClassHeader instantiate(InstantiationArguments typeArguments, ClassHeader newParent, String suggestionName, String suggestionFullName) {
+        return typeArguments.mapType(this);
+    }
 }

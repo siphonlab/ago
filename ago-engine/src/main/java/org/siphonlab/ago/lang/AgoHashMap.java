@@ -35,7 +35,7 @@ public class AgoHashMap {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
 
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];     // Key
+        var typeInfo = genericArgumentsInfo.getArguments()[0];     // Key
 
         var map = switch (typeInfo.getTypeCode().value){
             case INT_VALUE, SHORT_VALUE, BYTE_VALUE, BOOLEAN_VALUE, CLASS_REF_VALUE, FLOAT_VALUE, CHAR_VALUE -> new Int2NullableObjectHashMap<>();  // float stored with Float.floatToIntBits; boolean, true->1, false -> 0;
@@ -164,7 +164,7 @@ public class AgoHashMap {
 
             GenericArgumentsInfo genericArgs =
                     (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-            TypeInfo valueType = genericArgs.getArguments()[1];
+            var valueType = genericArgs.getArguments()[1];
 
             Object v = valObj == null ? TypeCode.defaultValue(valueType.getTypeCode()) : valObj;
 
@@ -552,8 +552,8 @@ public class AgoHashMap {
         var ls = (((NativeInstance)arrayList).getNativePayload());
 
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
-        TypeInfo keyType = genericArgumentsInfo.getArguments()[0];
-        TypeInfo valueType = genericArgumentsInfo.getArguments()[1];
+        var keyType = genericArgumentsInfo.getArguments()[0];
+        var valueType = genericArgumentsInfo.getArguments()[1];
 
         Map<?, ?> map = (Map<?, ?>) payload;
         for (Object v : map.keySet()) {
@@ -599,8 +599,8 @@ public class AgoHashMap {
         var ls = (((NativeInstance)arrayList).getNativePayload());
 
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
-        TypeInfo keyType = genericArgumentsInfo.getArguments()[0];
-        TypeInfo valueType = genericArgumentsInfo.getArguments()[1];
+        var keyType = genericArgumentsInfo.getArguments()[0];
+        var valueType = genericArgumentsInfo.getArguments()[1];
 
         Map<?, ?> map = (Map<?, ?>) payload;
         for (Object v : map.values()) {
@@ -669,8 +669,8 @@ public class AgoHashMap {
         var KeyValuePairType =((GenericArgumentsInfo)IteratorKeyValuePairType.getConcreteTypeInfo()).getArguments()[0].getAgoClass();
 
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
-        TypeInfo keyType = genericArgumentsInfo.getArguments()[0];
-        TypeInfo valueType = genericArgumentsInfo.getArguments()[1];
+        var keyType = genericArgumentsInfo.getArguments()[0];
+        var valueType = genericArgumentsInfo.getArguments()[1];
 
         AgoEngine agoEngine = callFrame.getAgoEngine();
         var r = agoEngine.createInstance(KeyValuePairType, callFrame);
@@ -782,7 +782,7 @@ public class AgoHashMap {
         callFrame.finishObject(r);
     }
 
-    private static void writeValue(Slots slots, int index, TypeInfo valueType, Object val) {
+    private static void writeValue(Slots slots, int index, AgoClass valueType, Object val) {
         switch (valueType.getTypeCode().value) {
             case INT_VALUE:
                 slots.setInt(index, (Integer) val);

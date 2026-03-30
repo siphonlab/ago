@@ -19,6 +19,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.ParameterizedClassInfo;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -177,26 +178,29 @@ public class ParameterizedClassHeader extends ClassHeader {
     }
 
     @Override
-    void setConcreteTypeInfo(Map<String, ClassHeader> headers) {
-        super.setConcreteTypeInfo(headers);
+    void setConcreteTypeInfo() {
+        super.setConcreteTypeInfo();
 
         ClassHeader baseClass = this.getBaseClassHeader();
-        var metaOfBase = headers.get(baseClass.getMetaClass());
+        var metaOfBase = classLoader.getClassHeader(baseClass.getMetaClass());
         var constructor = metaOfBase.agoClass.findMethod(this.constructor);
-        agoClass.setConcreteTypeInfo(new ParameterizedClassInfo(baseClass.agoClass, constructor,arguments));
+        agoClass.setConcreteTypeInfo(new ParameterizedClassInfo(baseClass.agoClass, constructor, Arrays.stream(arguments).map(obj -> {
+            if(obj instanceof ClassRefValue(String className)) return Objects.requireNonNull(classLoader.getClass(className));
+            return obj;
+        }).toArray()));
     }
 
     @Override
     public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
         ClassHeader baseClass = classLoader.getClassHeader(this.baseClass);
         if(baseClass.isAffectedByTypeArguments(typeArguments)) return true;
-//        for (var arg : this.arguments) {
-//            if(arg instanceof ClassHeader header) {    //TODO classref as parameter
-//                if (typeArgument.getClassDefValue().isAffectedByTemplate(instantiationArguments)) {
-//                    return true;
-//                }
-//            }
-//        }
+        for (var arg : this.arguments) {
+            if(arg instanceof ClassRefValue(String className)) {
+                if (classLoader.getClassHeader(className).isAffectedByTypeArguments(typeArguments)) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 

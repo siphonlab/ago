@@ -16,14 +16,14 @@
 package org.siphonlab.ago;
 
 public class ArrayInfo extends ConcreteTypeInfo{
-    private TypeInfo elementType;
+    private AgoClass elementType;
 
-    public ArrayInfo(TypeInfo elementType) {
+    public ArrayInfo(AgoClass elementType) {
         super();
         this.elementType = elementType;
     }
 
-    public TypeInfo getElementType() {
+    public AgoClass getElementType() {
         return elementType;
     }
 }

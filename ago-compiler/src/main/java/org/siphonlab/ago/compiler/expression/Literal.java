@@ -24,6 +24,8 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
+import java.util.Objects;
+
 public abstract class Literal<T> implements LiteralResultExpression, TermExpression {
     
     public T value;
@@ -33,7 +35,7 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
     private Expression parent;
 
     public Literal(ClassDef classDef, T value){
-        this.classDef = classDef;
+        this.classDef = Objects.requireNonNull(classDef);
         this.value = value;
     }
 

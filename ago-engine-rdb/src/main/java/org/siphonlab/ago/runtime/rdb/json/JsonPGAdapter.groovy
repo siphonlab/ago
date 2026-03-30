@@ -366,20 +366,17 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     static Map<String, Object> toMap(ConcreteTypeInfo concreteTypeInfo) {
         if(concreteTypeInfo == null) return null;
         if(concreteTypeInfo instanceof ArrayInfo){
-            return ["type": "ArrayInfo", "elementType" : toMap(concreteTypeInfo.elementType)]
+            return ["type": "ArrayInfo", "elementType" : concreteTypeInfo.elementType.fullname as Object]
         } else if(concreteTypeInfo instanceof GenericArgumentsInfo){
-            return ["type": "GenericArgumentsInfo" as Object, "templateClass": concreteTypeInfo.templateClass.fullname, "arguments": concreteTypeInfo.arguments.collect({toMap(it as TypeInfo)}).toArray()]
+            return ["type": "GenericArgumentsInfo" as Object, "templateClass": concreteTypeInfo.templateClass.fullname, "arguments": concreteTypeInfo.arguments.collect( { ((AgoClass)it).fullname }).toArray()]
         } else if(concreteTypeInfo instanceof GenericTypeParametersInfo){
-            return ["type": "GenericTypeParametersInfo" as Object, "genericParameters": concreteTypeInfo.genericParameters.collect { toMap(it as TypeInfo) }.toArray()]
+            return ["type": "GenericTypeParametersInfo" as Object, "genericParameters": concreteTypeInfo.genericParameters.collect { ((AgoClass)it).fullname } .toArray()]
         } else if(concreteTypeInfo instanceof ParameterizedClassInfo){
-            return ["type": "ParameterizedClassInfo" as Object, "parameterizedBaseClass": concreteTypeInfo.parameterizedBaseClass.fullname, "parameterizedConstructor": concreteTypeInfo.parameterizedConstructor.fullname, "arguments": concreteTypeInfo.arguments]
+            return ["type": "ParameterizedClassInfo" as Object, "parameterizedBaseClass": concreteTypeInfo.parameterizedBaseClass.fullname,
+                    "parameterizedConstructor": concreteTypeInfo.parameterizedConstructor.fullname, "arguments": concreteTypeInfo.arguments]
         } else {
             throw new IllegalArgumentException("unknown concrete type " + concreteTypeInfo);
         }
-    }
-
-    static Map<String, Object> toMap(TypeInfo typeInfo) {
-        return ["typeCode": toMap(typeInfo.typeCode) as Object, "agoClass": typeInfo?.agoClass?.fullname]
     }
 
     static Map<String, Object> toMap(SwitchTable switchTable) {
@@ -405,7 +402,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
         var m = toMap(agoFunction, applicationId);
 
-        m["result_type"] = toJsonb(toMap(new TypeInfo(agoFunction.getResultTypeCode(), agoFunction.getResultClass())));
+        m["result_type"] = agoFunction.getResultClass().getFullname()
         m["code"] = agoFunction.code
         m["variables"] = toJsonbArray(agoFunction.variables?.collect {toMap(it as AgoVariable)}?.toArray());
         m["parameters"] = toJsonbArray(agoFunction.parameters?.collect{toMap(it as AgoParameter)}?.toArray());

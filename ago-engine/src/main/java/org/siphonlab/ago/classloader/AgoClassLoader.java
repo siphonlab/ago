@@ -66,17 +66,24 @@ public class AgoClassLoader implements ClassManager{
     public AgoClassLoader(MetaClass theMeta, SlotsCreatorFactory slotsCreatorFactory) {
         this.theMeta = theMeta;
         this.slotsCreatorFactory = slotsCreatorFactory;
+        this.initNullClass();
+    }
+
+    private void initNullClass() {
+        this.registerNewClass(new NullClassHeader(this));
     }
 
 
     public AgoClassLoader(SlotsCreatorFactory slotsCreatorFactory) {
         this.theMeta = MetaClass.createTheMeta(this);
         this.slotsCreatorFactory = slotsCreatorFactory;
+        this.initNullClass();
     }
 
     public AgoClassLoader() {
         this.theMeta = MetaClass.createTheMeta(this);
         this.slotsCreatorFactory = new DefaultSlotsCreatorFactory();
+        this.initNullClass();
     }
 
     public SlotsCreatorFactory getSlotsCreatorFactory() {
@@ -107,8 +114,6 @@ public class AgoClassLoader implements ClassManager{
     }
 
     public void loadClasses(IoBuffer[] buffers) throws IOException {
-        initPrimitiveClassHeaders();
-
         // stage: LoadClassNames
         for (IoBuffer buffer : buffers) {
             loadClassNames(buffer);
@@ -142,7 +147,7 @@ public class AgoClassLoader implements ClassManager{
         for (ClassHeader header : headers.values()) {
             collectMetaAndSuperAndChildren(header);
         }
-        collectMethods();
+        collectMethodsAndSetConcreteTypeInfo();
         // collect lang classes
         this.langClasses = new LangClasses(this);
         // the meta
@@ -164,20 +169,6 @@ public class AgoClassLoader implements ClassManager{
         for(var i=0; i<classes.size(); i++){
             assert i == headers.get(classes.get(i).getFullname()).getClassId();
         }
-    }
-
-    private void initPrimitiveClassHeaders() {
-//        this.headers.put("void", new PrimitiveClassHeader("void", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("string", new PrimitiveClassHeader("string", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("boolean", new PrimitiveClassHeader("boolean", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("char", new PrimitiveClassHeader("char", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("float", new PrimitiveClassHeader("float", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("double", new PrimitiveClassHeader("double", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("byte", new PrimitiveClassHeader("byte", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("short", new PrimitiveClassHeader("short", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("int", new PrimitiveClassHeader("int", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("long", new PrimitiveClassHeader("long", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
-//        this.headers.put("classref", new PrimitiveClassHeader("classref", TYPE_PRIMITIVE_CLASS, PUBLIC, null, this));
     }
 
     void processStage(LoadingStage stage){
@@ -368,15 +359,17 @@ public class AgoClassLoader implements ClassManager{
         }
         // generic type params
         cnt = buffer.getInt();
-        var genericTypeCodeAvatarClassHeaders = new GenericTypeCodeAvatarClassHeader[cnt];
+        var typeParams = new GenericTypeCodeAvatarClassHeader[cnt];
+        TypeDesc lastTypeParam = null;
         for (int i = 0; i < cnt; i++) {
             String name = strings[buffer.getInt()];
             int finalI = i;
             var t = new TypeDesc(0, name);
             t.addOnSolvedListener(classHeader -> {
-                genericTypeCodeAvatarClassHeaders[finalI] = (GenericTypeCodeAvatarClassHeader) classHeader;
+                typeParams[finalI] = (GenericTypeCodeAvatarClassHeader) classHeader;
             });
             typeDescs.add(t);
+            lastTypeParam = t;
 //            ClassHeader classHeader = headers.get(name);
 //            if(classHeader == null)
 //                throw new IllegalStateException("ClassHeader '%s' is null".formatted(name));
@@ -411,7 +404,14 @@ public class AgoClassLoader implements ClassManager{
             header.setEnumBasePrimitiveType(enumBasePrimitiveType);
             header.setEnumValues(enumValues);
         }
-        header.genericTypeParams = genericTypeCodeAvatarClassHeaders;
+        if(typeParams.length > 0){
+            header.genericTypeParams = typeParams;
+            lastTypeParam.addOnSolvedListener(classHeader -> {
+                header.createTemplateDefaultGenericSource();
+            });
+        } else {
+            header.genericTypeParams = null;
+        }
         if(stringsOfParent == null || type == TYPE_METACLASS) {
             header.strings = strings;
         }
@@ -691,12 +691,14 @@ public class AgoClassLoader implements ClassManager{
     // and the instantiationArguments must be U=Dog
     public ClassHeader instantiateDependencyClass(String className, InstantiationArguments instantiationArguments){
         var h = getClassHeader(className);
+        if(h instanceof GenericTypeCodeAvatarClassHeader g){
+            return instantiationArguments.mapType(g);
+        }
         if(h != null) {
             if(!h.isAffectedByTypeArguments(instantiationArguments)) return h;
             var existed = h.getSourceTemplate().getCachedInstantiatedClass(instantiationArguments);
             if (existed != null) return existed;
         }
-        String originalClassName = className;
         List<String> path  = new LinkedList<>();
         while(true) {
             path.addFirst(className);
@@ -716,14 +718,17 @@ public class AgoClassLoader implements ClassManager{
         ClassHeader header;
         String el = path.getFirst();     // the most out class
         header = getClassHeader(el);
-        InstantiationArguments args = instantiationArguments.withoutNames();
-        if(header instanceof GenericInstantiationClassHeader g || header.isGenericTemplate()){
-            // cannot suggest name
-        } else {
-            instantiationArguments.setSuggestionFullname(el);
-            instantiationArguments.setSuggestionName(header.name);
-        }
-        h = header.instantiate(args);      // auto process to children
+        InstantiationArguments args = instantiationArguments;
+
+        h = header.instantiate(args, null, null, null);
+
+//        if(header instanceof GenericInstantiationClassHeader g || header.isGenericTemplate()){
+//            // cannot suggest name
+//            h = header.instantiate(args, null, null, null);
+//        } else {
+//            h = header.instantiate(args, null, null, null);      // auto process to children
+//        }
+
         if(path.size() == 1) return h;
 
         var it = path.iterator(); it.next();
@@ -894,7 +899,8 @@ public class AgoClassLoader implements ClassManager{
         for (int i = 0; i < slotDescs.length; i++) {
             SlotDesc desc = slotDescs[i];
             var type = desc.type();
-            var c = type.getTypeCode() == OBJECT ? classByName.get(type.fullname) : null;
+            assert type != null;
+            var c = classByName.get(type.fullname);
             AgoSlotDef agoSlotDef = new AgoSlotDef(desc.index(), desc.name(), type.getTypeCode(), c);
             slotDefs[i] = agoSlotDef;
             assert i == agoSlotDef.getIndex();
@@ -962,7 +968,7 @@ public class AgoClassLoader implements ClassManager{
         if(variables == null) return Stream.of();
         return Arrays.stream(variables).map(v -> {
             var type = v.variableKind;
-            var agoClass = v.getType().getTypeCode() == OBJECT ? classByName.get(v.getType().fullname) : null;
+            var agoClass = classByName.get(v.getType().fullname);
             var r = switch (type) {
                 case Field -> new AgoField(v.name, v.modifiers, v.getType().getTypeCode(), agoClass, v.slotIndex, owner, v.constLiteralValue);
                 case Parameter -> new AgoParameter(v.name, v.modifiers, v.getType().getTypeCode(), agoClass, v.slotIndex, (AgoFunction) owner, v.constLiteralValue);
@@ -1184,10 +1190,10 @@ public class AgoClassLoader implements ClassManager{
         header.setLoadingStage(LoadingStage.CollectMethods);
     }
 
-    private void collectMethods(){
+    private void collectMethodsAndSetConcreteTypeInfo(){
         for (ClassHeader header : headers.values()) {
             header.collectMethods(headers);
-            header.setConcreteTypeInfo(headers);
+            header.setConcreteTypeInfo();
         }
 
         for (ClassHeader header : headers.values()) {

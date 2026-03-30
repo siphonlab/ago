@@ -18,9 +18,9 @@ package org.siphonlab.ago;
 public class GenericArgumentsInfo extends ConcreteTypeInfo{
     private AgoClass templateClass;
 
-    private TypeInfo[] arguments;
+    private AgoClass[] arguments;
 
-    public GenericArgumentsInfo(AgoClass templateClass, TypeInfo[] arguments) {
+    public GenericArgumentsInfo(AgoClass templateClass, AgoClass[] arguments) {
         super();
         this.templateClass = templateClass;
         this.arguments = arguments;
@@ -34,11 +34,11 @@ public class GenericArgumentsInfo extends ConcreteTypeInfo{
         this.templateClass = templateClass;
     }
 
-    public TypeInfo[] getArguments() {
+    public AgoClass[] getArguments() {
         return arguments;
     }
 
-    public void setArguments(TypeInfo[] arguments) {
+    public void setArguments(AgoClass[] arguments) {
         this.arguments = arguments;
     }
 }

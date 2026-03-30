@@ -20,7 +20,6 @@ import org.eclipse.collections.impl.list.mutable.primitive.*;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.GenericArgumentsInfo;
 import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.TypeInfo;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.*;
@@ -36,7 +35,7 @@ public class ArrayList {
     public static void create(NativeFrame callFrame) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var typeInfo = genericArgumentsInfo.getArguments()[0];
         var ls = switch (typeInfo.getTypeCode().value) {
             case INT_VALUE -> new IntArrayList();
             case LONG_VALUE -> new LongArrayList();
@@ -58,7 +57,7 @@ public class ArrayList {
     public static void create(NativeFrame callFrame, Instance<?> array) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var typeInfo = genericArgumentsInfo.getArguments()[0];
         var ls = switch (typeInfo.getTypeCode().value) {
             case INT_VALUE -> new IntArrayList(((IntArrayInstance) array).value);
             case LONG_VALUE -> new LongArrayList(((LongArrayInstance) array).value);
@@ -379,7 +378,7 @@ public class ArrayList {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         Object ls = instance.getNativePayload();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var typeInfo = genericArgumentsInfo.getArguments()[0];
         switch (typeInfo.getTypeCode().value) {
             case INT_VALUE:
                 callFrame.finishInt(((IntArrayList) ls).get(index));
@@ -566,7 +565,7 @@ public class ArrayList {
 
         GenericArgumentsInfo genericArgumentsInfo =
                 (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var typeInfo = genericArgumentsInfo.getArguments()[0];
 
         switch (typeInfo.getTypeCode().value) {
             case INT_VALUE -> {
@@ -668,7 +667,7 @@ public class ArrayList {
     public static void addAll_Array(NativeFrame callFrame, Instance<?> array) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var typeInfo = genericArgumentsInfo.getArguments()[0];
         Object payload = instance.getNativePayload();
         AgoArrayInstance agoArrayInstance = (AgoArrayInstance) array;
         Object arr = agoArrayInstance.getArray();
@@ -716,7 +715,7 @@ public class ArrayList {
     public static void toArray(NativeFrame callFrame){
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
-        TypeInfo typeInfo = genericArgumentsInfo.getArguments()[0];
+        var typeInfo = genericArgumentsInfo.getArguments()[0];
         Object payload = instance.getNativePayload();
 
         AgoEngine agoEngine = callFrame.getAgoEngine();

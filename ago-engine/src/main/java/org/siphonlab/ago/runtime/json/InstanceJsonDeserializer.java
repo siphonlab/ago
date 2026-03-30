@@ -53,7 +53,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         private AgoSlotDef slotDef;
 
         private List<Object> collection;
-        private TypeInfo elementType;
+        private AgoClass elementType;
 
         @Override
         public String toString() {
@@ -445,7 +445,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
             ajp.nextToken();
         }
         if (collectionClass.getConcreteTypeInfo() instanceof ArrayInfo arrayInfo){
-            TypeInfo elementType = arrayInfo.getElementType();
+            var elementType = arrayInfo.getElementType();
             var collection = switch (elementType.getTypeCode().getValue()) {
                 case INT_VALUE -> {
                     IntArrayList list = new IntArrayList();

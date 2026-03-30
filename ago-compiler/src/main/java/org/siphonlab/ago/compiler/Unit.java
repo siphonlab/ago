@@ -222,8 +222,6 @@ public class Unit {
             };
             type.setClassDeclaration(classDeclaration);
             classDef = type;
-        } else if (classDeclaration.className.NULL_LITERAL() != null){
-            classDef = new NullClassDef(root);
         } else {
             throw new UnsupportedOperationException("unsupported type " + classDeclaration.className.getText());
         }

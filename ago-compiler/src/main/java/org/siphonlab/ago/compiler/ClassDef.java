@@ -1295,7 +1295,11 @@ public class ClassDef extends ClassContainer {
     }
 
     public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        if(!this.isAffectedByTypeArguments(arguments)) {
+        return instantiate(arguments, true, returnExisted);
+    }
+
+    public ClassDef instantiate(InstantiationArguments arguments, boolean fromTop, MutableBoolean returnExisted) throws CompilationError {
+        if(fromTop && !this.isAffectedByTypeArguments(arguments)) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;
         }
@@ -1319,7 +1323,7 @@ public class ClassDef extends ClassContainer {
         var existed = templ.getCachedInstantiatedClass(args);
         if(existed != null) {
             //TODO the children should already instantiated if arguments has no instantiate-child-first problem
-            if (!args.equals(arguments) && !this.instantiatingChildren.contains(args)) {    // arguments changed, try children
+            if (!args.equals(existed.getGenericSource().instantiationArguments()) && !this.instantiatingChildren.contains(args)) {    // arguments changed, try children
                 this.instantiateChildren(existed, args);
             }
             if(returnExisted != null) returnExisted.setTrue();
@@ -1357,7 +1361,7 @@ public class ClassDef extends ClassContainer {
                     childArgs = arguments;
                 }
                 var returnExisted = new MutableBoolean();
-                ClassDef instantiated = child.instantiate(childArgs, returnExisted);
+                ClassDef instantiated = child.instantiate(childArgs, false, returnExisted);
                 if(returnExisted.isFalse() && !(child instanceof GenericConcreteType)) {      // GenericInstantiationClassDef will append to parent automatically
                     instantiatedClass.addChild(instantiated);
                 }
@@ -1726,6 +1730,9 @@ public class ClassDef extends ClassContainer {
         if(this.permitClass != null){
             if(this.permitClass.isAffectedByTypeArguments(instantiationArguments)) return true;
         }
+//        for (ClassDef child : this.getDirectChildren()) {
+//            if(child.isAffectedByTypeArguments(instantiationArguments)) return true;
+//        }
         return false;
     }
 

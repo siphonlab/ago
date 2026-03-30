@@ -15,5 +15,46 @@
  */
 package org.siphonlab.ago.classloader;
 
-public record GenericSource(String sourceTemplate, InstantiationArguments typeArguments) {
+import java.util.Objects;
+
+public final class GenericSource {
+    private final String sourceTemplate;
+    private final InstantiationArguments instantiationArguments;
+    private final ClassRefValue[] typeArguments;
+
+    public GenericSource(String sourceTemplate, InstantiationArguments instantiationArguments, ClassRefValue[] typeArguments) {
+        this.sourceTemplate = sourceTemplate;
+        this.instantiationArguments = instantiationArguments;
+        this.typeArguments = typeArguments;
+    }
+
+    public String sourceTemplate() {return sourceTemplate;}
+
+    public InstantiationArguments instantiationArguments() {return instantiationArguments;}
+
+    public ClassRefValue[] typeArguments() {return typeArguments;}
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        var that = (GenericSource) obj;
+        return Objects.equals(this.sourceTemplate, that.sourceTemplate) &&
+                Objects.equals(this.instantiationArguments, that.instantiationArguments) &&
+                Objects.equals(this.typeArguments, that.typeArguments);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(sourceTemplate, instantiationArguments, typeArguments);
+    }
+
+    @Override
+    public String toString() {
+        return "GenericSource[" +
+                "sourceTemplate=" + sourceTemplate + ", " +
+                "instantiationArguments=" + instantiationArguments + ", " +
+                "typeArguments=" + typeArguments + ']';
+    }
+
 }

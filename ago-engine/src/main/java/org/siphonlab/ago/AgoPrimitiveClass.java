@@ -6,7 +6,7 @@ public class AgoPrimitiveClass extends AgoClass{
 
     private final TypeCode typeCode;
 
-    protected AgoPrimitiveClass(AgoClassLoader classLoader, String name, int typeCode) {
+    public AgoPrimitiveClass(AgoClassLoader classLoader, String name, int typeCode) {
         super(classLoader, name, name);
         this.type = TYPE_PRIMITIVE_CLASS;
         this.typeCode = TypeCode.of(typeCode);

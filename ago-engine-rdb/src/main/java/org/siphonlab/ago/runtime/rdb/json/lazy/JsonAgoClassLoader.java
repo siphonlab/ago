@@ -126,7 +126,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
 
         if(agoClass instanceof AgoFunction agoFunction){
             Map<String, Object>[] variables = loadPgJsonArrayAsList((PgArray) row.get("variables"));
-            TypeInfo resultType = loadTypeInfo(loadPgJsonAsMap((PGobject) row.get("result_type")));
+            var resultType = getClass((String)row.get("result_type"));
             agoFunction.setResultType(resultType.getTypeCode(), resultType.getAgoClass());
 
             if (variables != null)
@@ -249,10 +249,6 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         }
     }
 
-    private TypeInfo loadTypeInfo(Map<String, Object> json) {
-        return new TypeInfo(loadTypeCode((Map<String, Object>) json.get("typeCode")),getClass((String)json.get("agoClass")));
-    }
-
     private TypeCode loadTypeCode(Map<String, Object> json){
         Integer code = (Integer) json.get("code");
         if(code >= TypeCode.GENERIC_TYPE_START){
@@ -265,13 +261,13 @@ public class JsonAgoClassLoader extends AgoClassLoader {
     private ConcreteTypeInfo loadConcreteTypeInfo(Map<String, Object> json) {
         var type = (String)json.get("type");
         if("ArrayInfo".equals(type)){
-            return new ArrayInfo(loadTypeInfo((Map<String, Object>) json.get("elementType")));
+            return new ArrayInfo(getClass((String) json.get("elementType")));
         } else if("GenericArgumentsInfo".equals(type)){
-            Map<String,Object>[] arguments = ((List<Object>)json.get("arguments")).stream().map(o ->(Map<String, Object>) o).toArray(Map[]::new);
-            return new GenericArgumentsInfo(getClass((String)json.get("templateClass")), Arrays.stream(arguments).map(this::loadTypeInfo).toArray(TypeInfo[]::new));
+            var args = ((List<String>)json.get("arguments"));
+            return new GenericArgumentsInfo(getClass((String)json.get("templateClass")), args.stream().map(this::getClass).toArray(AgoClass[]::new));
         } else if("GenericTypeParametersInfo".equals(type)){
-            Map<String, Object>[] genericParameters = ((List<Object>) json.get("genericParameters")).stream().map(o -> (Map<String, Object>) o).toArray(Map[]::new);
-            return new GenericTypeParametersInfo(Arrays.stream(genericParameters).map(this::loadTypeInfo).toArray(GenericParameterTypeInfo[]::new));
+            List<String> genericParameters = ((List<String>) json.get("genericParameters"));
+            return new GenericTypeParametersInfo(genericParameters.stream().map(this::getClass).toArray(AgoClass[]::new));
         } else if("ParameterizedClassInfo".equals(type)){
             return new ParameterizedClassInfo(getClass((String) json.get("parameterizedBaseClass")), (AgoFunction) getClass((String) json.get("parameterizedConstructor")),
                     objectListToArray((List<Object>) json.get("arguments")));

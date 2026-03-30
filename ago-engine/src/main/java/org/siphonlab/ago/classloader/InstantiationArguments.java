@@ -23,31 +23,19 @@ import java.util.stream.Collectors;
 public class InstantiationArguments {
 
     TreeMap<GenericTypeCodeAvatarClassHeader, ClassHeader> typeMapping = new TreeMap<>();
-    // these arguments associated with which template class, it's always the nearest outer template class
-    // it must be a template class, never be the inner class of a template
-    // the inner class of a template can be found in GenericSource
-    protected ClassHeader sourceTemplate;
 
     protected String flatString;
-
-    private final ClassHeader[] typeArgumentsArray;
 
     private boolean isTerminatedResolved = false;
     private boolean isTerminated;
 
-    private ClassHeader parentClassHeader;
-    private String suggestionName;
-    private String suggestionFullname;
-
-    public InstantiationArguments(ClassHeader sourceTemplate, ClassHeader[] typeArguments, Map<String, ClassHeader> headers){
-        this.sourceTemplate = sourceTemplate;
+    public InstantiationArguments(ClassHeader sourceTemplate, ClassHeader[] typeArguments){
         for (int i = 0; i < sourceTemplate.genericTypeParams.length; i++) {
             var tp = sourceTemplate.genericTypeParams[i];
             var v = typeArguments[i];
             typeMapping.put(tp, v);
         }
         this.flatString = stringify();
-        this.typeArgumentsArray = typeArguments;
     }
 
     private boolean determineTerminated() {
@@ -55,10 +43,6 @@ public class InstantiationArguments {
             if(!value.isGenericTerminated()) return false;
         }
         return true;
-    }
-
-    public ClassHeader[] getTypeArgumentsArray() {
-        return typeArgumentsArray;
     }
 
     private String stringify() {
@@ -78,10 +62,6 @@ public class InstantiationArguments {
     // for parent->child, it must apply via `parent.applyChild(child)`, no `child.applyChild(parent)`
     public ClassHeader mapType(GenericTypeCodeAvatarClassHeader genericTypeCodeAvatarClassHeader){
         return typeMapping.getOrDefault(genericTypeCodeAvatarClassHeader, genericTypeCodeAvatarClassHeader);
-    }
-
-    public ClassHeader getSourceTemplate() {
-        return sourceTemplate;
     }
 
     @Override
@@ -125,12 +105,7 @@ public class InstantiationArguments {
                 r.put(map.getKey(), to);
             }
         }
-        if(this.sourceTemplate == null){
-            return new InstantiationArguments(r);
-        } else {
-            var arr = Arrays.stream(this.sourceTemplate.genericTypeParams).map(r::get).toArray(ClassHeader[]::new);
-            return new InstantiationArguments(r, this.sourceTemplate, arr);
-        }
+        return new InstantiationArguments(r);
     }
 
     public InstantiationArguments applyParent(InstantiationArguments parentTypeArguments, AgoClassLoader classLoader) {
@@ -139,13 +114,6 @@ public class InstantiationArguments {
         return r;
     }
 
-    public InstantiationArguments withoutTemplate(){
-        return new InstantiationArguments(this.typeMapping);
-    }
-
-    public InstantiationArguments withoutNames(){
-        return new InstantiationArguments(this.typeMapping, this.sourceTemplate, this.typeArgumentsArray);
-    }
 
     public boolean canApply(InstantiationArguments next) {
         for (var map : this.typeMapping.entrySet()) {
@@ -160,28 +128,30 @@ public class InstantiationArguments {
         return false;
     }
 
-    public InstantiationArguments takeFor(ClassHeader templ) {
-        if(this.sourceTemplate == templ){
-            return this;
-        }
-        var r = new TreeMap<GenericTypeCodeAvatarClassHeader, ClassHeader>();
-        for (var genericTypeParam : templ.genericTypeParams) {
-            r.put(genericTypeParam, this.typeMapping.get(genericTypeParam));
-        }
-        return new InstantiationArguments(r, templ, this.typeArgumentsArray);
+    Map<ClassHeader, ClassRefValue[]> takeForCache = new HashMap<>();
+
+    public ClassRefValue[] takeFor(ClassHeader templ) {
+        Objects.requireNonNull(templ);
+        if(!templ.isGenericTemplate()) return null;
+        return takeForCache.computeIfAbsent(templ, _ -> {
+            var typeParams = templ.genericTypeParams;
+            var typeArgumentsArray = new ClassRefValue[typeParams.length];
+            for (int i = 0; i < typeParams.length; i++) {
+                var typeParam = typeParams[i];
+                var p = typeMapping.get(typeParam);
+                if (p == null) return null;      // not my arguments
+                typeArgumentsArray[i] = new ClassRefValue(p.fullname);
+            }
+            return typeArgumentsArray;
+        });
+    }
+
+    public Collection<ClassHeader> getAllArguments(){
+        return this.typeMapping.values();
     }
 
     public InstantiationArguments(TreeMap<GenericTypeCodeAvatarClassHeader, ClassHeader> mapping) {
         this.typeMapping = mapping;
-        this.flatString = stringify();
-        this.typeArgumentsArray = null;
-        this.sourceTemplate = null;
-    }
-
-    public InstantiationArguments(TreeMap<GenericTypeCodeAvatarClassHeader, ClassHeader> typeMapping, ClassHeader sourceTemplate, ClassHeader[] typeArguments) {
-        this.typeMapping = typeMapping;
-        this.sourceTemplate = sourceTemplate;
-        this.typeArgumentsArray = typeArguments;
         this.flatString = stringify();
     }
 
@@ -217,27 +187,4 @@ public class InstantiationArguments {
         return null;
     }
 
-    public void setSuggestionName(String suggestionName) {
-        this.suggestionName = suggestionName;
-    }
-
-    public String getSuggestionName() {
-        return suggestionName;
-    }
-
-    public void setSuggestionFullname(String suggestionFullname) {
-        this.suggestionFullname = suggestionFullname;
-    }
-
-    public String getSuggestionFullname() {
-        return suggestionFullname;
-    }
-
-    public ClassHeader getParentClassHeader() {
-        return parentClassHeader;
-    }
-
-    public void setParentClassHeader(ClassHeader parentClassHeader) {
-        this.parentClassHeader = parentClassHeader;
-    }
 }

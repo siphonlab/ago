@@ -20,6 +20,7 @@ import org.siphonlab.ago.classloader.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
+import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.slf4j.Logger;
@@ -77,6 +78,7 @@ public class AgoClassParser {
             classesExcludeConcreteTypesAndMeta.add(agoClass);
         }
         processStage(CompilingStage.ParseClassName, new LinkedList<>(classesExcludeConcreteTypesAndMeta));
+        root.resolveLangClasses();
 
         processStage(CompilingStage.ParseGenericParams, templateClasses);
 
@@ -87,20 +89,14 @@ public class AgoClassParser {
 
         for (AgoClass child : concreteChildren) {
             ClassDef classDef = root.findByFullname(child.getFullname());
-//            assert classDef != null;
-            if(classDef != null) {
-                classes.put(child, classDef);
-            }
+            assert classDef != null;
+            classes.put(child, classDef);
         }
         // ResolveHierarchicalClasses
         classesExcludeConcreteTypesAndMeta.addAll(concreteChildren);
         processStage(CompilingStage.ResolveHierarchicalClasses, classesExcludeConcreteTypesAndMeta);
-        for (AgoClass child : metas) {
-            ClassDef classDef = root.findByFullname(child.getFullname());
-            assert classDef != null;
-            classes.put(child, classDef);
-        }
 
+        root.resolveLangClasses();
         // ParseFields, no InheritsFields since the fields already inherited in AgoClass
         // and no AllocateSlots
         processStage(CompilingStage.ParseFields, new LinkedList<>(allClasses));
@@ -108,6 +104,12 @@ public class AgoClassParser {
         processStage(CompilingStage.InheritsFields, new LinkedList<>(allClasses));
 
         processStage(CompilingStage.InheritsInnerClasses, new LinkedList<>(allClasses));
+
+        for (AgoClass child : metas) {
+            ClassDef classDef = root.findByFullname(child.getFullname());
+            assert classDef != null;
+            classes.put(child, classDef);
+        }
 
         processStage(CompilingStage.ValidateMembers, new LinkedList<>(allClasses));
 
@@ -274,7 +276,20 @@ public class AgoClassParser {
             ConstructorDef constructor = (ConstructorDef) mapClass(pInfo.getParameterizedConstructor());
             if(constructor == null) return null;
             Literal<?>[] args = mapLiteralArguments(pInfo.getArguments(), pInfo.getParameterizedConstructor().getParameters());
-            r = ((ClassContainer)base.getParent()).getOrCreateParameterizedClass(base, constructor, args, null);
+            if(base == root.getGenericTypeParameter()){
+                r = ((ClassContainer)base.getParent()).getOrCreateGenericTypeParameter(base, constructor,
+                            ((ClassRefLiteral)args[0]).getClassDefValue(),
+                            ((ClassRefLiteral)args[1]).getClassDefValue(),
+                            Variance.of(((ByteLiteral)args[2]).value), null);
+            } else if(base == root.getGenericTypeCodeAvatar()){     // create it, but not register into the template
+                r = ((ClassContainer)base.getParent()).getOrCreateGenericTypeAvatarClassDef(base, (SharedGenericTypeParameterClassDef) ((ClassRefLiteral)args[0]).getClassDefValue(),
+                        ((ClassRefLiteral)args[1]).getClassDefValue(),
+                        ((IntLiteral)args[2]).value,
+                        ((IntLiteral)args[3]).value,
+                        ((StringLiteral)args[4]).getString(), null);
+            } else {
+                r = ((ClassContainer) base.getParent()).getOrCreateParameterizedClass(base, constructor, args, null);
+            }
             classes.put(agoClass,r);
             for (AgoClass child : agoClass.getChildren()) {
                 r.addChild(mapClass(child));
@@ -285,9 +300,9 @@ public class AgoClassParser {
                 return null;
 
             ClassRefLiteral[] args = new ClassRefLiteral[argumentsInfo.getArguments().length];
-            TypeInfo[] arguments = argumentsInfo.getArguments();
+            var arguments = argumentsInfo.getArguments();
             for (int i = 0; i < arguments.length; i++) {
-                TypeInfo arg = arguments[i];
+                var arg = arguments[i];
                 args[i] = mapClass(arg).toClassRefLiteral();
             }
             ClassContainer parent = agoClass.getParent() == null ? (ClassContainer) templateClass.getParent() : mapClass(agoClass.getParent());
@@ -334,8 +349,10 @@ public class AgoClassParser {
                 String className = classLoader.getStrings().get(i);
                 return mapClass(classLoader.getClass(className)).toClassRefLiteral();
             }
-        } else if(argument instanceof ClassRefValue classRefValue){
+        } else if(argument instanceof ClassRefValue classRefValue) {
             return mapClass(classLoader.getClass(classRefValue.className())).toClassRefLiteral();
+        } else if(argument instanceof AgoClass agoClass){
+            return mapClass(agoClass).toClassRefLiteral();
         } else if(argument instanceof Long l){
             return getRoot().createLongLiteral( l);
         } else if(argument == null){
@@ -344,49 +361,11 @@ public class AgoClassParser {
         throw new RuntimeException("unexpected type " + argument);
     }
 
-    private ClassDef mapClass(TypeInfo typeInfo) throws CompilationError {
-        TypeCode typeCode = typeInfo.getTypeCode();
-        if(typeCode == TypeCode.OBJECT){
-            return mapClass(typeInfo.getAgoClass());
-        } else {
-            if(typeCode.isGeneric()){
-                assert typeInfo instanceof GenericTypeInfo;
-                GenericTypeInfo gt = (GenericTypeInfo) typeInfo;
-                var templateClass = mapClass(classLoader.getClass(gt.getTemplateClass()));
-                return templateClass.findGenericType(gt.getName());
-            } else {
-                return root.fromPrimitiveTypeCode(typeCode);
-            }
-        }
-    }
-
-//    private ClassDef mapClass(TypeDesc typeDesc) throws CompilationError {
-//        if(typeDesc.getClassName() != null){
-//            return mapClass(classLoader.getClass(typeDesc.getClassName()));
-//        } else {
-//            return root.fromPrimitiveTypeCode(typeDesc.getTypeCode());
-//        }
-//    }
-
     private ClassDef mapClass(ClassDef ownerClass, AgoClass agoClass, TypeCode typeCode) throws CompilationError {
         if(typeCode != TypeCode.OBJECT){
             if(typeCode.isGeneric()){
-                var r = ownerClass.findGenericType(typeCode.toString());
-                if(r == null){
-                    if(ownerClass.isGenericInstantiation()) {
-                        r = ownerClass.getTemplateClass().findGenericType(typeCode.toShortString());
-                    }
-                }
-                //TODO GenericTypeParameterClassDef
-//                if(r == null){
-//                    if(ownerClass.getGenericSource().instantiationArguments().isIntermediate()){
-//                        r = ownerClass.getGenericSource().instantiationArguments().findGenericTypeCode(typeCode.toString());
-//                    }
-//                }
-//                if(r == null){
-//                    throw new RuntimeException("can't find generic code '%d' or template class from '%s'".formatted(typeCode.value, ownerClass));
-//                }
-//                assert r.value == typeCode.value;
+                ClassDef r = mapClass(agoClass);
+                if(r == null) throw new NullPointerException("class not found");
                 return r;
             } else {
                 return root.fromPrimitiveTypeCode(typeCode);
@@ -508,9 +487,35 @@ public class AgoClassParser {
         if(existed != null) return classes.get(agoClass);
 
         var r = root.findByFullname(agoClass.getFullname());
-        if(r instanceof ClassDef c) return c;
+        if(r instanceof ClassDef c) {
+            classes.put(agoClass, c);       // include AgoNullClass
+            return c;
+        }
 
         if(LOGGER.isDebugEnabled()) LOGGER.debug("create class def " + agoClass.getFullname());
+
+        if(agoClass instanceof AgoPrimitiveClass agoPrimitiveClass){
+            var classDef = switch (agoPrimitiveClass.getTypeCode().value) {
+                case TypeCode.BOOLEAN_VALUE -> new PrimitiveClassDef(root, TypeCode.BOOLEAN);
+                case TypeCode.CHAR_VALUE -> new PrimitiveClassDef(root, TypeCode.CHAR);
+                case TypeCode.SHORT_VALUE -> new PrimitiveClassDef(root, TypeCode.SHORT);
+                case TypeCode.INT_VALUE -> new PrimitiveClassDef(root, TypeCode.INT);
+                case TypeCode.LONG_VALUE -> new PrimitiveClassDef(root, TypeCode.LONG);
+                case TypeCode.DOUBLE_VALUE -> new PrimitiveClassDef(root, TypeCode.DOUBLE);
+                case TypeCode.FLOAT_VALUE -> new PrimitiveClassDef(root, TypeCode.FLOAT);
+                case TypeCode.STRING_VALUE -> new PrimitiveClassDef(root, TypeCode.STRING);
+                case TypeCode.BYTE_VALUE -> new PrimitiveClassDef(root, TypeCode.BYTE);
+                case TypeCode.VOID_VALUE -> new PrimitiveClassDef(root, TypeCode.VOID);
+                case TypeCode.CLASS_REF_VALUE -> new PrimitiveClassDef(root, TypeCode.CLASS_REF);
+                default -> throw new RuntimeException("not supported type " + agoPrimitiveClass);
+            };
+            classDef.setSourceLocation(agoClass.getSourceLocation());
+            Package defaultPackage = root.getDefaultPackage();
+            defaultPackage.addChild(classDef);
+            classes.put(agoClass, classDef);
+            loadChildren(agoClass, classDef);
+            return classDef;
+        }
 
         if(agoClass instanceof MetaClass metaClass) {
             AgoClass instanceClass = metaClass.getInstanceClass();
@@ -652,35 +657,37 @@ public class AgoClassParser {
         return true;
     }
 
-    private boolean parseGenericParams(AgoClass agoClass, ClassDef classDef) throws CompilationError {
+    private boolean parseGenericParams(AgoClass agoClass, ClassDef templClass) throws CompilationError {
         ConcreteTypeInfo concreteTypeInfo = agoClass.getConcreteTypeInfo();
         if(concreteTypeInfo instanceof GenericTypeParametersInfo genericTypeParametersInfo){
-            classDef.shiftToTemplate();
-            TypeParamsContext typeParamsContext = classDef.getTypeParamsContext();
-            for (var genericParameterTypeInfo : genericTypeParametersInfo.getGenericParameters()) {
-                var sharedGenericTypeParameterClass = genericParameterTypeInfo.getSharedGenericTypeParameterClass();
+            templClass.shiftToTemplate();
+            TypeParamsContext typeParamsContext = templClass.getTypeParamsContext();
+            for (var genericTypeCodeAvatar : genericTypeParametersInfo.getGenericParameters()) {
+                var avatarInfo = GenericTypeCodeAvatarInfo.extract(genericTypeCodeAvatar);
 
-                ParameterizedClassInfo sp = (ParameterizedClassInfo) sharedGenericTypeParameterClass.getConcreteTypeInfo();
-                var args = mapLiteralArguments(sp.getArguments(), sp.getParameterizedConstructor().getParameters());
+                var sharedGenericTypeParameterClass = avatarInfo.getGenericParameterInfo();
+
                 var gt = root.getGenericTypeParameter();
                 // here we need the constructor of MetaClass of SharedGenericTypeParameterClassDef
-                if(gt.getCompilingStage().getValue() <= CompilingStage.ResolveHierarchicalClasses.getValue()){
-                    resolveHierarchy(sp.getParameterizedBaseClass(), gt);
+                if(gt.getCompilingStage().lte(CompilingStage.ResolveHierarchicalClasses)){
+                    resolveHierarchy(avatarInfo.genericParameter().getParameterizedBaseClass(), gt);
                 }
-                //TODO addGenericTypeParam
-//                GenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt,
-//                        gt.getMetaClassDef().getConstructor(),
-//                        args, null);
-//                typeParamsContext.addGenericTypeParam();
-//                for (Namespace<?> element : templClass.getAllDescendants().getUniqueElements()) {
-//                    if(element instanceof ClassDef child) {
-//                        child.cloneParentTemplateTypeParameters(templClassTypeParamsContext);
-//                    }
-//                }
+                var avatar = root.getGenericTypeCodeAvatar();
+                if(avatar.getCompilingStage().lte(CompilingStage.ResolveHierarchicalClasses)){
+                    resolveHierarchy(genericTypeCodeAvatar.getParameterizedBaseClass(), avatar);
+                }
+
+                SharedGenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt,
+                        gt.getMetaClassDef().getConstructor(),
+                        mapClass(sharedGenericTypeParameterClass.lBound()),
+                        mapClass(sharedGenericTypeParameterClass.uBound()),
+                        sharedGenericTypeParameterClass.variance(), null);
+
+                templClass.getTypeParamsContext().createGenericTypeParam(avatarInfo.name(), pc, avatarInfo.index());
             }
-            classDef.createTemplateDefaultGenericSource();
+            templClass.createTemplateDefaultGenericSource();
         }
-        classDef.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);
+        templClass.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);
         return true;
     }
 

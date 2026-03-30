@@ -18,6 +18,8 @@ package org.siphonlab.ago.classloader;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.AgoClass;
+import org.siphonlab.ago.ArrayInfo;
+import org.siphonlab.ago.TypeCode;
 
 import java.util.Map;
 import java.util.Objects;
@@ -69,13 +71,20 @@ public class ArrayTypeHeader extends ClassHeader {
 
 
     @Override
-    protected ClassHeader instantiate(InstantiationArguments typeArguments) {
+    protected ClassHeader instantiate(InstantiationArguments typeArguments, ClassHeader newParent, String suggestionName, String suggestionFullName) {
         if(!this.isAffectedByTypeArguments(typeArguments)) return this;
 
         var elementInst = classLoader.instantiateDependencyClass(getElementType().fullname, typeArguments);
-        var p = composeName(elementInst, this.classLoader.getHeaders());
-        String fullname = p.getRight();
-        String name = p.getLeft();
+        String name;
+        String fullname;
+        if(suggestionName == null) {
+            var p = composeName(elementInst, this.classLoader.getHeaders());
+            name = p.getLeft();
+            fullname = p.getRight();
+        } else {
+            name = suggestionName;
+            fullname = suggestionFullName;
+        }
         var existed = classLoader.getClassHeader(fullname);
         if(existed != null) return existed;
         var inst = new ArrayTypeHeader(fullname, name, elementInst.fullname, classLoader);
@@ -105,7 +114,7 @@ public class ArrayTypeHeader extends ClassHeader {
         if(arrayBase.loadingStage == LoadingStage.ResolveHierarchicalClasses){
             arrayBase.resolveHierarchicalClasses();
         }
-        var instantiation = arrayBase.instantiate(new InstantiationArguments(arrayBase, new ClassHeader[]{this.getElementType()}, classLoader.getHeaders()));
+        var instantiation = arrayBase.instantiate(new InstantiationArguments(arrayBase, new ClassHeader[]{this.getElementType()}), null, null, null);
         this.setSuperClass(instantiation.fullname);
         this.setChildren(instantiation.getChildren());
         this.setMethods(instantiation.methods.stream().map(
@@ -163,17 +172,16 @@ public class ArrayTypeHeader extends ClassHeader {
     @Override
     public AgoClass buildClass() {
         if(this.loadingStage != BuildClass) return this.agoClass;
-        throw new UnsupportedOperationException("TODO");
-//        if(this.elementType.typeCode == OBJECT) {
-//            var eleClass = headers.get(elementType.className);
-//            if (eleClass.loadingStage == BuildClass){
-//                var r = eleClass.buildClass(headers);
-//                if (r == null) return null;
-//            }
-//        }
-//        var agoClass = super.buildClass(headers);
-//        agoClass.setConcreteTypeInfo(new ArrayInfo(this.elementType.toTypeInfo(headers)));
-//        return agoClass;
+        if(this.elementType.getTypeCode() == TypeCode.OBJECT) {
+            var eleClass = classLoader.getClassHeader(elementType.fullname);
+            if (eleClass.loadingStage == BuildClass){
+                var r = eleClass.buildClass();
+                if (r == null) return null;
+            }
+        }
+        var agoClass = super.buildClass();
+        agoClass.setConcreteTypeInfo(new ArrayInfo(this.elementType.agoClass));
+        return agoClass;
     }
 
     @Override

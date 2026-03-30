@@ -19,10 +19,8 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.*;
 
 import java.util.Arrays;
-import java.util.Map;
 
-import static org.siphonlab.ago.classloader.LoadingStage.BuildClass;
-import static org.siphonlab.ago.classloader.LoadingStage.InstantiateFunctionFamily;
+import static org.siphonlab.ago.classloader.LoadingStage.*;
 
 public class MetaClassHeader extends ClassHeader {
     String[] dependencies;
@@ -58,15 +56,24 @@ public class MetaClassHeader extends ClassHeader {
         this.instanceClass = instanceClass;
     }
 
-    public MetaClassHeader instantiateMetaClass(ClassHeader newParent, String fullname, InstantiationArguments instantiationArguments) {
+    public MetaClassHeader instantiateMetaClass(ClassHeader newParent, String name, String fullname, InstantiationArguments instantiationArguments) {
         assert newParent == null;
         var inst = new MetaClassHeader(fullname, this.type, this.modifiers, this.getSlice().slice(), classLoader);
+        inst.setName(name);
         classLoader.registerNewClass(inst);
         inst.setDependencies(this.dependencies);
         //inst.instanceClass = this.instanceClass;  set instanceClass outside
         applyInstantiation(inst, instantiationArguments, newParent);
         this.putInstantiatedClassToCache(instantiationArguments, inst);
         return inst;
+    }
+
+    @Override
+    public boolean isReady() {
+        if(loadingStage == ResolveHierarchicalClasses) {
+            if (this.instanceClass == null) return false;
+        }
+        return super.isReady();
     }
 
     @Override
