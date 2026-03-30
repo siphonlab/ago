@@ -114,7 +114,7 @@ classDeclaration
         classBody
     ;
 
-classId : identifier | primitiveType | NULL_LITERAL;
+classId : identifier | primitiveType;
 
 traitDeclaration
     : classModifier* TRAIT className=identifier genericTypeParameters? extendsPhrase? implementsPhrase? permitsType?
@@ -500,9 +500,9 @@ expression:
             |   methodCall
             //| THIS
     )               # WithMemberAccessExpr
-//    | expression '::' typeArguments? identifier
-//    | typeType '::' (typeArguments? identifier | NEW)
-//    | classType '::' typeArguments? NEW
+//    | expression '::' instantiationArguments? identifier
+//    | typeType '::' (instantiationArguments? identifier | NEW)
+//    | classType '::' instantiationArguments? NEW
     | switchExpression  # SwitchExpr // Java17
     | AWAIT expression viaForkContext?             # AwaitFunctor
 
@@ -647,7 +647,7 @@ classCreatorRest
             PrimitiveType
             FormalNamePath
                 parameterizedType
-                    typeIdentifier typeArguments? classCreatorArguments?
+                    typeIdentifier instantiationArguments? classCreatorArguments?
                 identifier
                 prononun
                 primitiveType
@@ -703,7 +703,7 @@ classCreatorArguments:  '::' arguments;         // VarChar::(200)
 
 //superSuffix
 //    : arguments
-//    | '.' typeArguments? identifier arguments?
+//    | '.' instantiationArguments? identifier arguments?
 //    ;
 //
 //explicitGenericInvocationSuffix
