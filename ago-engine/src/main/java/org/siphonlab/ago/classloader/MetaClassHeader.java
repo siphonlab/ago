@@ -77,6 +77,11 @@ public class MetaClassHeader extends ClassHeader {
     }
 
     @Override
+    public boolean isGenericTerminated() {
+        return this.getInstanceClass().isGenericTerminated();
+    }
+
+    @Override
     public ClassHeader clone(ClassHeader newParent) {
         if (!this.fullname.startsWith(this.parent.fullname)) {
             return this;

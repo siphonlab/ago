@@ -46,6 +46,11 @@ public class ArrayTypeHeader extends ClassHeader {
         return this.elementType;
     }
 
+    @Override
+    public boolean isGenericTerminated() {
+        return this.getElementType().isGenericTerminated();
+    }
+
     private static Pair<String, String> composeName(ClassHeader elementClassHeader, Map<String, ClassHeader> headers){
         String name;
         String fullname;

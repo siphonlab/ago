@@ -38,4 +38,8 @@ public class SharedGenericTypeParameterClassHeader extends ParameterizedClassHea
         return sb.toString();
     }
 
+    @Override
+    public boolean isGenericTerminated() {
+        return false;
+    }
 }

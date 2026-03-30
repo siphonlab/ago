@@ -24,6 +24,7 @@ public class LangClasses {
     private final AgoClass classIntervalClass;
     private final AgoClass scopedClassIntervalClass;
     private final AgoClass genericTypeParameterClass;
+    private final AgoClass genericTypeCodeAvatarClass;
     private final AgoClass throwableClass;
     private final AgoClass functionClass;
     private final AgoClass runSpaceClass;
@@ -68,6 +69,7 @@ public class LangClasses {
         this.classIntervalClass = classManager.getClass("lang.ClassInterval");
         this.scopedClassIntervalClass = classManager.getClass("lang.ScopedClassInterval");
         this.genericTypeParameterClass = classManager.getClass("lang.GenericTypeParameter");
+        this.genericTypeCodeAvatarClass = classManager.getClass("lang.GenericTypeCodeAvatar");
         this.throwableClass = classManager.getClass("lang.Throwable");
         this.functionClass = classManager.getClass("lang.Function");
         this.runSpaceClass = classManager.getClass("lang.RunSpace");
@@ -131,6 +133,10 @@ public class LangClasses {
 
     public AgoClass getGenericTypeParameterClass() {
         return genericTypeParameterClass;
+    }
+
+    public AgoClass getGenericTypeCodeAvatarClass() {
+        return genericTypeCodeAvatarClass;
     }
 
     public AgoClass getThrowableClass() {

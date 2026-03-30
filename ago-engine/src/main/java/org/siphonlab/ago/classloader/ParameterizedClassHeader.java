@@ -103,6 +103,20 @@ public class ParameterizedClassHeader extends ClassHeader {
         return true;
     }
 
+
+    @Override
+    public boolean isGenericTerminated() {
+        if(!this.getBaseClassHeader().isGenericTerminated()) return false;
+        for (var arg : this.arguments) {
+            if(arg instanceof ClassRefValue(String className)) {
+                if (!classLoader.getClassHeader(className).isGenericTerminated()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     @Override
     public boolean instantiateFunctionFamily() {
         if (this.loadingStage != InstantiateFunctionFamily) return true;

@@ -25,4 +25,9 @@ public class PrimitiveClassHeader extends ClassHeader{
     public TypeCode getTypeCode() {
         return typeCode;
     }
+
+    @Override
+    public boolean isGenericTerminated() {
+        return true;
+    }
 }

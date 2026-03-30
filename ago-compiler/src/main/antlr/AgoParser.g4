@@ -43,7 +43,7 @@ and some features come from js, https://github.com/antlr/grammars-v4/blob/master
 
 parser grammar AgoParser;
 @header {
-    // for IDEA plugin, output to gen/org/siphonlab/ago/compiler/parserm, don't set package name, due the `antlr4-maven-plugin` need package name
+    // for IDEA plugin, output to gen/org/siphonlab/ago/compiler/parser, don't set package name, due the `antlr4-maven-plugin` need package name
     package org.siphonlab.ago.compiler.parser;
 }
 options {

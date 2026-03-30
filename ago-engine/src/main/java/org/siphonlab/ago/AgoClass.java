@@ -18,6 +18,8 @@ package org.siphonlab.ago;
 
 import org.agrona.collections.Int2ObjectHashMap;
 import org.siphonlab.ago.classloader.AgoClassLoader;
+import org.siphonlab.ago.classloader.GenericTypeCode;
+import org.siphonlab.ago.classloader.GenericTypeCodeAvatarInfo;
 
 import java.util.*;
 
@@ -552,6 +554,13 @@ public class AgoClass extends Instance<MetaClass>{
     }
 
     public TypeCode getTypeCode() {
+        if(this.getParameterizedBaseClass() != null){
+            if(this.getParameterizedBaseClass() == classLoader.getLangClasses().getGenericTypeParameterClass()){
+                var info = GenericTypeCodeAvatarInfo.extract(this);
+                return new GenericTypeCode(info.genericTypeCode(), info.index(), info.name(), info.name() + "_" + info.index() + "_" + info.templateClass().getFullname());
+            }
+        }
+
         return TypeCode.OBJECT;
     }
 }

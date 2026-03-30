@@ -1127,7 +1127,24 @@ public class ClassHeader {
     }
 
     public boolean isGenericTerminated() {
-        return false;
+        if(this.isInGenericTemplate()) return false;
+        if(this.getSuperClass() != null && !this.superClass.equals(this.fullname)){
+            if(!classLoader.getClassHeader(this.getSuperClass()).isGenericTerminated()) return false;
+        }
+        if(this.getInterfaces() != null){
+            for (var anInterface : this.getInterfaces()) {
+                if(!classLoader.getClassHeader(anInterface).isGenericTerminated()) return false;
+            }
+        }
+        if(this.genericSource != null){
+            if(!this.genericSource.instantiationArguments().isTerminated()){
+                return false;
+            }
+        }
+        if(this.permitClass != null){
+            if(!classLoader.getClassHeader(this.permitClass).isGenericTerminated()) return false;
+        }
+        return true;
     }
 
     public boolean isReady(String className){

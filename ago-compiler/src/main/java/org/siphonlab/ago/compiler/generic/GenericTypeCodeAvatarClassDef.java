@@ -132,4 +132,8 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
         return sharedGenericTypeParameterClassDef.getUBoundClass();
     }
 
+    @Override
+    public boolean isGenericTerminated() {
+        return false;
+    }
 }
