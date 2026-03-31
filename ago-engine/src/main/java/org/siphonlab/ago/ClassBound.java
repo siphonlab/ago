@@ -16,6 +16,7 @@
 package org.siphonlab.ago;
 
 import org.siphonlab.ago.classloader.AgoClassLoader;
+import org.siphonlab.ago.classloader.GenericTypeCodeAvatarInfo;
 
 public interface ClassBound {
     // class bound,
@@ -24,20 +25,33 @@ public interface ClassBound {
         return classInterval.getConcreteTypeInfo() instanceof ParameterizedClassInfo p &&
                 (p.getParameterizedBaseClass().equals(langClasses.getClassIntervalClass())
                 || p.getParameterizedBaseClass().equals(langClasses.getScopedClassIntervalClass())
-                || p.getParameterizedBaseClass().equals(langClasses.getGenericTypeParameterClass()));
+                || p.getParameterizedBaseClass().equals(langClasses.getGenericTypeParameterClass())
+                || p.getParameterizedBaseClass().equals(langClasses.getGenericTypeCodeAvatarClass()));
     }
 
     public static AgoClass getLBound(AgoClass classInterval){
+        var langClasses = classInterval.getClassLoader().getLangClasses();
+        if(classInterval.getParameterizedBaseClass() == langClasses.getGenericTypeCodeAvatarClass()){
+            return getLBound(GenericTypeCodeAvatarInfo.extract(classInterval).genericParameter());
+        }
         ParameterizedClassInfo parameterizedClassInfo = (ParameterizedClassInfo) classInterval.getConcreteTypeInfo();
         return (AgoClass) parameterizedClassInfo.getArguments()[0];
     }
     public static AgoClass getUBound(AgoClass classInterval){
+        var langClasses = classInterval.getClassLoader().getLangClasses();
+        if(classInterval.getParameterizedBaseClass() == langClasses.getGenericTypeCodeAvatarClass()){
+            return getUBound(GenericTypeCodeAvatarInfo.extract(classInterval).genericParameter());
+        }
         ParameterizedClassInfo parameterizedClassInfo = (ParameterizedClassInfo) classInterval.getConcreteTypeInfo();
         return (AgoClass) parameterizedClassInfo.getArguments()[1];
     }
 
     // SharedGenericTypeParameterClassDef
     static Variance getVariance(AgoClass sharedGenericTypeParameter) {
+        var langClasses = sharedGenericTypeParameter.getClassLoader().getLangClasses();
+        if(sharedGenericTypeParameter.getParameterizedBaseClass() == langClasses.getGenericTypeCodeAvatarClass()){
+            return getVariance(GenericTypeCodeAvatarInfo.extract(sharedGenericTypeParameter).genericParameter());
+        }
         ParameterizedClassInfo parameterizedClassInfo = (ParameterizedClassInfo) sharedGenericTypeParameter.getConcreteTypeInfo();
         return Variance.of((Byte)parameterizedClassInfo.getArguments()[2]);
     }

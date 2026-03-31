@@ -179,7 +179,8 @@ public class Equals extends BiExpression{
             case NotEquals -> !r;
             default -> throw new UnsupportedOperationException("TODO");
         };
-        return getRoot().createBooleanLiteral( r).setSourceLocation(this.getSourceLocation());
+        // when come from `static isLiteralEquals`, getOwnerFunction().getRoot() not works
+        return left.getClassDef().getRoot().createBooleanLiteral( r).setSourceLocation(this.getSourceLocation());
     }
 
     @Override

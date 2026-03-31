@@ -26,6 +26,8 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 
+import java.util.Set;
+
 import static org.siphonlab.ago.compiler.generic.ClassIntervalClassDef.composeNameOfClassInClassInterval;
 
 public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implements Comparable<GenericTypeCodeAvatarClassDef>, ClassBound {
@@ -135,5 +137,10 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
     @Override
     public boolean isGenericTerminated() {
         return false;
+    }
+
+    @Override
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+        return this.getSharedGenericTypeParameterClassDef().asThatOrSuperOfThat(anotherClass, visited);
     }
 }

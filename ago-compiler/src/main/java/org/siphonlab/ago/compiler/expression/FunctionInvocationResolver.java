@@ -194,7 +194,7 @@ public class FunctionInvocationResolver {
         }
         var root = method.getRoot();
         if(parameterType instanceof GenericTypeCodeAvatarClassDef a) {
-            resolveResult.regTypeArg(a.getTypeCode(), argType);
+            resolveResult.regTypeArg(a, argType);
             if (resolveResult.error != null) return argType;
         } else if(parameterType instanceof VarArgs varArgs){
             throw new RuntimeException("impossible");
@@ -376,7 +376,7 @@ public class FunctionInvocationResolver {
     public class ResolveResult{
         public int paramIndex = -1;
         FunctionDef functionDef;
-        public Map<GenericTypeCode, ClassDef> providedArguments = new TreeMap<>();
+        public Map<GenericTypeCodeAvatarClassDef, ClassDef> providedArguments = new TreeMap<>();
         public CompilationError error;
         double score;
 
@@ -384,19 +384,19 @@ public class FunctionInvocationResolver {
             this.functionDef = functionDef;
         }
 
-        public void regTypeArg(GenericTypeCode genericTypeCode, ClassDef argType){
-            if(!genericTypeCode.getGenericTypeCodeAvatar().isThatOrSuperOfThat(argType)){       //TODO the original is SharedGenericTypeParameter
-                this.error = new ResolveError("'%s' is not compatible for '%s'".formatted(argType.getFullname(), genericTypeCode.toShortString()), sourceLocation);
+        public void regTypeArg(GenericTypeCodeAvatarClassDef genericTypeCodeAvatarClassDef, ClassDef argType){
+            if(!genericTypeCodeAvatarClassDef.isThatOrSuperOfThat(argType)){       //TODO the original is SharedGenericTypeParameter
+                this.error = new ResolveError("'%s' is not compatible for '%s'".formatted(argType.getFullname(), genericTypeCodeAvatarClassDef.getFullname()), sourceLocation);
             }
-            var existed = providedArguments.putIfAbsent(genericTypeCode, argType);
+            var existed = providedArguments.putIfAbsent(genericTypeCodeAvatarClassDef, argType);
             if(existed == null || existed == argType){
                 return;
             } else if(existed.isThatOrSuperOfThat(argType)){
                 return;
             } else if(argType.isThatOrSuperOfThat(existed)){
-                providedArguments.put(genericTypeCode, existed);        // rollback
+                providedArguments.put(genericTypeCodeAvatarClassDef, existed);        // rollback
             } else {
-                this.error = new ResolveError("'%s' and '%s' is not compatible for '%s'".formatted(existed.getFullname(), argType.getFullname(), genericTypeCode.toShortString()), sourceLocation);
+                this.error = new ResolveError("'%s' and '%s' is not compatible for '%s'".formatted(existed.getFullname(), argType.getFullname(), genericTypeCodeAvatarClassDef.getFullname()), sourceLocation);
             }
         }
 

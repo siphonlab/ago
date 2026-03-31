@@ -161,7 +161,7 @@ public class RestfulService {
         httpRequest.aggregate().thenAcceptAsync(r ->{
             Reader reader = r.content().toReader(StandardCharsets.UTF_8);
             try {
-                Instance<?> instance = agoEngine.jsonDeserialize(expectedType.getAgoClass(), nativeFrame, reader, false);
+                Instance<?> instance = agoEngine.jsonDeserialize(expectedType, nativeFrame, reader, false);
                 nativeFrame.finishObject(instance);
             } catch (IOException e) {
                 throw new RuntimeException(e);

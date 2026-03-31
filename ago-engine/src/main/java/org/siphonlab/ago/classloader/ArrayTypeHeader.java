@@ -25,8 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.siphonlab.ago.AgoClass.*;
-import static org.siphonlab.ago.classloader.LoadingStage.BuildClass;
-import static org.siphonlab.ago.classloader.LoadingStage.LoadClassNames;
+import static org.siphonlab.ago.classloader.LoadingStage.*;
 
 public class ArrayTypeHeader extends ClassHeader {
 
@@ -95,7 +94,8 @@ public class ArrayTypeHeader extends ClassHeader {
         var inst = new ArrayTypeHeader(fullname, name, elementInst.fullname, classLoader);
         inst.setClassId(classLoader.getHeaders().size());
         classLoader.registerNewClass(inst);
-        applyInstantiation(inst, typeArguments, parent);
+//        classLoader.getClassHeader("lang.Array").applyInstantiation(inst, typeArguments, parent);     // inst should not register to template lang.Array
+        inst.setLoadingStage(ResolveHierarchicalClasses);
         return inst;
     }
 

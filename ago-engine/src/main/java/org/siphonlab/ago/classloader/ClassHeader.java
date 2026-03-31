@@ -386,7 +386,7 @@ public class ClassHeader {
         inst.name = name;
         templ.putInstantiatedClassToCache(args, inst);
         this.classLoader.registerNewClass(inst);
-        this.applyInstantiation(inst, args, newParent);
+        templ.applyInstantiation(inst, args, newParent);
 
         return inst;
     }
@@ -579,8 +579,12 @@ public class ClassHeader {
         inst.setSlots(this.slotDescs);
         inst.fields = this.fields;
 
-        instantiateChildren(inst, typeArguments);
-        inst.setMethods(this.methods);
+        if (this.children != null) {
+            instantiateChildren(inst, typeArguments);
+            inst.setMethods(mapMethods(this.methods, this.children, inst.children));
+        } else {
+            inst.setMethods(this.methods);
+        }
 
         inst.setLoadingStage(ResolveHierarchicalClasses);
         return inst;

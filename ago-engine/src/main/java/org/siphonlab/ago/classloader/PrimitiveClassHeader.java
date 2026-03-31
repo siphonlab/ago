@@ -23,6 +23,7 @@ public class PrimitiveClassHeader extends ClassHeader{
 
     @Override
     public TypeCode getTypeCode() {
+        if(this.loadingStage == LoadingStage.ResolveHierarchicalClasses) this.resolveHierarchicalClasses();
         return typeCode;
     }
 

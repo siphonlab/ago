@@ -162,8 +162,7 @@ public class AgoHashMap {
         private static void finish(NativeFrame callFrame, Object valObj) {
             NativeInstance instance = (NativeInstance) callFrame.getParentScope();
 
-            GenericArgumentsInfo genericArgs =
-                    (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
+            GenericArgumentsInfo genericArgs = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
             var valueType = genericArgs.getArguments()[1];
 
             Object v = valObj == null ? TypeCode.defaultValue(valueType.getTypeCode()) : valObj;
@@ -666,7 +665,7 @@ public class AgoHashMap {
         NativeInstance iterInst = (NativeInstance) callFrame.getParentScope();
         Object itObj = iterInst.getNativePayload();
         var IteratorKeyValuePairType = iterInst.getAgoClass().getInterfaces()[0];          // Iterator<KeyValuePair<Key, Value>>
-        var KeyValuePairType =((GenericArgumentsInfo)IteratorKeyValuePairType.getConcreteTypeInfo()).getArguments()[0].getAgoClass();
+        var KeyValuePairType =((GenericArgumentsInfo)IteratorKeyValuePairType.getConcreteTypeInfo()).getArguments()[0];
 
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
         var keyType = genericArgumentsInfo.getArguments()[0];

@@ -63,7 +63,7 @@ public class MetaClassHeader extends ClassHeader {
         classLoader.registerNewClass(inst);
         inst.setDependencies(this.dependencies);
         //inst.instanceClass = this.instanceClass;  set instanceClass outside
-        applyInstantiation(inst, instantiationArguments, newParent);
+        this.getSourceTemplate().applyInstantiation(inst, instantiationArguments, newParent);
         this.putInstantiatedClassToCache(instantiationArguments, inst);
         return inst;
     }

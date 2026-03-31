@@ -584,6 +584,7 @@ public class ClassDef extends ClassContainer {
     }
 
     public Root getRoot() {
+        if(this.root != null) return this.root;
         if(this.isGenericInstantiation()) return this.getTemplateClass().getRoot();
         for(var p = this.parent; p != null; p = p.parent){
             if(p instanceof Root) return (Root) p;

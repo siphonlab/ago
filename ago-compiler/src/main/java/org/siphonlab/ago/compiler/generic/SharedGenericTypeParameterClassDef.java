@@ -26,6 +26,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ByteLiteral;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
+import java.util.Set;
+
 /**
  * +T as [Animal to _] got GenericTypeParameter::(Animal, Any, variance=1, G, 0, genericTypeCodeIndex)
  * a box type for classref, like {@link ScopedClassIntervalClassDef}, however it only box classref, accept no scope
@@ -87,5 +89,10 @@ public class SharedGenericTypeParameterClassDef extends ClassIntervalClassDef{
     @Override
     public boolean isGenericTerminated() {
         return false;
+    }
+
+    @Override
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+        return super.asThatOrSuperOfThat(anotherClass, visited);
     }
 }

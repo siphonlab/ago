@@ -73,9 +73,12 @@ public class NativeCallerGenerator {
 
     private static String escapeName(String fullname) {
         return StringEscapeUtils.escapeHtml4(fullname)
-                .replace('.', '$').replace('%', '$')
-                .replace('&', '$')
-                .replace(';', '$')
-                .replace('[', '$');
+                .replace(".", "$D")
+                .replace("%", "$P")
+                .replace("&", "$A")
+                .replace(";", "$C")
+                .replace("[", "$LB")
+                .replace("]", "$RB")
+                .replace("/", "$S");
     }
 }
