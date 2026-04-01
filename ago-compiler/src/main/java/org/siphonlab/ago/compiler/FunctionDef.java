@@ -120,7 +120,7 @@ public class FunctionDef extends ClassDef {
     public boolean parseFields() throws CompilationError {
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
-        if(this.isGenericInstantiation()){
+        if(this.isInGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.ValidateHierarchy);
             return true;
         }
@@ -248,7 +248,7 @@ public class FunctionDef extends ClassDef {
 
     @Override
     public void inheritsFields() throws CompilationError {
-        if(this.isGenericInstantiation()) {
+        if(this.isInGenericInstantiation()) {
             this.instantiateFields();
             return;
         }
@@ -300,7 +300,7 @@ public class FunctionDef extends ClassDef {
 
         super.allocateSlotsForFields();
 
-        if(this.isGenericInstantiation()) return;     // slots already created by instantiateSlots
+        if(this.isInGenericInstantiation()) return;     // slots already created by instantiateSlots
 
         // usually the variables come from BlockCompiler, for VarDeclaration
         // that means, this.localVariables is empty
@@ -331,19 +331,19 @@ public class FunctionDef extends ClassDef {
                     var resultSlot = this.slotsAllocator.allocateRegisterSlot(this.resultType);
                     this.setNativeResultSlot(resultSlot.getIndex());
                 } else {
-                    this.slotsAllocator.allocateRegisterSlot(slot.getClassDef().instantiate(args, null));
+                    this.slotsAllocator.allocateRegisterSlot(slot.getClassDef().instantiateAsReferenceClass(args, null));
                 }
             } else if(variable instanceof Field field){
                 var myFld = this.fields.get(variable.name);
                 if(myFld == null){
-                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiate(args, null));
+                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(args, null));
                 } else {
                     myFld.setSlot(this.slotsAllocator.allocateSlot(myFld));
                 }
             } else if(variable != null && this.localVariables.containsKey(variable.name)){
                 var myvar = this.localVariables.get(variable.name);
                 if(myvar == null) {
-                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiate(args, null));
+                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(args, null));
                 } else {
                     myvar.setSlot(this.slotsAllocator.allocateSlot(myvar));
                 }
@@ -409,9 +409,9 @@ public class FunctionDef extends ClassDef {
         return true;
     }
 
-    public FunctionDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
+    public FunctionDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var clone = new FunctionDef(root, name, methodDecl);
-        cloneTo(instantiationArguments, clone);
+        cloneTo(instantiationArguments, clone, parent);
         return clone;
     }
 
@@ -447,7 +447,7 @@ public class FunctionDef extends ClassDef {
             Variable variable = entry.getValue();
             this.addLocalVariable(variable.applyTemplate(instantiationArguments, this));
         }
-        this.setResultType(templ.getResultType().instantiate(instantiationArguments, null));
+        this.setResultType(templ.getResultType().instantiateAsReferenceClass(instantiationArguments, null));
 
         this.instantiateFieldsForInterfacesAndTraits();
         this.createFunctionInterface();
@@ -459,7 +459,7 @@ public class FunctionDef extends ClassDef {
     // auto create function interface from `Function0<+R>` `Function1<+R, -P>`
     public void createFunctionInterface() throws CompilationError {
         ClassDef functionBaseClass = getRoot().getFunctionBaseClass();
-        ClassDef instantiatedFunctionBase = functionBaseClass.instantiate(new InstantiationArguments(functionBaseClass.getTypeParamsContext(), new ClassRefLiteral[]{this.getResultType().toClassRefLiteral()}), null);
+        ClassDef instantiatedFunctionBase = functionBaseClass.instantiateAsReferenceClass(new InstantiationArguments(functionBaseClass.getTypeParamsContext(), new ClassRefLiteral[]{this.getResultType().toClassRefLiteral()}), null);
         if(instantiatedFunctionBase.getCompilingStage().lt(functionBaseClass.getCompilingStage())) {
             Compiler.processClassTillStage(instantiatedFunctionBase, functionBaseClass.getCompilingStage());
         }
@@ -478,7 +478,7 @@ public class FunctionDef extends ClassDef {
             list.add(refLiteral);
         }
         var args = list.toArray(new ClassRefLiteral[0]);
-        var instantiated = interface_.instantiate(new InstantiationArguments(interface_.getTypeParamsContext(), args), null);
+        var instantiated = interface_.instantiateAsReferenceClass(new InstantiationArguments(interface_.getTypeParamsContext(), args), null);
         if(instantiated instanceof ConcreteType c) this.registerConcreteType(c);
         this.addImplementedInterface(instantiated);
         assert this.functionInterfaceInstantiation == null;

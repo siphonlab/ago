@@ -65,7 +65,7 @@ public class GenericTypeCodeAvatarClassHeader extends ParameterizedClassHeader i
     }
 
     @Override
-    protected ClassHeader instantiate(InstantiationArguments typeArguments, ClassHeader newParent, String suggestionName, String suggestionFullName) {
+    protected ClassHeader instantiate(InstantiationArguments typeArguments, ClassHeader parentInstantiation, String suggestionName, String suggestionFullName) {
         return typeArguments.mapType(this);
     }
 }

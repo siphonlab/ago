@@ -35,7 +35,7 @@ public final class SlotDesc {
     }
 
     SlotDesc applyTemplate(InstantiationArguments typeArguments) {
-        var newType = agoClassLoader.instantiateDependencyClass(type, typeArguments).fullname;
+        var newType = agoClassLoader.instantiateReferenceClass(type, typeArguments).fullname;
         if (!Objects.equals(newType, type)) {
             return new SlotDesc(this.index(), this.name, newType, this.agoClassLoader);
         }

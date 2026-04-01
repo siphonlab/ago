@@ -335,7 +335,7 @@ public class GenericVMCodeTransformer {
         codeBuffer.skip(offset * 4);
         int classNameId = codeBuffer.getInt();
         String className = strings[classNameId];
-        ClassHeader instantiation = getClassLoader().instantiateDependencyClass(className, instantiationArguments);
+        ClassHeader instantiation = getClassLoader().instantiateReferenceClass(className, instantiationArguments);
         if (instantiation == null) {
             throw new RuntimeException("null instantiation: " + className);
         }

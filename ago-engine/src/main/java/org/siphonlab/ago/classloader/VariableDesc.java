@@ -50,7 +50,7 @@ public class VariableDesc {
     }
 
     VariableDesc applyTemplate(InstantiationArguments typeArguments) {
-        var t = agoClassLoader.instantiateDependencyClass(this.type, typeArguments);
+        var t = agoClassLoader.instantiateReferenceClass(this.type, typeArguments);
         return new VariableDesc(name, modifiers, variableKind, t.fullname(), slotIndex, constLiteralValue, sourceLocation,  agoClassLoader);
     }
 

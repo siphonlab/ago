@@ -19,7 +19,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.expression.Cast;
 import org.siphonlab.ago.compiler.expression.CastStrategy;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
@@ -136,7 +135,7 @@ public class Variable {
     }
 
     protected void applyTemplate(Variable clone, InstantiationArguments instantiationArguments) throws CompilationError {
-        var newType = this.type.instantiate(instantiationArguments, null);
+        var newType = this.type.instantiateAsReferenceClass(instantiationArguments, null);
         clone.setModifiers(this.modifiers);
         clone.setType(newType);
         clone.setSourceLocation(this.sourceLocation);

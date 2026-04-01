@@ -137,9 +137,9 @@ public class InterfaceDef extends ClassDef{
         }
     }
 
-    public InterfaceDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
+    public InterfaceDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var clone = new InterfaceDef(root, name, this.interfaceDeclaration);
-        this.cloneTo(instantiationArguments, clone);
+        this.cloneTo(instantiationArguments, clone, parent);
         return clone;
     }
 
@@ -151,13 +151,13 @@ public class InterfaceDef extends ClassDef{
         var instantiationArguments = this.getGenericSource().instantiationArguments();
         List<ClassDef> list = new ArrayList<>();
         for (ClassDef i : templ.getInterfaces()) {
-            ClassDef instantiate = i.instantiate(instantiationArguments, null);
+            ClassDef instantiate = i.instantiateAsReferenceClass(instantiationArguments, null);
             list.add(instantiate);
         }
         this.setInterfaces(list);
-        this.setSuperClass(templ.getSuperClass().instantiate(instantiationArguments, null));       // TODO and parameterized superclass
+        this.setSuperClass(templ.getSuperClass().instantiateAsReferenceClass(instantiationArguments, null));       // TODO and parameterized superclass
 
-        this.setPermitClass(templ.getPermitClass().instantiate(instantiationArguments, null));
+        this.setPermitClass(templ.getPermitClass().instantiateAsReferenceClass(instantiationArguments, null));
 
         this.resolveMetaclass();
 

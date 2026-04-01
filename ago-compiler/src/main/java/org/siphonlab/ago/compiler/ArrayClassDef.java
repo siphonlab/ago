@@ -93,12 +93,17 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
+    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return instantiate(arguments, returnExisted);
+    }
+
+    @Override
     public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
         if(!this.isAffectedByTypeArguments(arguments)) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;
         }
-        return cloneForInstantiate(arguments,returnExisted);
+        return cloneForInstantiate(arguments, (ClassContainer) this.parent, returnExisted);
     }
 
     @Override
@@ -112,7 +117,7 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         // when T[] works on T=int, apply template got a new type `int[]`
         var newEleType = elementType.instantiate(instantiationArguments, returnExisted);
         if(newEleType == elementType) {
@@ -132,8 +137,8 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public boolean isGenericTerminated() {
-        return this.elementType.isGenericTerminated();
+    public boolean isGenericTerminated(Set<ClassDef> visited) {
+        return this.elementType.isGenericTerminated(visited);
     }
 
     @Override

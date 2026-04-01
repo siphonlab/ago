@@ -17,7 +17,6 @@ package org.siphonlab.ago.classloader;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
-import org.jetbrains.annotations.UnknownNullability;
 import org.siphonlab.ago.AgoClass;
 
 import java.util.*;
@@ -60,7 +59,7 @@ public class GenericInstantiationClassHeader extends ClassHeader {
     }
 
     public static String[] composeMetaClassName(ClassHeader instanceTemplate, InstantiationArguments instantiationArguments) {
-        var instance = instanceTemplate.classLoader.instantiateDependencyClass(instanceTemplate.fullname, instantiationArguments);
+        var instance = instanceTemplate.classLoader.instantiateReferenceClass(instanceTemplate.fullname, instantiationArguments);
         String name = "Meta@<" + instance.name + ">";
         var parent = instanceTemplate.parent;
         if(parent != null) {
@@ -113,16 +112,16 @@ public class GenericInstantiationClassHeader extends ClassHeader {
         if(genericSource != null) {
             return genericSource.instantiationArguments();
         } else {
-            if(this.arguments != null) return this.arguments;
-
-            InstantiationArguments args = new InstantiationArguments(this.getSourceTemplate(),
-                    Arrays.stream(this.argumentNames).map(a -> Objects.requireNonNull(classLoader.getClassHeader(a))).toArray(ClassHeader[]::new));
-//            args.setSuggestionFullname(this.fullname);
-//            args.setSuggestionName(this.name);
-//            if(StringUtils.isNotEmpty(this.parentClassName)) {
-//                args.setParentClassHeader(Objects.requireNonNull(this.classLoader.getClassHeader(this.parentClassName)));
-//                this.parent = args.getParentClassHeader();
-//            }
+            InstantiationArguments args;
+            ClassHeader sourceTemplate = this.getSourceTemplate();
+            if(this.arguments != null) {
+                args = this.arguments;
+            } else {
+                args = new InstantiationArguments(sourceTemplate,
+                        Arrays.stream(this.argumentNames).map(a -> Objects.requireNonNull(classLoader.getClassHeader(a))).toArray(ClassHeader[]::new));
+            }
+            this.genericSource = new GenericSource(sourceTemplate.fullname(), args, args.takeFor(sourceTemplate));
+            this.type = sourceTemplate.type;
             return this.arguments = args;
         }
     }
@@ -144,11 +143,13 @@ public class GenericInstantiationClassHeader extends ClassHeader {
             parent.addChild(this);
         }
         var args = this.genericTypeArguments();
+        ClassHeader sourceTemplate = this.getSourceTemplate();
         if(this.parent != null && this.parent.isGenericInstantiation()){
-            throw new UnsupportedOperationException("TODO");
-//            args = this.parent.genericSource.instantiationArguments().applyChild(args, headers);
+            args = args.applyParent(this.parent.genericSource.instantiationArguments(), classLoader);
+            this.genericSource = new GenericSource(this.genericSource.sourceTemplate(), args, this.genericSource.typeArguments());
+            sourceTemplate.putInstantiatedClassToCache(args, this);
         }
-        this.getSourceTemplate().applyInstantiation(this, args, this.parent);
+        sourceTemplate.applyInstantiation(this, args, this.parent);
         return true;
     }
 
@@ -165,8 +166,6 @@ public class GenericInstantiationClassHeader extends ClassHeader {
         if (templateClass != null && templateClass.loadingStage == ParseFields) {
             if (!templateClass.parseFields()) return false;
         }
-
-        InstantiationArguments typeArguments = this.genericSource.instantiationArguments();
 
         this.modifiers = composeModifiers(templateClass);
 

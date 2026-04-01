@@ -17,9 +17,8 @@ package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
-
-import static org.siphonlab.ago.TypeCode.*;
 
 public class NullClassDef extends ClassDef {
 
@@ -45,7 +44,7 @@ public class NullClassDef extends ClassDef {
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         return this;
     }
 
@@ -55,4 +54,8 @@ public class NullClassDef extends ClassDef {
         return this;
     }
 
+    @Override
+    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return instantiate(arguments, returnExisted);
+    }
 }

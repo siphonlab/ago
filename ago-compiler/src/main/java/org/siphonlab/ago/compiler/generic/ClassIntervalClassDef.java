@@ -16,9 +16,7 @@
 package org.siphonlab.ago.compiler.generic;
 
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
@@ -88,7 +86,7 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         ClassIntervalClassDef c = null;
         try {
             c = this.getParentClass().getOrCreateClassInterval(baseClass.instantiate(instantiationArguments, null), constructor,

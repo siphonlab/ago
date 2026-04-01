@@ -16,11 +16,10 @@
 package org.siphonlab.ago.compiler.generic;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.Variance;
+import org.siphonlab.ago.compiler.ClassContainer;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.ConstructorDef;
-import org.siphonlab.ago.compiler.ParameterizedClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ByteLiteral;
@@ -61,7 +60,7 @@ public class SharedGenericTypeParameterClassDef extends ClassIntervalClassDef{
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         SharedGenericTypeParameterClassDef c = null;
         try {
             c = this.getParentClass().getOrCreateGenericTypeParameter(baseClass, constructor,
@@ -87,7 +86,7 @@ public class SharedGenericTypeParameterClassDef extends ClassIntervalClassDef{
     }
 
     @Override
-    public boolean isGenericTerminated() {
+    public boolean isGenericTerminated(Set<ClassDef> visited) {
         return false;
     }
 

@@ -23,6 +23,8 @@ import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
+import java.util.Set;
+
 import static java.lang.String.format;
 import static org.siphonlab.ago.AgoClass.TYPE_METACLASS;
 
@@ -112,12 +114,16 @@ public class MetaClassDef extends ClassDef{
         return this.getInstanceClassDef().isAffectedByTypeArguments(instantiationArguments);
     }
 
-    public MetaClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
+    public MetaClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var instanceClass = this.instanceClassDef.getCachedInstantiatedClass(instantiationArguments);
         var clone = new MetaClassDef(root, instanceClass, metaLevel, metaclassDeclaration);
-        this.getParent().addChild(clone);
-        super.cloneTo(instantiationArguments, clone);
+        super.cloneTo(instantiationArguments, clone, (ClassContainer) this.getParent());
         return clone;
+    }
+
+    @Override
+    public MetaClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return (MetaClassDef) super.instantiateAsReferenceClass(arguments, returnExisted);
     }
 
     @Override
@@ -126,8 +132,8 @@ public class MetaClassDef extends ClassDef{
     }
 
     @Override
-    public boolean isGenericTerminated() {
-        return this.instanceClassDef.isGenericTerminated();
+    public boolean isGenericTerminated(Set<ClassDef> visited) {
+        return this.instanceClassDef.isGenericTerminated(visited);
     }
 
     public boolean isInGenericTemplate(){

@@ -689,7 +689,7 @@ public class AgoClassLoader implements ClassManager{
     // className must come within template, and maybe already instantiated, but only associated with instantiationArguments
     // i.e. class H<U> from G<U>.Inner, now to instantiate H<U=Dog>, the className must be G<U>.Inner, no G<T>.Inner nor G<Dog>.Inner
     // and the instantiationArguments must be U=Dog
-    public ClassHeader instantiateDependencyClass(String className, InstantiationArguments instantiationArguments){
+    public ClassHeader instantiateReferenceClass(String className, InstantiationArguments instantiationArguments){
         var h = getClassHeader(className);
         if(h instanceof GenericTypeCodeAvatarClassHeader g){
             return instantiationArguments.mapType(g);
@@ -711,7 +711,7 @@ public class AgoClassLoader implements ClassManager{
                     // it's a package, if it's a class it must be written with concrete types
                     break;
                 } else {
-                    className = parent;
+                    className = parent;      // to extract parent
                 }
             }
         }
@@ -736,7 +736,12 @@ public class AgoClassLoader implements ClassManager{
         while (it.hasNext()) {
             parent= h;
             String name = it.next();
-            h = parent.getSourceTemplate().instantiateChild(parent, instantiationArguments, getClassHeader(name));
+            ClassHeader sourceTemplate = parent.getSourceTemplate();
+            ClassHeader child = getClassHeader(name);
+            if(child == null){
+                child = getClassHeader(sourceTemplate.fullname + "." + extractName(name));
+            }
+            h = sourceTemplate.instantiateChild(parent, instantiationArguments, Objects.requireNonNull(child));
         }
 
         return Objects.requireNonNull(h);

@@ -95,11 +95,13 @@ public class Root extends Namespace<Package> {
     private ClassDef COLLECTION_CLASS;
     private ClassDef ANY_COLLECTION_CLASS;
 
+    private ClassDef RUN_SPACE_CLASS;
+
     private ClassDef READONLY_MAP_CLASS;
     private ClassDef ANY_READONLY_MAP_CLASS;
     private ClassDef READWRITE_MAP_CLASS;
     private ClassDef ANY_READWRITE_MAP_CLASS;
-    private ClassDef RUN_SPACE_CLASS;
+    private ClassDef MAP_CLASS;
     private ClassDef ANY_MAP_CLASS;
     private ClassDef HASH_MAP_CLASS;
 
@@ -541,15 +543,15 @@ public class Root extends Namespace<Package> {
 
 
     public synchronized ClassDef getMapClass() {
-        if (RUN_SPACE_CLASS != null) return RUN_SPACE_CLASS;
-        return RUN_SPACE_CLASS = findByFullname("lang.Map");
+        if (MAP_CLASS != null) return MAP_CLASS;
+        return MAP_CLASS = findByFullname("lang.Map");
     }
 
     public ClassDef getAnyMapClass() {
         if (ANY_MAP_CLASS != null) return ANY_MAP_CLASS;
         try {
             return ANY_MAP_CLASS = getMapClass().instantiate(
-                    new InstantiationArguments(RUN_SPACE_CLASS.typeParamsContext,
+                    new InstantiationArguments(MAP_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{
                                     this.getAnyClass().toClassRefLiteral(),   // K
                                     this.getAnyClass().toClassRefLiteral()    // V

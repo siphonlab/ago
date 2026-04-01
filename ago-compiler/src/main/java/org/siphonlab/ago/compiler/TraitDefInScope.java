@@ -132,8 +132,8 @@ public class TraitDefInScope extends TraitDef{
     }
 
     @Override
-    public TraitDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
-        var r = super.cloneForInstantiate(instantiationArguments, returnExisted);
+    public TraitDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+        var r = super.cloneForInstantiate(instantiationArguments, parent, returnExisted);
         return new TraitDefInScope(r);
     }
 

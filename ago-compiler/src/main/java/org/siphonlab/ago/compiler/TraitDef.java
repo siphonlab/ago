@@ -105,7 +105,7 @@ public class TraitDef extends ClassDef{
     public boolean parseFields() throws CompilationError {
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
-        if(this.isGenericInstantiation()){
+        if(this.isInGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.InheritsFields);
             return false;
         }
@@ -154,9 +154,9 @@ public class TraitDef extends ClassDef{
         }
     }
 
-    public TraitDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
+    public TraitDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var clone = new TraitDef(root, name, this.traitDeclaration);
-        this.cloneTo(instantiationArguments, clone);
+        this.cloneTo(instantiationArguments, clone, parent);
         return clone;
     }
 
@@ -168,7 +168,7 @@ public class TraitDef extends ClassDef{
 
         var templ = this.getTemplateClass();
         var instantiationArguments = this.getGenericSource().instantiationArguments();
-        this.setPermitClass(templ.getPermitClass().instantiate(instantiationArguments, null));
+        this.setPermitClass(templ.getPermitClass().instantiateAsReferenceClass(instantiationArguments, null));
 
         this.setCompilingStage(CompilingStage.ParseFields);     // bypass ValidateHierarchy
     }

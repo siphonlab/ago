@@ -75,7 +75,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
 
-        if(this.isGenericInstantiation()){
+        if(this.isInGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.ValidateHierarchy);
             return true;
         }
@@ -133,7 +133,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
 
         // if interfaceFun is an instantiation, needn't compileBody, otherwise it will compileBody by itself
 
-        if(this.isGenericInstantiation()){
+        if(this.isInGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.Compiled);
             return;
         }
@@ -172,17 +172,10 @@ public class InterfaceFunctionWrapper extends FunctionDef{
     }
 
     @Override
-    public void cloneTo(InstantiationArguments instantiationArguments, ClassDef instantiateClass) throws CompilationError {
+    public void cloneTo(InstantiationArguments instantiationArguments, ClassDef instantiateClass, ClassContainer parent) throws CompilationError {
 
         instantiateClass.setGenericSource(new GenericSource(this, instantiationArguments, null));
         this.putInstantiatedClassToCache(instantiationArguments, instantiateClass);
-
-//        if (instantiationArguments.getSourceTemplate() != this) {
-//            var args = instantiationArguments.takeFor(this);
-//            if (args != null) {
-//                this.putInstantiatedClassToCache(args, instantiateClass);
-//            }
-//        }
 
         instantiateClass.setUnit(this.getUnit());
         instantiateClass.setSourceLocation(this.getSourceLocation());        //TODO the source location assign to template's source location?
@@ -194,6 +187,8 @@ public class InterfaceFunctionWrapper extends FunctionDef{
             targetFun.setThrowsExceptions(tempFun.getThrowsExceptions());
         }
         instantiateClass.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);      // ParseClassName and ParseGenericParams skipped, it will enter ResolveHierarchicalClasses and ParseField soon
+
+        if(parent != null) parent.addChild(instantiateClass);
 
         instantiateChildren(instantiateClass, instantiationArguments);
 

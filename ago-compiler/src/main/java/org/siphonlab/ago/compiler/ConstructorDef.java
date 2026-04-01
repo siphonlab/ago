@@ -68,7 +68,7 @@ public class ConstructorDef extends FunctionDef{
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
 
-        if(this.isGenericInstantiation()){
+        if(this.isInGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.ValidateHierarchy);
             return true;
         }
@@ -152,17 +152,17 @@ public class ConstructorDef extends FunctionDef{
         return null;
     }
 
-    public ConstructorDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) throws CompilationError {
+    public ConstructorDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var clone = this.constructorDeclaration != null ?
                 new ConstructorDef(root, this.modifiers, this.constructorDeclaration):
                 new ConstructorDef(root, this.modifiers,name);
-        this.cloneTo(instantiationArguments, clone);
+        this.cloneTo(instantiationArguments, clone, parent);
         return clone;
     }
 
     public void compileBody() throws CompilationError {
         if(this.getCompilingStage() != CompilingStage.CompileMethodBody) return;
-        if(this.isGenericInstantiation()){
+        if(this.isInGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.Compiled);
             return;
         }

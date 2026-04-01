@@ -161,7 +161,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                     throw new ResolveError("no metaclass for '%s'".formatted(baseClassDef.getFullname()), sourceLocation);
 
                 for (FunctionDef constructor : baseClassDef.getMetaClassDef().getConstructors()) {
-                    if(constructor.isGenericInstantiation()){
+                    if(constructor.isInGenericInstantiation()){
                         if(constructor.getCompilingStage().lte(CompilingStage.InheritsFields)){
                             Compiler.processClassTillStage(constructor,CompilingStage.InheritsFields);
                         }
@@ -365,11 +365,11 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public boolean isGenericTerminated() {
-        if(!this.baseClass.isGenericTerminated()) return false;
+    public boolean isGenericTerminated(Set<ClassDef> visited) {
+        if(!this.baseClass.isGenericTerminated(visited)) return false;
         for (var arg : this.arguments) {
             if(arg instanceof ClassRefLiteral typeArgument) {
-                if (!typeArgument.getClassDefValue().isGenericTerminated()) {
+                if (!typeArgument.getClassDefValue().isGenericTerminated(visited)) {
                     return false;
                 }
             }
@@ -378,10 +378,10 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         ParameterizedClassDef c = null;
         try {
-            var n = baseClass.instantiate(instantiationArguments, returnExisted);
+            var n = baseClass.instantiateAsReferenceClass(instantiationArguments, returnExisted);
             c = this.getParentClass().getOrCreateParameterizedClass(n, constructor, mapArguments(instantiationArguments), returnExisted);
         } catch (CompilationError e) {
             throw new RuntimeException(e);

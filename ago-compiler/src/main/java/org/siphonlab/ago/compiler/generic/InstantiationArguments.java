@@ -108,8 +108,11 @@ public class InstantiationArguments {
         return false;
     }
 
-    // a reduce procedure
     public InstantiationArguments apply(InstantiationArguments next) throws CompilationError {
+        return apply(next, null);
+    }
+    // a reduce procedure
+    public InstantiationArguments apply(InstantiationArguments next, InstantiationArguments parent) throws CompilationError {
         var r = new TreeMap<GenericTypeCodeAvatarClassDef, ClassDef>();
         for (Map.Entry<GenericTypeCodeAvatarClassDef, ClassDef> map : this.typeMapping.entrySet()) {
             var to = map.getValue();
@@ -117,10 +120,13 @@ public class InstantiationArguments {
             if(nextTo != null) {
                 r.put(map.getKey(), nextTo);
             } else if(to.isAffectedByTypeArguments(next)){
-                r.put(map.getKey(), to.instantiate(next, null));
+                r.put(map.getKey(), to.instantiateAsReferenceClass(next, null));
             } else {
                 r.put(map.getKey(), to);
             }
+        }
+        if(parent != null){
+            r.putAll(parent.typeMapping);
         }
         return new InstantiationArguments(r);
     }
@@ -128,9 +134,7 @@ public class InstantiationArguments {
     // inner template apply parent type arguments
     // first apply, then mix parent params
     public InstantiationArguments applyParent(InstantiationArguments parentTypeArguments) throws CompilationError{
-        var r = apply(parentTypeArguments);
-        r.typeMapping.putAll(parentTypeArguments.typeMapping);
-        return r;
+        return apply(parentTypeArguments, parentTypeArguments);
     }
 
     public boolean canApply(InstantiationArguments next) {

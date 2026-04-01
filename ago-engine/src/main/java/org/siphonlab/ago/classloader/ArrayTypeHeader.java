@@ -75,10 +75,10 @@ public class ArrayTypeHeader extends ClassHeader {
 
 
     @Override
-    protected ClassHeader instantiate(InstantiationArguments typeArguments, ClassHeader newParent, String suggestionName, String suggestionFullName) {
+    protected ClassHeader instantiate(InstantiationArguments typeArguments, ClassHeader parentInstantiation, String suggestionName, String suggestionFullName) {
         if(!this.isAffectedByTypeArguments(typeArguments)) return this;
 
-        var elementInst = classLoader.instantiateDependencyClass(getElementType().fullname, typeArguments);
+        var elementInst = classLoader.instantiateReferenceClass(getElementType().fullname, typeArguments);
         String name;
         String fullname;
         if(suggestionName == null) {

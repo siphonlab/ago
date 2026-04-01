@@ -22,6 +22,8 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
+import java.util.Set;
+
 import static org.siphonlab.ago.TypeCode.*;
 
 public class PrimitiveClassDef extends ClassDef {
@@ -99,7 +101,7 @@ public class PrimitiveClassDef extends ClassDef {
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         return this;
     }
 
@@ -110,7 +112,12 @@ public class PrimitiveClassDef extends ClassDef {
     }
 
     @Override
-    public boolean isGenericTerminated() {
+    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return instantiate(arguments, returnExisted);
+    }
+
+    @Override
+    public boolean isGenericTerminated(Set<ClassDef> visited) {
         return true;
     }
 

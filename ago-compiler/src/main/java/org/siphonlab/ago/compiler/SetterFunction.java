@@ -52,7 +52,7 @@ public class SetterFunction extends FunctionDef{
         if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
         if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
 
-        if(this.isGenericInstantiation()){
+        if(this.isInGenericInstantiation()){
             this.setCompilingStage(CompilingStage.InheritsFields);
             return true;
         }
@@ -73,7 +73,7 @@ public class SetterFunction extends FunctionDef{
     public void compileBody() throws CompilationError {
         if(this.getCompilingStage() != CompilingStage.CompileMethodBody) return;
 
-        if(this.isGenericInstantiation()){
+        if(this.isInGenericInstantiation()){
             this.nextCompilingStage(CompilingStage.Compiled);
             return;
         }

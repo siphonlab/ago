@@ -86,6 +86,11 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
     }
 
     @Override
+    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return this.instantiate(arguments, returnExisted);
+    }
+
+    @Override
     public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
         if(!this.isAffectedByTypeArguments(arguments)) {
             if(returnExisted != null) returnExisted.setTrue();
@@ -135,7 +140,7 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
     }
 
     @Override
-    public boolean isGenericTerminated() {
+    public boolean isGenericTerminated(Set<ClassDef> visited) {
         return false;
     }
 
@@ -143,4 +148,16 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
     public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
         return this.getSharedGenericTypeParameterClassDef().asThatOrSuperOfThat(anotherClass, visited);
     }
+
+    @Override
+    public boolean isPrimitiveFamily() {
+        //TODO it's strange, should determine with asThatOrSuperOfThat directly
+        return this.getLBoundClass().isPrimitiveFamily();
+    }
+
+    @Override
+    public boolean isPrimitiveNumberFamily() {
+        return this.getLBoundClass().isPrimitiveNumberFamily();
+    }
+
 }

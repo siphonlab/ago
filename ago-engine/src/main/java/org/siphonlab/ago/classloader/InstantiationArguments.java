@@ -90,9 +90,11 @@ public class InstantiationArguments {
         return false;
     }
 
-
-    // a reduce procedure
     public InstantiationArguments apply(InstantiationArguments next, AgoClassLoader classLoader) {
+        return apply(next, null, classLoader);
+    }
+    // a reduce procedure
+    public InstantiationArguments apply(InstantiationArguments next, InstantiationArguments parent, AgoClassLoader classLoader) {
         var r = new TreeMap<GenericTypeCodeAvatarClassHeader, ClassHeader>();
         for (var map : this.typeMapping.entrySet()) {
             var to = map.getValue();
@@ -100,18 +102,19 @@ public class InstantiationArguments {
             if(nextTo != null) {
                 r.put(map.getKey(), nextTo);
             } else if(to.isAffectedByTypeArguments(next)){
-                r.put(map.getKey(), classLoader.instantiateDependencyClass(to.fullname(),next));
+                r.put(map.getKey(), classLoader.instantiateReferenceClass(to.fullname(),next));
             } else {
                 r.put(map.getKey(), to);
             }
+        }
+        if(parent != null){
+            r.putAll(parent.typeMapping);
         }
         return new InstantiationArguments(r);
     }
 
     public InstantiationArguments applyParent(InstantiationArguments parentTypeArguments, AgoClassLoader classLoader) {
-        var r = apply(parentTypeArguments, classLoader);
-        r.typeMapping.putAll(parentTypeArguments.typeMapping);
-        return r;
+        return apply(parentTypeArguments, parentTypeArguments,  classLoader);
     }
 
 

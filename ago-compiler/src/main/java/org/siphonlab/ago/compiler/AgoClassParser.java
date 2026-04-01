@@ -207,7 +207,7 @@ public class AgoClassParser {
     private boolean resolveHierarchy(AgoClass agoClass, ClassDef classDef) throws CompilationError {
         if (classDef.getCompilingStage() != CompilingStage.ResolveHierarchicalClasses) return true;
 
-        if(classDef.isGenericInstantiation()){
+        if(classDef.isInGenericInstantiation()){
             ClassDef templateClass = classDef.getTemplateClass();
             if(templateClass.getCompilingStage() == CompilingStage.ResolveHierarchicalClasses){
                 GenericArgumentsInfo argumentsInfo = (GenericArgumentsInfo) agoClass.getConcreteTypeInfo();
@@ -380,7 +380,7 @@ public class AgoClassParser {
     private boolean parseFields(AgoClass agoClass, ClassDef classDef) throws CompilationError {
         if(classDef.getCompilingStage() != CompilingStage.ParseFields) return true;
 
-        if(classDef.isGenericInstantiation()){
+        if(classDef.isInGenericInstantiation()){
             return parseFieldsForGenericInstantiation(classDef);
         }
 
@@ -610,7 +610,7 @@ public class AgoClassParser {
                     return false;
                 }
             }
-            if(classDef.isGenericInstantiation()){
+            if(classDef.isInGenericInstantiation()){
                 ClassDef templateClass = classDef.getTemplateClass();
                 if(templateClass.getCompilingStage() == CompilingStage.AllocateSlots){
                     if(!allocateSlots(classLoader.getClass(templateClass.getFullname()),templateClass)){
@@ -695,7 +695,7 @@ public class AgoClassParser {
         if(classDef.getCompilingStage() != CompilingStage.InheritsInnerClasses) return true;
         classDef.inheritsChildClasses();
         classDef.setCompilingStage(CompilingStage.AllocateSlots);
-        if(classDef.isGenericInstantiation()){
+        if(classDef.isInGenericInstantiation()){
             for (ClassDef child : classDef.getDirectChildren()) {
                 inheritsInnerClasses(child);
             }

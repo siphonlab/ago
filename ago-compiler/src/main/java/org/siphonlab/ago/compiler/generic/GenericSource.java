@@ -18,7 +18,65 @@ package org.siphonlab.ago.compiler.generic;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
+import java.util.Objects;
+
 /// `originalTemplate + arguments = instantiation class`.
-public record GenericSource(ClassDef originalTemplate, InstantiationArguments instantiationArguments, ClassRefLiteral[] typeArguments) {
+public final class GenericSource {
+    private final ClassDef originalTemplate;
+    private final InstantiationArguments instantiationArguments;
+    private final ClassRefLiteral[] typeArguments;
+    private final boolean isTemplatePlaceHolder;
+
+    /**
+     *
+     */
+    public GenericSource(ClassDef originalTemplate, InstantiationArguments instantiationArguments,
+                         ClassRefLiteral[] typeArguments, boolean isTemplatePlaceHolder) {
+        this.originalTemplate = originalTemplate;
+        this.instantiationArguments = instantiationArguments;
+        this.typeArguments = typeArguments;
+        this.isTemplatePlaceHolder = isTemplatePlaceHolder;
+    }
+
+    public GenericSource(ClassDef originalTemplate, InstantiationArguments instantiationArguments,
+                         ClassRefLiteral[] typeArguments) {
+        this.originalTemplate = originalTemplate;
+        this.instantiationArguments = instantiationArguments;
+        this.typeArguments = typeArguments;
+        this.isTemplatePlaceHolder = false;
+    }
+
+    public boolean isPlaceHolderOfTemplate() {
+        return this.isTemplatePlaceHolder;
+    }
+
+    public ClassDef originalTemplate() {return originalTemplate;}
+
+    public InstantiationArguments instantiationArguments() {return instantiationArguments;}
+
+    public ClassRefLiteral[] typeArguments() {return typeArguments;}
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        var that = (GenericSource) obj;
+        return Objects.equals(this.originalTemplate, that.originalTemplate) &&
+                Objects.equals(this.instantiationArguments, that.instantiationArguments) &&
+                Objects.equals(this.typeArguments, that.typeArguments);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(originalTemplate, instantiationArguments, typeArguments);
+    }
+
+    @Override
+    public String toString() {
+        return "GenericSource[" +
+                "originalTemplate=" + originalTemplate + ", " +
+                "instantiationArguments=" + instantiationArguments + ", " +
+                "typeArguments=" + typeArguments + ']';
+    }
 
 }

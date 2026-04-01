@@ -44,9 +44,7 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
         this.instantiationArguments = instantiationArguments;
         this.setGenericSource(new GenericSource(templateClass, instantiationArguments, instantiationArguments.takeFor(templateClass)));
         this.setClassType(templateClass.getClassType());
-        if(parent != null) parent.addChild(this);
-
-        templateClass.cloneTo(instantiationArguments, this);
+        templateClass.cloneTo(instantiationArguments, this, parent);
         if(templateClass.getCompilingStage() == CompilingStage.Compiled || templateClass.getCompilingStage() == CompilingStage.CompileMethodBody){
             GenericInstantiate.syncCompilingStage(this, templateClass.getCompilingStage());
         }

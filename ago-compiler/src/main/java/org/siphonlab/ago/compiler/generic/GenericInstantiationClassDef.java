@@ -43,9 +43,8 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
         this.instantiationArguments = instantiationArguments;
         this.setGenericSource(new GenericSource(templateClass, instantiationArguments, instantiationArguments.takeFor(templateClass)));
         this.setClassType(templateClass.getClassType());
-        if(parent != null) parent.addChild(this);
 
-        templateClass.cloneTo(instantiationArguments, this);
+        templateClass.cloneTo(instantiationArguments, this, parent);
         if(templateClass.getCompilingStage() == CompilingStage.Compiled || templateClass.getCompilingStage() == CompilingStage.CompileMethodBody){
             GenericInstantiate.syncCompilingStage(this, templateClass.getCompilingStage());
         }
@@ -61,7 +60,7 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
         if(this.isInterfaceOrTrait()) {
             var templ = this.getTemplateClass();
             var instantiationArguments = this.getGenericSource().instantiationArguments();
-            this.setPermitClass(templ.getPermitClass().instantiate(instantiationArguments, null));
+            this.setPermitClass(templ.getPermitClass().instantiateAsReferenceClass(instantiationArguments, null));
 
             this.setCompilingStage(CompilingStage.ParseFields);     // bypass ValidateHierarchy
         }
