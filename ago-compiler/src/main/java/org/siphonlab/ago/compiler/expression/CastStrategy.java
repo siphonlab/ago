@@ -174,6 +174,15 @@ public class CastStrategy {
                         yield new UnifyTypeResult(left,right,rightType, true);
                     }
 
+                    case Object -> {
+                        if(rightType.getTypeCode() == NULL) {
+                            right = new ForceCast(ownerFunction, right, leftType, ForceCast.CastMode.ObjectCast);
+                            yield new UnifyTypeResult(left, right, leftType, true);
+                        } else {
+                            yield throwTypeMismatchError(originLeftType, originRightType);
+                        }
+                    }
+
                     default -> throwTypeMismatchError(originLeftType, originRightType);
                 };
 
@@ -294,7 +303,7 @@ public class CastStrategy {
                 return new ForceCast(ownerFunction, castLiteral(literal, toType, this.sourceLocation), originToType, ForceCast.CastMode.WearClassMask).transform();
             }
             if (literal instanceof NullLiteral n) {
-                if (toTypeKind == TypeKind.langObject || toTypeKind == TypeKind.Object || toTypeKind == TypeKind.Any) {
+                if (toTypeKind == TypeKind.langObject || toTypeKind == TypeKind.Object || toTypeKind == TypeKind.Any || toTypeKind == TypeKind.PrimitiveBoxer) {
                     return new NullLiteral(originToType).setSourceLocation(sourceLocation);
                 }
             }
@@ -366,7 +375,8 @@ public class CastStrategy {
                     case Any ->
                         castToAny(expression, fromType, originToType);
                     case Object ->
-                        throw new TypeMismatchError("can't convert to '%s'".formatted(toType.getFullname()), this.sourceLocation);
+                        castObject(expression, fromType, toType);
+
                     default ->
                         throw new UnsupportedOperationException("no this type kind");
                 };
@@ -530,6 +540,7 @@ public class CastStrategy {
 
     // all conversion between primitive types are valid
     private Expression castPrimitive(Expression expression, PrimitiveClassDef fromType, PrimitiveClassDef toType) throws CompilationError {
+        if(fromType == toType) return expression;
         TypeCode toTypeCode = toType.getTypeCode();
         if(toTypeCode != BOOLEAN){
             if(fromType.getTypeCode() == STRING){
