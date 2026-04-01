@@ -342,8 +342,8 @@ public class FunctionInvocationResolver {
                         } else if (boxType.isDeriveFrom(p)) {    // Object, Number, Primitive ...
                             var distance = boxType.distanceToSuperClass(p);
                             return Math.pow(0.7, distance);
-                        } else if(boxType.isDeriveFrom(((PrimitiveClassDef) v).getBoxerInterface())){
-                            var distance = boxType.distanceToSuperClass(((PrimitiveClassDef) v).getBoxerInterface());
+                        } else if(p.isDeriveFrom(((PrimitiveClassDef) v).getBoxerInterface())){
+                            var distance = p.distanceToSuperClass(((PrimitiveClassDef) v).getBoxerInterface());
                             return Math.pow(0.7, distance);
                         }
                     }
