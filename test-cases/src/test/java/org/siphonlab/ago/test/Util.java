@@ -42,9 +42,69 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 import java.util.zip.ZipInputStream;
 
 public class Util {
+    public static class TestDatabaseConfig {
+        private final String database;
+        private final String user;
+        private final String password;
+        private final int port;
+        private final String host;
+
+        public TestDatabaseConfig() {
+            this.database = "ago";
+            this.user = "ago";
+            this.password = "ago";
+            this.host = "127.0.0.1";
+            this.port = 5432;
+        }
+
+        public TestDatabaseConfig(Properties props) {
+            this.database = props.getProperty("database", "ago");
+            this.user = props.getProperty("user", "ago");
+            this.password = props.getProperty("password", "ago");
+            this.host = props.getProperty("host", "127.0.0.1");
+
+            var port = props.getProperty("port");
+            var defPort = 5432;
+            if (port != null) {
+                try {
+                    defPort = Integer.parseInt(port);
+                } catch (NumberFormatException e) {
+                    // do nothing
+                }
+            }
+            this.port = defPort;
+        }
+
+        public BasicDataSource createDataSource() {
+            var url = String.format("jdbc:postgresql://%s:%d/%s", this.host, this.port, this.database);
+            var ds = new BasicDataSource();
+            ds.setDriverClassName("org.postgresql.Driver");
+            ds.setUrl(url);
+            ds.setUsername(this.user);
+            ds.setPassword(this.password);
+
+            return ds;
+        }
+    }
+
+    public static BasicDataSource connectDataSource() {
+        var props = new Properties();
+        var url = ClassLoader.getSystemResource("database.properties");
+
+        try {
+            props.load(url.openStream());
+            var config = new TestDatabaseConfig(props);
+            return config.createDataSource();
+        } catch (IOException e) {
+            var config = new TestDatabaseConfig();
+            return config.createDataSource();
+        }
+    }
+
 
     public enum RunEngine{
         NettyEngine,
@@ -158,11 +218,7 @@ public class Util {
             agoClassLoader.loadClasses("output/%s".formatted(filename));
         }
 
-        BasicDataSource ds = new BasicDataSource();
-        ds.setDriverClassName("org.postgresql.Driver");
-        ds.setUrl("jdbc:postgresql://127.0.0.1:5432/ago");
-        ds.setUsername("ago");
-        ds.setPassword("ago");
+        var ds = connectDataSource();
         ds.setDefaultAutoCommit(true);
         ds.setMaxTotal(20);
 
@@ -179,11 +235,7 @@ public class Util {
     }
 
     public static void resumeWithPGJsonLazy() throws IOException, CompilationError, SQLException {
-        BasicDataSource ds = new BasicDataSource();
-        ds.setDriverClassName("org.postgresql.Driver");
-        ds.setUrl("jdbc:postgresql://127.0.0.1:5432/ago");
-        ds.setUsername("ago");
-        ds.setPassword("ago");
+        var ds = connectDataSource();
         ds.setDefaultAutoCommit(true);
 
         PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
