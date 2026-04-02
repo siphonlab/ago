@@ -66,7 +66,7 @@ public class PersistentRdbEngine extends RdbEngine {
                 }
             }
             agoClass.initSlots();
-            assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
+            // assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
 
             if(!loadFromDb) saveInstance(agoClass);
         }

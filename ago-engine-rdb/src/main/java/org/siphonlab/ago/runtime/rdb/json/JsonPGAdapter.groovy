@@ -372,8 +372,19 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         } else if(concreteTypeInfo instanceof GenericTypeParametersInfo){
             return ["type": "GenericTypeParametersInfo" as Object, "genericParameters": concreteTypeInfo.genericParameters.collect { ((AgoClass)it).fullname } .toArray()]
         } else if(concreteTypeInfo instanceof ParameterizedClassInfo){
-            return ["type": "ParameterizedClassInfo" as Object, "parameterizedBaseClass": concreteTypeInfo.parameterizedBaseClass.fullname,
-                    "parameterizedConstructor": concreteTypeInfo.parameterizedConstructor.fullname, "arguments": concreteTypeInfo.arguments]
+            var arguments = []
+            for (arg in concreteTypeInfo.arguments) {
+                if (arg instanceof AgoClass klass) {
+                    arguments.add(klass.getFullname());
+                }
+                else {
+                    arguments.add(arg);
+                }
+            }
+            return ["type": "ParameterizedClassInfo" as Object,
+                    "parameterizedBaseClass": concreteTypeInfo.parameterizedBaseClass.fullname,
+                    "parameterizedConstructor": concreteTypeInfo.parameterizedConstructor.fullname,
+                    "arguments": arguments]
         } else {
             throw new IllegalArgumentException("unknown concrete type " + concreteTypeInfo);
         }
