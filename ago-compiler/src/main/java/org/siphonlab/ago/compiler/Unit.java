@@ -868,14 +868,21 @@ public class Unit {
                     parameter.setSourceLocation(sourceLocation(defaultParameter));
                     fun.addParameter(parameter);
                 } else if (param instanceof AgoParser.ReceiverParameterContext receiverParameter) {
-                    //TODO
                     if (paramList.indexOf(param) != 0) {
                         throw syntaxError(param, "receiver parameter must put at head");
                     } else if (receiverParamFound) {
                         throw syntaxError(param, "a receiver parameter already found");
+                    } else if(fun instanceof ConstructorDef){
+                        throw syntaxError(param, "receiver parameter not allowed for constructor");
                     }
                     receiverParamFound = true;
-
+                    var paramName = "this";
+                    var paramType = parseType(fun, receiverParameter.typeOfVariable(), false);
+                    Parameter parameter = new Parameter(paramName, param);
+                    parameter.setType(paramType);
+                    parameter.setModifiers(AgoClass.THIS_PARAM);
+                    parameter.setSourceLocation(sourceLocation(receiverParameter));
+                    fun.addParameter(parameter);
                 } else if (param instanceof AgoParser.VarArgsParameterContext varArgsParameter) {
                     var paramName = varArgsParameter.identifier().getText();
                     var paramType = parseType(fun, varArgsParameter.typeOfVariable(), false);

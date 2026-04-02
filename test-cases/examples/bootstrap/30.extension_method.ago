@@ -1,0 +1,76 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+class Animal{
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Samoyed from Dog{
+    override bark(){
+        Trace.print("Samoyed")
+    }
+}
+
+interface Fly for Animal{
+
+}
+
+class Bird from Animal with Fly{
+    override bark(){
+        Trace.print("Tweet")
+    }
+}
+
+fun neg(this as int) as int{
+    return -this;
+}
+
+fun barkTwice(this as Animal){
+    this.bark();
+    this.bark();
+}
+
+fun flySpeak(this as Fly){
+    this.bark();
+    this.bark();
+    this.bark();
+}
+
+fun main(){
+    var i = 1;
+    i = i.neg();
+    Trace.print(i);
+
+    Trace.print((3).neg())
+
+    var d = new Samoyed();
+    d.barkTwice();
+
+    var b = new Bird();
+    b.flySpeak();
+
+//    var c as Bird.flySpeak;     // cannot resolve 'Bird.flySpeak' as type name
+}

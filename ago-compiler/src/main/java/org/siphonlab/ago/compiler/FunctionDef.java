@@ -23,6 +23,7 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
@@ -31,6 +32,7 @@ import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.statement.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.collection.DuplicatedKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,10 +182,17 @@ public class FunctionDef extends ClassDef {
         super.setSuperClass(superClass);
     }
 
-    protected void processFieldParameters() throws SyntaxError {
+    protected void processFieldParameters() throws SyntaxError, ResolveError {
         for (Parameter parameter : this.parameters) {
             if(parameter.isField()){
                 throw unit.syntaxError(parameter.parameterContext, "redundant 'field' modifier, all parameter are function fields");
+            }
+            if(parameter.isReceiverParameter()){
+                try {
+                    parameter.getType().addExtensionMethod(this);
+                } catch (DuplicatedKeyException e) {
+                    throw unit.resolveError(parameter.parameterContext, e.getMessage());
+                }
             }
         }
     }

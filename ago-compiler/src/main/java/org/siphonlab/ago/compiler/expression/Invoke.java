@@ -60,18 +60,25 @@ public class Invoke extends ExpressionInFunctionBody{
     public Invoke(FunctionDef ownerFunction, InvokeMode invokeMode, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
         super(ownerFunction);
         this.sourceLocation = sourceLocation;
-        this.maybeFunction = maybeFunction;
         this.invokeMode = invokeMode;
         this.scope = maybeFunction.getScopeOfFunction();
         if(maybeFunction instanceof ConstClass constClass && !constClass.getClassDef().isTop()){
             throw new SyntaxError("'%s' is not allowed to create in current scope".formatted(constClass), sourceLocation);
         }
         List<Expression> transformedArguments = new ArrayList<>(arguments.size());
+        if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
+            transformedArguments.add(bindExtensionMethod.setParent(this).getTarget().transform());
+        }
         for (Expression argument : arguments) {
             transformedArguments.add(argument.transform().setParent(this));
         }
         this.arguments = transformedArguments;
         this.resolvedFunctionDef = findBestPolymorphismMethod(maybeFunction.getFunction(), maybeFunction.getCandidates(), transformedArguments, sourceLocation);
+        if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
+            maybeFunction = new ConstClass(bindExtensionMethod.getFunction()).setSourceLocation(bindExtensionMethod.getSourceLocation());
+            maybeFunction.setCandidates(bindExtensionMethod.getCandidates());
+        }
+        this.maybeFunction = maybeFunction;
         if(resolvedFunctionDef == null){
             findBestPolymorphismMethod(maybeFunction.getFunction(), maybeFunction.getCandidates(), transformedArguments, sourceLocation);
             throw new SyntaxError("no function found for '%s'".formatted(maybeFunction.getFunction()), sourceLocation);

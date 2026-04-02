@@ -262,6 +262,10 @@ public class NamePathResolver {
         var existed = resolvedPronounResults.get(pronounType);
         if(existed != null) return existed;
 
+        if(pronounType == PronounType.This && scopeClass instanceof FunctionDef f && !f.getParameters().isEmpty() && f.getParameters().getFirst().isReceiverParameter()){
+            return Var.of(this.ownerFunction, new Scope.Local(f), f.getParameters().getFirst());
+        }
+
         int depth = 0;
         PronounResolveResult nearestClassOrTrait = null;   // scope class is within which type class
         PronounResolveResult nearestClass = null;
@@ -985,6 +989,15 @@ public class NamePathResolver {
                 return resolveCandidateFunctions(r, classOfScope.getClassDef(), id);
             }
         }
+        innerClass = classOfScope.getClassDef().getExtensionMethod(id.text());
+        if(innerClass != null){
+            var parameterizedClass = parameterizedClass(innerClass, id);
+            if(parameterizedClass != innerClass){
+                return new BindExtensionMethod(ownerFunction, classOfScope.getScope(), (FunctionDef) parameterizedClass).setSourceLocation(id.sourceLocation);
+            }
+            var r = new BindExtensionMethod(ownerFunction, classOfScope.getScope(), (FunctionDef) innerClass).setSourceLocation(id.sourceLocation);
+            return resolveCandidateFunctions(r, innerClass.getParent(), id);
+        }
         return null;
     }
 
@@ -1006,6 +1019,15 @@ public class NamePathResolver {
                     var r = new ClassUnder.ClassUnderScope(ownerFunction, scope, innerClass).setSourceLocation(id.sourceLocation);
                     return resolveCandidateFunctions(r, exprType, id);
                 }
+            }
+            innerClass = exprType.getExtensionMethod(id.text());
+            if(innerClass != null){
+                var parameterizedClass = parameterizedClass(innerClass, id);
+                if(parameterizedClass != innerClass){
+                    return new BindExtensionMethod(ownerFunction, scope, (FunctionDef) parameterizedClass).setSourceLocation(id.sourceLocation);
+                }
+                var r = new BindExtensionMethod(ownerFunction, scope, (FunctionDef) innerClass).setSourceLocation(id.sourceLocation);
+                return resolveCandidateFunctions(r, innerClass.getParent(), id);
             }
             // try scope class itself
             if(!scope.isPronoun() && isScopeClassMatch(exprType, id)){
@@ -1053,7 +1075,7 @@ public class NamePathResolver {
             @Override
             public Pair<ClassDef, ClassDef> next() {
                 if(currClassDepth == 2){
-                    if(interfaceIndex != -1) {
+                    if(interfaceIndex != -1 && interfaceIndex < classDef.getInterfaces().size()) {
                         currClass = classDef.getInterfaces().get(interfaceIndex++);
                         currClassDepth = 0;
                     } else {
@@ -1166,6 +1188,19 @@ public class NamePathResolver {
 
                     var r = ClassUnder.create(ownerFunction, expression, c).setSourceLocation(id.sourceLocation);
                     return resolveCandidateFunctions(r, exprType, id);
+                }
+                c = exprType.getExtensionMethod(id.text());
+                if (c != null) {
+                    var parameterizedClass = parameterizedClass(c, id);
+                    if (parameterizedClass != c) {
+                        return new BindExtensionMethod(ownerFunction, expression, (FunctionDef) parameterizedClass).setSourceLocation(id.sourceLocation);
+                    }
+                    var r = new BindExtensionMethod(ownerFunction, expression, (FunctionDef) c).setSourceLocation(id.sourceLocation);
+                    return resolveCandidateFunctions(r, c.getParent(), id);
+                }
+                if (exprType.isInterfaceOrTrait() && exprType.getPermitClass() != null) {
+                    var r = resolveSubClass(ownerFunction.cast(expression, exprType.getPermitClass()), id, false);
+                    if(r != null) return r;
                 }
             }
 

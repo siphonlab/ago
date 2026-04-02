@@ -34,6 +34,7 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.collection.DuplicatedKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,6 +101,7 @@ public class ClassDef extends ClassContainer {
     protected Field fieldForPermitClass;
     private Map<String, GetterSetterPair> attributes = new HashMap<>();
 
+    private NamespaceCollection<FunctionDef> extensionMethods = new NamespaceCollection<>(false);
 
     public ClassDef(Root root, String name) {
         super(name);
@@ -1972,5 +1974,31 @@ public class ClassDef extends ClassContainer {
         InstantiationArguments instantiationArguments = typeParamsContext.getDefaultInstantiationArguments();
         this.setGenericSource(new GenericSource(this, instantiationArguments, typeParamsContext.createDefaultArgumentsArray(), true));
         this.putInstantiatedClassToCache(instantiationArguments, this);
+    }
+
+    protected void addExtensionMethod(FunctionDef functionDef) throws DuplicatedKeyException {
+        if(extensionMethods.containsKey(functionDef.getName())){
+            throw new DuplicatedKeyException("extension method '%s' for '%s' already exists".formatted(functionDef.getName(), this.getFullname()));
+        }
+        this.extensionMethods.add(functionDef);
+    }
+
+    public FunctionDef getExtensionMethod(String name) {
+        for(var c = this; c!= null; c = c.getSuperClass()){
+            var f = c.extensionMethods.get(name);
+            if(f != null) return f;
+
+            if(c.getInterfaces() != null) {
+                for (var i : c.getInterfaces()) {
+                    f = i.extensionMethods.get(name);
+                    if(f != null) return f;
+                }
+            }
+
+            if(c.getSuperClass() == c){
+                break;
+            }
+        }
+        return null;
     }
 }

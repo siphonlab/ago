@@ -236,4 +236,12 @@ public class BootstrapTest {
         //Trace.printOutput();
         assertTrue(Trace.outputted("A", "\n", "A", "A", "a", "123.45", "6.02E23", "3.141592653589793", "0.484375", "123", "6719", "511", "210", "123", "16"));
     }
+
+    @Test
+    public void extension_method_test() throws CompilationError, IOException {
+        Util.run("bootstrap/30.extension_method.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("-1", "-3", "Samoyed", "Samoyed", "Tweet", "Tweet", "Tweet"));
+    }
+
 }

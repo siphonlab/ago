@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler;
 
+import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -60,5 +61,9 @@ public class Parameter extends Field {
 
     public boolean isVarArgs(){
         return (this.modifiers & VAR_ARGS) != 0;
+    }
+
+    public boolean isReceiverParameter() {
+        return (this.modifiers & AgoClass.THIS_PARAM) != 0;
     }
 }
