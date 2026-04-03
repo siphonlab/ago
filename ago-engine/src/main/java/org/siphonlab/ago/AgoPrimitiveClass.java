@@ -21,8 +21,8 @@ public class AgoPrimitiveClass extends AgoClass{
 
     private final TypeCode typeCode;
 
-    public AgoPrimitiveClass(AgoClassLoader classLoader, String name, int typeCode) {
-        super(classLoader, name, name);
+    public AgoPrimitiveClass(AgoClassLoader classLoader, MetaClass meta, String name, int typeCode) {
+        super(classLoader, meta, name, name);
         this.type = TYPE_PRIMITIVE_CLASS;
         this.typeCode = TypeCode.of(typeCode);
     }
