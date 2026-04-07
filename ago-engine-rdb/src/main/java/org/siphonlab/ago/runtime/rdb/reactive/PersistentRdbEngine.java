@@ -68,7 +68,6 @@ public class PersistentRdbEngine extends RdbEngine {
             }
             agoClass.initSlots();
             // assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
-            // if(!loadFromDb) saveInstance(agoClass);
             if (!loadFromDb) {
                 saveInstance(agoClass);
             }
@@ -80,7 +79,7 @@ public class PersistentRdbEngine extends RdbEngine {
         if(loadFromDb){
             JsonAgoClassLoader jsonAgoClassLoader = (JsonAgoClassLoader) classLoader;
             for (Map.Entry<String, GroovyRowResult> entry : jsonAgoClassLoader.getRowsByClassName().entrySet()) {
-                var agoClass = classLoader.getClass(entry.getKey());
+                var agoClass = this.getClass(entry.getKey());
                 try {
                     restoreClassStates(agoClass, entry.getValue());
                 } catch (JsonProcessingException e) {

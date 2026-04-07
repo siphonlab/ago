@@ -128,8 +128,6 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         if(agoClass instanceof AgoFunction agoFunction){
             Map<String, Object>[] variables = loadPgJsonArrayAsList((PgArray) row.get("variables"));
             var resultType = getClass((String)row.get("result_type"));
-            System.out.println("=====");
-            System.out.println(resultType.getClassId());
 
             agoFunction.setResultType(resultType.getTypeCode(), resultType.getAgoClass());
 

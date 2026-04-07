@@ -146,7 +146,6 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
                              String json, MutableObject<Instance<?>> boxInstanceScope) throws JsonProcessingException {
         jsonRefSlots.setId(id);
         super.restoreSlots(jsonRefSlots, agoClass, json, boxInstanceScope);
-        System.out.println("do this?");
     }
 
 //    @Override
