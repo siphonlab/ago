@@ -41,7 +41,6 @@
         <module>ago-compiler</module>
         <module>test-cases</module>
         <module>ago-engine-rdb</module>
-        <module>workflow-mongodb</module>
     </modules>
 
     <dependencies>
