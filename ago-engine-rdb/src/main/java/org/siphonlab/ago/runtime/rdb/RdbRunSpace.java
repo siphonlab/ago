@@ -110,7 +110,9 @@ public class RdbRunSpace extends RunSpace {
         if(currCallFrame instanceof EntranceCallFrame<?> entranceCallFrame){
             currCallFrame = entranceCallFrame.getInner();
         }
-        return currCallFrame instanceof ReferenceCounter || currCallFrame instanceof DeferenceCallFrame;
+        // not sure, it causes foldObjectRefFrame got a DeferenceCallFrame
+        //return currCallFrame instanceof ReferenceCounter || currCallFrame instanceof DeferenceCallFrame;
+        return currCallFrame instanceof ReferenceCounter;
     }
 
     @Override
