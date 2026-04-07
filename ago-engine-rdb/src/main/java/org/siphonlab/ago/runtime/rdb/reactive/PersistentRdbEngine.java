@@ -75,10 +75,11 @@ public class PersistentRdbEngine extends RdbEngine {
         }
 
         // here is parentScope, creator, slots of class
+        super.load(classLoader);
+
         if(loadFromDb){
             JsonAgoClassLoader jsonAgoClassLoader = (JsonAgoClassLoader) classLoader;
             for (Map.Entry<String, GroovyRowResult> entry : jsonAgoClassLoader.getRowsByClassName().entrySet()) {
-                // var agoClass = this.getClass(entry.getKey());
                 var agoClass = classLoader.getClass(entry.getKey());
                 try {
                     restoreClassStates(agoClass, entry.getValue());
@@ -87,8 +88,6 @@ public class PersistentRdbEngine extends RdbEngine {
                 }
             }
         }
-
-        super.load(classLoader);
     }
 
     protected void restoreClassStates(AgoClass agoClass, GroovyRowResult row) throws JsonProcessingException {
