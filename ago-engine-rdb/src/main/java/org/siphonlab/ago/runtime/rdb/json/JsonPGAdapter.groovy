@@ -370,7 +370,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         } else if(concreteTypeInfo instanceof GenericArgumentsInfo){
             return ["type": "GenericArgumentsInfo" as Object, "templateClass": concreteTypeInfo.templateClass.fullname, "arguments": concreteTypeInfo.arguments.collect( { ((AgoClass)it).fullname }).toArray()]
         } else if(concreteTypeInfo instanceof GenericTypeParametersInfo){
-            return ["type": "GenericTypeParametersInfo" as Object, "genericParameters": concreteTypeInfo.genericParameters.collect { ((AgoClass)it).fullname } .toArray()]
+            return ["type": "GenericTypeParametersInfo" as Object,
+                    "genericParameters": concreteTypeInfo.genericParameters.collect { ((AgoClass)it).fullname } .toArray()]
         } else if(concreteTypeInfo instanceof ParameterizedClassInfo){
             var arguments = []
             for (arg in concreteTypeInfo.arguments) {

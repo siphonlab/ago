@@ -26,6 +26,7 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.RdbRunSpace;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
 import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
+import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
 
 import java.util.Map;
 import java.util.Set;
@@ -67,15 +68,18 @@ public class PersistentRdbEngine extends RdbEngine {
             }
             agoClass.initSlots();
             // assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
-
-            if(!loadFromDb) saveInstance(agoClass);
+            // if(!loadFromDb) saveInstance(agoClass);
+            if (!loadFromDb) {
+                saveInstance(agoClass);
+            }
         }
 
         // here is parentScope, creator, slots of class
         if(loadFromDb){
             JsonAgoClassLoader jsonAgoClassLoader = (JsonAgoClassLoader) classLoader;
             for (Map.Entry<String, GroovyRowResult> entry : jsonAgoClassLoader.getRowsByClassName().entrySet()) {
-                var agoClass = this.getClass(entry.getKey());
+                // var agoClass = this.getClass(entry.getKey());
+                var agoClass = classLoader.getClass(entry.getKey());
                 try {
                     restoreClassStates(agoClass, entry.getValue());
                 } catch (JsonProcessingException e) {
