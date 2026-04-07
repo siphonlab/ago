@@ -21,7 +21,7 @@ public class AgoNullClass extends AgoClass{
 
     public AgoNullClass(AgoClassLoader classLoader, MetaClass meta) {
         super(classLoader, meta, "null", "null");
-        this.type = TYPE_CLASS;
+        this.type = TYPE_NULL;
     }
 
     public TypeCode getTypeCode() {

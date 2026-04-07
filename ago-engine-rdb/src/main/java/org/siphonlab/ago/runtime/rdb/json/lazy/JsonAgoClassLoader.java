@@ -226,6 +226,9 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         case AgoClass.TYPE_PRIMITIVE_CLASS:
             agoClass = new AgoPrimitiveClass(this, metaClass, fullname, TypeCode.fromString(fullname).value);
             break;
+        case AgoClass.TYPE_NULL:
+            agoClass = new AgoNullClass(this, metaClass);
+            break;
         default:
             throw new IllegalArgumentException("illegal type " + row.get("class_type"));
         }
@@ -233,7 +236,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         agoClass.setModifiers(modifiers);
         agoClass.setSourceLocation(loadSourceLocation(loadPgJsonAsMap((PGobject) row.get("source_location"))));
 
-        this.classes.set(agoClass.getClassId() - 1, agoClass);
+        this.classes.set(agoClass.getClassId(), agoClass);
         this.classByName.put(agoClass.getFullname(),agoClass);
         return agoClass;
     }
