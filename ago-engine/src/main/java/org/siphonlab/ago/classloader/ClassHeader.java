@@ -953,6 +953,9 @@ public class ClassHeader {
                     agoClass = new AgoFunction(classLoader, metaClass, this.fullname, this.name);
                 }
                 break;
+            case TYPE_NULL:
+                agoClass = new AgoNullClass(classLoader, metaClass);
+                break;
             default:
                 throw new UnsupportedOperationException();
         }
