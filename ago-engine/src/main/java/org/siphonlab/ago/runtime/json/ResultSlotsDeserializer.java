@@ -41,9 +41,9 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
     @Override
     public ResultSlots deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JacksonException {
         ResultSlots resultSlots = new ResultSlots();
-        p.nextToken();
         assert p.currentToken() == JsonToken.START_OBJECT;
         p.nextToken();
+        p.nextToken();      // FIELD_NAME, type:
         var dataType = p.getIntValue();
 
         p.nextToken();
