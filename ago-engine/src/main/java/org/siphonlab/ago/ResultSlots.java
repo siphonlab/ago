@@ -15,8 +15,6 @@
  */
 package org.siphonlab.ago;
 
-import org.jspecify.annotations.Nullable;
-
 import java.math.BigDecimal;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -166,7 +164,7 @@ public class ResultSlots {
     public void setUnionValue(Object value) {
         this.unionValue = value;
         dataType = UNION_VALUE;
-        unionValueType = Slots.extractUnionType(value).value;
+        unionValueType = Union.extractUnionType(value).value;
     }
 
     public int getUnionValueType() {

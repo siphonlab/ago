@@ -106,7 +106,6 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case Concat.OP: pc = evaluateConcat(slots, pc, instruction); break;
                 case Return.OP: pc = evaluateReturn(self, slots, pc, instruction); break;
                 case Cast.OP: pc = evaluateCast(slots,pc, instruction); break;
-                case UnionCast.OP: pc = evaluateUnionCast(slots,pc, instruction); break;
                 case Load.OP: pc = evaluateLoad(slots, pc, instruction); break;
                 case Array.OP: pc = evaluateArray(slots, pc, instruction); break;
                 case Box.OP: pc = evaluateBox(slots, pc, instruction); break;
@@ -244,21 +243,21 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     protected int evaluateUnionInstanceOf(Slots slots, int pc, int instruction) {
         switch (instruction){
-            case UnionInstanceOf.uinstanceof_i_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == INT); pc++; break;
-            case UnionInstanceOf.uinstanceof_S_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == STRING); pc++; break;
-            case UnionInstanceOf.uinstanceof_B_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == BOOLEAN); pc++; break;
-            case UnionInstanceOf.uinstanceof_c_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == CHAR); pc++; break;
-            case UnionInstanceOf.uinstanceof_f_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == FLOAT); pc++; break;
-            case UnionInstanceOf.uinstanceof_d_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == DOUBLE); pc++; break;
-            case UnionInstanceOf.uinstanceof_D_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == DECIMAL); pc++; break;
-            case UnionInstanceOf.uinstanceof_b_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == BYTE); pc++; break;
-            case UnionInstanceOf.uinstanceof_s_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == SHORT); pc++; break;
-            case UnionInstanceOf.uinstanceof_l_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == LONG); pc++; break;
+            case UnionInstanceOf.uinstanceof_i_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == INT); pc++; break;
+            case UnionInstanceOf.uinstanceof_S_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == STRING); pc++; break;
+            case UnionInstanceOf.uinstanceof_B_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == BOOLEAN); pc++; break;
+            case UnionInstanceOf.uinstanceof_c_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == CHAR); pc++; break;
+            case UnionInstanceOf.uinstanceof_f_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == FLOAT); pc++; break;
+            case UnionInstanceOf.uinstanceof_d_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == DOUBLE); pc++; break;
+            case UnionInstanceOf.uinstanceof_D_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == DECIMAL); pc++; break;
+            case UnionInstanceOf.uinstanceof_b_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == BYTE); pc++; break;
+            case UnionInstanceOf.uinstanceof_s_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == SHORT); pc++; break;
+            case UnionInstanceOf.uinstanceof_l_vv :  slots.setBoolean(code[pc++], Union.extractUnionType(slots.getUnion(code[pc++])) == LONG); pc++; break;
             //case InstanceOf.instanceof_C_vvC :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == .class); break;
             case UnionInstanceOf.uinstanceof_o_vvC:  {
                 var target = code[pc++];
                 var obj = slots.getUnion(code[pc ++]);
-                var unionType = Slots.extractUnionType(obj);
+                var unionType = Union.extractUnionType(obj);
                 if(unionType == OBJECT){
                     slots.setBoolean(target, isInstanceOf((Instance<?>) obj, engine.getClass(code[pc++])));
                 } else {
@@ -1676,44 +1675,36 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 slots.setObject(code[pc++], extractScopedClass(slots.getObject(code[pc++]), code[pc++]));
                 break;
 
+            case Cast.o2u: slots.setUnion(code[pc++], slots.getObject(code[pc++])); break;
+            case Cast.n2u: slots.setUnion(code[pc++], null); pc ++; break;
+            case Cast.S2u: slots.setUnion(code[pc++], slots.getString(code[pc++])); break;
+            case Cast.B2u: slots.setUnion(code[pc++], slots.getBoolean(code[pc++])); break;
+            case Cast.c2u: slots.setUnion(code[pc++], slots.getChar(code[pc++])); break;
+            case Cast.f2u: slots.setUnion(code[pc++], slots.getFloat(code[pc++])); break;
+            case Cast.d2u: slots.setUnion(code[pc++], slots.getDouble(code[pc++])); break;
+            case Cast.b2u: slots.setUnion(code[pc++], slots.getByte(code[pc++])); break;
+            case Cast.s2u: slots.setUnion(code[pc++], slots.getShort(code[pc++])); break;
+            case Cast.i2u: slots.setUnion(code[pc++], slots.getInt(code[pc++])); break;
+            case Cast.l2u: slots.setUnion(code[pc++], slots.getLong(code[pc++])); break;
+            case Cast.C2u: slots.setUnion(code[pc++], new ClassRefValue(engine.getClass(slots.getClassRef(code[pc++])).getFullname())); break;
+            case Cast.D2u: slots.setUnion(code[pc++], slots.getDecimal(code[pc++])); break;
+
+            case Cast.u2o: slots.setObject(code[pc++], engine.getBoxer().unionToObject(slots.getUnion(code[pc++])));  break;
+            case Cast.u2S: slots.setString(code[pc++], Union.unionToString(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2B: slots.setBoolean(code[pc++], Union.unionToBoolean(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2c: slots.setChar(code[pc++], Union.unionToChar(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2f: slots.setFloat(code[pc++], Union.unionToFloat(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2d: slots.setDouble(code[pc++], Union.unionToDouble(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2b: slots.setByte(code[pc++], Union.unionToByte(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2s: slots.setShort(code[pc++], Union.unionToShort(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2i: slots.setInt(code[pc++], Union.unionToInt(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2l: slots.setLong(code[pc++], Union.unionToLong(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2C: slots.setClassRef(code[pc++], Union.unionToClassRef(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2D: slots.setDecimal(code[pc++], Union.unionToDecimal(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2u: slots.setUnion(code[pc++], slots.getUnion(code[pc++])); break;
+
             default:
                 throw new UnsupportedOperationException("unsupported cast " + OpCode.getName(instruction));
-        }
-        return pc;
-    }
-
-    protected int evaluateUnionCast(Slots slots, int pc, int instruction) {
-        switch (instruction) {
-            case UnionCast.o2u: slots.setUnion(code[pc++], slots.getObject(code[pc++])); pc ++; break;
-            case UnionCast.n2u: slots.setUnion(code[pc++], null); pc ++; pc ++; break;
-            case UnionCast.S2u: slots.setUnion(code[pc++], slots.getString(code[pc++])); pc ++; break;
-            case UnionCast.B2u: slots.setUnion(code[pc++], slots.getBoolean(code[pc++])); pc ++; break;
-            case UnionCast.c2u: slots.setUnion(code[pc++], slots.getChar(code[pc++])); pc ++; break;
-            case UnionCast.f2u: slots.setUnion(code[pc++], slots.getFloat(code[pc++])); pc ++; break;
-            case UnionCast.d2u: slots.setUnion(code[pc++], slots.getDouble(code[pc++])); pc ++; break;
-            case UnionCast.b2u: slots.setUnion(code[pc++], slots.getByte(code[pc++])); pc ++; break;
-            case UnionCast.s2u: slots.setUnion(code[pc++], slots.getShort(code[pc++])); pc ++; break;
-            case UnionCast.i2u: slots.setUnion(code[pc++], slots.getInt(code[pc++])); pc ++; break;
-            case UnionCast.l2u: slots.setUnion(code[pc++], slots.getLong(code[pc++])); pc ++; break;
-            case UnionCast.C2u: slots.setUnion(code[pc++], new ClassRefValue(engine.getClass(slots.getClassRef(code[pc++])).getFullname())); pc ++; break;
-            case UnionCast.D2u: slots.setUnion(code[pc++], slots.getDecimal(code[pc++])); pc ++; break;
-
-            // to cast from union to other type, must have already processed:
-            //  1. if not null
-            //  2. cast to base class, then cast to destination
-            case UnionCast.u2o: slots.setObject(code[pc++], engine.getBoxer().unionToObject(slots.getUnion(code[pc++]))); pc++; break;
-            case UnionCast.u2S: slots.setString(code[pc++], (String) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2B: slots.setBoolean(code[pc++], (Boolean) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2c: slots.setChar(code[pc++], (Character) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2f: slots.setFloat(code[pc++], (Float) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2d: slots.setDouble(code[pc++], (Double) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2b: slots.setByte(code[pc++], (Byte) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2s: slots.setShort(code[pc++], (Short) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2i: slots.setInt(code[pc++], (Integer) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2l: slots.setLong(code[pc++], (Long) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2C: slots.setClassRef(code[pc++], engine.getClass(((ClassRefValue) slots.getUnion(code[pc++])).className()).getClassId()); pc++;break;
-            case UnionCast.u2D: slots.setDecimal(code[pc++], (BigDecimal) slots.getUnion(code[pc++])); pc++;break;
-            case UnionCast.u2u: slots.setUnion(code[pc++], slots.getUnion(code[pc++])); pc++;break;
         }
         return pc;
     }
@@ -1809,7 +1800,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             this.pc = code.length;
     }
 
-    private char stringToChar(String s){
+    public static char stringToChar(String s){
         if(s.isEmpty()) return '\0';
         return s.charAt(0);
     }

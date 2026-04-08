@@ -15,8 +15,6 @@
  */
 package org.siphonlab.ago;
 
-import org.siphonlab.ago.classloader.ClassRefValue;
-
 import java.math.BigDecimal;
 
 /* I'll make a class for each Instance, it creates a class includes each data type
@@ -187,25 +185,5 @@ public interface Slots {
 
     default void setVoid(int slot, Object value){return;}
 
-    static TypeCode extractUnionType(Object union){
-        return switch (union) {
-            case null -> TypeCode.NULL;
-            case String s -> TypeCode.STRING;
-            case ClassRefValue v-> TypeCode.CLASS_REF;
-            case Instance<?> u -> TypeCode.OBJECT;
-            case Integer number -> TypeCode.INT;
-            case Boolean b -> TypeCode.BOOLEAN;
-            case Double number -> TypeCode.DOUBLE;
-            case Long number -> TypeCode.LONG;
-            case Byte number -> TypeCode.BYTE;
-            case BigDecimal number -> TypeCode.DECIMAL;
-            case Float number -> TypeCode.FLOAT;
-            case Character c -> TypeCode.CHAR;
-            case Short number -> TypeCode.SHORT;
-            default -> {
-                throw new IllegalArgumentException("unknown union type: " + union.getClass());
-            }
-        };
-    }
 }
 

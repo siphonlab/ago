@@ -23,34 +23,34 @@ public class UnionCast implements GenericOpCode {
     public static final int KIND_UNION_CAST = 0x34_000000;
     public static final int OP                  = 0x34;
 
-    public static final int o2u = 0x34_01_0e_03;
-    public static final int n2u = 0x34_02_0e_03;
-    public static final int S2u = 0x34_03_0e_03;
-    public static final int B2u = 0x34_04_0e_03;
-    public static final int c2u = 0x34_05_0e_03;
-    public static final int f2u = 0x34_06_0e_03;
-    public static final int d2u = 0x34_07_0e_03;
-    public static final int b2u = 0x34_08_0e_03;
-    public static final int s2u = 0x34_09_0e_03;
-    public static final int i2u = 0x34_0a_0e_03;
-    public static final int l2u = 0x34_0b_0e_03;
-    public static final int C2u = 0x34_0c_0e_03;
-    public static final int D2u = 0x34_0d_0e_03;
+    public static final int o2u = 0x34_01_0e_02;
+    public static final int n2u = 0x34_02_0e_02;
+    public static final int S2u = 0x34_03_0e_02;
+    public static final int B2u = 0x34_04_0e_02;
+    public static final int c2u = 0x34_05_0e_02;
+    public static final int f2u = 0x34_06_0e_02;
+    public static final int d2u = 0x34_07_0e_02;
+    public static final int b2u = 0x34_08_0e_02;
+    public static final int s2u = 0x34_09_0e_02;
+    public static final int i2u = 0x34_0a_0e_02;
+    public static final int l2u = 0x34_0b_0e_02;
+    public static final int C2u = 0x34_0c_0e_02;
+    public static final int D2u = 0x34_0d_0e_02;
 
-    public static final int u2o = 0x34_0e_01_03;
-    public static final int u2S = 0x34_0e_03_03;
-    public static final int u2B = 0x34_0e_04_03;
-    public static final int u2c = 0x34_0e_05_03;
-    public static final int u2f = 0x34_0e_06_03;
-    public static final int u2d = 0x34_0e_07_03;
-    public static final int u2b = 0x34_0e_08_03;
-    public static final int u2s = 0x34_0e_09_03;
-    public static final int u2i = 0x34_0e_0a_03;
-    public static final int u2l = 0x34_0e_0b_03;
-    public static final int u2C = 0x34_0e_0c_03;
-    public static final int u2D = 0x34_0e_0d_03;
+    public static final int u2o = 0x34_0e_01_02;
+    public static final int u2S = 0x34_0e_03_02;
+    public static final int u2B = 0x34_0e_04_02;
+    public static final int u2c = 0x34_0e_05_02;
+    public static final int u2f = 0x34_0e_06_02;
+    public static final int u2d = 0x34_0e_07_02;
+    public static final int u2b = 0x34_0e_08_02;
+    public static final int u2s = 0x34_0e_09_02;
+    public static final int u2i = 0x34_0e_0a_02;
+    public static final int u2l = 0x34_0e_0b_02;
+    public static final int u2C = 0x34_0e_0c_02;
+    public static final int u2D = 0x34_0e_0d_02;
 
-    public static final int u2u = 0x34_0e_0e_03;
+    public static final int u2u = 0x34_0e_0e_02;
 
 //    // cast object with type validation
 //    // cast_object(target, src, to_type_code, to_type_class)

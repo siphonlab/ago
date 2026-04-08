@@ -198,7 +198,7 @@ public class Boxer {
     }
 
     public Instance<?> unionToObject(Object union) {
-        int unionType = Slots.extractUnionType(union).value;
+        int unionType = Union.extractUnionType(union).value;
         return switch (unionType) {
             case INT_VALUE -> boxInt((Integer) union);
             case LONG_VALUE -> boxLong((Long) union);

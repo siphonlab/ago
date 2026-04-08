@@ -69,6 +69,10 @@ public class AgoEngine implements ClassManager{
     //TODO support multiple class loader, each class loader has its meta
     private MetaClass theMata;
 
+    public String toString(Instance<?> u) {
+        return null;
+    }
+
     public static class MetaClassCreatingTask{
         AgoClass target;
         MetaClass metaClass;
