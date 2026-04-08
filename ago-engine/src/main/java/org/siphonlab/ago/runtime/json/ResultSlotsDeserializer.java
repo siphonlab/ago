@@ -68,6 +68,9 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
             case TypeCode.DOUBLE_VALUE:
                 resultSlots.setDoubleValue(p.getDoubleValue());
                 break;
+            case TypeCode.DECIMAL_VALUE:
+                resultSlots.setDecimalValue(p.getDecimalValue());
+                break;
             case TypeCode.BOOLEAN_VALUE:
                 resultSlots.setBooleanValue(p.getBooleanValue());
                 break;
@@ -88,6 +91,10 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
 
             case TypeCode.OBJECT_VALUE:
                 resultSlots.setObjectValue(ctxt.readValue(p, Instance.class));
+                break;
+
+            case TypeCode.UNION_VALUE:
+                resultSlots.setUnionValue(ctxt.readValue(p, Instance.class));
                 break;
         }
         p.nextToken();

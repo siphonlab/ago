@@ -84,6 +84,9 @@ public class ResultSetMapper {
                 case DOUBLE_VALUE:
                     slots.setDouble(slotIndex, resultSet.getDouble(columnIndex));
                     break;
+                case DECIMAL_VALUE:
+                    slots.setDecimal(slotIndex, resultSet.getBigDecimal(columnIndex));
+                    break;
                 case BOOLEAN_VALUE:
                     slots.setBoolean(slotIndex, resultSet.getBoolean(columnIndex));
                     break;
@@ -139,6 +142,8 @@ public class ResultSetMapper {
                     return boxer.boxFloat(resultSet.getFloat(columnIndex));
                 case DOUBLE_VALUE:
                     return boxer.boxDouble(resultSet.getDouble(columnIndex));
+                case DECIMAL_VALUE:
+                    return boxer.boxDecimal(resultSet.getBigDecimal(columnIndex));
                 case BOOLEAN_VALUE:
                     return boxer.boxBoolean(resultSet.getBoolean(columnIndex));
                 case STRING_VALUE:
@@ -165,6 +170,9 @@ public class ResultSetMapper {
                     break;
                 case DOUBLE_VALUE:
                     slots.setDouble(0, resultSet.getDouble(columnIndex));
+                    break;
+                case DECIMAL_VALUE:
+                    slots.setDecimal(0, resultSet.getBigDecimal(columnIndex));
                     break;
                 case BOOLEAN_VALUE:
                     slots.setBoolean(0, resultSet.getBoolean(columnIndex));

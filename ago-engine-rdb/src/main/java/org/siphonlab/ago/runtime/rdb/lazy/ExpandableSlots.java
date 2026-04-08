@@ -124,6 +124,16 @@ public class ExpandableSlots implements Slots {
     public void setString(int slot, String value) {innerSlots.setString(slot, value);}
 
     @Override
+    public void setUnion(int slot, Instance<?> value) {
+        setObject(slot, value);
+    }
+
+    @Override
+    public Instance<?> getUnion(int slot) {
+        return getObject(slot);
+    }
+
+    @Override
     public void setObject(int slot, Instance<?> value) {
         var existed = innerSlots.getObject(slot);
         if(ObjectRefOwner.equals(existed, value)){

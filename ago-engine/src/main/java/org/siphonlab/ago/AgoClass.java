@@ -60,7 +60,6 @@ public class AgoClass extends Instance<MetaClass>{
     public static final int GENERIC_TEMPLATE_NEG   = 0b1111_1111_1101_1111_1111_1111_1111_1111;
     public static final int GENERIC_INSTANTIATION  = 0x0040_0000;     // this class/function come from a template class/function
 
-    public static final int NULLABLE = 0x0080_0000;     // infer a type is Nullable, it equals Nullable<Type>()
     protected byte type;
 
     protected int classId;

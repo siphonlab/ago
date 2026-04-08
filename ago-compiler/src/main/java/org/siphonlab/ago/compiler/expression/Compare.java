@@ -110,6 +110,8 @@ public class Compare extends BiExpression{
                     ObjectUtils.compare(((IntLiteral) this.left).value , ((IntLiteral) this.right).value);
             case DOUBLE_VALUE ->
                     ObjectUtils.compare(((DoubleLiteral) this.left).value, ((DoubleLiteral) this.right).value);
+            case DECIMAL_VALUE ->
+                    ObjectUtils.compare(((DecimalLiteral) this.left).value, ((DecimalLiteral) this.right).value);
             case BYTE_VALUE->
                     ObjectUtils.compare(((ByteLiteral) this.left).value, ((ByteLiteral) this.right).value);
             case CHAR_VALUE ->

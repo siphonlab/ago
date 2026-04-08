@@ -65,6 +65,9 @@ public class Array implements GenericOpCode{
     public static final int array_create_l_vCc    = 0x0c_0b_00_03;
     public static final int array_create_l_vCv    = 0x0c_0b_01_03;
 
+    public static final int array_create_D_vCc    = 0x0c_0d_00_03;
+    public static final int array_create_D_vCv    = 0x0c_0d_01_03;
+
     // array_create(target, array classname, classname, size), not necessary
     // the element class already stored in array class
 //    public static final int array_create_o_vCcc    = 0x0c_01_00_04;
@@ -72,6 +75,9 @@ public class Array implements GenericOpCode{
 
     public static final int array_create_o_vCc    = 0x0c_01_00_03;
     public static final int array_create_o_vCv    = 0x0c_01_01_03;
+
+    public static final int array_create_u_vCc    = 0x0c_0e_00_03;
+    public static final int array_create_u_vCv    = 0x0c_0e_01_03;
 
     public static final int array_create_g_vCc    = 0x0c_10_00_03;
     public static final int array_create_g_vCv    = 0x0c_10_01_03;
@@ -118,6 +124,13 @@ public class Array implements GenericOpCode{
     public static final int array_put_d_avc   = 0x0c_07_22_04;
     public static final int array_put_d_avv   = 0x0c_07_23_03;
 
+    public static final int array_get_D_vac   = 0x0c_0d_10_04;
+    public static final int array_get_D_vav   = 0x0c_0d_11_03;
+    public static final int array_put_D_acc   = 0x0c_0d_20_04;
+    public static final int array_put_D_acv   = 0x0c_0d_21_03;
+    public static final int array_put_D_avc   = 0x0c_0d_22_04;
+    public static final int array_put_D_avv   = 0x0c_0d_23_03;
+
     public static final int array_get_b_vac   = 0x0c_08_10_03;
     public static final int array_get_b_vav   = 0x0c_08_11_03;
     public static final int array_put_b_acc   = 0x0c_08_20_03;
@@ -142,11 +155,20 @@ public class Array implements GenericOpCode{
     public static final int array_get_o_vac   = 0x0c_01_10_03;
     public static final int array_get_o_vav   = 0x0c_01_11_03;
     // put null
-    public static final int array_put_o_acn   = 0x0c_01_20_02;
+//    public static final int array_put_o_acn   = 0x0c_01_20_02;
     public static final int array_put_o_aco   = 0x0c_01_21_03;
     // put null
-    public static final int array_put_o_avn   = 0x0c_01_22_02;
+//    public static final int array_put_o_avn   = 0x0c_01_22_02;
     public static final int array_put_o_avo   = 0x0c_01_23_03;
+
+    public static final int array_get_u_vac   = 0x0c_0e_10_03;
+    public static final int array_get_u_vav   = 0x0c_0e_11_03;
+    // put null
+    public static final int array_put_u_acn   = 0x0c_0e_20_02;
+    public static final int array_put_u_aco   = 0x0c_0e_21_03;
+    // put null
+    public static final int array_put_u_avn   = 0x0c_0e_22_02;
+    public static final int array_put_u_avo   = 0x0c_0e_23_03;
 
     public static final int array_get_S_vac   = 0x0c_03_10_03;
     public static final int array_get_S_vav   = 0x0c_03_11_03;
@@ -166,6 +188,7 @@ public class Array implements GenericOpCode{
     public static final int array_fill_c_acL    = 0x0c_f2_05_03;
     public static final int array_fill_f_acL    = 0x0c_f2_06_03;
     public static final int array_fill_d_acL    = 0x0c_f2_07_03;
+    public static final int array_fill_D_acL    = 0x0c_f2_0d_03;
     public static final int array_fill_b_acL    = 0x0c_f2_08_03;
     public static final int array_fill_s_acL    = 0x0c_f2_09_03;
     public static final int array_fill_l_acL    = 0x0c_f2_0b_03;
@@ -191,6 +214,8 @@ public class Array implements GenericOpCode{
             case array_create_f_vCv   ->    "array_create_f_vCv";
             case array_create_d_vCc   ->    "array_create_d_vCc";
             case array_create_d_vCv   ->    "array_create_d_vCv";
+            case array_create_D_vCc   ->    "array_create_D_vCc";
+            case array_create_D_vCv   ->    "array_create_D_vCv";
             case array_create_b_vCc   ->    "array_create_b_vCc";
             case array_create_b_vCv   ->    "array_create_b_vCv";
             case array_create_s_vCc   ->    "array_create_s_vCc";
@@ -201,6 +226,8 @@ public class Array implements GenericOpCode{
             case array_create_l_vCv   ->    "array_create_l_vCv";
             case array_create_o_vCc   ->    "array_create_o_vCc";
             case array_create_o_vCv   ->    "array_create_o_vCv";
+            case array_create_u_vCc   ->    "array_create_u_vCc";
+            case array_create_u_vCv   ->    "array_create_u_vCv";
             case array_create_g_vCc   ->    "array_create_g_vCc";
             case array_create_g_vCv   ->    "array_create_g_vCv";
             case array_create_S_vCc   ->    "array_create_S_vCc";
@@ -235,6 +262,12 @@ public class Array implements GenericOpCode{
             case array_put_d_acv   ->   "array_put_d_acv";
             case array_put_d_avc   ->   "array_put_d_avc";
             case array_put_d_avv   ->   "array_put_d_avv";
+            case array_get_D_vac   ->   "array_get_D_vac";
+            case array_get_D_vav   ->   "array_get_D_vav";
+            case array_put_D_acc   ->   "array_put_D_acc";
+            case array_put_D_acv   ->   "array_put_D_acv";
+            case array_put_D_avc   ->   "array_put_D_avc";
+            case array_put_D_avv   ->   "array_put_D_avv";
             case array_get_b_vac   ->   "array_get_b_vac";
             case array_get_b_vav   ->   "array_get_b_vav";
             case array_put_b_acc   ->   "array_put_b_acc";
@@ -255,10 +288,15 @@ public class Array implements GenericOpCode{
             case array_put_l_avv   ->   "array_put_l_avv";
             case array_get_o_vac   ->   "array_get_o_vac";
             case array_get_o_vav   ->   "array_get_o_vav";
-            case array_put_o_acn   ->   "array_put_o_acn";
             case array_put_o_aco   ->   "array_put_o_aco";
-            case array_put_o_avn   ->   "array_put_o_avn";
             case array_put_o_avo   ->   "array_put_o_avo";
+
+            case array_get_u_vac    -> "array_get_u_vac";
+            case array_get_u_vav    -> "array_get_u_vav";
+            case array_put_u_acn    -> "array_put_u_acn";
+            case array_put_u_aco    -> "array_put_u_aco";
+            case array_put_u_avn    -> "array_put_u_avn";
+
             case array_get_S_vac   ->   "array_get_S_vac";
             case array_get_S_vav   ->   "array_get_S_vav";
             case array_put_S_acc   ->   "array_put_S_acc";
@@ -272,6 +310,7 @@ public class Array implements GenericOpCode{
             case array_fill_c_acL   ->  "array_fill_c_acL";
             case array_fill_f_acL   ->  "array_fill_f_acL";
             case array_fill_d_acL   ->  "array_fill_d_acL";
+            case array_fill_D_acL   ->  "array_fill_D_acL";
             case array_fill_b_acL   ->  "array_fill_b_acL";
             case array_fill_s_acL   ->  "array_fill_s_acL";
             case array_fill_l_acL   ->  "array_fill_l_acL";

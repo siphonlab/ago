@@ -19,6 +19,7 @@ import org.agrona.collections.IntHashSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.*;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 public class RdbSlots implements Slots {
@@ -149,9 +150,32 @@ public class RdbSlots implements Slots {
         baseSlots.setString(slot, value);
     }
 
+    @Override
+    public void setDecimal(int slot, BigDecimal value) {
+        if (!Objects.equals(value, this.getString(slot))) {
+            collectChangedSlot(slot);
+        }
+        baseSlots.setDecimal(slot, value);
+    }
+
+    @Override
+    public BigDecimal getDecimal(int slot) {
+        return baseSlots.getDecimal(slot);
+    }
+
     public void allocateObjectSlots(int slotDefsLength){
         if(this.objectSlots == null || this.objectSlots.length < slotDefsLength)
             this.objectSlots = new Pair[slotDefsLength];
+    }
+
+    @Override
+    public void setUnion(int slot, Instance<?> value) {
+        setObject(slot,value);
+    }
+
+    @Override
+    public Instance<?> getUnion(int slot) {
+        return getObject(slot);
     }
 
     @Override
@@ -237,6 +261,9 @@ public class RdbSlots implements Slots {
         }
         if (clazz == double.class) {
             return getDouble(slotIndex);
+        }
+        if (clazz == BigDecimal.class) {
+            return getDecimal(slotIndex);
         }
         if (clazz == String.class) {
             return getString(slotIndex);

@@ -154,6 +154,8 @@ public class Equals extends BiExpression{
                 (((IntLiteral) this.left).value == ((IntLiteral) this.right).value);
             case DOUBLE_VALUE ->
                 (((DoubleLiteral) this.left).value == ((DoubleLiteral) this.right).value);
+            case DECIMAL_VALUE ->
+                (((DecimalLiteral) this.left).value.equals(((DecimalLiteral) this.right).value));
             case BYTE_VALUE->
                 (((ByteLiteral) this.left).value == ((ByteLiteral) this.right).value);
             case CHAR_VALUE ->

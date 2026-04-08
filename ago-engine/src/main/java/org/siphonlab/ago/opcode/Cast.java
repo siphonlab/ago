@@ -27,6 +27,7 @@ public class Cast implements GenericOpCode {
     public static final int c2c = 0x07_05_05_02;
     public static final int c2f = 0x07_05_06_02;
     public static final int c2d = 0x07_05_07_02;
+    public static final int c2D = 0x07_05_0d_02;
     public static final int c2b = 0x07_05_08_02;
     public static final int c2s = 0x07_05_09_02;
     public static final int c2i = 0x07_05_0a_02;
@@ -37,6 +38,7 @@ public class Cast implements GenericOpCode {
     public static final int f2c = 0x07_06_05_02;
     public static final int f2f = 0x07_06_06_02;
     public static final int f2d = 0x07_06_07_02;
+    public static final int f2D = 0x07_06_0d_02;
     public static final int f2b = 0x07_06_08_02;
     public static final int f2s = 0x07_06_09_02;
     public static final int f2i = 0x07_06_0a_02;
@@ -47,6 +49,7 @@ public class Cast implements GenericOpCode {
     public static final int d2c = 0x07_07_05_02;
     public static final int d2f = 0x07_07_06_02;
     public static final int d2d = 0x07_07_07_02;
+    public static final int d2D = 0x07_07_0d_02;
     public static final int d2b = 0x07_07_08_02;
     public static final int d2s = 0x07_07_09_02;
     public static final int d2i = 0x07_07_0a_02;
@@ -54,9 +57,21 @@ public class Cast implements GenericOpCode {
     public static final int d2S = 0x07_07_03_02;
     public static final int d2B = 0x07_07_04_02;
 
+    public static final int D2c = 0x07_0e_05_02;
+    public static final int D2f = 0x07_0e_06_02;
+    public static final int D2d = 0x07_0e_07_02;
+    public static final int D2D = 0x07_0e_0d_02;
+    public static final int D2b = 0x07_0e_08_02;
+    public static final int D2s = 0x07_0e_09_02;
+    public static final int D2i = 0x07_0e_0a_02;
+    public static final int D2l = 0x07_0e_0b_02;
+    public static final int D2S = 0x07_0e_03_02;
+    public static final int D2B = 0x07_0e_04_02;
+
     public static final int b2c = 0x07_08_05_02;
     public static final int b2f = 0x07_08_06_02;
     public static final int b2d = 0x07_08_07_02;
+    public static final int b2D = 0x07_08_0d_02;
     public static final int b2b = 0x07_08_08_02;
     public static final int b2s = 0x07_08_09_02;
     public static final int b2i = 0x07_08_0a_02;
@@ -67,6 +82,7 @@ public class Cast implements GenericOpCode {
     public static final int s2c = 0x07_09_05_02;
     public static final int s2f = 0x07_09_06_02;
     public static final int s2d = 0x07_09_07_02;
+    public static final int s2D = 0x07_09_0d_02;
     public static final int s2b = 0x07_09_08_02;
     public static final int s2s = 0x07_09_09_02;
     public static final int s2i = 0x07_09_0a_02;
@@ -77,6 +93,7 @@ public class Cast implements GenericOpCode {
     public static final int i2c = 0x07_0a_05_02;
     public static final int i2f = 0x07_0a_06_02;
     public static final int i2d = 0x07_0a_07_02;
+    public static final int i2D = 0x07_0a_0d_02;
     public static final int i2b = 0x07_0a_08_02;
     public static final int i2s = 0x07_0a_09_02;
     public static final int i2i = 0x07_0a_0a_02;
@@ -87,6 +104,7 @@ public class Cast implements GenericOpCode {
     public static final int l2c = 0x07_0b_05_02;
     public static final int l2f = 0x07_0b_06_02;
     public static final int l2d = 0x07_0b_07_02;
+    public static final int l2D = 0x07_0b_0d_02;
     public static final int l2b = 0x07_0b_08_02;
     public static final int l2s = 0x07_0b_09_02;
     public static final int l2i = 0x07_0b_0a_02;
@@ -99,6 +117,7 @@ public class Cast implements GenericOpCode {
     public static final int B2i = 0x07_04_0a_02;
     public static final int B2f = 0x07_04_06_02;
     public static final int B2d = 0x07_04_07_02;
+    public static final int B2D = 0x07_04_0d_02;
     public static final int B2B = 0x07_04_04_02;
     public static final int B2l = 0x07_04_0b_02;
     public static final int B2b = 0x07_04_08_02;
@@ -110,6 +129,7 @@ public class Cast implements GenericOpCode {
     public static final int S2c = 0x07_03_05_02;
     public static final int S2f = 0x07_03_06_02;
     public static final int S2d = 0x07_03_07_02;
+    public static final int S2D = 0x07_03_0d_02;
     public static final int S2b = 0x07_03_08_02;
     public static final int S2s = 0x07_03_09_02;
     public static final int S2i = 0x07_03_0a_02;

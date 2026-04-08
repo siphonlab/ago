@@ -502,6 +502,7 @@ public class AgoClassParser {
                 case TypeCode.INT_VALUE -> new PrimitiveClassDef(root, TypeCode.INT);
                 case TypeCode.LONG_VALUE -> new PrimitiveClassDef(root, TypeCode.LONG);
                 case TypeCode.DOUBLE_VALUE -> new PrimitiveClassDef(root, TypeCode.DOUBLE);
+                case TypeCode.DECIMAL_VALUE -> new PrimitiveClassDef(root, TypeCode.DECIMAL);
                 case TypeCode.FLOAT_VALUE -> new PrimitiveClassDef(root, TypeCode.FLOAT);
                 case TypeCode.STRING_VALUE -> new PrimitiveClassDef(root, TypeCode.STRING);
                 case TypeCode.BYTE_VALUE -> new PrimitiveClassDef(root, TypeCode.BYTE);

@@ -51,6 +51,9 @@ public class ResultSlotsSerializer extends JsonSerializer<ResultSlots> {
             case TypeCode.DOUBLE_VALUE:
                 gen.writeNumber(resultSlots.getDoubleValue());
                 break;
+            case TypeCode.DECIMAL_VALUE:
+                gen.writeNumber(resultSlots.getDecimalValue());
+                break;
             case TypeCode.BOOLEAN_VALUE:
                 gen.writeBoolean(resultSlots.getBooleanValue());
                 break;
@@ -69,7 +72,7 @@ public class ResultSlotsSerializer extends JsonSerializer<ResultSlots> {
                 gen.writeObject(resultSlots.getClassRefValue());
                 break;
 
-            case TypeCode.OBJECT_VALUE:
+            case TypeCode.OBJECT_VALUE, TypeCode.UNION_VALUE:
                 gen.writeObject(resultSlots.getObjectValue());
                 break;
         }

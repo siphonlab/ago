@@ -22,6 +22,7 @@ import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.siphonlab.ago.runtime.ObjectArrayInstance;
 
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.util.Iterator;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -277,6 +278,9 @@ public class LinkedList {
             case DOUBLE_VALUE:
                 callFrame.finishDouble(((java.util.LinkedList<Double>) ls).get(index));
                 break;
+            case DECIMAL_VALUE:
+                callFrame.finishDecimal(((java.util.LinkedList<BigDecimal>) ls).get(index));
+                break;
             case BOOLEAN_VALUE:
                 callFrame.finishBoolean(((java.util.LinkedList<Boolean>) ls).get(index));
                 break;
@@ -294,6 +298,9 @@ public class LinkedList {
                 break;
             case OBJECT_VALUE:
                 callFrame.finishObject(((java.util.LinkedList<Instance<?>>) ls).get(index));
+                break;
+            case UNION_VALUE:
+                callFrame.finishUnion(((java.util.LinkedList<Instance<?>>) ls).get(index));
                 break;
             case CLASS_REF_VALUE:
                 callFrame.finishInt(((java.util.LinkedList<Integer>) ls).get(index));
@@ -409,6 +416,9 @@ public class LinkedList {
             case DOUBLE_VALUE:
                 callFrame.finishDouble(((Iterator<Double>) iterator).next());
                 break;
+            case DECIMAL_VALUE:
+                callFrame.finishDecimal(((Iterator<BigDecimal>) iterator).next());
+                break;
             case BOOLEAN_VALUE:
                 callFrame.finishBoolean(((Iterator<Boolean>) iterator).next());
                 break;
@@ -426,6 +436,9 @@ public class LinkedList {
                 break;
             case OBJECT_VALUE:
                 callFrame.finishObject(((Iterator<Instance>) iterator).next());
+                break;
+            case UNION_VALUE:
+                callFrame.finishUnion(((Iterator<Instance>) iterator).next());
                 break;
             case CLASS_REF_VALUE:
                 callFrame.finishClassRef(callFrame.getAgoEngine().getClass(((Iterator<Integer>) iterator).next()));

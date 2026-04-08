@@ -19,6 +19,8 @@ import org.siphonlab.ago.runtime.UnhandledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+
 public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     private final static Logger logger = LoggerFactory.getLogger(CallFrame.class);
@@ -157,6 +159,18 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         callerRunSpace.acceptDouble(result, caller);
     }
 
+    public void finishDecimal(BigDecimal result) {
+        if (stateHandler != null) ((CallFrameStateHandler<BigDecimal>) stateHandler).complete(result);
+
+        var caller = this.getCaller();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
+        if (callerRunSpace != runSpace) {
+            runSpace.setCurrCallFrame(null);
+        }
+        callerRunSpace.acceptDecimal(result, caller);
+    }
+
     public void finishChar(char result) {
         if (stateHandler != null) ((CallFrameStateHandler<Character>) stateHandler).complete(result);
 
@@ -179,6 +193,18 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
             runSpace.setCurrCallFrame(null);
         }
         callerRunSpace.acceptObject(result, caller);
+    }
+
+    public void finishUnion(Union result) {
+        if (stateHandler != null) ((CallFrameStateHandler<Union>) stateHandler).complete(result);
+
+        var caller = this.getCaller();
+        RunSpace callerRunSpace = caller.getRunSpace();
+        RunSpace runSpace = getRunSpace();
+        if (callerRunSpace != runSpace) {
+            runSpace.setCurrCallFrame(null);
+        }
+        callerRunSpace.acceptUnion(result, caller);
     }
 
     public void finishString(String result) {

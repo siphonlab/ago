@@ -17,6 +17,8 @@ package org.siphonlab.ago.native_;
 
 import org.siphonlab.ago.*;
 
+import java.math.BigDecimal;
+
 public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     protected NativeFunctionCaller nativeFunctionCaller;
@@ -109,6 +111,14 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         callerRunSpace.acceptDoubleByAsync(result);
     }
 
+    public void finishDecimalAsync(BigDecimal result) {
+        if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
+
+        RunSpace callerRunSpace = resumeCallerRunSpace();
+        callerRunSpace.acceptDecimalByAsync(result);
+    }
+
     public void finishLongAsync(long result) {
         if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
@@ -147,6 +157,14 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
         callerRunSpace.acceptObjectByAsync(result);
+    }
+
+    public void finishUnionAsync(Instance<?> result) {
+        if (stateHandler != null) stateHandler.complete(null);
+        if (this.debugger != null) this.debugger.leaveFrame(this);
+
+        RunSpace callerRunSpace = resumeCallerRunSpace();
+        callerRunSpace.acceptUnionByAsync(result);
     }
 
     public void finishClassRefAsync(AgoClass result) {

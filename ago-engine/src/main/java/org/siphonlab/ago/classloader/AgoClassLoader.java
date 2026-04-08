@@ -25,6 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
@@ -669,6 +671,12 @@ public class AgoClassLoader implements ClassManager{
                     case CHAR_VALUE -> buffer.getChar();
                     case FLOAT_VALUE -> buffer.getFloat();
                     case DOUBLE_VALUE -> buffer.getDouble();
+                    case DECIMAL_VALUE -> {
+                        int scale = buffer.getInt();
+                        byte[] data = new byte[16];
+                        buffer.get(data);
+                        yield new BigDecimal(new BigInteger(data), scale);
+                    }
                     case BYTE_VALUE -> buffer.get();
                     case SHORT_VALUE -> buffer.getShort();
                     case INT_VALUE -> buffer.getInt();

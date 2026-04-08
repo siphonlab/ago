@@ -24,6 +24,7 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -79,6 +80,7 @@ public class DbRefSlotsAdapter implements SlotsAdapter<RdbRefSlots> {
                 case TypeCode.BOOLEAN_VALUE -> resultSet.getBoolean(1);
                 case TypeCode.FLOAT_VALUE -> resultSet.getFloat(1);
                 case TypeCode.DOUBLE_VALUE -> resultSet.getDouble(1);
+                case TypeCode.DECIMAL_VALUE -> resultSet.getBigDecimal(1);
                 case TypeCode.STRING_VALUE -> resultSet.getString(1);
                 case TypeCode.CLASS_REF_VALUE -> {
                     String className = resultSet.getString(1);
@@ -199,6 +201,17 @@ public class DbRefSlotsAdapter implements SlotsAdapter<RdbRefSlots> {
     public void setDouble(RdbRefSlots rdbRefSlots, ObjectRef objectRef, int slot, double value) {
         updateSlotValue(objectRef, slot, TypeCode.DOUBLE, value);
     }
+
+    @Override
+    public BigDecimal getDecimal(RdbRefSlots rdbRefSlots, ObjectRef objectRef, int slot) {
+        return (BigDecimal) getSlotValue(objectRef, slot, TypeCode.DECIMAL);
+    }
+
+    @Override
+    public void setDecimal(RdbRefSlots rdbRefSlots, ObjectRef objectRef, int slot, BigDecimal value) {
+        updateSlotValue(objectRef, slot, TypeCode.DECIMAL, value);
+    }
+
 
     @Override
     public byte getByte(RdbRefSlots rdbRefSlots, ObjectRef objectRef, int slot) {

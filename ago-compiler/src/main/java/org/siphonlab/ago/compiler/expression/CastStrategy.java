@@ -28,6 +28,8 @@ import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 
+import java.math.BigDecimal;
+
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.FLOAT_VALUE;
 import static org.siphonlab.ago.TypeCode.INT_VALUE;
@@ -595,6 +597,8 @@ public class CastStrategy {
                     return root.createFloatLiteral((float) c.value);
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral((double) c.value);
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(c.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral((byte) c.value.charValue());
                 case SHORT_VALUE:
@@ -610,6 +614,8 @@ public class CastStrategy {
                     return root.createCharLiteral((char) f.value.intValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral((double) f.value);
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(f.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral((byte) f.value.floatValue());
                 case SHORT_VALUE:
@@ -625,6 +631,25 @@ public class CastStrategy {
                     return root.createCharLiteral((char) d.value.intValue());
                 case FLOAT_VALUE:
                     return root.createFloatLiteral(d.value.floatValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(d.value));
+                case BYTE_VALUE:
+                    return root.createByteLiteral(d.value.byteValue());
+                case SHORT_VALUE:
+                    return root.createShortLiteral(d.value.shortValue());
+                case INT_VALUE:
+                    return root.createIntLiteral(d.value.intValue());
+                case LONG_VALUE:
+                    return root.createLongLiteral(d.value.longValue());
+            }
+        } else if (literal instanceof DecimalLiteral d) {
+            switch (toTypeCode.value) {
+                case CHAR_VALUE:
+                    return root.createCharLiteral((char) d.value.intValue());
+                case FLOAT_VALUE:
+                    return root.createFloatLiteral(d.value.floatValue());
+                case DOUBLE_VALUE:
+                    return root.createDoubleLiteral(d.value.doubleValue());
                 case BYTE_VALUE:
                     return root.createByteLiteral(d.value.byteValue());
                 case SHORT_VALUE:
@@ -642,6 +667,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(b.value.floatValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(b.value.doubleValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(b.value));
                 case SHORT_VALUE:
                     return root.createShortLiteral(b.value.shortValue());
                 case INT_VALUE:
@@ -657,6 +684,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(s.value.floatValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(s.value.doubleValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(s.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral(s.value.byteValue());
                 case INT_VALUE:
@@ -672,6 +701,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(i.value.floatValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(i.value.doubleValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(i.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral(i.value.byteValue());
                 case SHORT_VALUE:
@@ -687,6 +718,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(l.value.floatValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(l.value.doubleValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(l.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral(l.value.byteValue());
                 case SHORT_VALUE:
@@ -707,6 +740,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(Float.parseFloat(str));
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(Double.parseDouble(str));
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(str));
                 case BYTE_VALUE:
                     return root.createByteLiteral(Byte.parseByte(str));
                 case SHORT_VALUE:

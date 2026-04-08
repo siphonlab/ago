@@ -28,6 +28,7 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.*;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -228,6 +229,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 switch (slotDef.getTypeCode().getValue()) {
                     case INT_VALUE: slots.setInt(index, value); break;
                     case DOUBLE_VALUE: slots.setDouble(index, value); break;
+                    case DECIMAL_VALUE: slots.setDecimal(index, BigDecimal.valueOf(value)); break;
                     case LONG_VALUE: slots.setLong(index, value); break;
                     case FLOAT_VALUE: slots.setFloat(index, value); break;
                     case BYTE_VALUE: slots.setByte(index, (byte) value); break;
@@ -236,14 +238,30 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 break;
             }
             case VALUE_NUMBER_FLOAT:{
-                double value = ajp.getDoubleValue();
-                switch (slotDef.getTypeCode().getValue()) {
-                    case INT_VALUE: slots.setInt(index, (int) value); break;
-                    case DOUBLE_VALUE: slots.setDouble(index, value); break;
-                    case LONG_VALUE: slots.setLong(index, (long) value); break;
-                    case FLOAT_VALUE: slots.setFloat(index, (float) value); break;
-                    case BYTE_VALUE: slots.setByte(index, (byte) value); break;
-                    case SHORT_VALUE: slots.setInt(index, (short)value); break;
+                if(slotDef.getTypeCode().getValue() == DECIMAL_VALUE){
+                    slots.setDecimal(index, ajp.getDecimalValue());
+                } else {
+                    double value = ajp.getDoubleValue();
+                    switch (slotDef.getTypeCode().getValue()) {
+                        case INT_VALUE:
+                            slots.setInt(index, (int) value);
+                            break;
+                        case DOUBLE_VALUE:
+                            slots.setDouble(index, value);
+                            break;
+                        case LONG_VALUE:
+                            slots.setLong(index, (long) value);
+                            break;
+                        case FLOAT_VALUE:
+                            slots.setFloat(index, (float) value);
+                            break;
+                        case BYTE_VALUE:
+                            slots.setByte(index, (byte) value);
+                            break;
+                        case SHORT_VALUE:
+                            slots.setInt(index, (short) value);
+                            break;
+                    }
                 }
                 break;
             }
@@ -467,6 +485,16 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     r.fill(list);
                     yield r;
                 }
+                case DECIMAL_VALUE -> {
+                    List<Object> list = new ArrayList<>();
+                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                        list.add(ajp.getDecimalValue());
+                    }
+                    ajp.nextToken();
+                    var r = new DoubleArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                    r.fill(list);
+                    yield r;
+                }
                 case BOOLEAN_VALUE -> {
                     List<Object> list = new ArrayList<>();
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
@@ -527,15 +555,21 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     r.fill(list);
                     yield r;
                 }
-                case OBJECT_VALUE -> {
+                case OBJECT_VALUE, UNION_VALUE -> {
                     List<Object> list = new ArrayList<>();
                     for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.currentToken()) { // getInt stay at original pos, need nextToken to advance, but `deserializeAny` moves the pos
                         list.add(deserializeAny(ajp, ctxt, null, creator, null, null));
                     }
                     ajp.nextToken();
-                    var r = new ObjectArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                    r.fill(list);
-                    yield r;
+                    if(elementType.getTypeCode() == OBJECT){
+                        var r = new ObjectArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                        r.fill(list);
+                        yield r;
+                    } else {
+                        var r = new UnionArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                        r.fill(list);
+                        yield r;
+                    }
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + elementType.getTypeCode().getValue());
             };

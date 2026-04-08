@@ -90,12 +90,14 @@ public class RunSpaceAware {
                 case VOID_VALUE:    frame.finishVoidAsync(); break;
                 case NULL_VALUE:    frame.finishNullAsync(); break;
                 case OBJECT_VALUE:  frame.finishObjectAsync(resultSlots.takeObjectValue()); break;
+                case UNION_VALUE:   frame.finishUnionAsync(resultSlots.takeUnionValue()); break;
                 case INT_VALUE:     frame.finishIntAsync(resultSlots.getIntValue()); break;
                 case BYTE_VALUE:    frame.finishByteAsync(resultSlots.getByteValue()); break;
                 case SHORT_VALUE:   frame.finishShortAsync(resultSlots.getShortValue()); break;
                 case LONG_VALUE:    frame.finishLongAsync(resultSlots.getLongValue()); break;
                 case FLOAT_VALUE:   frame.finishFloatAsync(resultSlots.getFloatValue()); break;
                 case DOUBLE_VALUE:  frame.finishDoubleAsync(resultSlots.getDoubleValue()); break;
+                case DECIMAL_VALUE:  frame.finishDecimalAsync(resultSlots.getDecimalValue()); break;
                 case BOOLEAN_VALUE: frame.finishBooleanAsync(resultSlots.getBooleanValue()); break;
                 case CHAR_VALUE:    frame.finishCharAsync(resultSlots.getCharValue()); break;
                 case STRING_VALUE:  frame.finishStringAsync(resultSlots.getStringValue()); break;

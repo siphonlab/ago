@@ -34,6 +34,7 @@ import org.siphonlab.ago.compiler.statement.Label;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -94,6 +95,8 @@ public class CodeBuffer {
         int additionSize = 0;
         if (typeCode == DOUBLE || typeCode == LONG) {
             additionSize = 1;
+        } else if(typeCode == DECIMAL){     // total 5 ints, scale + 4bytes
+            additionSize = 4;
         }
         return additionSize;
     }
@@ -172,6 +175,15 @@ public class CodeBuffer {
                 ls.addInt((int)(l >>> 32));
                 ls.addInt((int)(l));
                 break;
+            case DECIMAL_VALUE:
+                var dc  = ((DecimalLiteral) literal).value;
+                var arr = bigDecimalToIntArray(dc);
+                ls.addInt(arr[0]);
+                ls.addInt(arr[1]);
+                ls.addInt(arr[2]);
+                ls.addInt(arr[3]);
+                ls.addInt(arr[4]);
+                break;
             case BYTE_VALUE:
                 ls.addInt((int)((ByteLiteral)literal).value);
                 break;
@@ -195,6 +207,28 @@ public class CodeBuffer {
             default:
                 throw new IllegalArgumentException(typeCode + " not support");
         }
+    }
+
+    static int[] bigDecimalToIntArray(BigDecimal bd){
+        byte[] original = bd.toBigInteger().toByteArray();
+
+        byte[] fixed = new byte[16];
+
+        // 将原数组内容放到新数组尾部，前面补0 (高位补0)
+        int srcPos = Math.max(0, original.length - 16);
+        int destPos = Math.max(0, 16 - original.length);
+        int length = Math.min(original.length, 16);
+
+        System.arraycopy(original, srcPos, fixed, destPos, length);
+
+        // 5 int
+        return new int[]{
+            bd.scale(),
+            (fixed[0] << 24) | (fixed[1] << 16) | (fixed[2] << 8) | (fixed[3]),
+            (fixed[4] << 24) | (fixed[5] << 16) | (fixed[6] << 8) | (fixed[7]),
+            (fixed[8] << 24) | (fixed[9] << 16) | (fixed[10] << 8) | (fixed[11]),
+            (fixed[12] << 24) | (fixed[13] << 16) | (fixed[14] << 8) | (fixed[15])
+        };
     }
 
     public void new_(SlotDef target, SlotDef parentScope, Creator.NewProps newProps) {

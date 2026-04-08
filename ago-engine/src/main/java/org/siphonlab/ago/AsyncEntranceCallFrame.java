@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import java.math.BigDecimal;
+
 // async entrance callframe has caller, in another runspace, which state is WAITING_RESULT
 public class AsyncEntranceCallFrame<T extends AgoFunction> extends EntranceCallFrame<T> {
 
@@ -80,6 +82,13 @@ public class AsyncEntranceCallFrame<T extends AgoFunction> extends EntranceCallF
 
         this.getRunSpace().setCurrCallFrame(null);
         getCaller().getRunSpace().acceptDoubleByAsync(result);
+    }
+
+    public void finishDecimal(BigDecimal result) {
+        if (stateHandler != null) ((CallFrameStateHandler<BigDecimal>) stateHandler).complete(result);
+
+        this.getRunSpace().setCurrCallFrame(null);
+        getCaller().getRunSpace().acceptDecimalByAsync(result);
     }
 
     public void finishChar(char result) {

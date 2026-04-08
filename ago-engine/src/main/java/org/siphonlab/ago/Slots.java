@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import java.math.BigDecimal;
+
 /* I'll make a class for each Instance, it creates a class includes each data type
  for example, there will be a function : createSlots(int.class, int.class, String.class, Object.class)
  then we'll get
@@ -66,6 +68,10 @@ public interface Slots {
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }
 
+    default BigDecimal getDecimal(int slot) {
+        throw new IllegalArgumentException("Unsupported slot access: " + slot);
+    }
+
     default byte getByte(int slot) {
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }
@@ -106,6 +112,9 @@ public interface Slots {
     default void setDouble(int slot, double value) {
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }
+    default void setDecimal(int slot, BigDecimal value) {
+        throw new IllegalArgumentException("Unsupported slot access: " + slot);
+    }
 
     default void setByte(int slot, byte value) {
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
@@ -128,6 +137,21 @@ public interface Slots {
     }
 
     default void setObject(int slot, Instance<?> value) {
+        throw new IllegalArgumentException("Unsupported slot access: " + slot);
+    }
+
+    // there should be a union record {type_flag, value}
+    // now union only works for nullable, so the value are Object|BoxedValue|null
+    default void setUnion(int slot, Union value) {
+        throw new IllegalArgumentException("Unsupported slot access: " + slot);
+    }
+
+//   the union support setInt, setLong, ... setObject, setNull
+//    default void setUnion(int slot, Union union) {
+//        throw new IllegalArgumentException("Unsupported slot access: " + slot);
+//    }
+
+    default Union getUnion(int slot) {
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }
 

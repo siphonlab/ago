@@ -23,6 +23,7 @@ import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -52,6 +53,7 @@ public class Root extends Namespace<Package> {
     private PrimitiveClassDef CHAR;
     private PrimitiveClassDef FLOAT;
     private PrimitiveClassDef DOUBLE;
+    private PrimitiveClassDef DECIMAL;
     private PrimitiveClassDef BYTE;
     private PrimitiveClassDef SHORT;
     private PrimitiveClassDef INT;
@@ -64,6 +66,7 @@ public class Root extends Namespace<Package> {
     private ClassDef INTEGER_CLASS;
     private ClassDef BYTE_CLASS;
     private ClassDef DOUBLE_CLASS;
+    private ClassDef DECIMAL_CLASS;
     private ClassDef SHORT_CLASS;
     private ClassDef FLOAT_CLASS;
     private ClassDef LONG_CLASS;
@@ -583,6 +586,7 @@ public class Root extends Namespace<Package> {
         if(this.FLOAT == null) this.FLOAT = findByFullname("float");
         if(this.BOOLEAN == null) this.BOOLEAN = findByFullname("boolean");
         if(this.DOUBLE == null) this.DOUBLE = findByFullname("double");
+        if(this.DECIMAL == null) this.DECIMAL = findByFullname("decimal");
         if(this.CLASREF == null) this.CLASREF = findByFullname("classref");
 
         if(this.CLASS_CLASS == null) this.CLASS_CLASS = findByFullname("lang.Class");
@@ -624,6 +628,7 @@ public class Root extends Namespace<Package> {
     public PrimitiveClassDef BYTE() {return BYTE;}
     public PrimitiveClassDef FLOAT() {return FLOAT;}
     public PrimitiveClassDef DOUBLE() {return DOUBLE;}
+    public PrimitiveClassDef DECIMAL() {return DECIMAL;}
     public PrimitiveClassDef BOOLEAN() {return BOOLEAN;}
     public PrimitiveClassDef STRING() {return STRING;}
     public PrimitiveClassDef CLASSREF() {return CLASREF;}
@@ -638,10 +643,11 @@ public class Root extends Namespace<Package> {
             case LONG_VALUE -> LONG;
             case FLOAT_VALUE -> FLOAT;
             case DOUBLE_VALUE -> DOUBLE;
+            case DECIMAL_VALUE -> DECIMAL;
             case CHAR_VALUE -> CHAR;
             case VOID_VALUE -> VOID;
             case BOOLEAN_VALUE -> BOOLEAN;
-            case OBJECT_VALUE -> throw new IllegalArgumentException("this class only handle primary type");
+            case OBJECT_VALUE, UNION_VALUE -> throw new IllegalArgumentException("this class only handle primary type");
             case STRING_VALUE -> STRING;
             case CLASS_REF_VALUE -> this.CLASREF;
 
@@ -675,6 +681,10 @@ public class Root extends Namespace<Package> {
 
     public DoubleLiteral createDoubleLiteral(Double value) {
         return new DoubleLiteral(this.DOUBLE, value);
+    }
+
+    public DecimalLiteral createDecimalLiteral(BigDecimal value) {
+        return new DecimalLiteral(this.DECIMAL, value);
     }
 
     public ByteLiteral createByteLiteral(Byte value) {

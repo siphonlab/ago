@@ -17,6 +17,8 @@ package org.siphonlab.ago;
 
 import org.siphonlab.ago.runtime.UnhandledException;
 
+import java.math.BigDecimal;
+
 // entrance callframe has no caller
 public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
 
@@ -117,6 +119,12 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
         if (stateHandler != null) ((CallFrameStateHandler<Double>) stateHandler).complete(result);
 
         getRunSpace().acceptDouble(result, null);
+    }
+
+    public void finishDecimal(BigDecimal result) {
+        if (stateHandler != null) ((CallFrameStateHandler<BigDecimal>) stateHandler).complete(result);
+
+        getRunSpace().acceptDecimal(result, null);
     }
 
     public void finishChar(char result) {

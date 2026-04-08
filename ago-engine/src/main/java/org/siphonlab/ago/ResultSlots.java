@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import java.math.BigDecimal;
+
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
 import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
@@ -32,11 +34,13 @@ public class ResultSlots {
     private char charValue;
     private float floatValue;
     private double doubleValue;
+    private BigDecimal decimalValue;
     private byte byteValue;
     private short shortValue;
     private int intValue;
     private long longValue;
     protected Instance<?> objectValue;
+    protected Union unionValue;
     private String stringValue;
     private AgoClass classRefValue;
 
@@ -86,6 +90,15 @@ public class ResultSlots {
         dataType = TypeCode.DOUBLE_VALUE;
     }
 
+    public BigDecimal getDecimalValue() {
+        return decimalValue;
+    }
+
+    public void setDecimalValue(BigDecimal value) {
+        decimalValue = value;
+        dataType = TypeCode.DECIMAL_VALUE;
+    }
+
     public byte getByteValue() {
         return byteValue;
     }
@@ -132,18 +145,24 @@ public class ResultSlots {
         return r;
     }
 
+    public Union takeUnionValue() {
+        var r= this.unionValue;
+        unionValue = null;
+        return r;
+    }
+
+    public Union getUnionValue() {
+        return unionValue;
+    }
+
     public void setObjectValue(Instance<?> value) {
         objectValue = value;
         dataType = TypeCode.OBJECT_VALUE;
     }
 
-    public Object getNullValue() {
-        return null;
-    }
-
-    public void setNullValue() {
-        dataType = TypeCode.OBJECT_VALUE;
-        objectValue = null;
+    public void setUnionValue(Union value) {
+        this.unionValue = value;
+        dataType = UNION_VALUE;
     }
 
     public String getStringValue() {
@@ -187,6 +206,8 @@ public class ResultSlots {
                 return boxer.boxFloat(getFloatValue());
             case DOUBLE_VALUE:
                 return boxer.boxDouble(getDoubleValue());
+            case DECIMAL_VALUE:
+                return boxer.boxDecimal(getDecimalValue());
             case BOOLEAN_VALUE:
                 return boxer.boxBoolean(getBooleanValue());
             case CHAR_VALUE:
@@ -219,6 +240,8 @@ public class ResultSlots {
                 return (this.getFloatValue());
             case DOUBLE_VALUE:
                 return (this.getDoubleValue());
+            case DECIMAL_VALUE:
+                return (this.getDecimalValue());
             case BOOLEAN_VALUE:
                 return (this.getBooleanValue());
             case CHAR_VALUE:
@@ -253,6 +276,8 @@ public class ResultSlots {
                 return (this.getFloatValue());
             case DOUBLE_VALUE:
                 return (this.getDoubleValue());
+            case DECIMAL_VALUE:
+                return (this.getDecimalValue());
             case BOOLEAN_VALUE:
                 return (this.getBooleanValue());
             case CHAR_VALUE:

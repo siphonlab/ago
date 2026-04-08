@@ -28,6 +28,7 @@ import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -304,6 +305,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
             case TypeCode.BOOLEAN_VALUE -> (Boolean)constLiteralValue;
             case TypeCode.FLOAT_VALUE -> ((Number) constLiteralValue).floatValue();
             case TypeCode.DOUBLE_VALUE -> ((Number) constLiteralValue).doubleValue();
+            case TypeCode.DECIMAL_VALUE -> ((BigDecimal) constLiteralValue);
             case TypeCode.STRING_VALUE -> (String)constLiteralValue;
             case TypeCode.CLASS_REF_VALUE -> classes.get(((Number)constLiteralValue).intValue());
             default -> throw new IllegalStateException("Unexpected value: " + typeCode.value);

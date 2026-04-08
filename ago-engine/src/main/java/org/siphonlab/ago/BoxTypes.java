@@ -186,6 +186,8 @@ public class BoxTypes {
                 return slots.getFloat(0);
             case DOUBLE_VALUE:
                 return slots.getDouble(0);
+            case DECIMAL_VALUE:
+                return slots.getDecimal(0);
             case BOOLEAN_VALUE:
                 return slots.getBoolean(0);
             case CHAR_VALUE:

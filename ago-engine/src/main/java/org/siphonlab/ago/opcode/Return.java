@@ -42,6 +42,9 @@ public class Return implements GenericOpCode {
     public static final int return_d_c = 0x06_07_01_02;
     public static final int return_d_v = 0x06_07_02_01;
 
+    public static final int return_D_c = 0x06_0d_01_02;
+    public static final int return_D_v = 0x06_0d_02_01;
+
     public static final int return_b_c = 0x06_08_01_01;
     public static final int return_b_v = 0x06_08_02_01;
 
@@ -60,6 +63,8 @@ public class Return implements GenericOpCode {
 
     public static final int return_C_C = 0x06_0c_01_01;
     public static final int return_C_v = 0x06_0c_02_01;
+
+    public static final int return_u_v = 0x06_0e_02_01;
 
     public static String getName(int code){
         return switch(code){
@@ -88,6 +93,10 @@ public class Return implements GenericOpCode {
             case 0x06_03_02_01 -> "return_S_v";
             case 0x06_0c_01_01 -> "return_C_C";
             case 0x06_0c_02_01 -> "return_C_v";
+            case 0x06_0d_01_01 -> "return_D_C";
+            case 0x06_0d_02_01 -> "return_D_v";
+            case 0x06_0e_01_01 -> "return_u_C";
+            case 0x06_0e_02_01 -> "return_u_v";
             default -> {
                 var t = OpCode.extractType(code);
                 if(t >= TypeCode.GENERIC_TYPE_START){

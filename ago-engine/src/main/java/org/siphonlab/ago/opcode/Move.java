@@ -56,6 +56,10 @@ public class Move implements GenericOpCode{     // 30
     public static final int move_fld_d_ovv = 0x02_07_02_03;
     public static final int move_fld_d_vov = 0x02_07_03_03;
 
+    public static final int move_D_vv = 0x02_0d_01_02;
+    public static final int move_fld_D_ovv = 0x02_0d_02_03;
+    public static final int move_fld_D_vov = 0x02_0d_03_03;
+
     public static final int move_b_vv = 0x02_08_01_02;
     public static final int move_fld_b_ovv = 0x02_08_02_03;
     public static final int move_fld_b_vov = 0x02_08_03_03;
@@ -75,6 +79,10 @@ public class Move implements GenericOpCode{     // 30
     public static final int move_o_vv = 0x02_01_01_02;
     public static final int move_fld_o_ovv = 0x02_01_02_03;
     public static final int move_fld_o_vov = 0x02_01_03_03;
+
+    public static final int move_u_vv = 0x02_0e_01_02;
+    public static final int move_fld_u_ovv = 0x02_0e_02_03;
+    public static final int move_fld_u_vov = 0x02_0e_03_03;
 
     public static final int move_S_vv = 0x02_03_01_02;
     public static final int move_fld_S_ovv = 0x02_03_02_03;
@@ -101,6 +109,13 @@ public class Move implements GenericOpCode{     // 30
             case 0x02_07_01_02 -> "move_d_vv";
             case 0x02_07_02_03 -> "move_fld_d_ovv";
             case 0x02_07_03_03 -> "move_fld_d_vov";
+            case move_D_vv -> "move_D_vv";
+            case move_fld_D_ovv -> "move_fld_D_ovv";
+            case move_fld_D_vov -> "move_fld_D_vov";
+            case move_u_vv -> "move_u_vv";
+            case move_fld_u_ovv -> "move_fld_u_ovv";
+            case move_fld_u_vov -> "move_fld_u_vov";
+
             case 0x02_08_01_02 -> "move_b_vv";
             case 0x02_08_02_03 -> "move_fld_b_ovv";
             case 0x02_08_03_03 -> "move_fld_b_vov";
@@ -140,40 +155,6 @@ public class Move implements GenericOpCode{     // 30
                 throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
             }
         };
-    }
-
-    public static void main(String[] args) {
-        for (TypeCode typeCode : TypeCode.values()) {
-            String type = StringUtils.leftPad(Integer.toHexString(typeCode.getValue()), 2, '0');
-            String s = MessageFormat.format("""
-                    public static final int move_{0}_vv = 0x02_{1}_01_02;
-                    public static final int move_{0}_ovv = 0x02_{1}_02_03;
-                    public static final int move_{0}_vov = 0x02_{1}_03_03;
-                  """, typeCode.toShortString(), type);
-            System.out.println(s);
-        }
-        StringBuffer sb = new StringBuffer();
-        sb.append("""
-            public static String getName(int code){
-                return switch(code){
-            """);
-
-        for (TypeCode typeCode : TypeCode.values()) {
-            String type = StringUtils.leftPad(Integer.toHexString(typeCode.getValue()), 2, '0');
-            var shorts = typeCode.toShortString();
-            String s = MessageFormat.format("""
-                    case 0x02_{0}_01_02 -> "move_{1}_vv";
-                    case 0x02_{0}_02_03 -> "move_{1}_ovv";
-                    case 0x02_{0}_03_03 -> "move_{1}_vov";
-            """, type, shorts);
-            sb.append(s);
-        }
-        String defaultBranch = """
-                default -> throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
-            };
-        }""";
-        sb.append(defaultBranch).append("\n");
-        System.out.println(sb);
     }
 
 }

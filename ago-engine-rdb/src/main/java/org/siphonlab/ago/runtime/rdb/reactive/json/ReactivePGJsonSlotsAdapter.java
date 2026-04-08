@@ -24,6 +24,7 @@ import org.siphonlab.ago.runtime.rdb.reactive.SlotsAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -76,6 +77,7 @@ public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefS
                     case TypeCode.BOOLEAN_VALUE -> resultSet.getBoolean(1);
                     case TypeCode.FLOAT_VALUE -> resultSet.getFloat(1);
                     case TypeCode.DOUBLE_VALUE -> resultSet.getDouble(1);
+                    case DECIMAL_VALUE -> resultSet.getBigDecimal(1);
                     case TypeCode.STRING_VALUE -> resultSet.getString(1);
                     case TypeCode.OBJECT_VALUE -> {
                         PGobject obj = (PGobject) resultSet.getObject(1);
@@ -116,6 +118,7 @@ public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefS
                 case LONG_VALUE -> boxer.boxLong(callFrame, slotDef.getAgoClass(), (Long) v);
                 case FLOAT_VALUE -> boxer.boxFloat(callFrame, slotDef.getAgoClass(), (Float) v);
                 case DOUBLE_VALUE -> boxer.boxDouble(callFrame, slotDef.getAgoClass(), (Double) v);
+                case DECIMAL_VALUE -> boxer.boxDecimal(callFrame, slotDef.getAgoClass(), (BigDecimal)v);
                 case SHORT_VALUE -> boxer.boxShort(callFrame, slotDef.getAgoClass(), (Short) v);
                 case BYTE_VALUE -> boxer.boxByte(callFrame, slotDef.getAgoClass(), (Byte) v);
                 default -> throw new IllegalArgumentException("unknown unbox type: " + unboxType);
@@ -306,6 +309,16 @@ public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefS
     @Override
     public void setDouble(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, double value) {
         updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, TypeCode.DOUBLE, value);
+    }
+
+    @Override
+    public BigDecimal getDecimal(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+        return (BigDecimal) getSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, DECIMAL);
+    }
+
+    @Override
+    public void setDecimal(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, BigDecimal value) {
+        updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, DECIMAL, value);
     }
 
     @Override

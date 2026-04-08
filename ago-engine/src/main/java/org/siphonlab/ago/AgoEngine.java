@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.Executors;
 
@@ -223,6 +224,7 @@ public class AgoEngine implements ClassManager{
                     case LONG_VALUE:      frame.getSlots().setLong(i, (Long)argument); break;
                     case BOOLEAN_VALUE:   frame.getSlots().setBoolean(i, (Boolean)argument); break;
                     case DOUBLE_VALUE:    frame.getSlots().setDouble(i, (Double) argument); break;
+                    case DECIMAL_VALUE:    frame.getSlots().setDecimal(i, (BigDecimal) argument); break;
                     case BYTE_VALUE:      frame.getSlots().setByte(i, (Byte) argument); break;
                     case FLOAT_VALUE:     frame.getSlots().setFloat(i, (Float) argument); break;
                     case CHAR_VALUE:      frame.getSlots().setChar(i, (Character)argument); break;
@@ -371,6 +373,13 @@ public class AgoEngine implements ClassManager{
     }
     public ObjectArrayInstance createObjectArray(AgoClass arrayType, int length) {
         return new ObjectArrayInstance(arrayType.createSlots(), arrayType, length);
+    }
+    public UnionArrayInstance createUnionArray(AgoClass arrayType, int length) {
+        return new UnionArrayInstance(arrayType.createSlots(), arrayType, length);
+    }
+
+    public DecimalArrayInstance createDecimalArray(AgoClass arrayType, int length) {
+        return new DecimalArrayInstance(arrayType.createSlots(), arrayType, length);
     }
     public ShortArrayInstance createShortArray(AgoClass arrayType, int length) {
         return new ShortArrayInstance(arrayType.createSlots(), arrayType, length);

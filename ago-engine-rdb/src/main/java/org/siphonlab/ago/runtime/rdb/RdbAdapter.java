@@ -22,6 +22,7 @@ import org.agrona.concurrent.IdGenerator;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
+import org.jspecify.annotations.Nullable;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 
@@ -231,6 +233,7 @@ public abstract class RdbAdapter {
             case LONG_VALUE:        preparedStatement.setLong(parameterIndex, slots.getLong(index)); break;
             case BOOLEAN_VALUE:     preparedStatement.setBoolean(parameterIndex, slots.getBoolean(index)); break;
             case DOUBLE_VALUE:      preparedStatement.setDouble(parameterIndex, slots.getDouble(index)); break;
+            case DECIMAL_VALUE:      preparedStatement.setBigDecimal(parameterIndex, slots.getDecimal(index)); break;
             case BYTE_VALUE:        preparedStatement.setByte(parameterIndex, slots.getByte(index)); break;
             case FLOAT_VALUE:       preparedStatement.setFloat(parameterIndex, slots.getFloat(index)); break;
             case CHAR_VALUE:        preparedStatement.setString(parameterIndex, String.valueOf(slots.getChar(index))); break;
@@ -240,33 +243,39 @@ public abstract class RdbAdapter {
                 return fillClassRefParameter(preparedStatement, parameterIndex, agoClass);
             }
             case OBJECT_VALUE:      {
-                Instance<?> object = slots.getObject(index);
-                if(slotDef.getAgoClass() instanceof MetaClass){
-                    if(object == null){
-                        preparedStatement.setNull(parameterIndex,rdbType.getSqlType());
-                    } else {
-                        preparedStatement.setString(parameterIndex,((AgoClass)object).getFullname());
-                    }
-                    return parameterIndex + 1;
-                }
-                if(object == null){
-                    if (rdbType.getAdditional() == null) {      // box type
-                        // set to null for box type
-                        preparedStatement.setNull(parameterIndex, rdbType.getSqlType());
-                    } else {
-                        return fillObjectParameter(preparedStatement, parameterIndex, slotDef, rdbType,null);
-                    }
-                } else {
-                    if (rdbType.getAdditional() == null) {
-                        // rdbType already transformed to match primitive type
-                        return fillParameter(preparedStatement, parameterIndex, slotDef.getAgoClass().getSlotDefs()[0], rdbType, object.getSlots(), 0);
-                    } else {
-                        return fillObjectParameter(preparedStatement,parameterIndex, slotDef, rdbType, object);
-                    }
-                }
+                Integer parameterIndex1 = fillObjectParameter(preparedStatement, parameterIndex, slotDef, rdbType, slots, index);
+                if (parameterIndex1 != null) return parameterIndex1;
             } break;
         }
         return parameterIndex + 1;
+    }
+
+    private @Nullable Integer fillObjectParameter(PreparedStatement preparedStatement, int parameterIndex, AgoSlotDef slotDef, RdbType rdbType, Slots slots, int index) throws SQLException {
+        Instance<?> object = slots.getObject(index);
+        if(slotDef.getAgoClass() instanceof MetaClass){
+            if(object == null){
+                preparedStatement.setNull(parameterIndex, rdbType.getSqlType());
+            } else {
+                preparedStatement.setString(parameterIndex,((AgoClass)object).getFullname());
+            }
+            return parameterIndex + 1;
+        }
+        if(object == null){
+            if (rdbType.getAdditional() == null) {      // box type
+                // set to null for box type
+                preparedStatement.setNull(parameterIndex, rdbType.getSqlType());
+            } else {
+                return fillObjectParameter(preparedStatement, parameterIndex, slotDef, rdbType, null);
+            }
+        } else {
+            if (rdbType.getAdditional() == null) {
+                // rdbType already transformed to match primitive type
+                return fillParameter(preparedStatement, parameterIndex, slotDef.getAgoClass().getSlotDefs()[0], rdbType, object.getSlots(), 0);
+            } else {
+                return fillObjectParameter(preparedStatement, parameterIndex, slotDef, rdbType, object);
+            }
+        }
+        return null;
     }
 
     protected int fillObjectParameter(PreparedStatement preparedStatement, int parameterIndex, AgoSlotDef slotDef, RdbType rdbType, Instance<?> object) throws SQLException {
@@ -602,6 +611,7 @@ public abstract class RdbAdapter {
             case SHORT_VALUE:   ps.setShort(index, (Short) value); break;
             case BYTE_VALUE:    ps.setByte(index, (Byte) value); break;
             case DOUBLE_VALUE:  ps.setDouble(index, (Double) value); break;
+            case DECIMAL_VALUE:  ps.setBigDecimal(index, (BigDecimal) value); break;
             case FLOAT_VALUE:   ps.setFloat(index, (Float) value); break;
             case BOOLEAN_VALUE: ps.setBoolean(index, (Boolean) value); break;
             case STRING_VALUE:  ps.setString(index, (String) value); break;

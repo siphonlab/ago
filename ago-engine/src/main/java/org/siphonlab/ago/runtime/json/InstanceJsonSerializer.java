@@ -236,6 +236,9 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
                 case DOUBLE_VALUE:
                     gen.writeNumberField(slotDefName, slots.getDouble(slotDefIndex));
                     break;
+                case DECIMAL_VALUE:
+                    gen.writeNumberField(slotDefName, slots.getDecimal(slotDefIndex));
+                    break;
                 case BOOLEAN_VALUE:
                     gen.writeBooleanField(slotDefName, slots.getBoolean(slotDefIndex));
                     break;
@@ -304,6 +307,9 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             case DOUBLE_VALUE:
                 gen.writeNumber(slots.getDouble(0));
                 break;
+            case DECIMAL_VALUE:
+                gen.writeNumber(slots.getDecimal(0));
+                break;
             case BOOLEAN_VALUE:
                 gen.writeBoolean(slots.getBoolean(0));
                 break;
@@ -322,6 +328,40 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             case OBJECT_VALUE:
                 Instance<?> object = slots.getObject(0);
                 serialize(object, gen, serializerProvider);
+                break;
+            case UNION_VALUE:
+                var union = slots.getUnion(0);
+                switch (union.getType().value){
+                    case INT_VALUE:
+                        gen.writeNumber(union.getIntValue()); break;
+                    case LONG_VALUE:
+                        gen.writeNumber(union.getLongValue()); break;
+                    case FLOAT_VALUE:
+                        gen.writeNumber(union.getFloatValue()); break;
+                    case DOUBLE_VALUE:
+                        gen.writeNumber(union.getDoubleValue()); break;
+                    case DECIMAL_VALUE:
+                        gen.writeNumber(union.getDecimalValue()); break;
+                    case BOOLEAN_VALUE:
+                        gen.writeBoolean(union.getBooleanValue()); break;
+                    case STRING_VALUE:
+                        gen.writeString(union.getStringValue()); break;
+                    case SHORT_VALUE:
+                        gen.writeNumber(union.getShortValue()); break;
+                    case BYTE_VALUE:
+                        gen.writeNumber(union.getByteValue()); break;
+                    case CHAR_VALUE:
+                        gen.writeString(String.valueOf(union.getCharValue())); break;
+                    case OBJECT_VALUE:
+                        serialize(union.getObjectValue(),  gen, serializerProvider);    break;
+                    case NULL_VALUE:
+                        gen.writeNull();
+                        break;
+                    case CLASS_REF_VALUE:
+                        int classRef = union.getClassRefValue();
+                        gen.writeString(agoEngine.getClass(classRef).getFullname());
+                        break;
+                }
                 break;
             case NULL_VALUE:
                 gen.writeNull();

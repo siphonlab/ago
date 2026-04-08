@@ -38,6 +38,7 @@ public class LangClasses {
     private final AgoClass booleanClass;
     private final AgoClass floatClass;
     private final AgoClass doubleClass;
+    private final AgoClass decimalClass;
 
     private final AgoClass primitiveClass;
     private final AgoClass primitiveNumberClass;
@@ -53,6 +54,7 @@ public class LangClasses {
     private final AgoClass booleanArrayClass;
     private final AgoClass floatArrayClass;
     private final AgoClass doubleArrayClass;
+    private final AgoClass decimalArrayClass;
     private final AgoClass classRefArrayClass;
     private final AgoClass objectArrayClass;
 
@@ -83,6 +85,7 @@ public class LangClasses {
         this.booleanClass = classManager.getClass("lang.Boolean");
         this.floatClass = classManager.getClass("lang.Float");
         this.doubleClass = classManager.getClass("lang.Double");
+        this.decimalClass = classManager.getClass("lang.Decimal");
 
         this.primitiveClass = classManager.getClass("lang.Primitive");
         this.primitiveNumberClass = classManager.getClass("lang.PrimitiveNumber");
@@ -97,6 +100,7 @@ public class LangClasses {
         this.booleanArrayClass = classManager.getClass("lang.[boolean");
         this.floatArrayClass = classManager.getClass("lang.[float");
         this.doubleArrayClass = classManager.getClass("lang.[double");
+        this.decimalArrayClass = classManager.getClass("lang.[decimal");
         this.classRefArrayClass = classManager.getClass("lang.[classref");
         this.objectArrayClass = classManager.getClass("lang.[Object");
 
@@ -195,6 +199,10 @@ public class LangClasses {
         return doubleClass;
     }
 
+    public AgoClass getDecimalClass() {
+        return decimalClass;
+    }
+
     public AgoClass getArrayClass() {
         return arrayClass;
     }
@@ -233,6 +241,10 @@ public class LangClasses {
 
     public AgoClass getDoubleArrayClass() {
         return doubleArrayClass;
+    }
+
+    public AgoClass getDecimalArrayClass() {
+        return decimalArrayClass;
     }
 
     public AgoClass getClassRefArrayClass() {
