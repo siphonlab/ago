@@ -38,7 +38,6 @@ public class UnionCast implements GenericOpCode {
     public static final int D2u = 0x34_0d_0e_03;
 
     public static final int u2o = 0x34_0e_01_03;
-    public static final int u2n = 0x34_0e_02_03;
     public static final int u2S = 0x34_0e_03_03;
     public static final int u2B = 0x34_0e_04_03;
     public static final int u2c = 0x34_0e_05_03;
@@ -50,6 +49,8 @@ public class UnionCast implements GenericOpCode {
     public static final int u2l = 0x34_0e_0b_03;
     public static final int u2C = 0x34_0e_0c_03;
     public static final int u2D = 0x34_0e_0d_03;
+
+    public static final int u2u = 0x34_0e_0e_03;
 
 //    // cast object with type validation
 //    // cast_object(target, src, to_type_code, to_type_class)

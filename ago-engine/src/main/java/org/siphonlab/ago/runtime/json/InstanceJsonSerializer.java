@@ -20,9 +20,11 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import org.apache.commons.lang3.NotImplementedException;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -223,65 +225,113 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
         for (AgoSlotDef slotDef : slotDefs) {
             int slotDefIndex = slotDef.getIndex();
             String slotDefName = config.isWriteSlots() ? slotDef.getName() + "_" + slotDefIndex : slotDef.getName();
-            switch (slotDef.getTypeCode().value) {
-                case INT_VALUE:
-                    gen.writeNumberField(slotDefName, slots.getInt(slotDefIndex));
-                    break;
-                case LONG_VALUE:
-                    gen.writeNumberField(slotDefName, slots.getLong(slotDefIndex));
-                    break;
-                case FLOAT_VALUE:
-                    gen.writeNumberField(slotDefName, slots.getFloat(slotDefIndex));
-                    break;
-                case DOUBLE_VALUE:
-                    gen.writeNumberField(slotDefName, slots.getDouble(slotDefIndex));
-                    break;
-                case DECIMAL_VALUE:
-                    gen.writeNumberField(slotDefName, slots.getDecimal(slotDefIndex));
-                    break;
-                case BOOLEAN_VALUE:
-                    gen.writeBooleanField(slotDefName, slots.getBoolean(slotDefIndex));
-                    break;
-                case STRING_VALUE:
-                    gen.writeStringField(slotDefName, slots.getString(slotDefIndex));
-                    break;
-                case SHORT_VALUE:
-                    gen.writeNumberField(slotDefName, slots.getShort(slotDefIndex));
-                    break;
-                case BYTE_VALUE:
-                    gen.writeNumberField(slotDefName, slots.getByte(slotDefIndex));
-                    break;
-                case CHAR_VALUE:
-                    gen.writeStringField(slotDefName, String.valueOf(slots.getChar(slotDefIndex)));
-                    break;
-                case OBJECT_VALUE:
-                    Instance<?> object = slots.getObject(slotDefIndex);
-                    if (object == null) {
-                        gen.writeNullField(slotDefName);
-                    } else {
-                        boolean innerWriteType = switch (config.getWriteType()) {
-                            case Always, Inner -> true;
-                            case OnDemand -> (slotDef.getAgoClass() != object.getAgoClass());
-                            case null, default -> false;
-                        };
-                        gen.setWriteType(innerWriteType);
-                        gen.writeObjectField(slotDefName, object);
-                    }
-                    break;
-                case NULL_VALUE:
-                    gen.writeNullField(slotDefName);
-                    break;
-                case CLASS_REF_VALUE:
-                    int classRef = slots.getClassRef(slotDefIndex);
-                    if(classRef == 0){
-                        gen.writeNullField(slotDefName);
-                    } else {
-                        gen.writeStringField(slotDefName, agoEngine.getClass(classRef).getFullname());
-                    }
-                    break;
-            }
+            writeSlot(agoEngine, gen, config, slots, slotDef, slotDefName, slotDefIndex);
         }
         gen.writeEndObject();
+    }
+
+    private static void writeSlot(AgoEngine agoEngine, AgoJsonGenerator gen, AgoJsonConfig config, Slots slots, AgoSlotDef slotDef, String slotDefName, int slotDefIndex) throws IOException {
+        switch (slotDef.getTypeCode().value) {
+            case INT_VALUE:
+                gen.writeNumberField(slotDefName, slots.getInt(slotDefIndex));
+                break;
+            case LONG_VALUE:
+                gen.writeNumberField(slotDefName, slots.getLong(slotDefIndex));
+                break;
+            case FLOAT_VALUE:
+                gen.writeNumberField(slotDefName, slots.getFloat(slotDefIndex));
+                break;
+            case DOUBLE_VALUE:
+                gen.writeNumberField(slotDefName, slots.getDouble(slotDefIndex));
+                break;
+            case DECIMAL_VALUE:
+                gen.writeNumberField(slotDefName, slots.getDecimal(slotDefIndex));
+                break;
+            case BOOLEAN_VALUE:
+                gen.writeBooleanField(slotDefName, slots.getBoolean(slotDefIndex));
+                break;
+            case STRING_VALUE:
+                gen.writeStringField(slotDefName, slots.getString(slotDefIndex));
+                break;
+            case SHORT_VALUE:
+                gen.writeNumberField(slotDefName, slots.getShort(slotDefIndex));
+                break;
+            case BYTE_VALUE:
+                gen.writeNumberField(slotDefName, slots.getByte(slotDefIndex));
+                break;
+            case CHAR_VALUE:
+                gen.writeStringField(slotDefName, String.valueOf(slots.getChar(slotDefIndex)));
+                break;
+            case OBJECT_VALUE:
+                writeObjectSlot(gen, config, slotDef.getAgoClass(), slotDefName, slots.getObject(slotDefIndex));
+                break;
+            case UNION_VALUE:
+                if(slotDef.getAgoClass().getConcreteTypeInfo() instanceof NullableTypeInfo n){
+                    var v = slots.getUnion(slotDef.getIndex());
+                    switch (n.getBaseClass().getTypeCode().value){
+                        case INT_VALUE:
+                            gen.writeNumberField(slotDefName, (Integer)v);
+                            break;
+                        case LONG_VALUE:
+                            gen.writeNumberField(slotDefName, (Long)v);
+                            break;
+                        case FLOAT_VALUE:
+                            gen.writeNumberField(slotDefName, (Float)v);
+                            break;
+                        case DOUBLE_VALUE:
+                            gen.writeNumberField(slotDefName, (Double)v);
+                            break;
+                        case DECIMAL_VALUE:
+                            gen.writeNumberField(slotDefName, (BigDecimal)v);
+                            break;
+                        case BOOLEAN_VALUE:
+                            gen.writeBooleanField(slotDefName, (Boolean)v);
+                            break;
+                        case STRING_VALUE:
+                            gen.writeStringField(slotDefName, (String)v);
+                            break;
+                        case SHORT_VALUE:
+                            gen.writeNumberField(slotDefName, (Short)v);
+                            break;
+                        case BYTE_VALUE:
+                            gen.writeNumberField(slotDefName, (Byte)v);
+                            break;
+                        case CHAR_VALUE:
+                            gen.writeStringField(slotDefName, String.valueOf((Character)v));
+                            break;
+                        case OBJECT_VALUE:
+                            writeObjectSlot(gen, config, n.getBaseClass(), slotDefName, (Instance<?>) v);
+                            break;
+                    }
+                } else {
+                    throw new IllegalArgumentException("Unsupported concrete type " + slotDef.getAgoClass().getFullname());
+                }
+            case NULL_VALUE:
+                gen.writeNullField(slotDefName);
+                break;
+            case CLASS_REF_VALUE:
+                int classRef = slots.getClassRef(slotDefIndex);
+                if(classRef == 0){
+                    gen.writeNullField(slotDefName);
+                } else {
+                    gen.writeStringField(slotDefName, agoEngine.getClass(classRef).getFullname());
+                }
+                break;
+        }
+    }
+
+    private static void writeObjectSlot(AgoJsonGenerator gen, AgoJsonConfig config, AgoClass definitionClass, String slotDefName, Instance<?> object) throws IOException {
+        if (object == null) {
+            gen.writeNullField(slotDefName);
+        } else {
+            boolean innerWriteType = switch (config.getWriteType()) {
+                case Always, Inner -> true;
+                case OnDemand -> (definitionClass != object.getAgoClass());
+                case null, default -> false;
+            };
+            gen.setWriteType(innerWriteType);
+            gen.writeObjectField(slotDefName, object);
+        }
     }
 
     protected void serializeUnboxed(Instance<?> instance, TypeCode typeCode, JsonGenerator gen, SerializerProvider serializerProvider,
@@ -331,36 +381,23 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
                 break;
             case UNION_VALUE:
                 var union = slots.getUnion(0);
-                switch (union.getType().value){
-                    case INT_VALUE:
-                        gen.writeNumber(union.getIntValue()); break;
-                    case LONG_VALUE:
-                        gen.writeNumber(union.getLongValue()); break;
-                    case FLOAT_VALUE:
-                        gen.writeNumber(union.getFloatValue()); break;
-                    case DOUBLE_VALUE:
-                        gen.writeNumber(union.getDoubleValue()); break;
-                    case DECIMAL_VALUE:
-                        gen.writeNumber(union.getDecimalValue()); break;
-                    case BOOLEAN_VALUE:
-                        gen.writeBoolean(union.getBooleanValue()); break;
-                    case STRING_VALUE:
-                        gen.writeString(union.getStringValue()); break;
-                    case SHORT_VALUE:
-                        gen.writeNumber(union.getShortValue()); break;
-                    case BYTE_VALUE:
-                        gen.writeNumber(union.getByteValue()); break;
-                    case CHAR_VALUE:
-                        gen.writeString(String.valueOf(union.getCharValue())); break;
-                    case OBJECT_VALUE:
-                        serialize(union.getObjectValue(),  gen, serializerProvider);    break;
-                    case NULL_VALUE:
-                        gen.writeNull();
-                        break;
-                    case CLASS_REF_VALUE:
-                        int classRef = union.getClassRefValue();
-                        gen.writeString(agoEngine.getClass(classRef).getFullname());
-                        break;
+                switch (union) {
+                    case null -> gen.writeNull();
+                    case String s -> gen.writeString(s);
+                    case Instance<?> u -> serialize(u, gen, serializerProvider);
+                    case Integer number -> gen.writeNumber(number);
+                    case Boolean b -> gen.writeBoolean(b);
+                    case Double number -> gen.writeNumber(number);
+                    case Long number -> gen.writeNumber(number);
+                    case Byte number -> gen.writeNumber(number);
+                    case BigDecimal number -> gen.writeNumber(number);
+                    case Float number -> gen.writeNumber(number);
+                    case Character c -> gen.writeString(c.toString());
+                    case Short number -> gen.writeNumber(number);
+                    case ClassRefValue c -> gen.writeString(c.toString());
+                    default -> {
+                        throw new IllegalArgumentException("unknown union type: " + union.getClass());
+                    }
                 }
                 break;
             case NULL_VALUE:

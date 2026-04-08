@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
@@ -64,6 +65,7 @@ public class RdbEngine extends AgoEngine {
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
@@ -80,6 +82,7 @@ public class RdbEngine extends AgoEngine {
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
         module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
         module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer(this));
 

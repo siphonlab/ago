@@ -211,7 +211,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
             case INT_VALUE -> int.class;
             case LONG_VALUE -> long.class;
             case OBJECT_VALUE -> Instance.class;
-            case UNION_VALUE -> Instance.class;
+            case UNION_VALUE -> Object.class;
             case NULL_VALUE -> null;
             case STRING_VALUE -> String.class;
             case CLASS_REF_VALUE -> int.class;

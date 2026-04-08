@@ -197,6 +197,11 @@ public class CallFrameBoundSlotsImpl<T extends Slots> implements CallFrameBoundS
     }
 
     @Override
+    public void incDecimal(int slot, BigDecimal value) {
+        inner.incDecimal(slot, value);
+    }
+
+    @Override
     public void incByte(int slot, byte value) {
         inner.incByte(slot, value);
     }

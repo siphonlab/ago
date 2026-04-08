@@ -27,6 +27,7 @@ import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.ResultSlots;
 import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.classloader.ClassRefValue;
 
 import java.io.IOException;
 
@@ -45,6 +46,13 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
         assert p.currentToken() == JsonToken.START_OBJECT;
         p.nextToken();
         var dataType = p.getIntValue();
+
+        int unionType = 0;
+        if(dataType == TypeCode.UNION_VALUE){
+            p.nextToken();  // FIELD_NAME "unionType"
+            p.nextToken();
+            unionType = p.getIntValue();
+        }
 
         p.nextToken();
         assert p.currentToken() == JsonToken.FIELD_NAME;   // "value":
@@ -81,8 +89,10 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
                 resultSlots.setCharValue(p.getValueAsString().charAt(0));
                 break;
             case TypeCode.VOID_VALUE:
+                resultSlots.setVoidValue();
+                break;
             case TypeCode.NULL_VALUE:
-
+                resultSlots.setUnionValue(null);
                 break;
 
             case TypeCode.CLASS_REF_VALUE:
@@ -94,7 +104,50 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
                 break;
 
             case TypeCode.UNION_VALUE:
-                resultSlots.setUnionValue(ctxt.readValue(p, Instance.class));
+                switch (unionType){
+                    case TypeCode.INT_VALUE:
+                        resultSlots.setUnionValue(p.getIntValue());
+                        break;
+                    case TypeCode.LONG_VALUE:
+                        resultSlots.setUnionValue(p.getLongValue());
+                        break;
+                    case TypeCode.SHORT_VALUE:
+                        resultSlots.setUnionValue(p.getShortValue());
+                        break;
+                    case TypeCode.BYTE_VALUE:
+                        resultSlots.setUnionValue(p.getByteValue());
+                        break;
+                    case TypeCode.FLOAT_VALUE:
+                        resultSlots.setUnionValue(p.getFloatValue());
+                        break;
+                    case TypeCode.DOUBLE_VALUE:
+                        resultSlots.setUnionValue(p.getDoubleValue());
+                        break;
+                    case TypeCode.DECIMAL_VALUE:
+                        resultSlots.setUnionValue(p.getDecimalValue());
+                        break;
+                    case TypeCode.BOOLEAN_VALUE:
+                        resultSlots.setUnionValue(p.getBooleanValue());
+                        break;
+                    case TypeCode.STRING_VALUE:
+                        resultSlots.setUnionValue(p.getValueAsString());
+                        break;
+                    case TypeCode.CHAR_VALUE:
+                        resultSlots.setUnionValue(p.getValueAsString().charAt(0));
+                        break;
+                    case TypeCode.VOID_VALUE, TypeCode.NULL_VALUE:
+                        resultSlots.setUnionValue(null);
+                        break;
+
+                    case TypeCode.CLASS_REF_VALUE:
+                        resultSlots.setUnionValue(new ClassRefValue(p.getValueAsString()));
+                        break;
+
+                    case TypeCode.OBJECT_VALUE:
+                        resultSlots.setUnionValue(ctxt.readValue(p, Instance.class));
+                        break;
+
+                }
                 break;
         }
         p.nextToken();

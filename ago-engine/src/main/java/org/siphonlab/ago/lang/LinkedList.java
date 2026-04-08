@@ -300,7 +300,7 @@ public class LinkedList {
                 callFrame.finishObject(((java.util.LinkedList<Instance<?>>) ls).get(index));
                 break;
             case UNION_VALUE:
-                callFrame.finishUnion(((java.util.LinkedList<Instance<?>>) ls).get(index));
+                callFrame.finishUnion(((java.util.LinkedList<Object>) ls).get(index));
                 break;
             case CLASS_REF_VALUE:
                 callFrame.finishInt(((java.util.LinkedList<Integer>) ls).get(index));
@@ -438,7 +438,7 @@ public class LinkedList {
                 callFrame.finishObject(((Iterator<Instance>) iterator).next());
                 break;
             case UNION_VALUE:
-                callFrame.finishUnion(((Iterator<Instance>) iterator).next());
+                callFrame.finishUnion(((Iterator<Object>) iterator).next());
                 break;
             case CLASS_REF_VALUE:
                 callFrame.finishClassRef(callFrame.getAgoEngine().getClass(((Iterator<Integer>) iterator).next()));

@@ -54,6 +54,12 @@ public class Mod {
     public static final int mod_d_vvv   = 0x17_07_04_03;
     public static final int mod_d_vcv   = 0x17_07_05_04;
 
+    public static final int mod_D_vc    = 0x17_0d_01_03;
+    public static final int mod_D_vvc   = 0x17_0d_02_04;
+    public static final int mod_D_vv    = 0x17_0d_03_02;
+    public static final int mod_D_vvv   = 0x17_0d_04_03;
+    public static final int mod_D_vcv   = 0x17_0d_05_04;
+
     public static final int mod_b_vc    = 0x17_08_01_02;
     public static final int mod_b_vvc   = 0x17_08_02_03;
     public static final int mod_b_vv    = 0x17_08_03_02;
@@ -92,6 +98,12 @@ public class Mod {
             case 0x17_07_03_02 ->    "mod_d_vv";
             case 0x17_07_04_03 ->    "mod_d_vvv";
             case 0x17_07_05_04 ->  "mod_d_vcv";
+
+            case mod_D_vc -> "mod_D_vc";
+            case mod_D_vvc -> "mod_D_vvc";
+            case mod_D_vv -> "mod_D_vv";
+            case mod_D_vvv -> "mod_D_vvv";
+            case mod_D_vcv -> "mod_D_vcv";
 
             case 0x17_08_01_02 ->  "mod_b_vc";
             case 0x17_08_02_03 ->  "mod_b_vvc";

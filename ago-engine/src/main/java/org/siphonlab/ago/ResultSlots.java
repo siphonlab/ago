@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import org.jspecify.annotations.Nullable;
+
 import java.math.BigDecimal;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -40,7 +42,8 @@ public class ResultSlots {
     private int intValue;
     private long longValue;
     protected Instance<?> objectValue;
-    protected Union unionValue;
+    protected Object unionValue;
+    protected int unionValueType;
     private String stringValue;
     private AgoClass classRefValue;
 
@@ -145,13 +148,13 @@ public class ResultSlots {
         return r;
     }
 
-    public Union takeUnionValue() {
+    public Object takeUnionValue() {
         var r= this.unionValue;
         unionValue = null;
         return r;
     }
 
-    public Union getUnionValue() {
+    public Object getUnionValue() {
         return unionValue;
     }
 
@@ -160,9 +163,14 @@ public class ResultSlots {
         dataType = TypeCode.OBJECT_VALUE;
     }
 
-    public void setUnionValue(Union value) {
+    public void setUnionValue(Object value) {
         this.unionValue = value;
         dataType = UNION_VALUE;
+        unionValueType = Slots.extractUnionType(value).value;
+    }
+
+    public int getUnionValueType() {
+        return unionValueType;
     }
 
     public String getStringValue() {
@@ -188,37 +196,28 @@ public class ResultSlots {
     }
 
     public Instance<?> castAnyToObject(Boxer boxer) {
-        switch (getDataType()) {
-            case VOID_VALUE:
-            case NULL_VALUE:
-                return null;
-            case OBJECT_VALUE:
-                return getObjectValue();
-            case INT_VALUE:
-                return boxer.boxInt(getIntValue());
-            case BYTE_VALUE:
-                return boxer.boxByte(getByteValue());
-            case SHORT_VALUE:
-                return boxer.boxShort(getShortValue());
-            case LONG_VALUE:
-                return boxer.boxLong(getLongValue());
-            case FLOAT_VALUE:
-                return boxer.boxFloat(getFloatValue());
-            case DOUBLE_VALUE:
-                return boxer.boxDouble(getDoubleValue());
-            case DECIMAL_VALUE:
-                return boxer.boxDecimal(getDecimalValue());
-            case BOOLEAN_VALUE:
-                return boxer.boxBoolean(getBooleanValue());
-            case CHAR_VALUE:
-                return boxer.boxChar(getCharValue());
-            case STRING_VALUE:
-                return boxer.boxString(getStringValue());
-            case CLASS_REF_VALUE:
-                return boxer.boxClassRef(getClassRefValue().getClassId());
-            default:
-                throw new UnsupportedOperationException("unexpected data type " + getDataType());
-        }
+        int type = getDataType();
+        return castAnyToObject(boxer, type);
+    }
+
+    private Instance<? extends AgoClass> castAnyToObject(Boxer boxer, int type) {
+        return switch (type) {
+            case VOID_VALUE, NULL_VALUE -> null;
+            case OBJECT_VALUE -> getObjectValue();
+            case INT_VALUE -> boxer.boxInt(getIntValue());
+            case BYTE_VALUE -> boxer.boxByte(getByteValue());
+            case SHORT_VALUE -> boxer.boxShort(getShortValue());
+            case LONG_VALUE -> boxer.boxLong(getLongValue());
+            case FLOAT_VALUE -> boxer.boxFloat(getFloatValue());
+            case DOUBLE_VALUE -> boxer.boxDouble(getDoubleValue());
+            case DECIMAL_VALUE -> boxer.boxDecimal(getDecimalValue());
+            case BOOLEAN_VALUE -> boxer.boxBoolean(getBooleanValue());
+            case CHAR_VALUE -> boxer.boxChar(getCharValue());
+            case STRING_VALUE -> boxer.boxString(getStringValue());
+            case CLASS_REF_VALUE -> boxer.boxClassRef(getClassRefValue().getClassId());
+            case UNION_VALUE -> castAnyToObject(boxer, getUnionValueType());
+            default -> throw new UnsupportedOperationException("unexpected data type " + getDataType());
+        };
     }
 
     public Object getResultAsObject() {
@@ -250,6 +249,8 @@ public class ResultSlots {
                 return (this.getStringValue());
             case CLASS_REF_VALUE:
                 return this.getClassRefValue();
+            case UNION_VALUE:
+                return this.unionValue;
             default:
                 throw new UnsupportedOperationException("unexpected data type " + this.getDataType());
         }
@@ -286,6 +287,8 @@ public class ResultSlots {
                 return (this.getStringValue());
             case CLASS_REF_VALUE:
                 return this.getClassRefValue();
+            case UNION_VALUE:
+                return this.unionValue;
             default:
                 throw new UnsupportedOperationException("unexpected data type " + this.getDataType());
         }

@@ -32,6 +32,8 @@ public class Neg {
 
     public static final int neg_d_vv = 0x19_07_01_02;
 
+    public static final int neg_D_vv = 0x19_0d_01_02;
+
     public static final int neg_b_vv = 0x19_08_01_02;
 
     public static final int neg_s_vv = 0x19_09_01_02;
@@ -46,6 +48,7 @@ public class Neg {
             case neg_b_vv -> "neg_b_vv";
             case neg_s_vv  -> "neg_s_vv";
             case neg_l_vv -> "neg_l_vv";
+            case neg_D_vv -> "neg_D_vv";
             default -> {
                 var t = OpCode.extractType(code);
                 if (t >= TypeCode.GENERIC_TYPE_START) {

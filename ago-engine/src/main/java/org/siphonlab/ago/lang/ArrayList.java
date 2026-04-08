@@ -48,6 +48,7 @@ public class ArrayList {
             case BYTE_VALUE -> new ByteArrayList();
             case CHAR_VALUE -> new CharArrayList();
             case OBJECT_VALUE, DECIMAL_VALUE -> new java.util.ArrayList<Instance<?>>();
+            case UNION_VALUE -> new java.util.ArrayList<Object>();
             case CLASS_REF_VALUE -> new IntArrayList();
             default -> throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
         };
@@ -70,6 +71,7 @@ public class ArrayList {
             case BYTE_VALUE -> new ByteArrayList(((ByteArrayInstance) array).value);
             case CHAR_VALUE -> new CharArrayList(((CharArrayInstance) array).value);
             case OBJECT_VALUE, DECIMAL_VALUE -> new java.util.ArrayList<>(Arrays.asList(((ObjectArrayInstance) array).value));
+            case UNION_VALUE -> new java.util.ArrayList<>(Arrays.asList(((UnionArrayInstance) array).value));
             case CLASS_REF_VALUE -> new IntArrayList(((IntArrayInstance) array).value);
             default -> throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
         };
@@ -415,7 +417,7 @@ public class ArrayList {
                 callFrame.finishObject(((java.util.ArrayList<Instance<?>>) ls).get(index));
                 break;
             case UNION_VALUE:
-                callFrame.finishUnion(((java.util.ArrayList<Instance<?>>) ls).get(index));
+                callFrame.finishUnion(((java.util.ArrayList<Object>) ls).get(index));
                 break;
             case CLASS_REF_VALUE:
                 callFrame.finishInt(((IntArrayList) ls).get(index));
@@ -633,7 +635,7 @@ public class ArrayList {
                 }
             }
             case OBJECT_VALUE -> callFrame.finishObject(((java.util.Iterator<Instance<?>>) it).next());
-            case UNION_VALUE -> callFrame.finishUnion(((java.util.Iterator<Instance<?>>) it).next());
+            case UNION_VALUE -> callFrame.finishUnion(((java.util.Iterator<Object>) it).next());
             case CLASS_REF_VALUE -> {
                 if (it instanceof IntIterator ii) {
                     callFrame.finishClassRef(callFrame.getAgoEngine().getClass(ii.next()));
@@ -710,6 +712,9 @@ public class ArrayList {
                 break;
             case OBJECT_VALUE:
                 Collections.addAll(((java.util.ArrayList<Instance<?>>) payload), (Instance<?>[]) arr);
+                break;
+            case UNION_VALUE:
+                Collections.addAll(((java.util.ArrayList<Object>) payload), ((Object[]) arr));
                 break;
             case CLASS_REF_VALUE:
                 ((IntArrayList)payload).addAll((int[])arr);
@@ -812,7 +817,7 @@ public class ArrayList {
 
             case UNION_VALUE: {
                 @SuppressWarnings("unchecked")
-                java.util.ArrayList<Instance<?>> objList = (java.util.ArrayList<Instance<?>>) payload;
+                java.util.ArrayList<Object> objList = (java.util.ArrayList<Object>) payload;
                 var arrObj = agoEngine.createUnionArray(callFrame.getAgoClass().getResultClass(), objList.size());
                 objList.toArray(arrObj.value);
                 callFrame.finishObject(arrObj);

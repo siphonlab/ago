@@ -237,6 +237,12 @@ public class RdbSlots implements Slots {
     }
 
     @Override
+    public void incDecimal(int slot, BigDecimal value) {
+        if (!restoring) collectChangedSlot(slot);
+        baseSlots.incDecimal(slot, value);
+    }
+
+    @Override
     public void incByte(int slot, byte value) {
         if (!restoring) collectChangedSlot(slot);
         baseSlots.incByte(slot, value);

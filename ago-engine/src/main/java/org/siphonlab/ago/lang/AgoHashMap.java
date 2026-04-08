@@ -194,7 +194,7 @@ public class AgoHashMap {
                     break;
 
                 case UNION_VALUE:
-                    callFrame.finishUnion((Instance<?>) v);
+                    callFrame.finishUnion(v);
                     break;
             }
         }
@@ -578,7 +578,7 @@ public class AgoHashMap {
                 case BOOLEAN_VALUE:
                     ((BooleanArrayList)ls).add((Integer) v == 1);
                     break;
-                case STRING_VALUE, OBJECT_VALUE, DECIMAL_VALUE:
+                case STRING_VALUE, OBJECT_VALUE, DECIMAL_VALUE, UNION_VALUE:
                     ((java.util.ArrayList<Object>)ls).add(v);
                     break;
                 case SHORT_VALUE:
@@ -625,7 +625,7 @@ public class AgoHashMap {
                 case BOOLEAN_VALUE:
                     ((BooleanArrayList)ls).add((Integer) v == 1);
                     break;
-                case STRING_VALUE, OBJECT_VALUE, DECIMAL_VALUE:
+                case STRING_VALUE, OBJECT_VALUE, DECIMAL_VALUE, UNION_VALUE:
                     ((java.util.ArrayList<Object>)ls).add(v);
                     break;
                 case SHORT_VALUE:
@@ -766,6 +766,7 @@ public class AgoHashMap {
 
             case STRING_VALUE:
             case OBJECT_VALUE:
+            case UNION_VALUE:
             case DECIMAL_VALUE:{
                 @SuppressWarnings("unchecked")
                 var entry = ((Iterator<Map.Entry<Object, Object>>)itObj).next();
@@ -779,6 +780,9 @@ public class AgoHashMap {
                         break;
                     case OBJECT_VALUE:
                         slots.setObject(0, (Instance<?>)keyObj);
+                        break;
+                    case UNION_VALUE:
+                        slots.setUnion(0, keyObj);
                         break;
                 }
                 writeValue(slots, 1, valueType, entry.getValue());
@@ -825,6 +829,9 @@ public class AgoHashMap {
                 break;
             case OBJECT_VALUE:
                 slots.setObject(index, (Instance<?>) val);
+                break;
+            case UNION_VALUE:
+                slots.setUnion(index, val);
                 break;
             case CLASS_REF_VALUE:
                 slots.setClassRef(index, (Integer) val);

@@ -37,6 +37,9 @@ public class LittleEquals implements GenericOpCode {
     public static final int le_d_vvcc  = 0x12_07_02_04;
     public static final int le_d_vvv   = 0x12_07_04_03;
 
+    public static final int le_D_vvccccc = 0x12_0d_02_07;
+    public static final int le_D_vvv   = 0x12_0d_04_03;
+
     public static final int le_b_vvc   = 0x12_08_02_03;
     public static final int le_b_vvv   = 0x12_08_04_03;
 
@@ -56,9 +59,6 @@ public class LittleEquals implements GenericOpCode {
 
     public static final int le_B_vvc = 0x12_04_02_03;
     public static final int le_B_vvv = 0x12_04_04_03;
-
-    public static final int le_o_vvc = 0x12_01_02_03;
-    public static final int le_o_vvv = 0x12_01_04_03;
 
     public static final int le_C_vvc = 0x12_0c_02_03;
     public static final int le_C_vvv = 0x12_0c_04_03;
@@ -93,8 +93,8 @@ public class LittleEquals implements GenericOpCode {
             case le_B_vvc -> "le_B_vvc";
             case le_B_vvv -> "le_B_vvv";
 
-            case le_o_vvc -> "le_o_vvc";
-            case le_o_vvv -> "le_o_vvv";
+            case le_D_vvccccc -> "le_D_vvcc";
+            case le_D_vvv -> "le_D_vvv";
 
             case le_C_vvc -> "le_C_vvc";
             case le_C_vvv -> "le_C_vvv";

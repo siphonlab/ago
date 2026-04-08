@@ -205,6 +205,12 @@ public class RdbRefSlots implements Slots, ObjectRefOwner {
     }
 
     @Override
+    public void incDecimal(int slot, BigDecimal value) {
+        BigDecimal current = slotsAdapter.getDecimal(this, objectRef, slot);
+        slotsAdapter.setDecimal(this, objectRef, slot, current.add(value));
+    }
+
+    @Override
     public void incByte(int slot, byte value) {
         byte current = slotsAdapter.getByte(this, objectRef, slot);
         slotsAdapter.setByte(this, objectRef, slot, (byte) (current + value));

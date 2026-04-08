@@ -28,7 +28,7 @@ public class OpCode {
     public static final int DTYPE_MASK      = 0x00ff0000;
     public static final int DTYPE_MASK_NEG  = 0xff00ffff;
     public static final int SIZE_MASK       = 0x000000ff;
-    public static final int LAST_KIND       = Accept.KIND_ACCEPT;
+    public static final int LAST_KIND       = UnionInstanceOf.KIND_UNION_INSTANCE_OF;
 
     public static final int VOID_DTYPE      = 0x00000000;
     public static final int BOOLEAN_DTYPE   = 0x00040000;
@@ -95,6 +95,9 @@ public class OpCode {
 
             case Pause.KIND_PAUSE -> Pause.getName(code);
             case Accept.KIND_ACCEPT -> Accept.getName(code);
+
+            case UnionCast.KIND_UNION_CAST ->  UnionCast.getName(code);
+            case UnionInstanceOf.KIND_UNION_INSTANCE_OF ->  UnionInstanceOf.getName(code);
 
             default -> "unknown code " + code;
         };

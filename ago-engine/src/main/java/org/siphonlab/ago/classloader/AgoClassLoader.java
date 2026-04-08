@@ -682,6 +682,7 @@ public class AgoClassLoader implements ClassManager{
                     case INT_VALUE -> buffer.getInt();
                     case LONG_VALUE -> buffer.getLong();
                     case OBJECT_VALUE -> null;
+                    case UNION_VALUE -> null;
                     case NULL_VALUE -> null;
                     case STRING_VALUE -> strings[buffer.getInt()];
                     case CLASS_REF_VALUE -> {

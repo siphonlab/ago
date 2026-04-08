@@ -34,6 +34,9 @@ public class IncDec {
     public static final int inc_d_ov   = 0x18_07_01_03;
     public static final int inc_d_ovcc = 0x18_07_02_04;
 
+    public static final int inc_D_ov   = 0x18_0d_01_03;
+    public static final int inc_D_ovcc = 0x18_0d_02_07;
+
     public static final int inc_b_ov   = 0x18_08_01_03;
     public static final int inc_b_ovcc = 0x18_08_02_03;
 
@@ -58,6 +61,10 @@ public class IncDec {
             case inc_s_ovcc -> "inc_s_ovcc";
             case inc_l_ov -> "inc_l_ov";
             case inc_l_ovcc -> "inc_l_ovcc";
+
+            case inc_D_ov -> "inc_D_ov";
+            case inc_D_ovcc -> "inc_D_ovcc";
+
 
             default -> {
                 throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));

@@ -22,6 +22,8 @@ import org.siphonlab.ago.runtime.rdb.RdbSlots;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
+
 public class ExpandableSlots implements Slots {
     private final static Logger logger = LoggerFactory.getLogger(ExpandableSlots.class);
 
@@ -178,6 +180,9 @@ public class ExpandableSlots implements Slots {
 
     @Override
     public void incDouble(int slot, double value) {innerSlots.incDouble(slot, value);}
+
+    @Override
+    public void incDecimal(int slot, BigDecimal value) {innerSlots.incDecimal(slot, value);}
 
     @Override
     public void incByte(int slot, byte value) {innerSlots.incByte(slot, value);}

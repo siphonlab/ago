@@ -159,7 +159,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         callerRunSpace.acceptObjectByAsync(result);
     }
 
-    public void finishUnionAsync(Instance<?> result) {
+    public void finishUnionAsync(Object result) {
         if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 

@@ -60,7 +60,7 @@ public class CallFrameAsFuture<T> extends FutureImpl<T> implements CallFrameStat
             case OBJECT_VALUE:
                 return new CallFrameAsFuture<Instance<?>>();
             case UNION_VALUE:
-                return new CallFrameAsFuture<Instance<?>>();
+                return new CallFrameAsFuture<Object>();
             case NULL_VALUE:
                 throw new UnsupportedOperationException("null??");
             case CLASS_REF_VALUE:

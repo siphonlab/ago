@@ -464,7 +464,7 @@ public class RunSpace implements Runnable{
         setCurrCallFrame(caller);
     }
 
-    public void acceptUnion(Union result, CallFrame<?> caller) {
+    public void acceptUnion(Object result, CallFrame<?> caller) {
         resultSlots.setUnionValue(result);
         setCurrCallFrame(caller);
     }

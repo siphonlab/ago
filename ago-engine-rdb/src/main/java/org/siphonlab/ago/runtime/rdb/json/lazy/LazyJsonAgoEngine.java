@@ -23,6 +23,7 @@ import org.agrona.collections.Long2ObjectHashMap;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.*;
@@ -110,6 +111,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer(this));
         module.addSerializer(LazyJsonRefSlots.class, new RdbSlotsJsonSerializer(this));
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
@@ -127,6 +129,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
         module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
         module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer(this));
         module.addSerializer(LazyJsonRefSlots.class, new RdbSlotsJsonSerializer(this));

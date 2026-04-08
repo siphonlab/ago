@@ -195,8 +195,8 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         callerRunSpace.acceptObject(result, caller);
     }
 
-    public void finishUnion(Union result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Union>) stateHandler).complete(result);
+    public void finishUnion(Object result) {
+        if (stateHandler != null) ((CallFrameStateHandler<Object>) stateHandler).complete(result);
 
         var caller = this.getCaller();
         RunSpace callerRunSpace = caller.getRunSpace();

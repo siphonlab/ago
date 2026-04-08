@@ -169,6 +169,7 @@ public class AgoEngine implements ClassManager{
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializer(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializer(this));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));

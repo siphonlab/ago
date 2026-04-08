@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import org.siphonlab.ago.classloader.ClassRefValue;
+
 import java.math.BigDecimal;
 
 /* I'll make a class for each Instance, it creates a class includes each data type
@@ -142,7 +144,7 @@ public interface Slots {
 
     // there should be a union record {type_flag, value}
     // now union only works for nullable, so the value are Object|BoxedValue|null
-    default void setUnion(int slot, Union value) {
+    default void setUnion(int slot, Object value) {
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }
 
@@ -151,7 +153,7 @@ public interface Slots {
 //        throw new IllegalArgumentException("Unsupported slot access: " + slot);
 //    }
 
-    default Union getUnion(int slot) {
+    default Object getUnion(int slot) {
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }
 
@@ -168,6 +170,9 @@ public interface Slots {
     default void incDouble(int slot, double value){
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }
+    default void incDecimal(int slot, BigDecimal value){
+        throw new IllegalArgumentException("Unsupported slot access: " + slot);
+    }
     default void incByte(int slot, byte value){
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }
@@ -181,5 +186,26 @@ public interface Slots {
     default Object getVoid(int slot){return null;}
 
     default void setVoid(int slot, Object value){return;}
+
+    static TypeCode extractUnionType(Object union){
+        return switch (union) {
+            case null -> TypeCode.NULL;
+            case String s -> TypeCode.STRING;
+            case ClassRefValue v-> TypeCode.CLASS_REF;
+            case Instance<?> u -> TypeCode.OBJECT;
+            case Integer number -> TypeCode.INT;
+            case Boolean b -> TypeCode.BOOLEAN;
+            case Double number -> TypeCode.DOUBLE;
+            case Long number -> TypeCode.LONG;
+            case Byte number -> TypeCode.BYTE;
+            case BigDecimal number -> TypeCode.DECIMAL;
+            case Float number -> TypeCode.FLOAT;
+            case Character c -> TypeCode.CHAR;
+            case Short number -> TypeCode.SHORT;
+            default -> {
+                throw new IllegalArgumentException("unknown union type: " + union.getClass());
+            }
+        };
+    }
 }
 

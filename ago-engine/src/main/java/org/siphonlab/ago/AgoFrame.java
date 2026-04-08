@@ -16,6 +16,7 @@
 package org.siphonlab.ago;
 
 import org.apache.commons.lang3.StringUtils;
+import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.NativeInstance;import org.siphonlab.ago.opcode.*;
 import org.siphonlab.ago.opcode.compare.*;
 import org.siphonlab.ago.opcode.logic.*;
@@ -26,7 +27,10 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Arrays;import static org.siphonlab.ago.TypeCode.*;
+import java.util.Arrays;
+import java.util.Objects;
+
+import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
 import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
 import static org.siphonlab.ago.TypeCode.CHAR_VALUE;
@@ -102,6 +106,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case Concat.OP: pc = evaluateConcat(slots, pc, instruction); break;
                 case Return.OP: pc = evaluateReturn(self, slots, pc, instruction); break;
                 case Cast.OP: pc = evaluateCast(slots,pc, instruction); break;
+                case UnionCast.OP: pc = evaluateUnionCast(slots,pc, instruction); break;
                 case Load.OP: pc = evaluateLoad(slots, pc, instruction); break;
                 case Array.OP: pc = evaluateArray(slots, pc, instruction); break;
                 case Box.OP: pc = evaluateBox(slots, pc, instruction); break;
@@ -128,6 +133,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case BitShiftRight.OP: pc = evaluateBitRShift(slots, pc, instruction); break;
                 case BitUnsignedRight.OP: pc = evaluateBitURShift(slots, pc, instruction); break;
                 case InstanceOf.OP: pc = evaluateInstanceOf(slots, pc, instruction); break;
+                case UnionInstanceOf.OP: pc = evaluateUnionInstanceOf(slots, pc, instruction); break;
                 default:
                     throw new UnsupportedOperationException("%s not implemented yet, at '%s'".formatted(OpCode.getName(instruction), this));
             }
@@ -236,22 +242,56 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         return true;
     }
 
+    protected int evaluateUnionInstanceOf(Slots slots, int pc, int instruction) {
+        switch (instruction){
+            case UnionInstanceOf.uinstanceof_i_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == INT); pc++; break;
+            case UnionInstanceOf.uinstanceof_S_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == STRING); pc++; break;
+            case UnionInstanceOf.uinstanceof_B_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == BOOLEAN); pc++; break;
+            case UnionInstanceOf.uinstanceof_c_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == CHAR); pc++; break;
+            case UnionInstanceOf.uinstanceof_f_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == FLOAT); pc++; break;
+            case UnionInstanceOf.uinstanceof_d_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == DOUBLE); pc++; break;
+            case UnionInstanceOf.uinstanceof_D_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == DECIMAL); pc++; break;
+            case UnionInstanceOf.uinstanceof_b_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == BYTE); pc++; break;
+            case UnionInstanceOf.uinstanceof_s_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == SHORT); pc++; break;
+            case UnionInstanceOf.uinstanceof_l_vv :  slots.setBoolean(code[pc++], Slots.extractUnionType(slots.getUnion(code[pc++])) == LONG); pc++; break;
+            //case InstanceOf.instanceof_C_vvC :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == .class); break;
+            case UnionInstanceOf.uinstanceof_o_vvC:  {
+                var target = code[pc++];
+                var obj = slots.getUnion(code[pc ++]);
+                var unionType = Slots.extractUnionType(obj);
+                if(unionType == OBJECT){
+                    slots.setBoolean(target, isInstanceOf((Instance<?>) obj, engine.getClass(code[pc++])));
+                } else {
+                    pc += 2;        // skip getObject and getClass
+                    slots.setBoolean(target, false);
+                }
+            }
+            break;
+
+            case InstanceOf.instanceof_p_vvC:  slots.setBoolean(code[pc++],
+                    isInstanceOfPrimitive(agoClass.slotsCreator.getSlotType(code[pc++]), engine.getClass(code[pc++])));break;
+
+        }
+        return pc;
+    }
+
     protected int evaluateInstanceOf(Slots slots, int pc, int instruction) {
         switch (instruction){
-            case InstanceOf.instanceof_i_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == int.class); pc++; break;
-            case InstanceOf.instanceof_S_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == String.class); pc++; break;
-            case InstanceOf.instanceof_B_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == Boolean.class); pc++; break;
-            case InstanceOf.instanceof_c_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == char.class); pc++; break;
-            case InstanceOf.instanceof_f_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == float.class); pc++; break;
-            case InstanceOf.instanceof_d_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == double.class); pc++; break;
-            case InstanceOf.instanceof_b_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == byte.class); pc++; break;
-            case InstanceOf.instanceof_s_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == short.class); pc++; break;
-            case InstanceOf.instanceof_l_vv :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == long.class); pc++; break;
+            case InstanceOf.instanceof_i_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == INT); pc++; break;
+            case InstanceOf.instanceof_S_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == STRING); pc++; break;
+            case InstanceOf.instanceof_B_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == BOOLEAN); pc++; break;
+            case InstanceOf.instanceof_c_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == CHAR); pc++; break;
+            case InstanceOf.instanceof_f_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == FLOAT); pc++; break;
+            case InstanceOf.instanceof_d_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == DOUBLE); pc++; break;
+            case InstanceOf.instanceof_D_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == DECIMAL); pc++; break;
+            case InstanceOf.instanceof_b_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == BYTE); pc++; break;
+            case InstanceOf.instanceof_s_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == SHORT); pc++; break;
+            case InstanceOf.instanceof_l_vv :  slots.setBoolean(code[pc++], agoClass.getSlotDefs()[code[pc++]].getTypeCode() == LONG); pc++; break;
             //case InstanceOf.instanceof_C_vvC :  slots.setBoolean(code[pc++], agoClass.slotsCreator.getSlotType(code[pc++]) == .class); break;
             case InstanceOf.instanceof_o_vvC:  {
                 var target = code[pc++];
-                var slotType = agoClass.slotsCreator.getSlotType(code[pc]);
-                if(slotType == Instance.class){
+                var slotType = agoClass.getSlotDefs()[code[pc]];
+                if(slotType.getTypeCode() == OBJECT){
                     Instance<?> obj = slots.getObject(code[pc ++]);
                     slots.setBoolean(target, isInstanceOf(obj, engine.getClass(code[pc++])));
                 } else {
@@ -517,6 +557,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case IncDec.inc_f_ovc :  slots.getObject(code[pc++]).getSlots().incFloat(code[pc++], slots.getFloat(code[pc++])); break;
             case IncDec.inc_d_ov  :  slots.getObject(code[pc++]).getSlots().incDouble(code[pc++], toDouble(code[pc++], code[pc++]));       break;
             case IncDec.inc_d_ovcc:  slots.getObject(code[pc++]).getSlots().incDouble(code[pc++], slots.getDouble(code[pc++]));       break;
+            case IncDec.inc_D_ov  :  slots.getObject(code[pc++]).getSlots().incDecimal(code[pc++], toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]));       break;
+            case IncDec.inc_D_ovcc:  slots.getObject(code[pc++]).getSlots().incDecimal(code[pc++], slots.getDecimal(code[pc++]));       break;
             case IncDec.inc_b_ov  :  slots.getObject(code[pc++]).getSlots().incByte(code[pc++], (byte) code[pc++]);       break;
             case IncDec.inc_b_ovcc:  slots.getObject(code[pc++]).getSlots().incByte(code[pc++], slots.getByte(code[pc++]));       break;
             case IncDec.inc_s_ov  :  slots.getObject(code[pc++]).getSlots().incShort(code[pc++], (short) code[pc++]);       break;
@@ -531,6 +573,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Neg.neg_i_vv: slots.setInt(code[pc++], -slots.getInt(code[pc++]));  break;
             case Neg.neg_f_vv: slots.setFloat(code[pc++], -slots.getFloat(code[pc++]));  break;
             case Neg.neg_d_vv: slots.setDouble(code[pc++], -slots.getDouble(code[pc++])); break;
+            case Neg.neg_D_vv: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).negate()); break;
             case Neg.neg_b_vv: slots.setByte(code[pc++], (byte)-slots.getByte(code[pc++])); break;
             case Neg.neg_s_vv: slots.setShort(code[pc++], (short) -slots.getShort(code[pc++])); break;
             case Neg.neg_l_vv: slots.setLong(code[pc++], -slots.getLong(code[pc++])); break;
@@ -574,6 +617,13 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Mod.mod_d_vv:  slots.setDouble(code[pc], slots.getDouble(code[pc++]) %  slots.getDouble(code[pc++])); break;
             case Mod.mod_d_vvv: slots.setDouble(code[pc++], slots.getDouble(code[pc++]) %  slots.getDouble(code[pc++])); break;
             case Mod.mod_d_vcv: slots.setDouble(code[pc++], toDouble(code[pc++], code[pc++]) %  slots.getDouble(code[pc++])); break;
+
+            case Mod.mod_D_vc:  slots.setDecimal(code[pc], slots.getDecimal(code[pc++]).remainder(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Mod.mod_D_vvc: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).remainder(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Mod.mod_D_vv:  slots.setDecimal(code[pc], slots.getDecimal(code[pc++]).remainder(slots.getDecimal(code[pc++]))); break;
+            case Mod.mod_D_vvv: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).remainder(slots.getDecimal(code[pc++]))); break;
+            case Mod.mod_D_vcv: slots.setDecimal(code[pc++], toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]).remainder(slots.getDecimal(code[pc++]))); break;
+
         }
         return pc;
     }
@@ -614,6 +664,12 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Div.div_d_vv:  slots.setDouble(code[pc], slots.getDouble(code[pc++]) / slots.getDouble(code[pc++])); break;
             case Div.div_d_vvv: slots.setDouble(code[pc++], slots.getDouble(code[pc++]) / slots.getDouble(code[pc++])); break;
             case Div.div_d_vcv: slots.setDouble(code[pc++], toDouble(code[pc++], code[pc++]) / slots.getDouble(code[pc++])); break;
+
+            case Div.div_D_vc:  slots.setDecimal(code[pc], slots.getDecimal(code[pc++]).divide(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Div.div_D_vvc: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).divide(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Div.div_D_vv:  slots.setDecimal(code[pc], slots.getDecimal(code[pc++]).divide(slots.getDecimal(code[pc++]))); break;
+            case Div.div_D_vvv: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).divide(slots.getDecimal(code[pc++]))); break;
+            case Div.div_D_vcv: slots.setDecimal(code[pc++], toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]).divide(slots.getDecimal(code[pc++]))); break;
         }
         return pc;
     }
@@ -648,6 +704,12 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Multiply.mul_d_vvc: slots.setDouble(code[pc++], slots.getDouble(code[pc++]) * toDouble(code[pc++], code[pc++])); break;
             case Multiply.mul_d_vv:  slots.setDouble(code[pc], slots.getDouble(code[pc++]) * slots.getDouble(code[pc++])); break;
             case Multiply.mul_d_vvv: slots.setDouble(code[pc++], slots.getDouble(code[pc++]) * slots.getDouble(code[pc++])); break;
+
+            case Multiply.mul_D_vc:  slots.setDecimal(code[pc], slots.getDecimal(code[pc++]).multiply(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Multiply.mul_D_vvc: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).multiply(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Multiply.mul_D_vv:  slots.setDecimal(code[pc], slots.getDecimal(code[pc++]).multiply(slots.getDecimal(code[pc++]))); break;
+            case Multiply.mul_D_vvv: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).multiply(slots.getDecimal(code[pc++]))); break;
+
         }
         return pc;
     }
@@ -723,6 +785,13 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Subtract.sub_d_vv:  slots.incDouble(code[pc++], -slots.getDouble(code[pc++])); break;
             case Subtract.sub_d_vvv: slots.setDouble(code[pc++], slots.getDouble(code[pc++]) - slots.getDouble(code[pc++])); break;
             case Subtract.sub_d_vcv: slots.setDouble(code[pc++], toDouble(code[pc++], code[pc++]) - slots.getDouble(code[pc++])); break;
+
+            case Subtract.sub_D_vc:  slots.setDecimal(code[pc], slots.getDecimal(code[pc++]).subtract(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Subtract.sub_D_vvc: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).subtract(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Subtract.sub_D_vv:  slots.setDecimal(code[pc], slots.getDecimal(code[pc++]).subtract(slots.getDecimal(code[pc++]))); break;
+            case Subtract.sub_D_vvv: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).subtract(slots.getDecimal(code[pc++]))); break;
+            case Subtract.sub_D_vcv: slots.setDecimal(code[pc++], toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]).subtract(slots.getDecimal(code[pc++]))); break;
+
         }
         return pc;
     }
@@ -734,6 +803,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case LittleEquals.le_f_vvv: slots.setBoolean(code[pc++], slots.getFloat(code[pc++]) <= slots.getFloat(code[pc++])); break;
             case LittleEquals.le_d_vvcc: slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) <= toDouble(code[pc++], code[pc++])); break;
             case LittleEquals.le_d_vvv:  slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) <= slots.getDouble(code[pc++])); break;
+            case LittleEquals.le_D_vvccccc: slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).compareTo(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++])) <= 0); break;
+            case LittleEquals.le_D_vvv:  slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).compareTo(slots.getDecimal(code[pc++])) <= 0); break;
             case LittleEquals.le_b_vvc: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) <= (byte)code[pc++]); break;
             case LittleEquals.le_b_vvv: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) <= slots.getByte(code[pc++])); break;
             case LittleEquals.le_c_vvc: slots.setBoolean(code[pc++], slots.getChar(code[pc++]) <= code[pc++]); break;
@@ -757,6 +828,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case GreaterEquals.ge_f_vvv: slots.setBoolean(code[pc++], slots.getFloat(code[pc++]) >= slots.getFloat(code[pc++])); break;
             case GreaterEquals.ge_d_vvcc: slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) >= toDouble(code[pc++], code[pc++])); break;
             case GreaterEquals.ge_d_vvv:  slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) >= slots.getDouble(code[pc++])); break;
+            case GreaterEquals.ge_D_vvccccc: slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).compareTo(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++])) >= 0); break;
+            case GreaterEquals.ge_D_vvv:  slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).compareTo(slots.getDecimal(code[pc++])) >= 0); break;
             case GreaterEquals.ge_b_vvc: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) >= (byte)code[pc++]); break;
             case GreaterEquals.ge_b_vvv: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) >= slots.getByte(code[pc++])); break;
             case GreaterEquals.ge_c_vvc: slots.setBoolean(code[pc++], slots.getChar(code[pc++]) >= code[pc++]); break;
@@ -780,6 +853,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case GreaterThan.gt_f_vvv: slots.setBoolean(code[pc++], slots.getFloat(code[pc++]) > slots.getFloat(code[pc++])); break;
             case GreaterThan.gt_d_vvcc: slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) > toDouble(code[pc++], code[pc++])); break;
             case GreaterThan.gt_d_vvv:  slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) > slots.getDouble(code[pc++])); break;
+            case GreaterThan.gt_D_vvccccc: slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).compareTo(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++])) > 0); break;
+            case GreaterThan.gt_D_vvv:  slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).compareTo(slots.getDecimal(code[pc++])) > 0); break;
             case GreaterThan.gt_b_vvc: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) > (byte)code[pc++]); break;
             case GreaterThan.gt_b_vvv: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) > slots.getByte(code[pc++])); break;
             case GreaterThan.gt_c_vvc: slots.setBoolean(code[pc++], slots.getChar(code[pc++]) > code[pc++]); break;
@@ -803,6 +878,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case NotEquals.ne_f_vvv: slots.setBoolean(code[pc++], slots.getFloat(code[pc++]) != slots.getFloat(code[pc++])); break;
             case NotEquals.ne_d_vvcc: slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) != toDouble(code[pc++], code[pc++])); break;
             case NotEquals.ne_d_vvv:  slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) != slots.getDouble(code[pc++])); break;
+            case NotEquals.ne_D_vvccccc: slots.setBoolean(code[pc++], !slots.getDecimal(code[pc++]).equals(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case NotEquals.ne_D_vvv:  slots.setBoolean(code[pc++], !slots.getDecimal(code[pc++]).equals(slots.getDecimal(code[pc++]))); break;
             case NotEquals.ne_b_vvc: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) != (byte)code[pc++]); break;
             case NotEquals.ne_b_vvv: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) != slots.getByte(code[pc++])); break;
             case NotEquals.ne_c_vvc: slots.setBoolean(code[pc++], slots.getChar(code[pc++]) != code[pc++]); break;
@@ -816,9 +893,10 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case NotEquals.ne_B_vvc: slots.setBoolean(code[pc++], slots.getBoolean(code[pc++]) != (code[pc++] !=0)); break;
             case NotEquals.ne_B_vvv: slots.setBoolean(code[pc++], slots.getBoolean(code[pc++]) != slots.getBoolean(code[pc++])); break;
             case NotEquals.ne_o_vvv: slots.setBoolean(code[pc++], slots.getObject(code[pc++]) != slots.getObject(code[pc++])); break;
-            case NotEquals.ne_o_vvn: slots.setBoolean(code[pc++], slots.getObject(code[pc++]) != null); break;
             case NotEquals.ne_C_vvc: slots.setBoolean(code[pc++], slots.getClassRef(code[pc++]) != code[pc++]); break;
             case NotEquals.ne_C_vvv: slots.setBoolean(code[pc++], slots.getClassRef(code[pc++]) != slots.getClassRef(code[pc++])); break;
+            case NotEquals.ne_u_vvn: slots.setBoolean(code[pc++], slots.getUnion(code[pc++]) != null); break;
+            case NotEquals.ne_u_vvv: slots.setBoolean(code[pc++], !Objects.equals(slots.getUnion(code[pc++]), slots.getUnion(code[pc++]))); break;
         }
         return pc;
     }
@@ -830,6 +908,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Equals.equals_f_vvv: slots.setBoolean(code[pc++], slots.getFloat(code[pc++]) == slots.getFloat(code[pc++])); break;
             case Equals.equals_d_vvcc: slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) == toDouble(code[pc++], code[pc++])); break;
             case Equals.equals_d_vvv:  slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) == slots.getDouble(code[pc++])); break;
+            case Equals.equals_D_vvccccc: slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).equals(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+            case Equals.equals_D_vvv:  slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).equals(slots.getDecimal(code[pc++]))); break;
             case Equals.equals_b_vvc: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) == (byte)code[pc++]); break;
             case Equals.equals_b_vvv: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) == slots.getByte(code[pc++])); break;
             case Equals.equals_c_vvc: slots.setBoolean(code[pc++], slots.getChar(code[pc++]) == code[pc++]); break;
@@ -842,10 +922,13 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Equals.equals_S_vvv: slots.setBoolean(code[pc++], StringUtils.equals(slots.getString(code[pc++]), slots.getString(code[pc++]))); break;
             case Equals.equals_B_vvc: slots.setBoolean(code[pc++], slots.getBoolean(code[pc++]) == (code[pc++] !=0)); break;
             case Equals.equals_B_vvv: slots.setBoolean(code[pc++], slots.getBoolean(code[pc++]) == slots.getBoolean(code[pc++])); break;
-            case Equals.equals_o_vvn: slots.setBoolean(code[pc++], slots.getObject(code[pc++]) == null); break;
+
             case Equals.equals_o_vvv: slots.setBoolean(code[pc++], slots.getObject(code[pc++]) == slots.getObject(code[pc++])); break;
             case Equals.equals_C_vvc: slots.setBoolean(code[pc++], slots.getClassRef(code[pc++]) == code[pc++]); break;
             case Equals.equals_C_vvv: slots.setBoolean(code[pc++], slots.getClassRef(code[pc++]) == slots.getClassRef(code[pc++])); break;
+
+            case Equals.equals_u_vvn: slots.setBoolean(code[pc++], slots.getUnion(code[pc++]) == null); break;
+            case Equals.equals_u_vvv: slots.setBoolean(code[pc++], Objects.equals(slots.getUnion(code[pc++]), slots.getUnion(code[pc++]))); break;
         }
         return pc;
     }
@@ -1148,6 +1231,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case LittleThan.lt_f_vvv: slots.setBoolean(code[pc++], slots.getFloat(code[pc++]) < slots.getFloat(code[pc++])); break;
                 case LittleThan.lt_d_vvcc: slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) < toDouble(code[pc++], code[pc++])); break;
                 case LittleThan.lt_d_vvv:  slots.setBoolean(code[pc++], slots.getDouble(code[pc++]) < slots.getDouble(code[pc++])); break;
+                case LittleThan.lt_D_vvccccc: slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).compareTo(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++])) < 0); break;
+                case LittleThan.lt_D_vvv:  slots.setBoolean(code[pc++], slots.getDecimal(code[pc++]).compareTo(slots.getDecimal(code[pc++])) < 0); break;
                 case LittleThan.lt_b_vvc: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) < (byte)code[pc++]); break;
                 case LittleThan.lt_b_vvv: slots.setBoolean(code[pc++], slots.getByte(code[pc++]) < slots.getByte(code[pc++])); break;
                 case LittleThan.lt_c_vvc: slots.setBoolean(code[pc++], slots.getChar(code[pc++]) < code[pc++]); break;
@@ -1296,6 +1381,12 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case Add.add_d_vvc: slots.setDouble(code[pc++], slots.getDouble(code[pc++]) + toDouble(code[pc++], code[pc++])); break;
                 case Add.add_d_vv:  slots.incDouble(code[pc++], slots.getDouble(code[pc++])); break;
                 case Add.add_d_vvv: slots.setDouble(code[pc++], slots.getDouble(code[pc++]) + slots.getDouble(code[pc++])); break;
+
+                case Add.add_D_vc:  slots.incDecimal(code[pc++], toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++])); break;
+                case Add.add_D_vvc: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).add(toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]))); break;
+                case Add.add_D_vv:  slots.incDecimal(code[pc++], slots.getDecimal(code[pc++])); break;
+                case Add.add_D_vvv: slots.setDecimal(code[pc++], slots.getDecimal(code[pc++]).add(slots.getDecimal(code[pc++]))); break;
+
         }
         return pc;
     }
@@ -1591,6 +1682,42 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         return pc;
     }
 
+    protected int evaluateUnionCast(Slots slots, int pc, int instruction) {
+        switch (instruction) {
+            case UnionCast.o2u: slots.setUnion(code[pc++], slots.getObject(code[pc++])); pc ++; break;
+            case UnionCast.n2u: slots.setUnion(code[pc++], null); pc ++; pc ++; break;
+            case UnionCast.S2u: slots.setUnion(code[pc++], slots.getString(code[pc++])); pc ++; break;
+            case UnionCast.B2u: slots.setUnion(code[pc++], slots.getBoolean(code[pc++])); pc ++; break;
+            case UnionCast.c2u: slots.setUnion(code[pc++], slots.getChar(code[pc++])); pc ++; break;
+            case UnionCast.f2u: slots.setUnion(code[pc++], slots.getFloat(code[pc++])); pc ++; break;
+            case UnionCast.d2u: slots.setUnion(code[pc++], slots.getDouble(code[pc++])); pc ++; break;
+            case UnionCast.b2u: slots.setUnion(code[pc++], slots.getByte(code[pc++])); pc ++; break;
+            case UnionCast.s2u: slots.setUnion(code[pc++], slots.getShort(code[pc++])); pc ++; break;
+            case UnionCast.i2u: slots.setUnion(code[pc++], slots.getInt(code[pc++])); pc ++; break;
+            case UnionCast.l2u: slots.setUnion(code[pc++], slots.getLong(code[pc++])); pc ++; break;
+            case UnionCast.C2u: slots.setUnion(code[pc++], new ClassRefValue(engine.getClass(slots.getClassRef(code[pc++])).getFullname())); pc ++; break;
+            case UnionCast.D2u: slots.setUnion(code[pc++], slots.getDecimal(code[pc++])); pc ++; break;
+
+            // to cast from union to other type, must have already processed:
+            //  1. if not null
+            //  2. cast to base class, then cast to destination
+            case UnionCast.u2o: slots.setObject(code[pc++], engine.getBoxer().unionToObject(slots.getUnion(code[pc++]))); pc++; break;
+            case UnionCast.u2S: slots.setString(code[pc++], (String) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2B: slots.setBoolean(code[pc++], (Boolean) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2c: slots.setChar(code[pc++], (Character) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2f: slots.setFloat(code[pc++], (Float) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2d: slots.setDouble(code[pc++], (Double) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2b: slots.setByte(code[pc++], (Byte) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2s: slots.setShort(code[pc++], (Short) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2i: slots.setInt(code[pc++], (Integer) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2l: slots.setLong(code[pc++], (Long) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2C: slots.setClassRef(code[pc++], engine.getClass(((ClassRefValue) slots.getUnion(code[pc++])).className()).getClassId()); pc++;break;
+            case UnionCast.u2D: slots.setDecimal(code[pc++], (BigDecimal) slots.getUnion(code[pc++])); pc++;break;
+            case UnionCast.u2u: slots.setUnion(code[pc++], slots.getUnion(code[pc++])); pc++;break;
+        }
+        return pc;
+    }
+
     private AgoClass getClass(int classId) {
         if(classId == -1) return null;
         return engine.getClass(classId);
@@ -1683,7 +1810,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     }
 
     private char stringToChar(String s){
-        if(s.length() == 0) return '\0';
+        if(s.isEmpty()) return '\0';
         return s.charAt(0);
     }
 

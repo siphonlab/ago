@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import org.siphonlab.ago.classloader.ClassRefValue;
+
 import java.math.BigDecimal;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -113,6 +115,15 @@ public class Boxer {
         return instance;
     }
 
+    public Instance<?> boxClassRef(ClassRefValue classRef) {
+        var instance = new Instance<>(CLASS_REF.createSlots(), CLASS_REF);
+        AgoClass aClass = engine.getClass(classRef.className());
+        instance.slots.setClassRef(0, aClass.getClassId());
+        instance.slots.setObject(1, aClass);
+        return instance;
+    }
+
+
     public Instance<?> boxString(String s) {
         var instance = new Instance<>(STRING.createSlots(), STRING);
         instance.slots.setString(0, s);
@@ -175,14 +186,36 @@ public class Boxer {
             case OBJECT_VALUE:
                 return slots.getObject(slotIndex);
             case UNION_VALUE:
-                throw new UnsupportedOperationException("TODO");
+                Object union = slots.getUnion(slotIndex);
+                return unionToObject(union);
             case NULL_VALUE:
-                throw new UnsupportedOperationException("null??");
+                return null;
             case CLASS_REF_VALUE:
                 return boxClassRef(slots.getClassRef(slotIndex));
         }
 
         throw new UnsupportedOperationException("'%s' is not primitive type".formatted(slotDef));
+    }
+
+    public Instance<?> unionToObject(Object union) {
+        int unionType = Slots.extractUnionType(union).value;
+        return switch (unionType) {
+            case INT_VALUE -> boxInt((Integer) union);
+            case LONG_VALUE -> boxLong((Long) union);
+            case FLOAT_VALUE -> boxFloat((Float) union);
+            case DOUBLE_VALUE -> boxDouble((Double) union);
+            case DECIMAL_VALUE -> boxDecimal((BigDecimal) union);
+            case BOOLEAN_VALUE -> boxBoolean((Boolean) union);
+            case STRING_VALUE -> boxString((String) union);
+            case SHORT_VALUE -> boxShort((Short) union);
+            case BYTE_VALUE -> boxByte((Byte) union);
+            case CHAR_VALUE -> boxChar((Character) union);
+            case OBJECT_VALUE -> (Instance<?>) union;
+            case UNION_VALUE -> throw new IllegalArgumentException("nested union type not supported");
+            case NULL_VALUE -> null;
+            case CLASS_REF_VALUE -> boxClassRef((ClassRefValue) union);
+            default -> throw new IllegalArgumentException("unsupported union type: " + union);
+        };
     }
 
 

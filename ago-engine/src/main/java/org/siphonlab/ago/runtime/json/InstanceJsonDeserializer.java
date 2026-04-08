@@ -221,6 +221,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 switch (slotDef.getTypeCode().getValue()){
                     case STRING_VALUE : slots.setString(index, null); break;
                     case OBJECT_VALUE: slots.setObject(index, null); break;
+                    case UNION_VALUE: slots.setUnion(index, null); break;
                     case VOID_VALUE: slots.setVoid(index,null); break;
                 }
                 break;
@@ -356,6 +357,8 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 var r = deserializeAny(ajp, ctxt, agoSlotDef.getAgoClass(), creator, hostSlots, agoSlotDef);
                 if(agoSlotDef.getTypeCode().getValue() == OBJECT_VALUE){
                     hostSlots.setObject(agoSlotDef.getIndex(), r);
+                } else if(agoSlotDef.getTypeCode().getValue() == UNION_VALUE){
+                    hostSlots.setUnion(agoSlotDef.getIndex(), r);
                 }
             }
         }

@@ -30,6 +30,11 @@ public class ResultSlotsSerializer extends JsonSerializer<ResultSlots> {
     public void serialize(ResultSlots resultSlots, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         gen.writeStartObject();
         gen.writeNumberField("type", resultSlots.getDataType());
+
+        if(resultSlots.getDataType() == TypeCode.UNION_VALUE){
+            gen.writeNumberField("unionType", resultSlots.getUnionValueType());
+        }
+
         gen.writeFieldName("value");
 
         switch (resultSlots.getDataType()) {
@@ -72,8 +77,11 @@ public class ResultSlotsSerializer extends JsonSerializer<ResultSlots> {
                 gen.writeObject(resultSlots.getClassRefValue());
                 break;
 
-            case TypeCode.OBJECT_VALUE, TypeCode.UNION_VALUE:
+            case TypeCode.OBJECT_VALUE:
                 gen.writeObject(resultSlots.getObjectValue());
+                break;
+            case TypeCode.UNION_VALUE:
+                gen.writeObject(resultSlots.getUnionValue());
                 break;
         }
 

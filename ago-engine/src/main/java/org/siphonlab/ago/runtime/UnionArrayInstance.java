@@ -24,11 +24,11 @@ import java.util.List;
 
 public class UnionArrayInstance extends AgoArrayInstance{
 
-    public final Union[] value;
+    public final Object[] value;
 
     public UnionArrayInstance(Slots slots, AgoClass agoClass, int length) {
         super(slots, agoClass, length);
-        this.value = new Union[length];
+        this.value = new Object[length];
     }
 
     public Object getArray() {
@@ -38,7 +38,7 @@ public class UnionArrayInstance extends AgoArrayInstance{
     public void fill(List<Object> list) {
         for (int i = 0; i < list.size(); i++) {
             Object o = list.get(i);
-            value[i] = (Union) o;
+            value[i] = o;
         }
     }
 }
