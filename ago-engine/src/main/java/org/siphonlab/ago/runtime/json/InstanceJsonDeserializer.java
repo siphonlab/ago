@@ -118,12 +118,16 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         CallFrame<?> creator = ajp.getCallFrame();
 
         AgoClass agoClassOfSlots = (AgoClass) ctxt.getAttribute("slots_class");       // to parse slots
-        if(agoClassOfSlots != null && agoClassOfSlots.getSlotDefs() != null){
-            Map<String, AgoSlotDef> map = new HashMap<>();
-            for (AgoSlotDef slotDef : agoClassOfSlots.getSlotDefs())
-                map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
-            deserializeSlots(ajp, ctxt, creator, (Slots) ctxt.getAttribute("slots"), map);
-            return null;
+        if(agoClassOfSlots != null){
+            if(agoClassOfSlots.getSlotDefs() != null) {
+                Map<String, AgoSlotDef> map = new HashMap<>();
+                for (AgoSlotDef slotDef : agoClassOfSlots.getSlotDefs())
+                    map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
+                deserializeSlots(ajp, ctxt, creator, (Slots) ctxt.getAttribute("slots"), map);
+                return null;
+            } else {
+                return null;
+            }
         }
 
         ajp.nextToken();

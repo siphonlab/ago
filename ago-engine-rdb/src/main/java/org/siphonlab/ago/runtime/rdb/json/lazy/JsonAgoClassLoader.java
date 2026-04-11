@@ -67,6 +67,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         }
         this.classes = new ArrayList<>();
         this.classByName.put(this.getTheMeta().getFullname(), this.getTheMeta());
+        this.langClasses = new LangClasses(this);
 
         // stage 1, names
         for(var row : allRows){
@@ -128,6 +129,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         if(agoClass instanceof AgoFunction agoFunction){
             Map<String, Object>[] variables = loadPgJsonArrayAsList((PgArray) row.get("variables"));
             var resultType = getClass((String)row.get("result_type"));
+
             agoFunction.setResultType(resultType.getTypeCode(), resultType.getAgoClass());
 
             if (variables != null)
@@ -220,12 +222,19 @@ public class JsonAgoClassLoader extends AgoClassLoader {
                 agoClass = new AgoFunction(this, metaClass, fullname, name);
             }
             break;
+        case AgoClass.TYPE_PRIMITIVE_CLASS:
+            agoClass = new AgoPrimitiveClass(this, metaClass, fullname, TypeCode.fromString(fullname).value);
+            break;
+        case AgoClass.TYPE_NULL:
+            agoClass = new AgoNullClass(this, metaClass);
+            break;
         default:
             throw new IllegalArgumentException("illegal type " + row.get("class_type"));
         }
         agoClass.setClassId((Integer) row.get("class_id"));
         agoClass.setModifiers(modifiers);
         agoClass.setSourceLocation(loadSourceLocation(loadPgJsonAsMap((PGobject) row.get("source_location"))));
+
         this.classes.set(agoClass.getClassId(), agoClass);
         this.classByName.put(agoClass.getFullname(),agoClass);
         return agoClass;

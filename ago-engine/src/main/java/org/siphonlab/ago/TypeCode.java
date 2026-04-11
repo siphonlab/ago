@@ -82,6 +82,25 @@ public class TypeCode {
         };
     }
 
+    public static TypeCode fromString(String value) {
+        return switch (value) {
+            case "void" -> VOID;
+            case "boolean" -> BOOLEAN;
+            case "char" -> CHAR;
+            case "float" -> FLOAT;
+            case "double" -> DOUBLE;
+            case "byte" -> BYTE;
+            case "short" -> SHORT;
+            case "int" -> INT;
+            case "long" -> LONG;
+            case "object" -> OBJECT;
+            case "null" -> NULL;
+            case "string" -> STRING;
+            case "classref" -> CLASS_REF;
+            default -> throw new IllegalArgumentException("Invalid type value: " + value);
+        };
+    }
+
     public static TypeCode[] values() {
         return new TypeCode[]{VOID, BOOLEAN, CHAR, FLOAT, DOUBLE, BYTE, SHORT, INT, LONG, OBJECT, NULL, STRING, CLASS_REF };
     }

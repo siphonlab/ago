@@ -34,7 +34,7 @@ public class NullClassHeader extends ClassHeader{
     @Override
     public AgoClass buildClass() {
         if(this.loadingStage != BuildClass) return this.agoClass;
-        var agoClass =  new AgoNullClass(classLoader);
+        var agoClass =  new AgoNullClass(classLoader, classLoader.getTheMeta());
         this.agoClass = agoClass;
         classLoader.getClassByName().put(this.fullname, agoClass);
         this.setLoadingStage(LoadingStage.Done);

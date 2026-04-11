@@ -50,6 +50,7 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
     @Override
     protected void restoreClassStates(AgoClass agoClass, GroovyRowResult row) throws JsonProcessingException {
         PGobject slots = (PGobject) row.get("slots");
+
         restoreSlots((LazyJsonRefSlots) agoClass.getSlots(), (Long)row.get("id"), agoClass.getAgoClass(), slots.getValue(), null);
 
         Object parentScopeId = row.get("parent_scope_id");

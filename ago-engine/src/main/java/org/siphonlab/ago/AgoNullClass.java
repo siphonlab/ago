@@ -19,9 +19,9 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 
 public class AgoNullClass extends AgoClass{
 
-    public AgoNullClass(AgoClassLoader classLoader) {
-        super(classLoader, "null", "null");
-        this.type = TYPE_CLASS;
+    public AgoNullClass(AgoClassLoader classLoader, MetaClass meta) {
+        super(classLoader, meta, "null", "null");
+        this.type = TYPE_NULL;
     }
 
     public TypeCode getTypeCode() {

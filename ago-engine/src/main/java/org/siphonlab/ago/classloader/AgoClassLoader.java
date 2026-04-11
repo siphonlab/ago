@@ -60,7 +60,7 @@ public class AgoClassLoader implements ClassManager{
     final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
 
     final SlotsCreatorFactory slotsCreatorFactory;
-     private LangClasses langClasses;
+    protected LangClasses langClasses;
 
     Map<String, ConcreteTypeDesc> concreteTypeDescs = new HashMap<>();
     private List<TypeDesc> typeDescs = new ArrayList<>();

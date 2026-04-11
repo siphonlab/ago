@@ -930,7 +930,7 @@ public class ClassHeader {
                 agoClass = new AgoClass(classLoader, metaClass, this.fullname, this.name);
                 break;
             case TYPE_PRIMITIVE_CLASS:
-                agoClass = new AgoPrimitiveClass(classLoader, this.name, this.getTypeCode().value);
+                agoClass = new AgoPrimitiveClass(classLoader, metaClass, this.name, this.getTypeCode().value);
                 break;
             case TYPE_ENUM:
                 var enumClass = new AgoEnum(classLoader, metaClass, this.fullname, this.name);
@@ -952,6 +952,9 @@ public class ClassHeader {
                 } else {
                     agoClass = new AgoFunction(classLoader, metaClass, this.fullname, this.name);
                 }
+                break;
+            case TYPE_NULL:
+                agoClass = new AgoNullClass(classLoader, metaClass);
                 break;
             default:
                 throw new UnsupportedOperationException();

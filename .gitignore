@@ -2,3 +2,5 @@
 **/target/
 **/output/
 *.agoc
+/.idea
+/test-cases/src/main/resources/database.properties
