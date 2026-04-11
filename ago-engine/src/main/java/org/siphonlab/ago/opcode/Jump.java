@@ -44,14 +44,16 @@ public class Jump {
     public static final int jump_f_f_vc = 0x0e_06_04_02;
     public static final int jump_t_d_vc = 0x0e_07_03_02;
     public static final int jump_f_d_vc = 0x0e_07_04_02;
+    public static final int jump_t_D_vc = 0x0e_0d_03_02;
+    public static final int jump_f_D_vc = 0x0e_0d_04_02;
     public static final int jump_t_b_vc = 0x0e_08_03_02;
     public static final int jump_f_b_vc = 0x0e_08_04_02;
     public static final int jump_t_s_vc = 0x0e_09_03_02;
     public static final int jump_f_s_vc = 0x0e_09_04_02;
     public static final int jump_t_l_vc = 0x0e_0b_03_02;
     public static final int jump_f_l_vc = 0x0e_0b_04_02;
-    public static final int jump_t_o_vc = 0x0e_01_03_02;
-    public static final int jump_f_o_vc = 0x0e_01_04_02;
+    public static final int jump_t_u_vc = 0x0e_0e_03_02;
+    public static final int jump_f_u_vc = 0x0e_0e_04_02;
     public static final int jump_t_S_vc = 0x0e_03_03_02;
     public static final int jump_f_S_vc = 0x0e_03_04_02;
 
@@ -75,17 +77,18 @@ public class Jump {
             case jump_f_f_vc -> "jump_f_f_vc";
             case jump_t_d_vc -> "jump_t_d_vc";
             case jump_f_d_vc -> "jump_f_d_vc";
+            case jump_t_D_vc -> "jump_t_D_vc";
+            case jump_f_D_vc -> "jump_f_D_vc";
             case jump_t_b_vc -> "jump_t_b_vc";
             case jump_f_b_vc -> "jump_f_b_vc";
             case jump_t_s_vc -> "jump_t_s_vc";
             case jump_f_s_vc -> "jump_f_s_vc";
             case jump_t_l_vc -> "jump_t_l_vc";
             case jump_f_l_vc -> "jump_f_l_vc";
-            case jump_t_o_vc -> "jump_t_o_vc";
-            case jump_f_o_vc -> "jump_f_o_vc";
             case jump_t_S_vc -> "jump_t_S_vc";
             case jump_f_S_vc -> "jump_f_S_vc";
-
+            case jump_t_u_vc -> "jump_t_u_vc";
+            case jump_f_u_vc -> "jump_f_u_vc";
 
             default -> {
                 var t = OpCode.extractType(code);

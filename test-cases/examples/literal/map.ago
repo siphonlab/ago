@@ -15,7 +15,7 @@ fun main(){
     Trace.print(map['name'])
 
     var staff = {Staff| name: "Jenny", gender: 'F', workNo: '1002'}
-    var n as Staff = null;
+    var n as Staff? = null;
     var m = {...staff, age: 42, ...n}
     Trace.print(m['name'])
     Trace.print(m['age'])

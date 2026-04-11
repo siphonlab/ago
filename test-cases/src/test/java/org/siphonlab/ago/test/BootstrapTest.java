@@ -233,8 +233,8 @@ public class BootstrapTest {
     @Test
     public void literal_test() throws CompilationError, IOException {
         Util.run("bootstrap/29.literals.ago");
-        //Trace.printOutput();
-        assertTrue(Trace.outputted("A", "\n", "A", "A", "a", "123.45", "6.02E23", "3.141592653589793", "0.484375", "123", "6719", "511", "210", "123", "16"));
+//        Trace.printOutput();
+        assertTrue(Trace.outputted("A", "\n", "A", "A", "a", "123.45", "6.02E23", "3.141592653589793", "0.484375", "456.78", "123", "6719", "511", "210", "123", "16"));
     }
 
     @Test
@@ -248,6 +248,7 @@ public class BootstrapTest {
     public void nullable_test() throws CompilationError, IOException {
         Util.run("bootstrap/31.nullable.ago");
         Trace.printOutput();
+        assertTrue(Trace.outputted("2026", "-2026", "can't cast null to 'int'", "animal is null or name is null", "animal is null", "Jerry", "woof", "Jerry", "woof"));
     }
 
 }

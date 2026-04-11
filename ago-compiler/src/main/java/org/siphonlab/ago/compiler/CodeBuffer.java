@@ -35,6 +35,7 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -210,25 +211,14 @@ public class CodeBuffer {
     }
 
     static int[] bigDecimalToIntArray(BigDecimal bd){
-        byte[] original = bd.toBigInteger().toByteArray();
-
-        byte[] fixed = new byte[16];
-
-        // 将原数组内容放到新数组尾部，前面补0 (高位补0)
-        int srcPos = Math.max(0, original.length - 16);
-        int destPos = Math.max(0, 16 - original.length);
-        int length = Math.min(original.length, 16);
-
-        System.arraycopy(original, srcPos, fixed, destPos, length);
-
-        // 5 int
-        return new int[]{
-            bd.scale(),
-            (fixed[0] << 24) | (fixed[1] << 16) | (fixed[2] << 8) | (fixed[3]),
-            (fixed[4] << 24) | (fixed[5] << 16) | (fixed[6] << 8) | (fixed[7]),
-            (fixed[8] << 24) | (fixed[9] << 16) | (fixed[10] << 8) | (fixed[11]),
-            (fixed[12] << 24) | (fixed[13] << 16) | (fixed[14] << 8) | (fixed[15])
-        };
+        int[] result = new int[5];
+        result[0] = bd.scale();
+        // 依次取出低 32 位
+        BigInteger bi = bd.unscaledValue();
+        for (int i = 0; i < 4; i++) {
+            result[i + 1] = bi.shiftRight(i * 32).intValue();  // intValue() 取低 32 位
+        }
+        return result;
     }
 
     public void new_(SlotDef target, SlotDef parentScope, Creator.NewProps newProps) {

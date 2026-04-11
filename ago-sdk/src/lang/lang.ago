@@ -293,6 +293,8 @@ class Trace{
 
         final fun print#double(number as double) native "org.siphonlab.ago.lang.Trace.print_double";
 
+        final fun print#decimal(number as decimal) native "org.siphonlab.ago.lang.Trace.print_decimal";
+
         final fun print#char(number as char) native "org.siphonlab.ago.lang.Trace.print_char";
 
         final fun print#short(number as short) native "org.siphonlab.ago.lang.Trace.print_short";

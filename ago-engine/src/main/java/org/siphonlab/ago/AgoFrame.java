@@ -725,29 +725,17 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     }
 
     protected static BigDecimal toDecimal(int scale, int i1, int i2, int i3, int i4){
-        byte[] bytes = new byte[16];
-        bytes[0] = (byte)(i1 >>> 24);
-        bytes[1] = (byte)(i1 >>> 16);
-        bytes[2] = (byte)(i1 >>> 8);
-        bytes[3] = (byte)(i1);
-
-        bytes[4] = (byte)(i2 >>> 24);
-        bytes[5] = (byte)(i2 >>> 16);
-        bytes[6] = (byte)(i2 >>> 8);
-        bytes[7] = (byte)(i2);
-
-        bytes[8] = (byte)(i3 >>> 24);
-        bytes[9] = (byte)(i3 >>> 16);
-        bytes[10] = (byte)(i3 >>> 8);
-        bytes[11] = (byte)(i3);
-
-        bytes[12] = (byte)(i4 >>> 24);
-        bytes[13] = (byte)(i4 >>> 16);
-        bytes[14] = (byte)(i4 >>> 8);
-        bytes[15] = (byte)(i4);
-
-        var bi = new BigInteger(bytes);
+        var bi = toBigInteger(new int[]{i1, i2, i3, i4});
         return new BigDecimal(bi, scale);
+    }
+
+    public static BigInteger toBigInteger(int[] arr) {
+        BigInteger bi = BigInteger.ZERO;
+        for (int i = 3; i >= 0; i--) {        // from hi to lo
+            bi = bi.shiftLeft(32);
+            bi = bi.or(BigInteger.valueOf(arr[i] & 0xFFFFFFFFL));
+        }
+        return bi;
     }
 
     protected int evaluateSub(final Slots slots, int pc, final int instruction){
@@ -1267,14 +1255,16 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Jump.jump_f_f_vc:      if(slots.getFloat(code[pc++]) == 0) pc = code[pc]; else pc++; break;
             case Jump.jump_t_d_vc:      if(slots.getDouble(code[pc++]) != 0) pc = code[pc]; else pc++; break;
             case Jump.jump_f_d_vc:      if(slots.getDouble(code[pc++]) == 0) pc = code[pc]; else pc++; break;
+            case Jump.jump_t_D_vc:      if(!slots.getDecimal(code[pc++]).equals(BigDecimal.ZERO)) pc = code[pc]; else pc++; break;
+            case Jump.jump_f_D_vc:      if(slots.getDecimal(code[pc++]).equals(BigDecimal.ZERO)) pc = code[pc]; else pc++; break;
             case Jump.jump_t_b_vc:      if(slots.getByte(code[pc++]) != 0) pc = code[pc]; else pc++; break;
             case Jump.jump_f_b_vc:      if(slots.getByte(code[pc++]) == 0) pc = code[pc]; else pc++; break;
             case Jump.jump_t_s_vc:      if(slots.getShort(code[pc++]) != 0) pc = code[pc]; else pc++; break;
             case Jump.jump_f_s_vc:      if(slots.getShort(code[pc++]) == 0) pc = code[pc]; else pc++; break;
             case Jump.jump_t_l_vc:      if(slots.getLong(code[pc++]) != 0) pc = code[pc]; else pc++; break;
             case Jump.jump_f_l_vc:      if(slots.getLong(code[pc++]) == 0) pc = code[pc]; else pc++; break;
-            case Jump.jump_t_o_vc:      if(slots.getObject(code[pc++]) != null) pc = code[pc]; else pc++; break;
-            case Jump.jump_f_o_vc:      if(slots.getObject(code[pc++]) == null) pc = code[pc]; else pc++; break;
+            case Jump.jump_t_u_vc:      if(Union.unionToBoolean(slots.getUnion(code[pc++]), engine)) pc = code[pc]; else pc++; break;
+            case Jump.jump_f_u_vc:      if(!Union.unionToBoolean(slots.getUnion(code[pc++]), engine)) pc = code[pc]; else pc++; break;
             case Jump.jump_t_S_vc:      if(StringUtils.isNotEmpty(slots.getString(code[pc++]))) pc = code[pc]; else pc++; break;
             case Jump.jump_f_S_vc:      if(StringUtils.isEmpty(slots.getString(code[pc++]))) pc = code[pc]; else pc++; break;
 

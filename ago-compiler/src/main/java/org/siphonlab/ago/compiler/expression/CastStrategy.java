@@ -304,19 +304,19 @@ public class CastStrategy {
         }
 
         if(toType instanceof UnionClassDef){
-            if(toType instanceof NullableClassDef nullableClassDef){
-                if(fromType instanceof NullClassDef){
+            if(toType instanceof NullableClassDef toNullableClassDef){
+                if(fromType instanceof NullClassDef) {
                     return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
+                } else if(fromType instanceof NullableClassDef fromNullableClassDef){
+                    // work as Object cast
                 } else {
-                    var expr = castTo(expression, nullableClassDef.getBaseClass());
+                    var expr = castTo(expression, toNullableClassDef.getBaseClass());
                     return new ForceCast(ownerFunction, expr, toType, ForceCast.CastMode.ToUnion);
                 }
             } else {
                 throw new UnsupportedOperationException("only nullable supported now");
             }
-        }
-
-        if(fromType instanceof UnionClassDef){
+        } else if(fromType instanceof UnionClassDef){
             if(fromType instanceof NullableClassDef nullableClassDef){
                 var expr = new ForceCast(ownerFunction, expression, nullableClassDef.getBaseClass(), ForceCast.CastMode.FromUnion);
                 return castTo(expr, toType);

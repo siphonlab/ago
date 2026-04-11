@@ -213,6 +213,7 @@ public class Unit {
                 case AgoLexer.INT -> new PrimitiveClassDef(root, TypeCode.INT);
                 case AgoLexer.LONG -> new PrimitiveClassDef(root, TypeCode.LONG);
                 case AgoLexer.DOUBLE -> new PrimitiveClassDef(root, TypeCode.DOUBLE);
+                case AgoLexer.DECIMAL -> new PrimitiveClassDef(root, TypeCode.DECIMAL);
                 case AgoLexer.FLOAT -> new PrimitiveClassDef(root, TypeCode.FLOAT);
                 case AgoLexer.STRING -> new PrimitiveClassDef(root, TypeCode.STRING);
                 case AgoLexer.BYTE -> new PrimitiveClassDef(root, TypeCode.BYTE);
@@ -731,8 +732,8 @@ public class Unit {
     }
 
     ClassDef[] parseTypeRange(AgoParser.TypeRangeContext typeRange, ClassDef scopeClass) throws CompilationError {
-        var from = extractType(parseType(scopeClass, typeRange.from.variableType(),false, false));
-        var to = typeRange.to == null ? root.getAnyClass() : extractType(parseType(scopeClass, typeRange.to.variableType(), false,false));
+        var from = isUnderScore(typeRange.from) ? root.getAnyClass() : extractType(parseType(scopeClass, typeRange.from.variableType(),false, false));
+        var to = typeRange.to == null || isUnderScore(typeRange.to) ? root.getAnyClass() : extractType(parseType(scopeClass, typeRange.to.variableType(), false,false));
         if(from instanceof FunctionDef){
             from = tryExtractFunctionInterfaceInstantiation(typeRange.from, from);
         }
@@ -740,6 +741,12 @@ public class Unit {
             to = tryExtractFunctionInterfaceInstantiation(typeRange.to, to);
         }
         return new ClassDef[]{from, to};
+    }
+
+    private boolean isUnderScore(AgoParser.TypeOrAnyContext typeOrAnyContext) {
+        return typeOrAnyContext.start == typeOrAnyContext.stop
+                && typeOrAnyContext.stop.getStopIndex() - typeOrAnyContext.start.getStartIndex() == 0
+                && typeOrAnyContext.getText().equals("_");
     }
 
     public static ClassDef extractType(Expression typeExpr) throws CompilationError {

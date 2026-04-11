@@ -4,12 +4,12 @@ class Animal{
     }
 }
 
-fun foo() as Animal{
+fun foo() as Animal?{
     Trace.print("foo got null")
     return null;
 }
 
-fun bar() as Animal{
+fun bar() as Animal?{
     Trace.print("bar got animal")
     return new Animal();
 }
@@ -17,14 +17,14 @@ fun bar() as Animal{
 
 fun testOrObject(){
     var r = foo() or bar();     // invoke foo and bar
-    r.bark()
+    r?.bark()
 
     var r2 = bar() or foo();        // only invoke bar
-    r2.bark()
+    r2?.bark()
 
     var r3 = foo()
     r3 or= bar()
-    r3.bark()
+    r3?.bark()
 }
 
 fun testAndObject(){

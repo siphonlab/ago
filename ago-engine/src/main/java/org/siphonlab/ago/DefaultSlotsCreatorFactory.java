@@ -116,7 +116,11 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
                     var caseSlot = cases.get(i);
                     entrances[i].here();
                     var fld = inc.field(fieldName(caseSlot));
-                    fld.inc(inc.param(1));
+                    if(typeCode == DECIMAL){
+                        fld.set(fld.invoke("add", inc.param(1)));
+                    } else {
+                        fld.inc(inc.param(1));
+                    }
 //                        var exitLabel = inc.label();
 //                        fld.ifGe(zero(typeCode), exitLabel);
 //                        inc.new_(IllegalArgumentException.class, "ooooops").throw_();

@@ -358,7 +358,7 @@ public class FunctionInvocationResolver {
                 }
             } else if (v.getTypeCode() == TypeCode.NULL) {
                 return 0.9;
-            } else if (v.getTypeCode() == TypeCode.OBJECT) {
+            } else if (v.getTypeCode() == TypeCode.OBJECT || v.getTypeCode() == TypeCode.UNION) {
                 if(p == p.getRoot().getObjectClass()){
                     return 0.75;
                 } else if(v.isDeriveFrom(p)) {

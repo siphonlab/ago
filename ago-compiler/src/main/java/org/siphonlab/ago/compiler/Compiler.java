@@ -639,6 +639,7 @@ public class Compiler {
             case AgoLexer.INT -> TypeCode.INT;
             case AgoLexer.LONG -> TypeCode.LONG;
             case AgoLexer.DOUBLE -> TypeCode.DOUBLE;
+            case AgoLexer.DECIMAL -> TypeCode.DECIMAL;
             case AgoLexer.FLOAT -> TypeCode.FLOAT;
             case AgoLexer.STRING -> TypeCode.STRING;
             case AgoLexer.BYTE -> TypeCode.BYTE;

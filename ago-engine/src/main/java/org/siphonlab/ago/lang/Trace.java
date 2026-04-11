@@ -23,6 +23,7 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.native_.NativeFrame;
 
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -52,6 +53,12 @@ public class Trace {
     }
 
     public static void print_double(NativeFrame frame, double number){
+        lines.add(String.valueOf(number));
+        System.err.println(number);
+        frame.finishVoid();
+    }
+
+    public static void print_decimal(NativeFrame frame, BigDecimal number){
         lines.add(String.valueOf(number));
         System.err.println(number);
         frame.finishVoid();

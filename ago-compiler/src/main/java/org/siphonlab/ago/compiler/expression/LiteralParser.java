@@ -172,13 +172,16 @@ public class LiteralParser {
         // Detect and strip optional suffix (f/F/d/D)
         char last = text.charAt(text.length() - 1);
         boolean isFloat = false;
-        boolean isDouble = false;
+        boolean isDouble = true;
         if (last == 'f') {
             isFloat = true;
             text = text.substring(0, text.length() - 1);
         } else if (last == 'd') {
             // explicit double suffix – no change needed
             isDouble = true;
+            text = text.substring(0, text.length() - 1);
+        } else if(last == 'D'){
+            isDouble = false;
             text = text.substring(0, text.length() - 1);
         }
 

@@ -45,8 +45,8 @@ public class Const {
     public static final int const_d_vc          = 0x01_07_01_03;
     public static final int const_fld_d_ovc     = 0x01_07_02_04;
 
-    public static final int const_D_vc          = 0x01_07_01_06;
-    public static final int const_fld_D_ovc     = 0x01_07_02_07;
+    public static final int const_D_vc          = 0x01_0d_01_06;
+    public static final int const_fld_D_ovc     = 0x01_0d_02_07;
 
     public static final int const_b_vc          = 0x01_08_01_02;
     public static final int const_fld_b_ovc     = 0x01_08_02_03;
@@ -85,8 +85,8 @@ public class Const {
             case 0x01_06_02_03 -> "const_fld_f_ovc";
             case 0x01_07_01_03 -> "const_d_vc";
             case 0x01_07_02_04 -> "const_fld_d_ovc";
-            case 0x01_0d_01_03 -> "const_D_vc";
-            case 0x01_0d_02_04 -> "const_fld_D_ovc";
+            case const_D_vc -> "const_D_vc";
+            case const_fld_D_ovc -> "const_fld_D_ovc";
             case 0x01_08_01_02 -> "const_b_vc";
             case 0x01_08_02_03 -> "const_fld_b_ovc";
             case 0x01_09_01_02 -> "const_s_vc";
