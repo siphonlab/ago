@@ -136,6 +136,11 @@ public class PipeToTempVar extends ExpressionInFunctionBody implements LocalVarR
         }
 
         @Override
+        public SourceLocation getSourceLocation() {
+            return inner.getSourceLocation();
+        }
+
+        @Override
         public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
             blockCompiler.lockRegister(tempVar);
             inner.outputToLocalVar(localVar, blockCompiler);

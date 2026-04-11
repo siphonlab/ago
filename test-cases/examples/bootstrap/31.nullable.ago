@@ -48,10 +48,16 @@ class Samoyed from Dog{
     }
 }
 
+fun neg(this as int) as int{
+    return -this;
+}
+
 fun main(){
     var i as int? = 2026
     var j = i!
     Trace.print(j)
+
+    Trace.print(i?.neg()!)
 
     i = null;
     try{
@@ -60,8 +66,13 @@ fun main(){
         Trace.print(ex.message)     // can't cast null to 'int'
     }
 
+    var k = i?.neg();
+    if(k != null)
+        Trace.print(k!)
+
     foo(null);
     foo(new Dog())
+
 }
 
 fun foo(animal as Animal?){
@@ -70,18 +81,18 @@ fun foo(animal as Animal?){
         Trace.print(fld!);
     }
 
-//    animal?.bark();
-//
-//    var n = animal?.getName();      // n is string?
-//    if(n != null){
-//        Trace.print(n!);
-//    } else {
-//        Trace.print('animal is null or name is null')
-//    }
-//
-//    if(animal == null){
-//        Trace.print('animal is null')
-//    } else {
-//        animal!.bark();
-//    }
+    animal?.bark();
+
+    var n = animal?.getName();      // n is string?
+    if(n != null){
+        Trace.print(n!);
+    } else {
+        Trace.print('animal is null or name is null')
+    }
+
+    if(animal == null){
+        Trace.print('animal is null')
+    } else {
+        animal!.bark();
+    }
 }

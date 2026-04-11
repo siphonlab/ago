@@ -94,7 +94,7 @@ public class ListPut extends ExpressionInFunctionBody {
             blockCompiler.lockRegister(value);
 
             var invoke = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(list, accessor), List.of(indexExpr, value), this.getSourceLocation());
-            invoke.termVisit(blockCompiler);
+            invoke.transform().termVisit(blockCompiler);
 
             blockCompiler.releaseRegister(array);
             blockCompiler.releaseRegister(indexExpr);

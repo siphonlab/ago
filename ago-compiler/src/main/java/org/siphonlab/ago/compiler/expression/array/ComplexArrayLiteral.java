@@ -94,7 +94,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                     } else {
                         assert ownerFunction.getRoot().getAnyCollectionClass().isThatOrSuperOfThat(classDef);
                         expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("size#get")),
-                                            Collections.emptyList(), expression.getSourceLocation()).visit(blockCompiler);
+                                            Collections.emptyList(), expression.getSourceLocation()).transform().visit(blockCompiler);
                     }
                     blockCompiler.lockRegister(expandoSize);
                     groups.add(new GroupResult(expression, p, expandoSize));
@@ -144,7 +144,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                     if(groupType.equals(this.arrayType)) {
                         // Array.copy
                         ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(new ConstClass(arrayType), arrayType.getMetaClassDef().findMethod("copy#")),
-                                List.of(group.result, getRoot().createIntLiteral(0), localVar, destIndex, group.size), group.expression().getSourceLocation()).termVisit(blockCompiler);
+                                List.of(group.result, getRoot().createIntLiteral(0), localVar, destIndex, group.size), group.expression().getSourceLocation()).transform().termVisit(blockCompiler);
                         new SelfArithmetic(ownerFunction, destIndex, group.size, SelfArithmetic.Type.Inc).termVisit(blockCompiler);
                         solved = true;
                     }
@@ -155,7 +155,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                         ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(group.result, collectionClass.findMethod("copyTo#offset_length")),
                                         List.of(localVar, destIndex, group.size),
                                         group.expression.getSourceLocation())
-                                .termVisit(blockCompiler);
+                                .transform().termVisit(blockCompiler);
                         new SelfArithmetic(ownerFunction, destIndex, group.size, SelfArithmetic.Type.Inc).termVisit(blockCompiler);
                         solved = true;
                     }
@@ -190,17 +190,17 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
             if(classDef == this.arrayType) {
                 new ArrayCreate(ownerFunction, arrayType, expandoSize).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
                 ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(new ConstClass(arrayType), arrayType.getMetaClassDef().findMethod("copy#")),
-                        List.of(p, getRoot().createIntLiteral(0), localVar, getRoot().createIntLiteral(0), expandoSize), expandoSize.getSourceLocation()).termVisit(blockCompiler);
+                        List.of(p, getRoot().createIntLiteral(0), localVar, getRoot().createIntLiteral(0), expandoSize), expandoSize.getSourceLocation()).transform().termVisit(blockCompiler);
 
                 blockCompiler.releaseRegister(p);
                 return;
             }
         } else {
             var collectionClass = ownerFunction.getRoot().getAnyCollectionClass().asThatOrSuperOfThat(classDef);
-            expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("size#get")), Collections.emptyList(), expression.getSourceLocation()).visit(blockCompiler);
+            expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("size#get")), Collections.emptyList(), expression.getSourceLocation()).transform().visit(blockCompiler);
             if(collectionClass.getGenericSource().typeArguments()[0].getClassDefValue() == this.arrayType.getElementType()) {
                 ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, collectionClass.findMethod("toArray#")), Collections.emptyList(), expression.getSourceLocation())
-                        .outputToLocalVar(localVar, blockCompiler);
+                        .transform().outputToLocalVar(localVar, blockCompiler);
                 return;
             }
         }

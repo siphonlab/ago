@@ -107,7 +107,7 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
                             listCreated = true;
                         }
                         ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(localVar, this.inferType().findMethod("add#")), Collections.singletonList(expression), expression.getSourceLocation())
-                                .termVisit(blockCompiler);
+                                .transform().termVisit(blockCompiler);
                         continue;
                     } else {
                         MutableBoolean returnExisted = new MutableBoolean();
@@ -143,7 +143,7 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
                     };
                     ownerFunction.invoke(Invoke.InvokeMode.Invoke,
                             ownerFunction.classUnder(localVar, this.inferType().findMethod(method)), List.of(part),
-                            expression.getSourceLocation()).termVisit(blockCompiler);
+                            expression.getSourceLocation()).transform().termVisit(blockCompiler);
                 } else {
                     iterateCopy(localVar, blockCompiler, part, t, expression.getSourceLocation());
                 }

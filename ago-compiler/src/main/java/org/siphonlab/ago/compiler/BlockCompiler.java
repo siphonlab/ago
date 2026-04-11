@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.siphonlab.ago.compiler.ClassDef.findCommonType;
@@ -1122,7 +1123,7 @@ public class BlockCompiler {
                         if(readonlyMapType != null && readonlyMapType.isThatOrSuperOfThat(mapType)){
                             var withValue = new CurrWithExpression(functionDef, expr);
                             var putAll = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(withMapInstance, objectType.findMethod("putAll#")), List.of(withValue), unit.sourceLocation(ps));
-                            statements.add(new WithStmt(functionDef, withValue, functionDef.expressionStmt(putAll)));
+                            statements.add(new WithStmt(functionDef, withValue, functionDef.expressionStmt(putAll.transform())));
                         } else {
                             ClassDef iteratorType = t.findMethod("iterator#").getResultType();
                             var keyValuePairType = iteratorType.findMethod("next#").getResultType();
@@ -1243,25 +1244,56 @@ public class BlockCompiler {
         } else {
             var namePath = memberAccessExpr.namePath();
             if(nullConditional){
-                var exprType = left.inferType();
-                if(!(exprType instanceof NullableClassDef nullableClassDef)){
-                    throw new TypeMismatchError("nullable class expected", left.getSourceLocation());
-                }
-                var nullableResult = new PipeToTempVar(functionDef, left);
-                var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef,
-                                    functionDef.cast(nullableResult, nullableClassDef.getBaseClass()).setSourceLocation(left.getSourceLocation()).transform(),
-                                (FormalNamePathContext) namePath).resolve();
-                var resultType = functionDef.getOrCreateNullableType(right.inferType(), null);
-                right = functionDef.cast(nullableResult.releaseAfter(right), resultType).setSourceLocation(unit.sourceLocation(namePath)).transform();
-                return new IfElseExpr(functionDef, right,
-                                        new Equals(functionDef, nullableResult, root.createNullLiteral(), Equals.Type.NotEquals).transform(),
-                                    nullableResult.releaseAfter(root.createNullLiteral()));
+                return nullableIfThenExpr(functionDef, left, baseOfLeft ->
+                    new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, baseOfLeft, (FormalNamePathContext) namePath).resolve()
+                );
             } else {
                 var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, left, (FormalNamePathContext) namePath).resolve();
                 return right;
             }
         }
     }
+
+    public interface ExpressionSupplierOnNullableBase{
+        Expression apply(Expression baseOfNullableExpression) throws CompilationError;
+    }
+
+    public interface StatementSupplierOnNullableBase{
+        Statement apply(Expression baseOfNullableExpression) throws CompilationError;
+    }
+
+    public static Expression nullableIfThenExpr(FunctionDef functionDef, Expression left, ExpressionSupplierOnNullableBase resultExprSupplier) throws CompilationError {
+        var exprType = left.inferType();
+        if(!(exprType instanceof NullableClassDef nullableClassDef)){
+            throw new TypeMismatchError("nullable class expected", left.getSourceLocation());
+        }
+        var nullableResult = new PipeToTempVar(functionDef, left);
+        var baseTypeResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass()).setSourceLocation(left.getSourceLocation()).transform();
+
+        var right = resultExprSupplier.apply(baseTypeResult);
+        var nullableResultType = functionDef.getOrCreateNullableType(right.inferType(), null);
+        right = functionDef.cast(nullableResult.releaseAfter(right), nullableResultType).setSourceLocation(right.getSourceLocation()).transform();
+        var root = functionDef.getRoot();
+        return new IfElseExpr(functionDef, right,
+                new Equals(functionDef, nullableResult, root.createNullLiteral(), Equals.Type.NotEquals).transform(),
+                nullableResult.releaseAfter(root.createNullLiteral()));
+    }
+
+    public static Statement nullableIfThenStmt(FunctionDef functionDef, Expression left, StatementSupplierOnNullableBase resultExprSupplier) throws CompilationError {
+        var exprType = left.inferType();
+        if(!(exprType instanceof NullableClassDef nullableClassDef)){
+            throw new TypeMismatchError("nullable class expected", left.getSourceLocation());
+        }
+        var nullableResult = new PipeToTempVar(functionDef, left);
+        var baseTypeResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass()).setSourceLocation(left.getSourceLocation()).transform();
+
+        var right = resultExprSupplier.apply(baseTypeResult);
+        var root = functionDef.getRoot();
+        return new IfThenElseStmt(functionDef,
+                new Equals(functionDef, nullableResult, root.createNullLiteral(), Equals.Type.NotEquals).transform(),
+                new ExpressionStmt(functionDef, nullableResult.releaseAfter(right)),null);
+    }
+
 
     private Expression methodCall(Expression left, MethodCallContext methodCall) throws CompilationError {
         NamePathContext namePath;
@@ -1818,7 +1850,7 @@ public class BlockCompiler {
     }
 
     private Expression valueFromNullable(ValueFromNullableContext valueFromNullableContext) throws CompilationError {
-        var expr = expression(valueFromNullableContext.expression());
+        var expr = expression(valueFromNullableContext.expression()).transform();
         ClassDef classDef = expr.inferType();
         if(!(classDef instanceof NullableClassDef)){
             throw unit.typeError(valueFromNullableContext, "nullable expression expected");

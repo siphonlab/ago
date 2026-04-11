@@ -73,7 +73,7 @@ public class ForEachStmt extends LoopStmt{
                 // iterable
                 ClassDef iterableType = expression.inferType();
                 ClassUnder iteratorFun = (ClassUnder) ClassUnder.create(ownerFunction, expression, iterableType.getChild("iterator#")).setSourceLocation(expression.getSourceLocation()).setParent(this);
-                var invokeIteratorFun = ownerFunction.invoke(Invoke.InvokeMode.Invoke, iteratorFun, Collections.emptyList(), expression.getSourceLocation());
+                var invokeIteratorFun = ownerFunction.invoke(Invoke.InvokeMode.Invoke, iteratorFun, Collections.emptyList(), expression.getSourceLocation()).transform();
                 iteratorType = invokeIteratorFun.inferType();
 
                 iteratorValue = (Var.LocalVar) invokeIteratorFun.visit(blockCompiler);
@@ -88,12 +88,12 @@ public class ForEachStmt extends LoopStmt{
             this.continueLabel.here();      // test hasNext() and fetch next();
 
             ClassUnder hasNextFun = (ClassUnder) ClassUnder.create(ownerFunction, iteratorValue, iteratorType.getChild("hasNext#")).setSourceLocation(expression.getSourceLocation()).setParent(this);
-            var invokeHasNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, hasNextFun, Collections.emptyList(), expression.getSourceLocation());
+            var invokeHasNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, hasNextFun, Collections.emptyList(), expression.getSourceLocation()).transform();
             Var.LocalVar hasNextValue = (Var.LocalVar) invokeHasNext.visit(blockCompiler);
             code.jumpIfNot(hasNextValue.getVariableSlot(), exitLabel);
 
             ClassUnder nextFun = (ClassUnder) ClassUnder.create(ownerFunction, iteratorValue, iteratorType.getChild("next#")).setSourceLocation(expression.getSourceLocation()).setParent(this);
-            var invokeNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, nextFun, Collections.emptyList(), expression.getSourceLocation());
+            var invokeNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, nextFun, Collections.emptyList(), expression.getSourceLocation()).transform();
             ownerFunction.assign(iterVar, invokeNext).setSourceLocation(enhanceControlPartSourceLocation).termVisit(blockCompiler);
 
             this.body.termVisit(blockCompiler);

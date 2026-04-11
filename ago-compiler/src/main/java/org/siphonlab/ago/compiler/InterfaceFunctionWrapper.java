@@ -146,7 +146,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
             var arg = Var.of(this, new Scope.Local(this), parameter);
             arguments.add(arg);
         }
-        var invoke = invoke(Invoke.InvokeMode.Invoke,classUnder(fld, this.interfaceFun), arguments, fld.getSourceLocation());
+        var invoke = invoke(Invoke.InvokeMode.Invoke,classUnder(fld, this.interfaceFun), arguments, fld.getSourceLocation()).transform();
         Expression expr;
         if (this.getResultType() == root.VOID()) {
             expr = invoke;

@@ -100,7 +100,7 @@ public class MapPut extends ExpressionInFunctionBody {
             blockCompiler.lockRegister(value);
 
             var invoke = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(this.map, accessor), List.of(keyExpr, value), this.getSourceLocation());
-            invoke.termVisit(blockCompiler);
+            invoke.transform().termVisit(blockCompiler);
 
             blockCompiler.releaseRegister(map);
             blockCompiler.releaseRegister(keyExpr);
