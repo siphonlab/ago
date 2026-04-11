@@ -27,6 +27,7 @@ import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
+import org.siphonlab.ago.compiler.statement.Label;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,7 +54,7 @@ public class Invoke extends ExpressionInFunctionBody{
 
     protected final MaybeFunction maybeFunction;
     protected final FunctionDef resolvedFunctionDef;
-    protected final Expression scope;
+    protected Expression scope;
     protected List<Expression> arguments;
     private final InvokeMode invokeMode;
 
@@ -116,26 +117,30 @@ public class Invoke extends ExpressionInFunctionBody{
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        if(invokeMode.isAsync()){
-            return resolvedFunctionDef;
+        if(this.scope instanceof NullConditional){
+            if(invokeMode.isAsync()){
+                return ownerFunction.getOrCreateNullableType(resolvedFunctionDef, null);
+            } else {
+                return ownerFunction.getOrCreateNullableType(resolvedFunctionDef.getResultType(), null);
+            }
         } else {
-            return resolvedFunctionDef.getResultType();
+            if (invokeMode.isAsync()) {
+                return resolvedFunctionDef;
+            } else {
+                return resolvedFunctionDef.getResultType();
+            }
         }
     }
 
     @Override
-    public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+    public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler compiler) throws CompilationError {
         if(localVar.inferType().getTypeCode() == TypeCode.VOID){
             throw new SyntaxError("'void' variable not allowed", localVar.getSourceLocation());
         }
 
-        blockCompiler.validateThrowException(this.resolvedFunctionDef.getThrowsExceptions(), this);
+        compiler.validateThrowException(this.resolvedFunctionDef.getThrowsExceptions(), this);
 
-        try {
-            blockCompiler.lockRegister(localVar);
-
-            blockCompiler.enter(this);
-
+        Visitor visitor = (blockCompiler, output) ->{
             var instance = prepareInvocation(blockCompiler);
 
             if (instance == null)
@@ -148,9 +153,9 @@ public class Invoke extends ExpressionInFunctionBody{
             }
             if (invokeMode.isAsync()) {
                 if(forkContext != null){
-                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot(), forkContextVar.getVariableSlot());
+                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), output.getVariableSlot(), forkContextVar.getVariableSlot());
                 } else {
-                    blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot());
+                    blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), output.getVariableSlot());
                 }
             } else {
                 if(invokeMode == InvokeMode.Await && forkContext != null){
@@ -159,11 +164,11 @@ public class Invoke extends ExpressionInFunctionBody{
                     blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
                 }
 
-                if (localVar.getVariableSlot().getTypeCode() == TypeCode.OBJECT
-                        && localVar.getVariableSlot().getClassDef() == resolvedFunctionDef.getRoot().getAnyClass()) {
-                    blockCompiler.getCode().acceptAny(localVar.getVariableSlot());
+                if (output.getVariableSlot().getTypeCode() == TypeCode.OBJECT
+                        && output.getVariableSlot().getClassDef() == resolvedFunctionDef.getRoot().getAnyClass()) {
+                    blockCompiler.getCode().acceptAny(output.getVariableSlot());
                 } else {
-                    blockCompiler.getCode().accept(localVar.getVariableSlot());
+                    blockCompiler.getCode().accept(output.getVariableSlot());
                 }
             }
             if(instance.varMode == Var.LocalVar.VarMode.Temp){
@@ -171,12 +176,77 @@ public class Invoke extends ExpressionInFunctionBody{
                 ownerFunction.assign(instance,new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
             }
             blockCompiler.releaseRegister(instance);
-            blockCompiler.releaseRegister(localVar);
+        };
+
+        try {
+            compiler.lockRegister(localVar);
+
+            compiler.enter(this);
+
+            if(scope instanceof NullConditional nullConditional){
+                withinNullableCondition(compiler, visitor, localVar);
+            } else {
+                visitor.run(compiler, localVar);
+            }
+
+            compiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
         } finally {
-            blockCompiler.leave(this);
+            compiler.leave(this);
         }
+
+    }
+
+    interface Visitor {
+        void run(BlockCompiler blockCompiler, Var.LocalVar output) throws CompilationError;
+    }
+
+    public void withinNullableCondition(BlockCompiler blockCompiler, Visitor visitor, Var.LocalVar output) throws CompilationError {
+        Var.LocalVar nullConditionalExprVar = null;
+        Var.LocalVar nullConditionalVar = null;
+        Label nullExit;
+        Label wholeExit;
+        var resultType = this.inferType();
+        var oldScope = this.scope;
+
+        NullConditional nullConditional = (NullConditional) this.scope;
+
+        nullConditionalExprVar = (Var.LocalVar) nullConditional.getExpression().visit(blockCompiler);
+        blockCompiler.lockRegister(nullConditionalExprVar);
+        nullExit = blockCompiler.createLabel();
+        wholeExit = blockCompiler.createLabel();
+        var eq = new Equals(ownerFunction, nullConditionalExprVar, getRoot().createNullLiteral(), Equals.Type.Equals);
+        var eqResult = (Var.LocalVar)eq.visit(blockCompiler);
+        blockCompiler.getCode().jumpIf(eqResult.getVariableSlot(), nullExit);   // if null set result to null
+
+        nullConditionalVar = (Var.LocalVar) new Cast(ownerFunction, nullConditionalExprVar, nullConditional.inferType()).setSourceLocation(nullConditional.getSourceLocation()).transform().visit(blockCompiler);
+        blockCompiler.releaseRegister(nullConditionalExprVar);
+        blockCompiler.lockRegister(nullConditionalVar);
+        this.scope = nullConditionalVar;
+
+        if(output != null){
+            var result = blockCompiler.acquireTempVar(this.inferType());
+            visitor.run(blockCompiler, result);
+            new Cast(ownerFunction, result, resultType).setSourceLocation(this.getSourceLocation()).transform().outputToLocalVar(output, blockCompiler);
+            blockCompiler.releaseRegister(result);
+        } else {
+            visitor.run(blockCompiler, null);
+        }
+
+        if(output != null) {
+            blockCompiler.getCode().jump(wholeExit);
+
+            nullExit.here();
+            blockCompiler.getCode().assignLiteral(output.getVariableSlot(), getRoot().createNullLiteral());
+
+            wholeExit.here();
+        } else {
+            nullExit.here();
+        }
+
+        blockCompiler.releaseRegister(nullConditionalVar);
+        this.scope = oldScope;
 
     }
 
@@ -184,32 +254,40 @@ public class Invoke extends ExpressionInFunctionBody{
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
         blockCompiler.validateThrowException(this.resolvedFunctionDef.getThrowsExceptions(), this);
 
-        try {
-            blockCompiler.enter(this);
-
-            var instance = prepareInvocation(blockCompiler);
-            if (instance == null)
+        Visitor visitor = (compiler, output) -> {
+            var instance = prepareInvocation(compiler);
+            if (instance == null) {
                 return;
+            }
 
-            blockCompiler.lockRegister(instance);
+            compiler.lockRegister(instance);
 
             Var.LocalVar forkContextVar = null;
             if(forkContext != null){
-                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
+                forkContextVar = (Var.LocalVar) this.forkContext.visit(compiler);
             }
 
             if(forkContext != null){
-                blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
+                compiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
             } else {
-                blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
+                compiler.getCode().invoke(invokeMode, instance.getVariableSlot());
             }
-            blockCompiler.releaseRegister(instance);
+            compiler.releaseRegister(instance);
 
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
-                ownerFunction.assign(instance, new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
+                ownerFunction.assign(instance, new NullLiteral(resolvedFunctionDef)).termVisit(compiler);
             }
+        };
 
+        try {
+            blockCompiler.enter(this);
+
+            if(this.scope instanceof NullConditional nullConditional){
+                withinNullableCondition(blockCompiler, visitor, null);
+            } else {
+                visitor.run(blockCompiler, null);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {

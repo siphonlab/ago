@@ -157,12 +157,12 @@ public class CallFrameBoundSlotsImpl<T extends Slots> implements CallFrameBoundS
     }
 
     @Override
-    public Instance<?> getUnion(int slot) {
+    public Object getUnion(int slot) {
         return inner.getUnion(slot);
     }
 
     @Override
-    public void setUnion(int slot, Instance<?> value) {
+    public void setUnion(int slot, Object value) {
         inner.setUnion(slot, value);
     }
 

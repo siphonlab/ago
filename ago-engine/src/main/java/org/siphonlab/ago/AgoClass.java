@@ -226,6 +226,19 @@ public class AgoClass extends Instance<MetaClass>{
             return null;
         }
 
+        // org.siphonlab.ago.compiler.NullableClassDef.asThatOrSuperOfThat
+        if(this.concreteTypeInfo instanceof NullableTypeInfo nullableTypeInfo){
+            if(anotherClass.concreteTypeInfo instanceof NullableTypeInfo another){
+                if(nullableTypeInfo.getBaseClass().isThatOrSuperOfThat(another.getBaseClass())){
+                    return this;
+                }
+            }
+            if(nullableTypeInfo.getBaseClass().isThatOrSuperOfThat(anotherClass, visited) || anotherClass instanceof AgoNullClass){
+                return this;
+            }
+            return null;
+        }
+
         if(this.concreteTypeInfo instanceof ParameterizedClassInfo parameterizedClassInfo){
             // ClassInterval, ScopedClassInterval, GenericTypeParameter
             if(ClassBound.isClassBound( this)){     // see org.siphonlab.ago.compile.generic.ClassIntervalClassDef.asThatOrSuperOfThat
@@ -552,11 +565,15 @@ public class AgoClass extends Instance<MetaClass>{
     }
 
     public TypeCode getTypeCode() {
-        if(this.getParameterizedBaseClass() != null){
+        if(this.concreteTypeInfo == null){
+            return TypeCode.OBJECT;
+        } else if(this.concreteTypeInfo instanceof ParameterizedClassInfo){
             if(this.getParameterizedBaseClass() == classLoader.getLangClasses().getGenericTypeParameterClass()){
                 var info = GenericTypeCodeAvatarInfo.extract(this);
                 return new GenericTypeCode(info.genericTypeCode(), info.index(), info.name(), info.name() + "_" + info.index() + "_" + info.templateClass().getFullname());
             }
+        } else if(this.concreteTypeInfo instanceof NullableTypeInfo){
+            return TypeCode.UNION;
         }
 
         return TypeCode.OBJECT;

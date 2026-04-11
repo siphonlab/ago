@@ -24,6 +24,7 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 
 public abstract class Literal<T> implements LiteralResultExpression, TermExpression {
@@ -88,10 +89,12 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
 
     public static Literal<?> parseFloatLiteral(Root root, AgoParser.FloatLiteralContext floatLiteral) {
         var n = LiteralParser.parseFloatLiteral(floatLiteral.getText());
-        if(n instanceof Double d){
+        if(n instanceof Double d) {
             return root.createDoubleLiteral(d);
-        } else {
-            return root.createFloatLiteral((Float) n);
+        } else if(n instanceof Float f){
+            return root.createFloatLiteral(f);
+        } else{
+            return root.createDecimalLiteral((BigDecimal) n);
         }
     }
 
@@ -115,8 +118,13 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
         this.visit(blockCompiler);      // add to const pool
         blockCompiler.enter(this);
 
-        blockCompiler.getCode().assignLiteral(localVar.getVariableSlot(), this);
-        blockCompiler.leave(this);
+        try {
+            blockCompiler.getCode().assignLiteral(localVar.getVariableSlot(), this);
+        } catch (Exception e){
+            throw e;
+        } finally {
+            blockCompiler.leave(this);
+        }
     }
 
     @Override

@@ -605,6 +605,10 @@ public abstract class RdbAdapter {
     }
 
     public void fillPrimitiveParameter(PreparedStatement ps, int index, TypeCode typeCode, Object value) throws SQLException {
+        if(value == null){
+            ps.setNull(index, mapType(typeCode, null).getSqlType());
+            return;
+        }
         switch (typeCode.getValue()) {
             case INT_VALUE:     ps.setInt(index, (Integer) value); break;
             case LONG_VALUE:    ps.setLong(index, (Long) value); break;

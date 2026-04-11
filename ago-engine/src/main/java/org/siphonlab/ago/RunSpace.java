@@ -399,7 +399,7 @@ public class RunSpace implements Runnable{
         resumeByAcceptResult();
     }
 
-    public void acceptUnionByAsync(Instance<?> result) {
+    public void acceptUnionByAsync(Object result) {
         resultSlots.setUnionValue(result);
         resumeByAcceptResult();
     }

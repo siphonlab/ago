@@ -45,13 +45,26 @@ public class LazyResultSlots extends ResultSlots {
     }
 
     @Override
-    public void setUnionValue(Instance<?> value) {
-        this.setObjectValue(value);
+    public void setUnionValue(Object value) {
+        if(this.unionValue instanceof Instance<?> instance){
+            ReferenceCounter.releaseRef(instance, ReferenceCounter.Reason.SetResultSlotsDrop);
+        }
+        this.unionValue = value;
+        if(value instanceof Instance<?> instance) {
+            ReferenceCounter.increaseRef(instance, ReferenceCounter.Reason.SetResultSlotsInstall);
+        }
     }
 
     @Override
-    public Instance<?> takeUnionValue() {
-        return takeObjectValue();
+    public Object takeUnionValue() {
+        if(unionValue == null) return null;
+
+        var r = unionValue;
+        if(r instanceof Instance<?> instance) {
+            ReferenceCounter.releaseRef(instance, ReferenceCounter.Reason.TakeObjectValue);
+        }
+        unionValue = null;
+        return r;
     }
 
     public void cleanObjectResult() {

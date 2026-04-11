@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler;
 
+import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -703,10 +704,6 @@ public class Root extends Namespace<Package> {
         return new ClassRefLiteral(this.CLASREF, classRef);
     }
 
-    public NullLiteral createNullLiteral(ClassDef classDef){
-        return new NullLiteral(classDef);
-    }
-
     public NullLiteral createNullLiteral(){
         return new NullLiteral(this.NULL);
     }
@@ -721,5 +718,23 @@ public class Root extends Namespace<Package> {
 
     public NullClassDef NULL() {
         return NULL;
+    }
+
+    public NullableClassDef getOrCreateNullableType(ClassDef classDef, MutableBoolean returnExisted) throws CompilationError {
+        var name = NullableClassDef.composeName(classDef.getFullname());
+
+        var existed = this.findByFullname(name);
+        if(existed != null){
+            if(returnExisted != null) returnExisted.setTrue();
+            return (NullableClassDef) existed;
+        }
+        var n = new NullableClassDef(this, classDef);
+        classDef.getParent().addChild(n);
+        if (this.getCompilingStage().getValue() > n.getCompilingStage().getValue()) {
+            Compiler.processClassTillStage(n, this.getCompilingStage());
+            Compiler.processClassTillStage(n.getMetaClassDef(), this.getCompilingStage());
+        }
+        return n;
+
     }
 }

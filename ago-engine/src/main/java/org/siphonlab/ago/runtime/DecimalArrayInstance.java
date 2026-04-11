@@ -20,6 +20,7 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Slots;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 
 public class DecimalArrayInstance extends AgoArrayInstance{
@@ -34,7 +35,10 @@ public class DecimalArrayInstance extends AgoArrayInstance{
     public void fillBytes(int count, byte[] blob) {
         IoBuffer buffer = IoBuffer.wrap(blob);
         for (int i = 0; i < count; i++) {
-            value[i] = buffer.getDouble();
+            int scale = buffer.getInt();
+            byte[] data = new byte[16];
+            buffer.get(data);
+            value[i] = new BigDecimal(new BigInteger(data), scale);
         }
     }
 

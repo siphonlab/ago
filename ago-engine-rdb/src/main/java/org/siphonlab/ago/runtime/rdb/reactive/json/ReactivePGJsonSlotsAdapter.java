@@ -19,6 +19,7 @@ import groovy.json.JsonOutput;
 import groovy.json.JsonSlurper;
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.reactive.SlotsAdapter;
 import org.slf4j.Logger;
@@ -380,6 +381,58 @@ public class ReactivePGJsonSlotsAdapter implements SlotsAdapter<ReactiveJsonRefS
     @Override
     public void setObject(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, Instance<?> value) {
         updateObjectSlotValue(slots.getCallFrame(), objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, slots.getSlotDef(slot), value);
+    }
+
+    @Override
+    public Object getUnion(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot) {
+        throw new UnsupportedOperationException("TODO");        //TODO
+    }
+
+    @Override
+    public void setUnion(ReactiveJsonRefSlotsWithCallFrame slots, ObjectRef objectRef, int slot, Object union) {
+        switch (union) {
+            case null:
+                updateSlotValue(objectRef, slots.getFieldName(slot), slots.getDataType(slot), slot, UNION, null);
+                break;
+            case String s:
+                this.setString(slots, objectRef, slot, s);
+                break;
+            case ClassRefValue v:
+                this.setClassRef(slots, objectRef, slot, this.adapter.getClassByName(v.className()).getClassId());
+                break;
+            case Instance<?> u:
+                this.setObject(slots, objectRef, slot, u);
+                break;
+            case Integer number:
+                this.setInt(slots, objectRef, slot, number);
+                break;
+            case Boolean b:
+                this.setBoolean(slots, objectRef, slot, b);
+                break;
+            case Double number:
+                this.setDouble(slots, objectRef, slot, number);
+                break;
+            case Long number:
+                this.setLong(slots, objectRef, slot, number);
+                break;
+            case Byte number:
+                this.setByte(slots, objectRef, slot, number);
+                break;
+            case BigDecimal number:
+                this.setDecimal(slots, objectRef, slot, number);
+                break;
+            case Float number:
+                this.setFloat(slots, objectRef, slot, number);
+                break;
+            case Character c:
+                this.setChar(slots, objectRef, slot, c);
+                break;
+            case Short number:
+                this.setShort(slots, objectRef, slot, number);
+                break;
+            default:
+                throw new IllegalArgumentException("unknown union type: " + union.getClass());
+        }
     }
 
     @Override

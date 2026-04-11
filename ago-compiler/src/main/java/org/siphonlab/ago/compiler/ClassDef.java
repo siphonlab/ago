@@ -1175,6 +1175,19 @@ public class ClassDef extends ClassContainer {
         return arrayType;
     }
 
+    public NullableClassDef getOrCreateNullableType(ClassDef baseType, MutableBoolean returnExisted) throws CompilationError {
+        if(this.getParentClass() != null){
+            return this.getParentClass().getOrCreateNullableType(baseType, returnExisted);
+        }
+        var nullableType = this.unit.getRoot().getOrCreateNullableType(baseType, returnExisted);
+        if(nullableType instanceof ConcreteType c){
+            this.registerConcreteType(c);
+        }
+        if(!baseType.isPrimitive()) this.idOfConstString(baseType.getFullname());
+        return nullableType;
+    }
+
+
     public Map<String, ConcreteType> getConcreteTypes() {
         if(this.getParentClass() != null){
             return this.getParentClass().getConcreteTypes();

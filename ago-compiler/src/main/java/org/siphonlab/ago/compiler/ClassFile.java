@@ -30,12 +30,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.channels.Channels;
 import java.nio.charset.*;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import static org.siphonlab.ago.compiler.CodeBuffer.bigDecimalToIntArray;
 
 public class ClassFile {
 
@@ -385,7 +388,10 @@ public class ClassFile {
 
     private void putType(IoBuffer buff, ClassDef classDef, ClassDef compilingType) {
         buff.putInt(compilingType.getTypeCode().getValue());
-        if (compilingType.getTypeCode() == TypeCode.OBJECT || compilingType instanceof GenericTypeCodeAvatarClassDef) {
+        if (compilingType.getTypeCode() == TypeCode.OBJECT
+                || compilingType instanceof GenericTypeCodeAvatarClassDef
+                || compilingType.getTypeCode() == TypeCode.UNION
+        ) {
             buff.putInt(classDef.idOfKnownConstString(compilingType.getFullname()));
         }
     }
@@ -436,24 +442,24 @@ public class ClassFile {
                     putType(buffer, ownerClass, argument.getClassDefValue());
                 }
                 // metaclass
-                if(classDef.getMetaClassDef() != null){
+                if (classDef.getMetaClassDef() != null) {
                     buffer.putPrefixedString(classDef.getMetaClassDef().getFullname(), encoder);
                 } else {
                     buffer.putPrefixedString("", encoder);
                 }
-                if(classDef.getSuperClass() != null) {
+                if (classDef.getSuperClass() != null) {
                     buffer.putPrefixedString(classDef.getSuperClass().getFullname(), encoder);
                 } else {
                     buffer.putPrefixedString("", encoder);
                 }
                 ClassDef parentClass = classDef.getParentClass();
-                if(parentClass != null) {
+                if (parentClass != null) {
                     buffer.putPrefixedString(parentClass.getFullname(), encoder);
                 } else {
                     buffer.putPrefixedString("", encoder);
                 }
                 var interfaces = classDef.getAllInterfaces();       // put all interfaces include interface of interface
-                if(CollectionUtils.isNotEmpty(interfaces)) {
+                if (CollectionUtils.isNotEmpty(interfaces)) {
                     buffer.putInt(interfaces.size());
                     for (ClassDef interface_ : interfaces) {
                         buffer.putPrefixedString(interface_.getFullname(), encoder);
@@ -461,6 +467,14 @@ public class ClassFile {
                 } else {
                     buffer.putInt(0);
                 }
+            } else if (concreteType instanceof NullableClassDef nullableClassDef) {
+                if (nullableClassDef.getBaseClass() instanceof ConcreteType ele && solving.contains(ele)) {
+                    putConcreteType(ownerClass, buffer, ele, solving);
+                }
+                buffer.put((byte) 4);
+                buffer.putInt(ownerClass.idOfKnownConstString(nullableClassDef.getFullname()));
+                buffer.putPrefixedString(nullableClassDef.getName(), encoder);
+                putType(buffer, ownerClass,nullableClassDef.getBaseClass());
             } else {
                 throw new RuntimeException("unknown concrete type " + concreteType.getFullname());
             }
@@ -487,6 +501,9 @@ public class ClassFile {
             buff.putFloat(floatLiteral.value);
         } else if (literal instanceof DoubleLiteral doubleLiteral) {
             buff.putDouble(doubleLiteral.value);
+        } else if (literal instanceof DecimalLiteral decimalLiteral) {
+            var arr = bigDecimalToIntArray(decimalLiteral.value);
+            buff.asIntBuffer().put(arr);
         } else if (literal instanceof CharLiteral charLiteral) {
             buff.putChar(charLiteral.value);
         } else if(literal instanceof StringLiteral stringLiteral) {

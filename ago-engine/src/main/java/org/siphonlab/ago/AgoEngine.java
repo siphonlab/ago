@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -321,7 +322,11 @@ public class AgoEngine implements ClassManager{
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if(emptyArgsConstructor != null){
-            c.invokeMethod(caller, emptyArgsConstructor,emptyArgsConstructor);
+            try {
+                c.invokeMethod(caller, emptyArgsConstructor,emptyArgsConstructor).get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
         }
         return c;
     }

@@ -359,25 +359,41 @@ public class CodeBuffer {
     }
 
     public void assignLiteral(SlotDef targetSlot, Literal<?> value) {
+        TypeCode typeCode = targetSlot.getTypeCode();
         if(value instanceof NullLiteral){
-            ls.addInt(Const.const_n_vc);
+            if(typeCode.isGeneric()){
+                ls.addInt(Const.const_ng_v);
+            } else if(typeCode == UNION){
+                ls.addInt(Const.const_nu_v);
+            } else if(typeCode == OBJECT){
+                ls.addInt(Const.const_no_v);
+            } else {
+                throw new IllegalArgumentException("bad type code for null literal");
+            }
             slot(targetSlot);
             return;
         }
-        TypeCode typeCode = targetSlot.getTypeCode();
         ls.addInt(Const.KIND_CONST | (typeCode.getValue() << 16) | 0x01_02 + additionSizeOf(typeCode));      // const_i_vc
         slot(targetSlot);
         literal(value);
     }
 
     public void assignLiteral(SlotDef targetInstanceSlot, SlotDef targetSlot, Literal<?> value) {
+        TypeCode typeCode = targetSlot.getTypeCode();
         if (value instanceof NullLiteral) {
+            if(typeCode.isGeneric()){
+                ls.addInt(Const.const_fld_ng_ov);
+            } else if(typeCode == UNION){
+                ls.addInt(Const.const_fld_nu_ov);
+            } else if(typeCode == OBJECT){
+                ls.addInt(Const.const_fld_no_ov);
+            } else {
+                throw new IllegalArgumentException("bad type code for null literal");
+            }
             slot(targetInstanceSlot);
-            ls.addInt(Const.const_fld_n_ovc);
             slot(targetSlot);
             return;
         }
-        TypeCode typeCode = targetSlot.getTypeCode();
         ls.addInt(Const.KIND_CONST | (typeCode.getValue() << 16) | 0x02_03 + additionSizeOf(typeCode));    // const_fld_i_ovc
         slot(targetInstanceSlot);
         slot(targetSlot);
@@ -869,13 +885,13 @@ public class CodeBuffer {
     }
 
     public void equalsNull(SlotDef target, SlotDef variableSlot) {
-        ls.addInt(Equals.equals_o_vvn);
+        ls.addInt(Equals.equals_u_vvn);
         slot(target);
         slot(variableSlot);
     }
 
     public void notEqualsNull(SlotDef target, SlotDef variableSlot) {
-        ls.addInt(NotEquals.ne_o_vvn);
+        ls.addInt(NotEquals.ne_u_vvn);
         slot(target);
         slot(variableSlot);
     }

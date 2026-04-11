@@ -74,6 +74,7 @@ public class FunctionApply extends ExpressionInFunctionBody{
             }
             if (instance.varMode == Var.LocalVar.VarMode.Temp) {
                 // release the register after invoke if it's a temp var
+                // TODO an only case of `obj = null`, to release obj
                 ownerFunction.assign(instance, new NullLiteral(functionDef)).termVisit(blockCompiler);
             }
         } catch (CompilationError e) {

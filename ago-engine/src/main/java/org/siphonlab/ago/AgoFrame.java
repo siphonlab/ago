@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.function.BiFunction;
 
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
@@ -92,7 +93,9 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 }
                 case Accept.OP: pc = evaluateAccept(slots, pc, instruction); break;
                 case TryCatch.OP: {
-                    if(evaluateTryCatch(slots, instruction)) break; else {
+                    if(evaluateTryCatch(slots, instruction))
+                        break;
+                    else {
                         if(this.debugger != null) this.debugger.leaveFrame(this);
                         return;
                     }
@@ -105,7 +108,10 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case Jump.OP: pc = evaluateJump(slots, pc, instruction); break;
                 case Concat.OP: pc = evaluateConcat(slots, pc, instruction); break;
                 case Return.OP: pc = evaluateReturn(self, slots, pc, instruction); break;
-                case Cast.OP: pc = evaluateCast(slots,pc, instruction); break;
+                case Cast.OP: {
+                    var p = evaluateCast(slots,pc, instruction);
+                    if(p != -1) pc = p; else return;
+                } break;
                 case Load.OP: pc = evaluateLoad(slots, pc, instruction); break;
                 case Array.OP: pc = evaluateArray(slots, pc, instruction); break;
                 case Box.OP: pc = evaluateBox(slots, pc, instruction); break;
@@ -221,9 +227,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case TryCatch.except_store_v:   slots.setObject(code[pc++], this.getRunSpace().getException()); this.getRunSpace().cleanException(); break;
             case TryCatch.except_clean:     this.getRunSpace().cleanException(); break;
             case TryCatch.except_throw_v: {
-                this.handleException(slots.getObject(code[pc]));
-                if(this.pc == -1) {
-                    this.pc = this.code.length;
+                if(!this.handleException(slots.getObject(code[pc]))) {
                     return false;   // not handled, exit
                 }
             }
@@ -232,8 +236,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case TryCatch.except_throw_if_v: {
                 var exception = slots.getObject(code[pc++]);
                 if(exception != null){
-                    this.handleException(exception);
-                    if(this.pc == -1) return false;   // not handled, exit
+                    if(!this.handleException(exception)) return false;  // not handled, exit
                 }
             }
             break;
@@ -1531,8 +1534,11 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Const.const_l_vc : slots.setLong(code[pc++], toLong(code[pc++], code[pc++])); break;
             case Const.const_fld_l_ovc: slots.getObject(code[pc++]).getSlots().setLong(code[pc++], toLong(code[pc++], code[pc++])); break;
 
-            case Const.const_n_vc : slots.setUnion(code[pc++], null); break;
-            case Const.const_fld_n_ovc: slots.getObject(code[pc++]).getSlots().setUnion(code[pc++], null); break;
+            case Const.const_nu_v: slots.setUnion(code[pc++], null); break;
+            case Const.const_fld_nu_ov: slots.getObject(code[pc++]).getSlots().setUnion(code[pc++], null); break;
+
+            case Const.const_no_v: slots.setObject(code[pc++], null); break;
+            case Const.const_fld_no_ov: slots.getObject(code[pc++]).getSlots().setObject(code[pc++], null); break;
 
             case Const.const_S_vc : slots.setString(code[pc++], engine.toString(code[pc++])); break;
             case Const.const_fld_S_ovc: slots.getObject(code[pc++]).getSlots().setString(code[pc++], engine.toString(code[pc++])); break;
@@ -1689,24 +1695,85 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Cast.C2u: slots.setUnion(code[pc++], new ClassRefValue(engine.getClass(slots.getClassRef(code[pc++])).getFullname())); break;
             case Cast.D2u: slots.setUnion(code[pc++], slots.getDecimal(code[pc++])); break;
 
-            case Cast.u2o: slots.setObject(code[pc++], engine.getBoxer().unionToObject(slots.getUnion(code[pc++])));  break;
+            case Cast.u2o: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), OBJECT);
+                if(union == null) return -1;
+                slots.setObject(dest, engine.getBoxer().unionToObject(union));
+            }
+            break;
             case Cast.u2S: slots.setString(code[pc++], Union.unionToString(slots.getUnion(code[pc++]), engine)); break;
             case Cast.u2B: slots.setBoolean(code[pc++], Union.unionToBoolean(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2c: slots.setChar(code[pc++], Union.unionToChar(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2f: slots.setFloat(code[pc++], Union.unionToFloat(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2d: slots.setDouble(code[pc++], Union.unionToDouble(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2b: slots.setByte(code[pc++], Union.unionToByte(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2s: slots.setShort(code[pc++], Union.unionToShort(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2i: slots.setInt(code[pc++], Union.unionToInt(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2l: slots.setLong(code[pc++], Union.unionToLong(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2C: slots.setClassRef(code[pc++], Union.unionToClassRef(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2D: slots.setDecimal(code[pc++], Union.unionToDecimal(slots.getUnion(code[pc++]), engine)); break;
+            case Cast.u2c:{
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), CHAR);
+                if(union == null) return -1;
+                slots.setChar(dest, Union.unionToChar(union, engine));
+            }
+            break;
+            case Cast.u2f: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), FLOAT);
+                if(union == null) return -1;
+                slots.setFloat(dest, Union.unionToFloat(union, engine));
+            } break;
+            case Cast.u2d: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), DOUBLE);
+                if(union == null) return -1;
+                slots.setDouble(dest, Union.unionToDouble(union, engine));
+            } break;
+            case Cast.u2b: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), BYTE);
+                if(union == null) return -1;
+                slots.setByte(dest, Union.unionToByte(union, engine));
+            } break;
+            case Cast.u2s: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), SHORT);
+                if(union == null) return -1;
+                slots.setShort(dest, Union.unionToShort(union, engine));
+            } break;
+            case Cast.u2i: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), INT);
+                if(union == null) return -1;
+                slots.setInt(dest, Union.unionToInt(union, engine));
+            } break;
+            case Cast.u2l: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), LONG);
+                if(union == null) return -1;
+                slots.setLong(dest, Union.unionToLong(union, engine));
+            } break;
+            case Cast.u2C: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), CLASS_REF);
+                if(union == null) return -1;
+                slots.setClassRef(dest, Union.unionToClassRef(union, engine));
+            } break;
+            case Cast.u2D: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(slots.getUnion(code[pc++]), DECIMAL);
+                if(union == null) return -1;
+                slots.setDecimal(dest, Union.unionToDecimal(union, engine));
+            } break;
+
             case Cast.u2u: slots.setUnion(code[pc++], slots.getUnion(code[pc++])); break;
 
             default:
                 throw new UnsupportedOperationException("unsupported cast " + OpCode.getName(instruction));
         }
         return pc;
+    }
+
+    private Object validateNullForUnion(Object union, TypeCode typeCode) {
+        if(union == null) {
+            raiseException("lang.ClassCastException", "can't cast null to '%s'".formatted(typeCode));
+            return null;
+        }
+        return union;
     }
 
     private AgoClass getClass(int classId) {
@@ -1795,9 +1862,18 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     public void raiseException(String exceptionClassName, String message){
         var ExceptionClass = engine.getClass(exceptionClassName);
         var exception = engine.createInstance(null, ExceptionClass, this );
-        exception.invokeMethod(this, runSpace, ExceptionClass.findMethod("new#message"), message);
-        if(!this.handleException(exception))
-            this.pc = code.length;
+        exception.invokeMethod(this, runSpace, ExceptionClass.findMethod("new#message"), message)
+            .thenRun(()->{
+                this.handleException(exception);
+            }).handle(new BiFunction<Void, Throwable, Object>() {
+                    @Override
+                    public Object apply(Void unused, Throwable throwable) {
+                        if(throwable != null){
+                            LOGGER.error(throwable.getMessage(), throwable);
+                        }
+                        return unused;
+                    }
+                });
     }
 
     public static char stringToChar(String s){
@@ -2180,11 +2256,12 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     public boolean handleException(Instance<?> exception) {
         var pc = resolveExceptionHandler(this.pc, exception);
-        this.pc = pc;
         if(pc == -1) {
+            this.pc = code.length;
             this.finishException(exception, true);
             return false;
         } else {
+            this.pc = pc;
             this.finishException(exception, false);
             return true;
         }

@@ -249,11 +249,11 @@ class ArrayIterator<T> with Iterator<T>{
 
 abstract class Enum<T>{
     metaclass{
-        fun valueOf(t as T) as Enum<T>{     // metaclass cannot be abstract, even the instance class is abstract
+        fun valueOf(t as T) as Enum<T>? {     // metaclass cannot be abstract, even the instance class is abstract
             return null;
         }
 
-        fun parse(s as string) as Enum<T>{
+        fun parse(s as string) as Enum<T>? {
             return null;
         }
     }
@@ -301,11 +301,12 @@ class Trace{
 
         final fun print#float(number as float) native "org.siphonlab.ago.lang.Trace.print_float";
 
-        final fun print#obj(obj as Object){
-            if(obj == null)
-                print#str("null")
-            else
-                print#str(obj.toString())
+        final fun print#obj(obj as Object?){
+            if(obj == null){
+                print#str("null");
+            } else {
+                print#str(obj!.toString())
+            }
         }
 
         final fun print#b(v as boolean){

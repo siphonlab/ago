@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.classloader;
 
+import com.fasterxml.jackson.databind.node.DecimalNode;
 import org.agrona.collections.IntArrayList;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -511,6 +512,18 @@ public class AgoClassLoader implements ClassManager{
         }
     }
 
+    static class NullableConcreteTypeDesc extends ConcreteTypeDesc{
+        String nullableClassName;
+        TypeDesc baseType;
+
+        public NullableConcreteTypeDesc(String baseClassFullName, String nullableClassName, TypeDesc baseType) {
+            this.fullname = baseClassFullName;
+            this.nullableClassName = nullableClassName;
+            this.baseType = baseType;
+        }
+    }
+
+
     static class ParameterizedClassConcreteTypeDesc extends ConcreteTypeDesc{
         byte specialType;
         String baseClass;
@@ -580,7 +593,14 @@ public class AgoClassLoader implements ClassManager{
                 ClassHeader elementType = this.headers.get(arrayConcreteTypeDesc.elementType.className);
                 if(elementType != null || !this.concreteTypeDescs.containsKey(arrayConcreteTypeDesc.elementType.className)){
                     ArrayTypeHeader header = new ArrayTypeHeader(arrayConcreteTypeDesc.fullname, arrayConcreteTypeDesc.arrayClassName, arrayConcreteTypeDesc.elementType.className, this);
-                    header.setClassId(headers.size());
+                    registerNewClass(header);
+                } else {
+                    ls.add(concreteTypeDesc);
+                }
+            } else if(concreteTypeDesc instanceof NullableConcreteTypeDesc nullableConcreteTypeDesc){
+                ClassHeader elementType = this.headers.get(nullableConcreteTypeDesc.baseType.className);
+                if(elementType != null || !this.concreteTypeDescs.containsKey(nullableConcreteTypeDesc.baseType.className)){
+                    NullableTypeHeader header = new NullableTypeHeader(nullableConcreteTypeDesc.fullname, nullableConcreteTypeDesc.nullableClassName, nullableConcreteTypeDesc.baseType.className, this);
                     registerNewClass(header);
                 } else {
                     ls.add(concreteTypeDesc);
@@ -646,6 +666,11 @@ public class AgoClassLoader implements ClassManager{
             readParameterizedClass(buffer, strings);
         } else if(kind == 3) {
             readGenericParameterizedClass(buffer, strings);
+        } else if(kind == 4){
+            String nullableClassFullName = strings[buffer.getInt()];
+            String nullableClassName = buffer.getPrefixedString(decoder);
+            var baseType = readType(buffer, strings);
+            this.concreteTypeDescs.put(nullableClassFullName, new NullableConcreteTypeDesc(nullableClassFullName, nullableClassName, baseType));
         }
     }
 
@@ -894,8 +919,11 @@ public class AgoClassLoader implements ClassManager{
         if(header instanceof ParameterizedClassHeader parameterizedClassHeader) {
             buildVariablesAndFunctionBodyForParameterized(parameterizedClassHeader);
             return;
-        } else if(header instanceof ArrayTypeHeader arrayTypeHeader){
+        } else if(header instanceof ArrayTypeHeader arrayTypeHeader) {
             buildVariablesAndFunctionBodyForArray(arrayTypeHeader);
+            return;
+        } else if(header instanceof NullableTypeHeader nullableTypeHeader) {
+            buildVariablesAndFunctionBodyForNullable(nullableTypeHeader);
             return;
         } else if(header.getSourceHeader() != null && header.genericSource == null){        // a cloner
             if(header.getSourceHeader().getLoadingStage() == LoadingStage.BuildVariablesAndFunctionBody){
@@ -1043,6 +1071,21 @@ public class AgoClassLoader implements ClassManager{
         header.setLoadingStage(LoadingStage.Done);
     }
 
+    private void buildVariablesAndFunctionBodyForNullable(NullableTypeHeader header) {
+        if(header.loadingStage != LoadingStage.BuildVariablesAndFunctionBody) return;
+
+//        var s = headers.get(header.getSuperClass());
+//        if(header != s && s.loadingStage == LoadingStage.BuildVariablesAndFunctionBody){
+//            buildVariablesAndFunctionBody(s);
+//        }
+
+        header.agoClass.setFields(new AgoField[0]);
+        header.agoClass.setSlotDefs(new AgoSlotDef[0]);
+        header.agoClass.setChildren(new AgoClass[0]);
+//        header.agoClass.setSuperClass();
+
+        header.setLoadingStage(LoadingStage.Done);
+    }
 
     private SlotDesc[] parseSlots(IoBuffer buffer, int slotCount, String[] strings) {
         SlotDesc[] slotDescs = new SlotDesc[slotCount];
@@ -1080,7 +1123,7 @@ public class AgoClassLoader implements ClassManager{
             result = new TypeDesc(typeCodeValue, className);
         } else {
             TypeCode typeCode = of(typeCodeValue);
-            if (typeCode == OBJECT) {
+            if (typeCode == OBJECT || typeCode == UNION) {
                 String className = strings[buff.getInt()];
                 result = new TypeDesc(typeCodeValue, className);
             } else {

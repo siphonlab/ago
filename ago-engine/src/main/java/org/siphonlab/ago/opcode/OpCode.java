@@ -96,7 +96,6 @@ public class OpCode {
             case Pause.KIND_PAUSE -> Pause.getName(code);
             case Accept.KIND_ACCEPT -> Accept.getName(code);
 
-            case UnionCast.KIND_UNION_CAST ->  UnionCast.getName(code);
             case UnionInstanceOf.KIND_UNION_INSTANCE_OF ->  UnionInstanceOf.getName(code);
 
             default -> "unknown code " + code;

@@ -162,13 +162,13 @@ public class RdbRefSlots implements Slots, ObjectRefOwner {
     }
 
     @Override
-    public void setUnion(int slot, Instance<?> value) {
-        this.setObject(slot, value);
+    public Object getUnion(int slot) {
+        return slotsAdapter.getUnion(this, objectRef, slot);
     }
 
     @Override
-    public Instance<?> getUnion(int slot) {
-        return this.getObject(slot);
+    public void setUnion(int slot, Object value) {
+        slotsAdapter.setUnion(this, objectRef, slot, value);
     }
 
     @Override

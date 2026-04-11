@@ -57,8 +57,17 @@ public class Const {
     public static final int const_l_vc          = 0x01_0b_01_03;
     public static final int const_fld_l_ovc     = 0x01_0b_02_04;
 
-    public static final int const_n_vc          = 0x01_02_01_01;
-    public static final int const_fld_n_ovc     = 0x01_02_02_02;
+    // for union.
+    public static final int const_nu_v          = 0x01_0e_02_01;
+    public static final int const_fld_nu_ov     = 0x01_0e_02_02;
+
+    // object, object to release slot
+    public static final int const_no_v          = 0x01_01_02_01;
+    public static final int const_fld_no_ov     = 0x01_01_02_02;
+
+    // generic
+    public static final int const_ng_v          = 0x01_00_02_01;
+    public static final int const_fld_ng_ov     = 0x01_00_02_02;
 
     public static final int const_S_vc          = 0x01_03_01_02;
     public static final int const_fld_S_ovc     = 0x01_03_02_03;
@@ -88,13 +97,26 @@ public class Const {
             case 0x01_0b_02_04 -> "const_fld_l_ovc";
             case 0x01_01_01_02 -> "const_o_vc";
             case 0x01_01_02_03 -> "const_fld_o_ovc";
-            case 0x01_02_01_01 -> "const_n_vc";
             case 0x01_02_02_02 -> "const_fld_n_ovc";
             case 0x01_03_01_02 -> "const_S_vc";
             case 0x01_03_02_03 -> "const_fld_S_ovc";
             case 0x01_0c_01_02 -> "const_C_vC";
             case 0x01_0c_02_03 -> "const_fld_C_ovC";
-            default -> throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
+            case const_nu_v -> "const_nu_v";
+            case const_fld_nu_ov -> "const_fld_nu_ov";
+            case const_no_v -> "const_no_v";
+            case const_fld_no_ov -> "const_fld_no_ov";
+            default -> {
+                var t = OpCode.extractType(code);
+                if(t >= TypeCode.GENERIC_TYPE_START){
+                    t -= TypeCode.GENERIC_TYPE_START;
+                    switch ((code & OpCode.DTYPE_MASK_NEG)){
+                        case const_ng_v: yield "const_ng[%s]_vv".formatted(t);
+                        case const_fld_ng_ov: yield  "const_fld_G[%s]_ovv".formatted(t);
+                    };
+                }
+                throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
+            }
         };
     }
 

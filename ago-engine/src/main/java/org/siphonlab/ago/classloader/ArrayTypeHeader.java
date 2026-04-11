@@ -177,12 +177,10 @@ public class ArrayTypeHeader extends ClassHeader {
     @Override
     public AgoClass buildClass() {
         if(this.loadingStage != BuildClass) return this.agoClass;
-        if(this.elementType.getTypeCode() == TypeCode.OBJECT) {
-            var eleClass = classLoader.getClassHeader(elementType.fullname);
-            if (eleClass.loadingStage == BuildClass){
-                var r = eleClass.buildClass();
-                if (r == null) return null;
-            }
+        var eleClass = classLoader.getClassHeader(elementType.fullname);
+        if (eleClass.loadingStage == BuildClass){
+            var r = eleClass.buildClass();
+            if (r == null) return null;
         }
         var agoClass = super.buildClass();
         agoClass.setConcreteTypeInfo(new ArrayInfo(this.elementType.agoClass));

@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.concurrent.ExecutionException;
 
 import static org.apache.commons.dbcp2.Utils.closeQuietly;
 
@@ -186,7 +187,11 @@ public class RdbEngine extends AgoEngine {
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if (emptyArgsConstructor != null) {
-            c.invokeMethod(caller, emptyArgsConstructor, emptyArgsConstructor);
+            try {
+                c.invokeMethod(caller, emptyArgsConstructor, emptyArgsConstructor).get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
         }
         return c;
     }

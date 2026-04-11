@@ -80,6 +80,10 @@ public interface SlotsAdapter<T extends Slots> {
 
     void setObject(T slots, ObjectRef objectRef, int slot, Instance<?> value);
 
+    Object getUnion(T slots, ObjectRef objectRef, int slot);
+
+    void setUnion(T slots, ObjectRef objectRef, int slot, Object value);
+
     void incInt(T slots, ObjectRef objectRef, int slot, int value);
 
     void incFloat(T slots, ObjectRef objectRef, int slot, float value);

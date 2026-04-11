@@ -41,7 +41,7 @@ public interface DeferenceObject {
         if(logger.isDebugEnabled()) logger.debug("release slots of %s".formatted(slots));
         for (var p : slots.getObjectSlots()){
             if(p == null) continue;
-            Instance<?> obj = p.getLeft();
+            Instance<?> obj = p.value();
             if(obj == null) continue;
 
             releaseDeferenceAndContext(obj, reason);
@@ -57,7 +57,7 @@ public interface DeferenceObject {
     default void increaseSlotsDeference(RdbSlots slots, ReferenceCounter.Reason reason) {
         for (var p : slots.getObjectSlots()) {
             if (p == null) continue;
-            Instance<?> obj = p.getLeft();
+            Instance<?> obj = p.value();
 
             ReferenceCounter.increaseRef(obj, reason);
         }

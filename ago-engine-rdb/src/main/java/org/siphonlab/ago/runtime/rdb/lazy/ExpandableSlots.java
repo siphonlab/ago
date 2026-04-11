@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public class ExpandableSlots implements Slots {
     private final static Logger logger = LoggerFactory.getLogger(ExpandableSlots.class);
@@ -46,9 +47,13 @@ public class ExpandableSlots implements Slots {
         if(logger.isDebugEnabled()) logger.debug("%s setInnerSlots %s".formatted(owner, innerSlots));
         if(innerSlots instanceof RdbSlots rdbSlots){
             rdbSlots.beginRestore();
-            for (Pair<Instance<?>, Integer> p : rdbSlots.getObjectSlots()) {
-                if(p != null && p.getLeft() != null){
-                    rdbSlots.setObject(p.getRight(),transform(p.getLeft()));
+            for (var p : rdbSlots.getObjectSlots()) {
+                if(p != null && p.value() != null){
+                    if(p.isUnion()) {
+                        rdbSlots.setUnion(p.slot(), transform(p.value()));
+                    } else {
+                        rdbSlots.setObject(p.slot(), transform(p.value()));
+                    }
                 }
             }
             rdbSlots.endRestore();
@@ -126,13 +131,30 @@ public class ExpandableSlots implements Slots {
     public void setString(int slot, String value) {innerSlots.setString(slot, value);}
 
     @Override
-    public void setUnion(int slot, Instance<?> value) {
-        setObject(slot, value);
+    public void setUnion(int slot, Object value) {
+        var existed = innerSlots.getUnion(slot);
+        if(existed instanceof Instance<?> && value instanceof Instance<?>){
+            if(ObjectRefOwner.equals((Instance<?>) existed, (Instance<?>) value)){
+                return;
+            }
+        } else if (Objects.equals(existed, value)){
+            return;
+        }
+
+        if(existed instanceof ExpandableObject<?> object){
+            object.fold();
+        }
+
+        // always transform to ExpandableInstance
+        if(value instanceof Instance<?> instance)
+            value = transform(instance);
+
+        innerSlots.setUnion(slot, value);
     }
 
     @Override
-    public Instance<?> getUnion(int slot) {
-        return getObject(slot);
+    public Object getUnion(int slot) {
+        return innerSlots.getUnion(slot);
     }
 
     @Override

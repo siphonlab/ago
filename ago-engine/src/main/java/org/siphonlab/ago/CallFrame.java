@@ -72,175 +72,210 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         if (stateHandler != null) stateHandler.complete(null);
 
         CallFrame<?> caller = getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
-            runSpace.setCurrCallFrame(null);
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptVoid(caller);
+        } else {
+           runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptVoid(caller);
     }
 
     public void finishBoolean(boolean result) {
         if (stateHandler != null) ((CallFrameStateHandler<Boolean>) stateHandler).complete(result);
 
         CallFrame<?> caller = getCaller();
-        caller.getRunSpace().acceptBoolean(result, caller);
+        RunSpace runSpace = getRunSpace();
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptBoolean(result, caller);
+        } else {
+            runSpace.setCurrCallFrame(null);
+        }
     }
 
     public void finishByte(byte result) {
         if (stateHandler != null) ((CallFrameStateHandler<Byte>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if(callerRunSpace != runSpace){
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptByte(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptByte(result, caller);
     }
 
     public void finishShort(short result) {
         if (stateHandler != null) ((CallFrameStateHandler<Short>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptShort(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptShort(result, caller);
     }
 
     public void finishInt(int result) {
         if (stateHandler != null) ((CallFrameStateHandler<Integer>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptInt(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptInt(result, caller);
     }
 
     public void finishLong(long result) {
         if (stateHandler != null) ((CallFrameStateHandler<Long>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptLong(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptLong(result, caller);
     }
 
     public void finishFloat(float result) {
         if (stateHandler != null) ((CallFrameStateHandler<Float>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptFloat(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptFloat(result, caller);
     }
 
     public void finishDouble(double result) {
         if (stateHandler != null) ((CallFrameStateHandler<Double>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptDouble(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptDouble(result, caller);
     }
 
     public void finishDecimal(BigDecimal result) {
         if (stateHandler != null) ((CallFrameStateHandler<BigDecimal>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptDecimal(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptDecimal(result, caller);
     }
 
     public void finishChar(char result) {
         if (stateHandler != null) ((CallFrameStateHandler<Character>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptChar(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptChar(result, caller);
     }
 
     public void finishObject(Instance<?> result) {
         if (stateHandler != null) ((CallFrameStateHandler<Instance<?>>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptObject(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptObject(result, caller);
     }
 
     public void finishUnion(Object result) {
         if (stateHandler != null) ((CallFrameStateHandler<Object>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptUnion(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptUnion(result, caller);
     }
 
     public void finishString(String result) {
         if (stateHandler != null) ((CallFrameStateHandler<String>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptString(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptString(result, caller);
     }
 
     public void finishNull() {
         if (stateHandler != null) stateHandler.complete(null);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptNull(caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptNull(caller);
     }
 
     public void finishClassRef(AgoClass result){
         if (stateHandler != null) ((CallFrameStateHandler<AgoClass>) stateHandler).complete(result);
 
-        var caller = this.getCaller();
-        RunSpace callerRunSpace = caller.getRunSpace();
+        CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
-        if (callerRunSpace != runSpace) {
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptClassRef(result, caller);
+        } else {
             runSpace.setCurrCallFrame(null);
         }
-        callerRunSpace.acceptClassRef(result, caller);
     }
 
     public void finishException(Instance<?> exception, boolean throwOut) {
@@ -249,6 +284,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
                 var caller = this.getCaller();
                 if(caller == null){
                     this.getRunSpace().acceptException(exception, caller);
+                    return;
                 }
                 var callerRunSpace = caller.getRunSpace();
                 if(callerRunSpace != this.getRunSpace()){

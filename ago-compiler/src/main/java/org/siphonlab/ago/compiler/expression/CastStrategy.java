@@ -50,6 +50,7 @@ public class CastStrategy {
         Any,                        // any, generic
         langObject,                 // lang.Object
         Object,                     // object type
+//        Union,                      // union, now only nullable
     }
 
     public CastStrategy(FunctionDef ownerFunction, SourceLocation sourceLocation, boolean forceCast){
@@ -83,8 +84,10 @@ public class CastStrategy {
             return TypeKind.PrimitiveBoxer;
         } else if(classDef == root.getAnyClass()){
             return TypeKind.Any;
-        } else if(classDef == root.getObjectClass()){
+        } else if(classDef == root.getObjectClass()) {
             return TypeKind.langObject;
+//        } else if(classDef.getTypeCode() == UNION){
+//            return TypeKind.Union;
         } else {
             return TypeKind.Object;
         }
@@ -300,13 +303,35 @@ public class CastStrategy {
             }
         }
 
+        if(toType instanceof UnionClassDef){
+            if(toType instanceof NullableClassDef nullableClassDef){
+                if(fromType instanceof NullClassDef){
+                    return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
+                } else {
+                    var expr = castTo(expression, nullableClassDef.getBaseClass());
+                    return new ForceCast(ownerFunction, expr, toType, ForceCast.CastMode.ToUnion);
+                }
+            } else {
+                throw new UnsupportedOperationException("only nullable supported now");
+            }
+        }
+
+        if(fromType instanceof UnionClassDef){
+            if(fromType instanceof NullableClassDef nullableClassDef){
+                var expr = new ForceCast(ownerFunction, expression, nullableClassDef.getBaseClass(), ForceCast.CastMode.FromUnion);
+                return castTo(expr, toType);
+            } else {
+                throw new UnsupportedOperationException("only nullable supported now");
+            }
+        }
+
         if (expression instanceof Literal<?> literal) {
             if (toType instanceof PrimitiveClassDef) {
                 return new ForceCast(ownerFunction, castLiteral(literal, toType, this.sourceLocation), originToType, ForceCast.CastMode.WearClassMask).transform();
             }
             if (literal instanceof NullLiteral n) {
                 if (toTypeKind == TypeKind.langObject || toTypeKind == TypeKind.Object || toTypeKind == TypeKind.Any || toTypeKind == TypeKind.PrimitiveBoxer) {
-                    return new NullLiteral(originToType).setSourceLocation(sourceLocation);
+                    throw new TypeMismatchError("cannot cast null to object", this.sourceLocation);
                 }
             }
         }
@@ -752,9 +777,7 @@ public class CastStrategy {
                     return root.createLongLiteral(Long.parseLong(str));
             }
         } else if(literal instanceof NullLiteral n){
-            if(toType.getTypeCode() == OBJECT){
-                return root.createNullLiteral(toType).setSourceLocation(sourceLocation);
-            }
+            throw new TypeMismatchError("cannot cast null to object", sourceLocation);
         }
         throw new TypeMismatchError(literal.inferType().getTypeCode() + " cannot cast to " + toTypeCode, sourceLocation);
     }

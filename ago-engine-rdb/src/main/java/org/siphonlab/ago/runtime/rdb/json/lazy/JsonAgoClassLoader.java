@@ -261,8 +261,10 @@ public class JsonAgoClassLoader extends AgoClassLoader {
 
     private ConcreteTypeInfo loadConcreteTypeInfo(Map<String, Object> json) {
         var type = (String)json.get("type");
-        if("ArrayInfo".equals(type)){
+        if("ArrayInfo".equals(type)) {
             return new ArrayInfo(getClass((String) json.get("elementType")));
+        } else if("NullableInfo".equals(type)){
+            return new NullableTypeInfo(getClass((String) json.get("baseType")), (AgoNullClass) getClass("null"));
         } else if("GenericArgumentsInfo".equals(type)){
             var args = ((List<String>)json.get("arguments"));
             return new GenericArgumentsInfo(getClass((String)json.get("templateClass")), args.stream().map(this::getClass).toArray(AgoClass[]::new));

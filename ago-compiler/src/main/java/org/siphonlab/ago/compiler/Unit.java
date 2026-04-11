@@ -731,8 +731,8 @@ public class Unit {
     }
 
     ClassDef[] parseTypeRange(AgoParser.TypeRangeContext typeRange, ClassDef scopeClass) throws CompilationError {
-        var from = parseTypeName(scopeClass, typeRange.from.declarationType().namePath(), false);
-        var to = typeRange.to == null ? root.getAnyClass() : parseTypeName(scopeClass, typeRange.to.declarationType().namePath(),false);
+        var from = extractType(parseType(scopeClass, typeRange.from.variableType(),false, false));
+        var to = typeRange.to == null ? root.getAnyClass() : extractType(parseType(scopeClass, typeRange.to.variableType(), false,false));
         if(from instanceof FunctionDef){
             from = tryExtractFunctionInterfaceInstantiation(typeRange.from, from);
         }
@@ -776,6 +776,10 @@ public class Unit {
                 elementType = lastArrayType = scopeClass.getOrCreateArrayType(elementType, null);
             }
             return new ConstClass(lastArrayType).setSourceLocation(SourceLocation.UNKNOWN);
+        } else if(variableType instanceof AgoParser.VarTypeNullableContext varTypeNullable) {
+            var t = parseTypeName(scopeClass, varTypeNullable.declarationType().namePath(), allowGenericPlaceHolder);
+            var n = scopeClass.getOrCreateNullableType(t, null);
+            return new ConstClass(n);
         } else {
             throw new UnsupportedOperationException();
         }

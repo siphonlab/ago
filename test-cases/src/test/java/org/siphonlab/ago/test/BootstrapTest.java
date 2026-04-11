@@ -244,4 +244,10 @@ public class BootstrapTest {
         assertTrue(Trace.outputted("-1", "-3", "Samoyed", "Samoyed", "Tweet", "Tweet", "Tweet"));
     }
 
+    @Test
+    public void nullable_test() throws CompilationError, IOException {
+        Util.run("bootstrap/31.nullable.ago");
+        Trace.printOutput();
+    }
+
 }
