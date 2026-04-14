@@ -1128,8 +1128,6 @@ public class BlockCompiler {
                     } else {    // for expression
                         throw unit.syntaxError(pe, "expression key can only apply to Map");
                     }
-                } else {
-                    throw new UnsupportedOperationException();
                 }
             }
             return new ComplexObjectLiteral(functionDef, objectTypeExpr, objectLiteralKVDefs);

@@ -88,6 +88,7 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
                         var v = (Var.LocalVar) nonNullValue;
                         addAll(v, localVar, bListCreated, blockCompiler);
                     });
+                    listCreated = bListCreated.get();
                 } else {
                     var arrayPart = new ArrayList<Expression>();
                     boolean allAreLiterals = true;
