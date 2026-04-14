@@ -188,11 +188,11 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         return this.agoClass.getSourceLocation();
     }
 
-    public Object getPayload() {
+    public Object getNativePayload() {
         return payload;
     }
 
-    public void setPayload(Object payload) {
+    public void setNativePayload(Object payload) {
         this.payload = payload;
     }
 

@@ -135,7 +135,7 @@ public class RunSpaceAware {
         var runSpaceHost = nativeFrame.getRunSpace().getRunSpaceHost();
         nativeFrame.beginAsync();
         Object obj = runSpaceHost.setTimer(millisecond, nativeFrame::finishVoidAsync);
-        nativeFrame.setPayload(obj);
+        nativeFrame.setNativePayload(obj);
     }
 
     public static void forkContextSample(NativeFrame nativeFrame) {

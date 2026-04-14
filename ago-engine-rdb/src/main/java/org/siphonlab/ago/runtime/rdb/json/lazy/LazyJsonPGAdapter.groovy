@@ -183,8 +183,8 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             }
         } else if(instance instanceof NativeFrame){
             hasPayload = true;
-            if (instance.payload != null) {
-                arguments['payload'] = toJsonb(instance.payload)
+            if (instance.nativePayload != null) {
+                arguments['payload'] = toJsonb(instance.nativePayload)
             } else {
                 arguments['payload'] = null
             }
@@ -268,7 +268,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
                     frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
                     frame.getDeferenceObjectState().setCreator(creator)
                 } else if(frame instanceof DeferenceNativeFrame){        //DeferenceNativeFrame
-                    if(row['payload']) frame.setPayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
+                    if(row['payload']) frame.setNativePayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
                     frame.getDeferenceFrameState().entrance = row['is_entrance']
                     frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
                     frame.getDeferenceObjectState().setCreator(creator)

@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.runtime.rdb.lazy;
 
+import io.vertx.core.Vertx;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;

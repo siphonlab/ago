@@ -109,6 +109,16 @@ public class ExpandableInstance<T extends AgoClass> extends Instance<T> implemen
     }
 
     @Override
+    public Object getNativePayload() {
+        return expand().getNativePayload();
+    }
+
+    @Override
+    public void setNativePayload(Object nativePayload) {
+        expand().setNativePayload(nativePayload);
+    }
+
+    @Override
     public String toString() {
         return "(ExpandableInstance %s %s)".formatted(this.getObjectRef(), this.expander);
     }

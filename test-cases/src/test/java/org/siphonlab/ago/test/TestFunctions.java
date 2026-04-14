@@ -54,9 +54,9 @@ public class TestFunctions {
     }
 
     public static void mustTryAgain(NativeFrame frame){
-        if(frame.getPayload() == null){
+        if(frame.getNativePayload() == null){
             System.err.println("failed this time, please try again");
-            frame.setPayload("you will success this time");
+            frame.setNativePayload("you will success this time");
             System.exit(0);
         } else {
             System.err.println("now success!");

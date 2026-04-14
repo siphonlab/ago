@@ -242,5 +242,12 @@ public class Instance<C extends AgoClass>  {
         this.getSlots().setClassRef(this.getAgoClass().findField(fieldName).getSlotIndex(), value.classId);
     }
 
+    public Object getNativePayload() {
+        throw new UnsupportedOperationException("only works for native instance");
+    }
+
+    public void setNativePayload(Object nativePayload) {
+        throw new UnsupportedOperationException("only works for native instance");
+    }
 
 }

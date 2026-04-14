@@ -104,8 +104,8 @@ public class DeferenceNativeFrame extends NativeFrame implements DeferenceCallFr
     }
 
     @Override
-    public void setPayload(Object payload) {
-        super.setPayload(payload);
+    public void setNativePayload(Object payload) {
+        super.setNativePayload(payload);
         ((RdbEngine)this.engine).getRdbAdapter().saveInstance(this);
     }
 

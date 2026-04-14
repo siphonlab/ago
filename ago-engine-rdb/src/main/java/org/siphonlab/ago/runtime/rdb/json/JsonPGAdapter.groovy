@@ -285,7 +285,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         if(callFrame instanceof AgoFrame) {
             map["pc"] = callFrame.pc
         } else if(callFrame instanceof NativeFrame) {
-            map["payload"] = callFrame.payload ? toJsonb(callFrame.payload) : null;
+            map["payload"] = callFrame.nativePayload ? toJsonb(callFrame.nativePayload) : null;
         } else {
             throw new UnsupportedOperationException("unsupported frame type " + callFrame)
         }

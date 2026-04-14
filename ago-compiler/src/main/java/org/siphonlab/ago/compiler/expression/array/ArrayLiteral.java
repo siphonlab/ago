@@ -25,6 +25,7 @@ import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
+import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +68,17 @@ public class ArrayLiteral extends ExpressionInFunctionBody {
 
             // all elements are literal, that means it's need store in const area
             if (elements.stream().allMatch(el -> el instanceof Literal<?>)) {
-                int blobId = blockCompiler.getFunctionDef().getOrCreateBLOB(elements.stream().map(l -> (Literal<?>) l).toList(), this);
+                int blobId = blockCompiler.getFunctionDef().getOrCreateBLOB(elements.stream().map(l -> {
+                    var literal = (Literal<?>) l;
+                    if(literal instanceof StringLiteral stringLiteral){
+                        try {
+                            stringLiteral.visit(blockCompiler);
+                        } catch (CompilationError e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    return literal;
+                }).toList(), this);
                 blockCompiler.getCode().fill_array(localVar.getVariableSlot(), arrayType.getElementType().getTypeCode(), size, blobId);
             } else {
                 blockCompiler.lockRegister(localVar);
