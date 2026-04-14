@@ -48,7 +48,8 @@ public class LiteralTests {
     @Test
     public void map() throws CompilationError, IOException {
         run("literal/map.ago");
-        assertTrue(Trace.outputted("HashMap<string,lang.Object>", "Tom", "Jenny", "42", "M", "51888222"));
+//        Trace.printOutput();
+        assertTrue(Trace.outputted("HashMap<string,lang.Object>", "Tom", "Jenny", "Jenny", "42", "M", "51888222"));
     }
 
     @Test

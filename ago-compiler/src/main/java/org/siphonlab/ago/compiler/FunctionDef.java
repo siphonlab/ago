@@ -640,7 +640,7 @@ public class FunctionDef extends ClassDef {
     }
 
     public Invoke invoke(Invoke.InvokeMode invokeMode, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
-        return new Invoke(this, invokeMode, maybeFunction, arguments, sourceLocation);
+        return new Invoke(this, invokeMode, maybeFunction, arguments, sourceLocation).transform();
     }
 
     public Box box(Expression expression, ClassDef expectedType, Box.BoxMode boxMode) throws CompilationError {

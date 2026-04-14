@@ -10,11 +10,13 @@ class Staff{
 }
 
 fun main(){
-    var map = {name: "Tom", gender: 'M', workNo : '1234', age : 44};
-    Trace.print(map.getClass().getName())
-    Trace.print(map['name'])
+    var map = {name: "Tom"|Object, gender: 'M', workNo : '1234', age : 44};
+    Trace.print(map.getClass().getName())   // HashMap<string,lang.Object>
+    Trace.print(map['name'])        // Tom
 
     var staff = {Staff| name: "Jenny", gender: 'F', workNo: '1002'}
+    Trace.print(staff.name)
+
     var n as Staff? = null;
     var m = {...staff, age: 42, ...n}
     Trace.print(m['name'])

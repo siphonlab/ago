@@ -78,6 +78,11 @@ public class Invoke extends ExpressionInFunctionBody{
     }
 
     @Override
+    public Invoke transform() throws CompilationError {
+        return (Invoke) super.transform();
+    }
+
+    @Override
     protected Expression transformInner() throws CompilationError {
         List<Expression> transformedArguments = new ArrayList<>(arguments.size());
         if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){

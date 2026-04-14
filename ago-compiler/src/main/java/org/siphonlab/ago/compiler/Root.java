@@ -15,7 +15,6 @@
  */
 package org.siphonlab.ago.compiler;
 
-import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -86,6 +85,7 @@ public class Root extends Namespace<Package> {
     private ClassDef NATIVE_FUNCTION_INTERFACE_BASE;
     private ClassDef ITERABLE_INTERFACE;
     private ClassDef ITERATOR_INTERFACE;
+    private ClassDef KEY_VALUE_PAIR_CLASS;
 
     private ClassDef VIA_OBJECT_INTERFACE;
     private ClassDef FORK_CONTEXT_INTERFACE;
@@ -405,6 +405,17 @@ public class Root extends Namespace<Package> {
         ClassDef iterator = findByFullname("lang.Iterator");
         try {
             return ITERATOR_INTERFACE = iterator.instantiate(new InstantiationArguments(iterator.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public ClassDef getAnyKeyValuePairClass() {
+        if(KEY_VALUE_PAIR_CLASS != null) return  KEY_VALUE_PAIR_CLASS;
+        ClassDef keyValuePair = findByFullname("lang.KeyValuePair");
+        try {
+            return KEY_VALUE_PAIR_CLASS = keyValuePair.instantiate(new InstantiationArguments(
+                    keyValuePair.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral(), this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }

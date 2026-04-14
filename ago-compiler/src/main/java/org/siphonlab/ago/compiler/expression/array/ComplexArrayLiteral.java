@@ -16,12 +16,12 @@
 package org.siphonlab.ago.compiler.expression.array;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
-import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.statement.ForEachStmt;
 
@@ -70,7 +70,11 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
             blockCompiler.enter(this);
 
             if(this.elements.size() == 1){
-                outputSingleItem(localVar, blockCompiler);
+                var el = this.elements.getFirst();
+                assert el.isExpando();
+                generateCodeForMaybeNull(blockCompiler, el.getExpression(), (GenerateCodeForNullable) nonNullValue ->
+                        outputSingleItem(nonNullValue, localVar, blockCompiler));
+
                 return;
             }
 
@@ -84,27 +88,33 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                 CollectionElementDef element = collectionElementDefs.get(i);
                 Expression expression = element.getExpression();
                 if (element.isExpando()) {
-                    Var.LocalVar p = (Var.LocalVar) expression.visit(blockCompiler);
-                    blockCompiler.lockRegister(p);
+                    MutableBoolean bLengthHasValue = new MutableBoolean(lengthHasValue);
+                    generateCodeForMaybeNull(blockCompiler, expression, (GenerateCodeForNullable) nonNullValue -> {
+                        Var.LocalVar p = (Var.LocalVar) nonNullValue;
+                        blockCompiler.lockRegister(p);
 
-                    ClassDef classDef = p.inferType();
-                    TermExpression expandoSize;
-                    if (classDef instanceof ArrayClassDef) {
-                        expandoSize = new ArrayLength(ownerFunction, expression).visit(blockCompiler);
-                    } else {
-                        assert ownerFunction.getRoot().getAnyCollectionClass().isThatOrSuperOfThat(classDef);
-                        expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("size#get")),
-                                            Collections.emptyList(), expression.getSourceLocation()).transform().visit(blockCompiler);
-                    }
-                    blockCompiler.lockRegister(expandoSize);
-                    groups.add(new GroupResult(expression, p, expandoSize));
+                        ClassDef classDef = p.inferType();
+                        TermExpression expandoSize;
+                        if (classDef instanceof ArrayClassDef) {
+                            expandoSize = new ArrayLength(ownerFunction, expression).visit(blockCompiler);
+                        } else {
+                            assert ownerFunction.getRoot().getAnyCollectionClass().isThatOrSuperOfThat(classDef);
+                            expandoSize = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(p, classDef.findMethod("size#get")),
+                                    Collections.emptyList(), expression.getSourceLocation()).transform().visit(blockCompiler);
+                        }
+                        blockCompiler.lockRegister(expandoSize);
+                        groups.add(new GroupResult(expression, p, expandoSize));
 
-                    if (!lengthHasValue) {
-                        ownerFunction.assign((Var.LocalVar)length, expandoSize).termVisit(blockCompiler);
-                        lengthHasValue = true;
-                    } else {
-                        new SelfArithmetic(ownerFunction, length, expandoSize, SelfArithmetic.Type.Inc).termVisit(blockCompiler);
-                    }
+                        if (bLengthHasValue.isFalse()) {
+                            ownerFunction.assign((Var.LocalVar)length, expandoSize).termVisit(blockCompiler);
+                            bLengthHasValue.setTrue();
+                        } else {
+                            new SelfArithmetic(ownerFunction, length, expandoSize, SelfArithmetic.Type.Inc).termVisit(blockCompiler);
+                        }
+                        blockCompiler.releaseRegister(p);
+                    });
+
+                    lengthHasValue = bLengthHasValue.get();
                 } else {
                     var arrayPart = new ArrayList<Expression>();
                     for(var j =i; j < collectionElementDefs.size(); j++){
@@ -176,11 +186,8 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
 
     }
 
-    private void outputSingleItem(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        var el = this.elements.getFirst();
-        assert el.isExpando();
-        Expression expression = el.getExpression();
-        Var.LocalVar p = (Var.LocalVar) expression.visit(blockCompiler);
+    private void outputSingleItem(TermExpression expression, Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+        Var.LocalVar p = (Var.LocalVar) expression;
         blockCompiler.lockRegister(p);
 
         ClassDef classDef = p.inferType();

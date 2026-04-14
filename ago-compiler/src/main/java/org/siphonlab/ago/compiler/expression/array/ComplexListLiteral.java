@@ -23,11 +23,8 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
-import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
-import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.statement.ForEachStmt;
 
-import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -86,7 +83,11 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
 
                 Var.LocalVar part;
                 if (element.isExpando()) {
-                    part = (Var.LocalVar) expression.visit(blockCompiler);
+                    var bListCreated = new MutableBoolean(listCreated);
+                    generateCodeForMaybeNull(blockCompiler, expression, nonNullValue ->{
+                        var v = (Var.LocalVar) nonNullValue;
+                        addAll(v, localVar, bListCreated, blockCompiler);
+                    });
                 } else {
                     var arrayPart = new ArrayList<Expression>();
                     boolean allAreLiterals = true;
@@ -119,42 +120,46 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
                         part = (Var.LocalVar) arr.visit(blockCompiler);
                         i += arrayPart.size() - 1;
                     }
+                    addAll(part, localVar, new MutableBoolean(listCreated), blockCompiler);
                 }
-                blockCompiler.lockRegister(part);
-
-                ClassDef classDef = part.inferType();
-                if (!listCreated) {
-                    if(classDef instanceof ArrayClassDef arrayClassDef && arrayClassDef.getElementType() == this.elementType) {
-                        new Creator(ownerFunction, listTypeExpr, Collections.singletonList(part), expression.getSourceLocation(), "new#array").outputToLocalVar(localVar, blockCompiler);
-                        blockCompiler.releaseRegister(part);
-                        continue;
-                    } else {
-                        new Creator(ownerFunction, listTypeExpr, Collections.emptyList(), expression.getSourceLocation(), "new#").outputToLocalVar(localVar, blockCompiler);
-                    }
-                    listCreated = true;
-                }
-                var t = blockCompiler.extractCollectionElementType(classDef);
-                if((classDef instanceof ArrayClassDef && t.elementType() == this.elementType) || t.collectionType().isThatOrSuperOfThat(listType)){
-                    var method = switch (t.type()){
-                        case Iterable -> "addAll#iterable";
-                        case Iterator -> "addAll#iterator";
-                        case Array -> "addAll#array";
-                        case Collection, List -> "addAll#collection";
-                    };
-                    ownerFunction.invoke(Invoke.InvokeMode.Invoke,
-                            ownerFunction.classUnder(localVar, this.inferType().findMethod(method)), List.of(part),
-                            expression.getSourceLocation()).transform().termVisit(blockCompiler);
-                } else {
-                    iterateCopy(localVar, blockCompiler, part, t, expression.getSourceLocation());
-                }
-
-                blockCompiler.releaseRegister(part);
             }
         } catch (CompilationError e) {
             throw e;
         } finally {
             blockCompiler.leave(this);
         }
+    }
+
+    private void addAll(Var.LocalVar part, Var.LocalVar listInstance, MutableBoolean listCreated, BlockCompiler blockCompiler) throws CompilationError {
+        blockCompiler.lockRegister(part);
+        ClassDef classDef = part.inferType();
+        if (listCreated.isFalse()) {
+            if(classDef instanceof ArrayClassDef arrayClassDef && arrayClassDef.getElementType() == this.elementType) {
+                new Creator(ownerFunction, listTypeExpr, Collections.singletonList(part), part.getSourceLocation(), "new#array")
+                            .outputToLocalVar(listInstance, blockCompiler);
+                blockCompiler.releaseRegister(part);
+                return;
+            } else {
+                new Creator(ownerFunction, listTypeExpr, Collections.emptyList(), part.getSourceLocation(), "new#")
+                        .outputToLocalVar(listInstance, blockCompiler);
+            }
+            listCreated.setTrue();
+        }
+        var t = blockCompiler.extractCollectionElementType(classDef);
+        if((classDef instanceof ArrayClassDef && t.elementType() == this.elementType) || t.collectionType().isThatOrSuperOfThat(listType)){
+            var method = switch (t.type()){
+                case Iterable -> "addAll#iterable";
+                case Iterator -> "addAll#iterator";
+                case Array -> "addAll#array";
+                case Collection, List -> "addAll#collection";
+            };
+            ownerFunction.invoke(Invoke.InvokeMode.Invoke,
+                    ownerFunction.classUnder(listInstance, this.inferType().findMethod(method)), List.of(part),
+                    part.getSourceLocation()).transform().termVisit(blockCompiler);
+        } else {
+            iterateCopy(listInstance, blockCompiler, part, t, part.getSourceLocation());
+        }
+        blockCompiler.releaseRegister(part);
     }
 
     private void iterateCopy(Var.LocalVar destList, BlockCompiler blockCompiler, Var.LocalVar srcCollection, BlockCompiler.CollectionElementType collectionElementType, SourceLocation sourceLocation) throws CompilationError {

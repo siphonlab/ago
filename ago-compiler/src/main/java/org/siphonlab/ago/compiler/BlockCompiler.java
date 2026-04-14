@@ -29,8 +29,6 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
-import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
-import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
 import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
@@ -38,14 +36,12 @@ import org.siphonlab.ago.compiler.expression.math.Neg;
 import org.siphonlab.ago.compiler.expression.math.Pos;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
-import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.statement.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.siphonlab.ago.compiler.ClassDef.findCommonType;
@@ -1048,6 +1044,19 @@ public class BlockCompiler {
         var objectLiteral = lObjectContext.objectLiteral();
         Expression objectTypeExpr = null;
         List<PropertyAssignmentContext> propertyAssignments = objectLiteral.propertyAssignment();
+
+        List<ObjectLiteralKVDef> objectLiteralKVDefs = new ArrayList<>();
+        List<PropertyAssignmentContext> propertyAssignment = objectLiteral.propertyAssignment();
+        for (PropertyAssignmentContext p : propertyAssignment) {
+            if (p instanceof PropertyShorthandContext px) {
+                var expr = this.expression(px.expression());
+                objectLiteralKVDefs.add(new KVCollectionExpandoDef(functionDef, expr, unit.sourceLocation(px)));
+            } else if (p instanceof PropertyExpressionAssignmentContext pea) {
+                var pname = this.propertyName(pea.propertyName());
+                objectLiteralKVDefs.add(new KVPairDef(functionDef, pname, this.expression(pea.expression()), unit.sourceLocation(pea)));
+            }
+        }
+
         if(objectLiteral.declarationType() != null){
             Expression typeExpr = unit.parseType(functionDef, objectLiteral.declarationType(), false, false);
             objectType = extractType(typeExpr);
@@ -1071,20 +1080,10 @@ public class BlockCompiler {
                 objectType = m;
                 objectTypeExpr = new ConstClass(objectType);
             } else {
-                var first = objectLiteral.propertyAssignment(0);
-                ClassDef keyType = getRoot().STRING();
-                ClassDef valueType = root.getObjectClass();
-                if(first instanceof PropertyShorthandContext ps){
-                    var expr = this.expression(ps.expression());
-                    var t = expr.inferType();
-                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        ClassRefLiteral[] typeArgumentsArray = t.getGenericSource().typeArguments();
-                        keyType = typeArgumentsArray[0].getClassDefValue();
-                        valueType = typeArgumentsArray[1].getClassDefValue();
-                    } else {
-                        valueType = root.getObjectClass();
-                    }
-                }
+                var first = objectLiteralKVDefs.getFirst();
+                ClassDef keyType = first.getKeyType();
+                ClassDef valueType =  first.getValueType();
+
                 var m = functionDef.getOrCreateGenericInstantiationClassDef(root.getHashMapClass(), new ClassRefLiteral[]{
                         keyType.toClassRefLiteral(),
                         valueType.toClassRefLiteral()
@@ -1101,121 +1100,39 @@ public class BlockCompiler {
         }
 
         if(root.getAnyMapClass().isThatOrSuperOfThat(objectType)){  // Map Literal
-            var mapInstance = new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
-            CurrWithExpression withMapInstance = new CurrWithExpression(functionDef, mapInstance);
-
-            var statements = new ArrayList<Statement>();
             var mapType = root.getAnyMapClass().asThatOrSuperOfThat(objectType);
             ClassRefLiteral[] arr = mapType.getGenericSource().typeArguments();
             ClassDef keyType = arr[0].getClassDefValue();
             ClassDef valueType = arr[1].getClassDefValue();
-            for (PropertyAssignmentContext pa : propertyAssignments) {
-                if (pa instanceof PropertyExpressionAssignmentContext pe) {
-                    var p = this.propertyName(pe.propertyName());
-                    MapValue mapValue = new MapValue(functionDef, withMapInstance, p);
-                    var v = this.assigner(pe.expression(), mapValue, valueType);
-                    statements.add(functionDef.expressionStmt(functionDef.assign(mapValue, v)));
-                } else if(pa instanceof PropertyShorthandContext ps){   // expando
-                    var expr = this.expression(ps.expression());
-                    var t = expr.inferType();
-                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        var readonlyMapType = root.getAnyReadonlyMap().asThatOrSuperOfThat(t);
-                        if(readonlyMapType != null && readonlyMapType.isThatOrSuperOfThat(mapType)){
-                            var withValue = new CurrWithExpression(functionDef, expr);
-                            var putAll = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(withMapInstance, objectType.findMethod("putAll#")), List.of(withValue), unit.sourceLocation(ps));
-                            statements.add(new WithStmt(functionDef, withValue, functionDef.expressionStmt(putAll.transform())));
-                        } else {
-                            ClassDef iteratorType = t.findMethod("iterator#").getResultType();
-                            var keyValuePairType = iteratorType.findMethod("next#").getResultType();
-                            Var.LocalVar iterVar = this.acquireTempVar(keyValuePairType);
-                            var keyOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("key"));
-                            var valueOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("value"));
-                            var put = new MapPut(functionDef, withMapInstance, keyOfIter, valueOfIter).setSourceLocation(unit.sourceLocation(ps)).transform();
-                            var withValue = new CurrWithExpression(functionDef, expr);
-                            ForEachStmt forEachStmt = new ForEachStmt(functionDef, null, iterVar, withValue, functionDef.expressionStmt(put), ForEachStmt.Mode.Iterable, unit.sourceLocation(ps));
-                            statements.add(new WithStmt(functionDef, withValue, forEachStmt));
-                        }
-                    } else {
-                        if(!root.STRING().isThatOrSuperOfThat(keyType)){
-                            throw unit.typeError(pa, "to accept an object, Map<String,?> destination expected");
-                        }
-                        valueType = root.getObjectClass();
-                        var assignments = new ArrayList<Statement>();
-                        var withValue = new CurrWithExpression(functionDef, expr);
-                        Set<String> visited = new HashSet<>();
-                        if(t.getAttributes() != null) {
-                            for (var k : t.getAttributes().keySet()) {
-                                GetterSetterPair attribute = t.getAttribute(k);
-                                var attr = new Attribute(functionDef, withValue, attribute.getGetter(), attribute.getSetter());
-                                var put = new MapPut(functionDef, withMapInstance, getRoot().createStringLiteral(k), attr).setSourceLocation(unit.sourceLocation(ps)).transform();
-                                assignments.add(functionDef.expressionStmt(put));
-                                visited.add(k);
-                            }
-                        }
-                        Map<String, Field> fields = t.getFields();
-                        for(var k : fields.keySet()){
-                            var fld = fields.get(k);
-                            if(fld.isPublic() && !visited.contains(k)){
-                                var put = new MapPut(functionDef, withMapInstance, getRoot().createStringLiteral(k), functionDef.field(withValue, fld)).setSourceLocation(unit.sourceLocation(ps)).transform();
-                                assignments.add(functionDef.expressionStmt(put));
-                                visited.add(k);
-                            }
-                        }
-                        statements.add(new WithStmt(functionDef, withValue, new BlockStmt(functionDef, assignments)));
-                    }
-                } else {
-                    //TODO assign map to Object attributes/fields
-                    throw new UnsupportedOperationException();
-                }
-            }
-            return new WithExpr(functionDef, withMapInstance, new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(objectLiteral)));
+            return new ComplexMapLiteral(functionDef, objectTypeExpr, keyType, valueType, objectLiteralKVDefs);
         } else {        // Object
-            var objectInstance = new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
-            CurrWithExpression currWithExpression = new CurrWithExpression(functionDef, objectInstance);
-
-            var statements = new ArrayList<Statement>();
-            for (PropertyAssignmentContext pa : propertyAssignments) {
+            for (int i = 0; i < propertyAssignments.size(); i++) {
+                PropertyAssignmentContext pa = propertyAssignments.get(i);
+                var kvDef = objectLiteralKVDefs.get(i);
                 if (pa instanceof PropertyExpressionAssignmentContext pe) {
                     var n = this.propertyName(pe.propertyName());
-                    if(n instanceof StringLiteral s){
+                    if (n instanceof StringLiteral s) {
                         String a = s.getString();
                         var attrPair = objectType.getAttribute(a);
-                        if(attrPair != null) {
-                            Attribute attr = new Attribute(functionDef, currWithExpression, attrPair.getGetter(), attrPair.getSetter()).setSourceLocation(unit.sourceLocation(pe));
-                            var assign = functionDef.assign(attr, this.assigner(pe.expression(), attr, attr.inferType()));
-                            statements.add(functionDef.expressionStmt(assign));
+                        if (attrPair != null) {
+                            ((KVPairDef)kvDef).setValue(this.assigner(pe.expression(), null, attrPair.getGetter().getResultType()));
                         } else {
                             Field field = objectType.getFields().get(a);
-                            if(field == null){
+                            if (field == null) {
                                 throw unit.resolveError(pe.propertyName(), "'%s' is not attribute or field".formatted(a));
-                            } else if(!field.isPublic()){
+                            } else if (!field.isPublic()) {
                                 throw unit.resolveError(pe.propertyName(), "'%s' is not public field".formatted(a));
                             }
-                            Var.Field fieldOfDest = functionDef.field(currWithExpression, field);
-                            var assign = functionDef.assign(fieldOfDest, this.assigner(pe.expression(), fieldOfDest, field.getType()));
-                            statements.add(functionDef.expressionStmt(assign));
+                            ((KVPairDef)kvDef).setValue(this.assigner(pe.expression(), null, field.getType()));
                         }
                     } else {    // for expression
                         throw unit.syntaxError(pe, "expression key can only apply to Map");
                     }
-                } else if(pa instanceof PropertyShorthandContext ps){
-                    var expr = this.expression(ps.expression());
-                    var t = expr.inferType();
-                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        throw unit.typeError(ps, "cannot copy a Map to an object");
-                    } else {
-                        if(objectType.isThatOrSuperOfThat(t) || t.isThatOrSuperOfThat(objectType)){
-                            var assign = new CopyAssign(functionDef, currWithExpression, expr, findCommonType(objectType, t));
-                            statements.add(functionDef.expressionStmt(assign));
-                        } else {
-                            throw unit.typeError(ps, "cannot assign '%s' to '%s'".formatted(t.getFullname(), objectType.getFullname()));
-                        }
-                    }
                 } else {
                     throw new UnsupportedOperationException();
                 }
             }
-            return new WithExpr(functionDef, currWithExpression, new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(objectLiteral)));
+            return new ComplexObjectLiteral(functionDef, objectTypeExpr, objectLiteralKVDefs);
         }
     }
 
@@ -1255,11 +1172,11 @@ public class BlockCompiler {
     }
 
     public interface ExpressionSupplierOnNullableBase{
-        Expression apply(Expression baseOfNullableExpression) throws CompilationError;
+        Expression apply(Expression nonNullExpression) throws CompilationError;
     }
 
     public interface StatementSupplierOnNullableBase{
-        Statement apply(Expression baseOfNullableExpression) throws CompilationError;
+        Statement apply(Expression nonNullExpr) throws CompilationError;
     }
 
     public static Expression nullableIfThenExpr(FunctionDef functionDef, Expression left, ExpressionSupplierOnNullableBase resultExprSupplier) throws CompilationError {
