@@ -53,6 +53,15 @@ public class ForEachStmt extends LoopStmt{
     }
 
     @Override
+    public Statement transform() throws CompilationError {
+        if(this.expression.inferType() instanceof NullableClassDef){
+            return BlockCompiler.nullableIfThenStmt(ownerFunction, this.expression,
+                baseOfExpr -> new ForEachStmt(ownerFunction, label, iterVar, baseOfExpr, body,  mode, enhanceControlPartSourceLocation));
+        }
+        return this;
+    }
+
+    @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
         if(mode == Mode.Array){
             iterateArray(blockCompiler);
@@ -82,8 +91,6 @@ public class ForEachStmt extends LoopStmt{
                 iteratorValue = (Var.LocalVar) expression.visit(blockCompiler);
                 iteratorType = iteratorValue.inferType();
             }
-
-            code.jumpIfNot(iteratorValue.getVariableSlot(), exitLabel);
 
             this.continueLabel.here();      // test hasNext() and fetch next();
 
