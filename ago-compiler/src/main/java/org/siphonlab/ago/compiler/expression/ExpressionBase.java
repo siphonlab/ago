@@ -20,10 +20,15 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public abstract class ExpressionBase implements Expression{
 
     protected SourceLocation sourceLocation;
     private Expression parent;
+
+    private Set<PipeToTempVar> tempVars;
 
     /**
      * if the expression is LocalVar, return itself, otherwise output to candidateLocalVar
@@ -62,6 +67,10 @@ public abstract class ExpressionBase implements Expression{
         if(expr != this){
             expr.setSourceLocation(this.sourceLocation);
             expr.setParent(this.parent);
+            expr = expr.transform();
+            if(expr instanceof ExpressionBase expressionBase){
+                expressionBase.tempVars = this.tempVars;
+            }
         }
         transformed = true;
         return expr;
@@ -105,4 +114,27 @@ public abstract class ExpressionBase implements Expression{
         return parent;
     }
 
+    public ExpressionBase usingTempVariable(PipeToTempVar tempVar){
+        if(tempVars == null) tempVars = new HashSet<>();
+        assert tempVar.isLocked();
+        tempVars.add(tempVar);
+        return this;
+    }
+
+    public ExpressionBase usingTempVariables(PipeToTempVar... pipeToTempVars){
+        if(tempVars == null) tempVars = new HashSet<>();
+        for(var p : pipeToTempVars) {
+            assert p.isLocked();
+            tempVars.add(p);
+        }
+        return this;
+    }
+
+    public void releaseTempVariables(BlockCompiler blockCompiler) {
+        if(tempVars != null) {
+            for (PipeToTempVar tempVar : tempVars) {
+                blockCompiler.releaseRegister(tempVar.getTempVar());
+            }
+        }
+    }
 }

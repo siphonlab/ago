@@ -1182,31 +1182,31 @@ public class BlockCompiler {
         if(!(exprType instanceof NullableClassDef nullableClassDef)){
             throw new TypeMismatchError("nullable class expected", left.getSourceLocation());
         }
-        var nullableResult = new PipeToTempVar(functionDef, left);
+        var nullableResult = new PipeToTempVar(functionDef, left, true);
         var baseTypeResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass()).setSourceLocation(left.getSourceLocation()).transform();
 
-        var right = resultExprSupplier.apply(baseTypeResult);
+        var right = resultExprSupplier.apply(baseTypeResult).usingTempVariable(nullableResult);
         var nullableResultType = functionDef.getOrCreateNullableType(right.inferType(), null);
-        right = functionDef.cast(nullableResult.releaseAfter(right), nullableResultType).setSourceLocation(right.getSourceLocation()).transform();
+        right = functionDef.cast(nullableResult, nullableResultType).setSourceLocation(right.getSourceLocation()).transform();
         var root = functionDef.getRoot();
         return new IfElseExpr(functionDef, right,
-                new Equals(functionDef, nullableResult, root.createNullLiteral(), Equals.Type.NotEquals).transform(),
-                nullableResult.releaseAfter(root.createNullLiteral()));
+                new Equals(functionDef, nullableResult, root.nullLiteral(), Equals.Type.NotEquals).transform(),
+                root.nullLiteral());
     }
 
-    public static Statement nullableIfThenStmt(FunctionDef functionDef, Expression left, StatementSupplierOnNullableBase resultExprSupplier) throws CompilationError {
-        var exprType = left.inferType();
+    public static Statement nullableIfThenStmt(FunctionDef functionDef, Expression maybeNullExpr, StatementSupplierOnNullableBase resultExprSupplier) throws CompilationError {
+        var exprType = maybeNullExpr.inferType();
         if(!(exprType instanceof NullableClassDef nullableClassDef)){
-            throw new TypeMismatchError("nullable class expected", left.getSourceLocation());
+            throw new TypeMismatchError("nullable class expected", maybeNullExpr.getSourceLocation());
         }
-        var nullableResult = new PipeToTempVar(functionDef, left);
-        var baseTypeResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass()).setSourceLocation(left.getSourceLocation()).transform();
+        var nullableResult = new PipeToTempVar(functionDef, maybeNullExpr, true);
+        var baseTypeResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass()).setSourceLocation(maybeNullExpr.getSourceLocation()).transform();
 
-        var right = resultExprSupplier.apply(baseTypeResult);
+        var right = resultExprSupplier.apply(baseTypeResult).usingTempVariable(nullableResult);
         var root = functionDef.getRoot();
         return new IfThenElseStmt(functionDef,
-                new Equals(functionDef, nullableResult, root.createNullLiteral(), Equals.Type.NotEquals).transform(),
-                new ExpressionStmt(functionDef, nullableResult.releaseAfter(right)),null);
+                new Equals(functionDef, nullableResult, root.nullLiteral(), Equals.Type.NotEquals).transform(),
+                new ExpressionStmt(functionDef, right),null);
     }
 
 
@@ -1737,6 +1737,9 @@ public class BlockCompiler {
         code.setSourceLocation(expression.getSourceLocation());
     }
     public void leave(Expression expression){
+        if(expression instanceof ExpressionBase expressionBase){
+            expressionBase.releaseTempVariables(this);
+        }
         if (expression.getSourceLocation() == null) return;
         if (LOGGER.isDebugEnabled()) LOGGER.debug("leave " + expression);
 
