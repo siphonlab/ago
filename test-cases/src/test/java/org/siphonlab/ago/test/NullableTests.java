@@ -104,5 +104,12 @@ public class NullableTests {
         assertTrue(Trace.outputted("1", "null", "0 or null", "null"));
     }
 
+    @Test
+    public void via_stmt() throws CompilationError, IOException {
+        run("nullable/via.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("open file sample.txt", "read file content from sample.txt", "close file sample.txt"));
+    }
+
 
 }

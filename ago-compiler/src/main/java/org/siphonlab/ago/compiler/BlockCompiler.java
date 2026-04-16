@@ -1705,8 +1705,16 @@ public class BlockCompiler {
         return new WithExpr(functionDef, expression, stmt);
     }
 
-    ViaStmt viaStmt (ViaStmtContext viaStmt ) throws CompilationError {
+    Statement viaStmt(ViaStmtContext viaStmt ) throws CompilationError {
         Expression par = this.parExpression(viaStmt.parExpression());
+        if(par.inferType() instanceof NullableClassDef){
+            return nullableIfThenStmt(functionDef, par, nonNullExpression ->
+                    viaStmt(viaStmt, nonNullExpression));
+        }
+        return viaStmt(viaStmt, par);
+    }
+
+    private ViaStmt viaStmt(ViaStmtContext viaStmt, Expression par) throws CompilationError {
         if(!par.inferType().isDeriveFrom(this.getFunctionDef().getRoot().getViaObjectInterface())){
             throw new TypeMismatchError("a ViaObject expected", par.getSourceLocation());
         }

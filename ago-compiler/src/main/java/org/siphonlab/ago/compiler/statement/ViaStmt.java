@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.Root;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.*;
@@ -35,6 +36,15 @@ public class ViaStmt extends Statement{
         super(ownerFunction);
         this.viaObject = viaObject.transform();
         this.statement = statement.transform();
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        if(this.viaObject.inferType() instanceof NullableClassDef){
+            return BlockCompiler.nullableIfThenStmt(ownerFunction, this.viaObject,
+                    baseOfExpr -> new ViaStmt(ownerFunction, baseOfExpr, statement));
+        }
+        return super.transformInner();
     }
 
     @Override

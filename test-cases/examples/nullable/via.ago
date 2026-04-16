@@ -26,7 +26,12 @@ class File with ViaObject{
 }
 
 fun main(){
-    via (var f = new File('sample.txt')){
-        Trace.print('read file content from ' + f.filename)
+    var f as File? = new File('sample.txt')
+    via (f){
+        Trace.print('read file content from ' + f!.filename)
+    }
+    f = null;
+    via(f){
+        Trace.print("shouldn't enter here")
     }
 }
