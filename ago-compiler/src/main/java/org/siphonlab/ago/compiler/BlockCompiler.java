@@ -934,10 +934,16 @@ public class BlockCompiler {
         Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
 
         ClassDef eleType;
-        if(listTypeExpr != null){
+        if(listTypeExpr != null) {
             var listType = root.getAnyListClass().asThatOrSuperOfThat(arrayType);
             eleType = listType.getGenericSource().typeArguments()[0].getClassDefValue();
             arrayType = null;
+        } else if(arrayType instanceof NullableClassDef n){
+            if(!root.getAnyArrayClass().isThatOrSuperOfThat(n.getBaseClass())){
+                throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
+            }
+            arrayType = n.getBaseClass();
+            eleType = ((ArrayClassDef)arrayType).getElementType();
         } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
             throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
         } else {
@@ -1460,32 +1466,11 @@ public class BlockCompiler {
         if(enhancedForControl != null){
             var expression = this.expression(enhancedForControl.expression()).transform();
             ClassDef expressionType = expression.inferType();
-            ForEachStmt.Mode mode = ForEachStmt.Mode.Iterable;
-            ClassDef concreteType = unit.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(expressionType);
-            if(concreteType == null){
-                mode = ForEachStmt.Mode.Iterator;
-                concreteType = unit.getRoot().getAnyIteratorInterface().asThatOrSuperOfThat(expressionType);
-                if(concreteType == null) {
-                    throw new TypeMismatchError("an iterable class required", unit.sourceLocation(forControl.expression()));
-                }
-            } else {
-                if(unit.getRoot().getAnyArrayClass().isThatOrSuperOfThat(expressionType)){
-                    mode = ForEachStmt.Mode.Array;      // array is Iterable too, however, the for-each stmt will iterate with indexed loop directly
-                }
+            if(expressionType instanceof NullableClassDef nullableClassDef){
+                return BlockCompiler.nullableIfThenStmt(functionDef, expression,
+                        baseOfExpr -> forEachStmt(forStmt, baseOfExpr, nullableClassDef.getBaseClass(), forControl, enhancedForControl, label));
             }
-            // variableModifiers? identifier (AS declarationType)? IN expression
-            VariableModifiersContext variableModifiers = enhancedForControl.variableModifiers();
-            ClassDef type;
-            if(enhancedForControl.variableType() != null){
-                type = unit.extractType(unit.parseType(functionDef, enhancedForControl.variableType(), false,false));
-            } else {
-                var arg = concreteType.getGenericSource().typeArguments()[0];
-                type = arg.getClassDefValue();
-            }
-            Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);
-
-            var iterVar = defineLocalVar(enhancedForControl.identifier(),variableModifiers, type);
-            return new ForEachStmt(functionDef, label, iterVar, expression, statement(forStmt.statement()), mode, unit.sourceLocation(enhancedForControl));
+            return forEachStmt(forStmt, expression, expressionType, forControl, enhancedForControl, label);
         } else {
             Statement init;
             ForInitContext forInit = forControl.forInit();
@@ -1505,6 +1490,35 @@ public class BlockCompiler {
             Statement body = statement(forStmt.statement());
             return new ForStmt(functionDef, label,init, condition, updateStatement, body);
         }
+    }
+
+    private ForEachStmt forEachStmt(ForStmtContext forStmt, Expression expression, ClassDef expressionType, ForControlContext forControl, EnhancedForControlContext enhancedForControl, String label) throws CompilationError {
+        ForEachStmt.Mode mode = ForEachStmt.Mode.Iterable;
+        ClassDef concreteType = unit.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(expressionType);
+        if(concreteType == null){
+            mode = ForEachStmt.Mode.Iterator;
+            concreteType = unit.getRoot().getAnyIteratorInterface().asThatOrSuperOfThat(expressionType);
+            if(concreteType == null) {
+                throw new TypeMismatchError("an iterable class required", unit.sourceLocation(forControl.expression()));
+            }
+        } else {
+            if(unit.getRoot().getAnyArrayClass().isThatOrSuperOfThat(expressionType)){
+                mode = ForEachStmt.Mode.Array;      // array is Iterable too, however, the for-each stmt will iterate with indexed loop directly
+            }
+        }
+        // variableModifiers? identifier (AS declarationType)? IN expression
+        VariableModifiersContext variableModifiers = enhancedForControl.variableModifiers();
+        ClassDef type;
+        if(enhancedForControl.variableType() != null){
+            type = unit.extractType(unit.parseType(functionDef, enhancedForControl.variableType(), false,false));
+        } else {
+            var arg = concreteType.getGenericSource().typeArguments()[0];
+            type = arg.getClassDefValue();
+        }
+        Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);
+
+        var iterVar = defineLocalVar(enhancedForControl.identifier(),variableModifiers, type);
+        return new ForEachStmt(functionDef, label, iterVar, expression, statement(forStmt.statement()), mode, unit.sourceLocation(enhancedForControl));
     }
 
     private BlockStmt expressionList(ExpressionListContext expressionList) throws CompilationError {

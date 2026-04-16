@@ -58,7 +58,7 @@ public class ForEachStmt extends LoopStmt{
             return BlockCompiler.nullableIfThenStmt(ownerFunction, this.expression,
                 baseOfExpr -> new ForEachStmt(ownerFunction, label, iterVar, baseOfExpr, body,  mode, enhanceControlPartSourceLocation));
         }
-        return this;
+        return super.transform();
     }
 
     @Override
