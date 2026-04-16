@@ -1,0 +1,83 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+fun main(){
+    var b as boolean? = true;
+    var b2 as boolean? = false;
+    var b3 as boolean? = null;
+
+    var i as int? = 200;
+    var n as int? = null;
+
+    if(b){
+        Trace.print("b yes");
+    } else {
+        Trace.print("b no");
+    }
+
+    if(b2){
+        Trace.print("b2 yes");
+    } else {
+        Trace.print("b2 no");
+    }
+
+    if(b3){
+        Trace.print("b3 yes");
+    } else {
+        Trace.print("b3 no");
+    }
+
+    if(i){
+        Trace.print("i yes");
+    } else {
+        Trace.print("i no");
+    }
+
+    if(n){
+        Trace.print("n yes");
+    } else {
+        Trace.print("n no");
+    }
+
+    if(not b){
+        Trace.print("b no");
+    } else {
+        Trace.print("b yes");
+    }
+
+    if(not b2){
+        Trace.print("b2 no");
+    } else {
+        Trace.print("b2 yes");
+    }
+
+    if(not b3){
+        Trace.print("b3 no");
+    } else {
+        Trace.print("b3 yes");
+    }
+
+    if(not i){
+        Trace.print("i no");
+    } else {
+        Trace.print("i yes");
+    }
+
+    if(not n){
+        Trace.print("n no");
+    } else {
+        Trace.print("n yes");
+    }
+}
