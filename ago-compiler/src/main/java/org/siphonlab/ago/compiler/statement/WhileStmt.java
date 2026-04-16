@@ -19,26 +19,33 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
 import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.expression.Expression;
-import org.siphonlab.ago.compiler.expression.Literal;
-import org.siphonlab.ago.compiler.expression.LiteralResultExpression;
-import org.siphonlab.ago.compiler.expression.Var;
+import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
+import org.siphonlab.ago.compiler.expression.logic.Not;
 
 public class WhileStmt extends LoopStmt {
 
     private Expression condition;
     private final Statement body;
 
+    private boolean conditionNeg = false;
+
     public WhileStmt(FunctionDef ownerFunction, String label, Expression condition, Statement body) throws CompilationError {
         super(ownerFunction, label);
-        this.condition = condition.setParent(this).transform();
+        this.condition = condition.setParent(this);
         this.body = body.setParent(this).transform();
     }
 
     @Override
     protected Expression transformInner() throws CompilationError {
+        while(condition instanceof Not not){
+            conditionNeg = !conditionNeg;
+            this.condition = not.getValue();
+        }
+        this.condition = condition.transform();
+
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isFalse(literal)){    // always false
                 return new EmptyStmt(ownerFunction).setSourceLocation(this.getSourceLocation());
@@ -66,15 +73,33 @@ public class WhileStmt extends LoopStmt {
 
             this.continueLabel = blockCompiler.createLabel().here();
 
+            Label loopBodyLabel = blockCompiler.createLabel();
             if (condition instanceof LiteralResultExpression literalResultExpression) {
                 var initValue = literalResultExpression.visit(blockCompiler);   // i.e. while(var i = 0){}
                 if (BooleanLiteral.isFalse(initValue)) {
                     return;     // only condition evaluated once
                 }
             } else {
-                Var.LocalVar r = (Var.LocalVar) condition.visit(blockCompiler);
-                code.jumpIfNot(r.getVariableSlot(), exitLabel);
+                Var.LocalVar condResult = (Var.LocalVar) condition.visit(blockCompiler);
+
+                if(condResult.inferType() instanceof NullableClassDef nullableClassDef){
+                    blockCompiler.lockRegister(condResult);
+                    var isNull = (Var.LocalVar)new Equals(ownerFunction, condResult, getRoot().nullLiteral(), Equals.Type.Equals).visit(blockCompiler);
+                    blockCompiler.releaseRegister(condResult);
+                    if(!conditionNeg) {
+                        code.jumpIf(isNull.getVariableSlot(), exitLabel);       // if is null, exit
+                    } else {
+                        code.jumpIf(isNull.getVariableSlot(), loopBodyLabel);
+                    }
+                    condResult = (Var.LocalVar) ownerFunction.cast(condResult, nullableClassDef.getBaseClass()).transform().visit(blockCompiler);
+                }
+                if(!conditionNeg) {
+                    code.jumpIfNot(condResult.getVariableSlot(), exitLabel);
+                } else {
+                    code.jumpIf(condResult.getVariableSlot(), exitLabel);
+                }
             }
+            loopBodyLabel.here();
             this.body.termVisit(blockCompiler);
             code.jump(continueLabel);       // evaluate condition again
             exitLabel.here();

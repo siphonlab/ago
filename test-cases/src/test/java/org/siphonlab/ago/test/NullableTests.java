@@ -75,5 +75,13 @@ public class NullableTests {
         assertTrue(Trace.outputted("b yes", "b2 no", "b3 no", "i yes", "n no", "b yes", "b2 no", "b3 no", "i yes", "n no"));
     }
 
+    @Test
+    public void while_stmt() throws CompilationError, IOException {
+        run("nullable/while_stmt.ago");
+        Trace.printOutput();
+//        Trace.outputted("b yes", "b2 no", "b3 no", "5", "4", "3", "2", "1", "5");
+        assertTrue(Trace.outputted("b yes", "b2 no", "b3 no", "5", "4", "3", "2", "1", "5",
+                "b loop", "b loop", "b2 loop", "b3 loop", "b not loop", "b2 not loop", "b2 not loop", "b3 not loop", "b3 not loop", "5", "4", "3", "2", "1", "5"));
+    }
 
 }

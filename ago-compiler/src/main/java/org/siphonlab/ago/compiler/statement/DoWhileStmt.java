@@ -19,24 +19,34 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
 import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
+import org.siphonlab.ago.compiler.expression.logic.Not;
 
 public class DoWhileStmt extends LoopStmt {
 
     private Expression condition;
     private final Statement body;
 
+    private boolean conditionNeg = false;
+
     public DoWhileStmt(FunctionDef ownerFunction, String label, Expression condition, Statement body) throws CompilationError {
         super(ownerFunction, label);
-        this.condition = condition.setParent(this).transform();
+        this.condition = condition.setParent(this);
         this.body = body.setParent(this).transform();
     }
 
     @Override
     protected Expression transformInner() throws CompilationError {
+        while(condition instanceof Not not){
+            conditionNeg = !conditionNeg;
+            this.condition = not.getValue();
+        }
+        this.condition = condition.transform();
+
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isFalse(literal)){    // always false
                 return this.body;
@@ -67,8 +77,24 @@ public class DoWhileStmt extends LoopStmt {
                 ownerFunction.assign(tempVar, condition).setSourceLocation(condition.getSourceLocation()).visit(blockCompiler);
                 code.jumpIf(tempVar.getVariableSlot(), bodyBegin);
             } else {
-                Var.LocalVar r = (Var.LocalVar) condition.visit(blockCompiler);
-                code.jumpIf(r.getVariableSlot(), bodyBegin);
+                Var.LocalVar condResult = (Var.LocalVar) condition.visit(blockCompiler);
+
+                if(condResult.inferType() instanceof NullableClassDef nullableClassDef){
+                    blockCompiler.lockRegister(condResult);
+                    var isNull = (Var.LocalVar)new Equals(ownerFunction, condResult, getRoot().nullLiteral(), Equals.Type.Equals).visit(blockCompiler);
+                    blockCompiler.releaseRegister(condResult);
+                    if(!conditionNeg) {
+                        code.jumpIf(isNull.getVariableSlot(), exitLabel);       // if is null, exit
+                    } else {
+                        code.jumpIf(isNull.getVariableSlot(), bodyBegin);
+                    }
+                    condResult = (Var.LocalVar) ownerFunction.cast(condResult, nullableClassDef.getBaseClass()).transform().visit(blockCompiler);
+                }
+                if(!conditionNeg) {
+                    code.jumpIf(condResult.getVariableSlot(), bodyBegin);
+                } else {
+                    code.jumpIfNot(condResult.getVariableSlot(), bodyBegin);
+                }
             }
             exitLabel.here();
         } catch (CompilationError e) {
