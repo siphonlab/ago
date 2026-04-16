@@ -19,37 +19,54 @@ import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.statement.Statement;
+import org.siphonlab.ago.compiler.statement.WithStmt;
+
+import java.util.Objects;
 
 public class WithExpr extends ExpressionInFunctionBody{
 
-    private final CurrWithExpression expression;
+    private final CurrWithExpression withExpression;
     private final Statement statement;
 
-    public WithExpr(FunctionDef ownerFunction, CurrWithExpression expression, Statement statement) throws CompilationError {
+    public WithExpr(FunctionDef ownerFunction, CurrWithExpression withExpression, Statement statement) throws CompilationError {
         super(ownerFunction);
-        this.expression = expression.transform();
+        this.withExpression = withExpression.transform();
         this.statement = statement.transform();
         statement.setParent(this);
-        expression.setParent(this);
+        withExpression.setParent(this);
     }
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return expression.inferType();
+        return withExpression.inferType();
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        if(this.withExpression.inferType() instanceof NullableClassDef){
+            return BlockCompiler.nullableIfThenExpr(ownerFunction, this.withExpression.getBase(),
+                    baseOfExpr -> new WithExpr(ownerFunction,
+                            new CurrWithExpression(ownerFunction, baseOfExpr).setSourceLocation(withExpression.getSourceLocation()),
+                            statement));
+        }
+        return this;
     }
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         try {
+            blockCompiler.lockRegister(localVar);
             blockCompiler.enter(this);
 
-            expression.outputToLocalVar(localVar, blockCompiler);
-            blockCompiler.enterWith(expression);
+            withExpression.outputToLocalVar(localVar, blockCompiler);
+            blockCompiler.enterWith(withExpression);
             this.statement.termVisit(blockCompiler);
-            blockCompiler.leaveWith(expression);
+            blockCompiler.leaveWith(withExpression);
             blockCompiler.leave(this);
+            blockCompiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
         }
@@ -62,6 +79,17 @@ public class WithExpr extends ExpressionInFunctionBody{
 
     @Override
     public String toString() {
-        return "(WITH %s %s)".formatted(expression, statement);
+        return "(WITH %s %s)".formatted(withExpression, statement);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof WithExpr withExpr)) return false;
+        return Objects.equals(withExpression, withExpr.withExpression) && Objects.equals(statement, withExpr.statement);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(withExpression, statement);
     }
 }

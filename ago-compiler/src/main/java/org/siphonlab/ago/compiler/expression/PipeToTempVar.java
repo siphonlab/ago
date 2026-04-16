@@ -29,7 +29,7 @@ import java.util.Objects;
  */
 public class PipeToTempVar extends ExpressionInFunctionBody implements LocalVarResultExpression{
 
-    private final Expression baseExpression;
+    private Expression baseExpression;
     private final boolean locked;
 
     private boolean visited = false;
@@ -43,6 +43,12 @@ public class PipeToTempVar extends ExpressionInFunctionBody implements LocalVarR
         super(ownerFunction);
         this.baseExpression = baseExpression;
         this.locked = locked;
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        this.baseExpression = this.baseExpression.transform();
+        return this;
     }
 
     public Var.LocalVar getTempVar() {

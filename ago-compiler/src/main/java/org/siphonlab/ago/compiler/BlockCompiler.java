@@ -1195,7 +1195,7 @@ public class BlockCompiler {
 
         var right = resultExprSupplier.apply(nonNullResult).usingTempVariable(nullableResult);
         var nullableResultType = functionDef.getOrCreateNullableType(right.inferType(), null);
-        right = functionDef.cast(nullableResult, nullableResultType).setSourceLocation(right.getSourceLocation()).transform();
+        right = functionDef.cast(right, nullableResultType).setSourceLocation(right.getSourceLocation()).transform();
         var root = functionDef.getRoot();
         return new IfElseExpr(functionDef, right,
                 new Equals(functionDef, nullableResult, root.nullLiteral(), Equals.Type.NotEquals).transform(),
@@ -1670,8 +1670,18 @@ public class BlockCompiler {
     void yieldStmt(YieldStmtContext yieldStmt){
 
     }
-    WithStmt withStmt(WithStmtContext withStmt) throws CompilationError {
-        var expression = new CurrWithExpression(functionDef, parExpression(withStmt.parExpression()));
+
+    Statement withStmt(WithStmtContext withStmt) throws CompilationError {
+        Expression withExpr = parExpression(withStmt.parExpression());
+        if(withExpr.inferType() instanceof NullableClassDef){
+            return nullableIfThenStmt(functionDef, withExpr, nonNullExpression ->
+                    withStmt(withStmt, nonNullExpression));
+        }
+        return withStmt(withStmt, withExpr);
+    }
+
+    private WithStmt withStmt(WithStmtContext withStmt, Expression withExpr) throws CompilationError {
+        var expression = new CurrWithExpression(functionDef, withExpr);
         withExpressionStack.push(expression);
         var stmt = statement(withStmt.statement());
         withExpressionStack.pop();
@@ -1679,7 +1689,16 @@ public class BlockCompiler {
     }
 
     private Expression withExpr(PostWithExprContext postWithExpr) throws CompilationError {
-        var expression = new CurrWithExpression(functionDef, this.expression(postWithExpr.expression()));
+        Expression withExpr = this.expression(postWithExpr.expression());
+        if(withExpr.inferType() instanceof NullableClassDef){
+            return nullableIfThenExpr(functionDef, withExpr, nonNullExpression ->
+                    withExpr(postWithExpr, nonNullExpression));
+        }
+        return withExpr(postWithExpr, withExpr);
+    }
+
+    private WithExpr withExpr(PostWithExprContext postWithExpr, Expression withExpr) throws CompilationError {
+        var expression = new CurrWithExpression(functionDef, withExpr);
         withExpressionStack.push(expression);
         var stmt = this.statement(postWithExpr.postWith().statement());
         withExpressionStack.pop();

@@ -90,4 +90,11 @@ public class NullableTests {
         assertTrue(Trace.outputted("1", "2", "3"));
     }
 
+    @Test
+    public void with() throws CompilationError, IOException {
+        run("nullable/with.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("John", "20"));
+    }
+
 }
