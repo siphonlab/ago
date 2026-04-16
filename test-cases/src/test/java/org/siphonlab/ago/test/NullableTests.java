@@ -97,4 +97,12 @@ public class NullableTests {
         assertTrue(Trace.outputted("John", "20"));
     }
 
+    @Test
+    public void switch_stmt() throws CompilationError, IOException {
+        run("nullable/switch.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("1", "null", "0 or null", "null"));
+    }
+
+
 }

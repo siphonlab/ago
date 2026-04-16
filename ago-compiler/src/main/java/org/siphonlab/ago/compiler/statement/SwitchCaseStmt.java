@@ -41,6 +41,9 @@ public class SwitchCaseStmt extends Statement{
     private SwitchGroup defaultGroup;
     private Label exitLabel;
 
+    private PipeToTempVar nullableCondition;
+    private Case nullEntrance;
+
     public static class SwitchGroup{
         List<Case> cases = new ArrayList<>();
         List<Statement> actions = new ArrayList<>();
@@ -116,10 +119,15 @@ public class SwitchCaseStmt extends Statement{
         }
     }
 
-    List<Label> cases = new ArrayList<>();
     public SwitchCaseStmt(FunctionDef ownerFunction, Expression condition, List<SwitchGroup> groups) throws CompilationError {
         super(ownerFunction);
-        this.condition = condition.transform();
+        if(condition.inferType() instanceof NullableClassDef n){
+            this.nullableCondition = new PipeToTempVar(ownerFunction, condition, true);
+            this.usingTempVariable(this.nullableCondition);
+            this.condition = ownerFunction.cast(this.nullableCondition, n.getBaseClass()).transform();
+        } else {
+            this.condition = condition.setParent(this).transform();
+        }
         if(condition instanceof EnumValue enumValue){
             this.condition = enumValue.toLiteral();
         } else if(condition instanceof ConstValue constValue){
@@ -181,7 +189,7 @@ public class SwitchCaseStmt extends Statement{
             switch (cs.caseKind){
                 case ConstExpression:
                 case EnumConst:
-                    cs.expression = cs.expression.transform().setParent(this);
+                    cs.expression = cs.expression.setParent(this).transform();
                     Literal<?> literal;
                     if(cs.expression instanceof Literal<?> l){
                         literal = l;
@@ -204,6 +212,12 @@ public class SwitchCaseStmt extends Statement{
                                     var value = (IntLiteral) ownerFunction.cast(literal, getRoot().INT()).setSourceLocation(cs.sourceLocation).transform();
                                     cs.expression = value;
                                     intCasesMap.put(value.value, cs.group);
+                                }
+                            } else if(typeCode == TypeCode.NULL){
+                                if(this.nullableCondition == null){
+                                    throw new TypeMismatchError("'%s' is not a nullable value", this.condition.getSourceLocation());
+                                } else {
+                                    nullEntrance = cs;
                                 }
                             } else {
                                 mode = Mode.Branches;  // compileBranches will cast case.expression to condition.type too
@@ -256,7 +270,32 @@ public class SwitchCaseStmt extends Statement{
             var code = blockCompiler.getCode();
             FunctionDef functionDef = blockCompiler.getFunctionDef();
 
+            for (SwitchGroup group : groups) {
+                group.setEntranceLabel(blockCompiler.createLabel());
+            }
+            if(defaultGroup != null){ defaultGroup.setEntranceLabel(blockCompiler.createLabel()); }
+
+            this.exitLabel = blockCompiler.createLabel();
+            if(nullableCondition != null){
+                var isNull = (Var.LocalVar)new Equals(ownerFunction, nullableCondition, getRoot().nullLiteral(), Equals.Type.Equals).visit(blockCompiler);
+                nullableCondition.releaseTempVariables(blockCompiler);
+                if(nullEntrance == null){
+                    blockCompiler.getCode().jumpIf(isNull.getVariableSlot(), exitLabel);
+                } else {
+                    blockCompiler.getCode().jumpIf(isNull.getVariableSlot(), nullEntrance.group.entranceLabel);
+                }
+                if(intCasesMap.isEmpty() && (mode == Mode.DenseInts || mode ==  Mode.SparseInts)){      // no cases except null
+                    if(nullEntrance != null){
+                        nullEntrance.group.entranceLabel.here();
+                        nullEntrance.group.visitActions(blockCompiler);
+                    }
+                    this.exitLabel.here();
+                    return;
+                }
+            }
             var r = this.condition.visit(blockCompiler);
+            if(this.nullableCondition != null) this.nullableCondition.releaseTempVariables(blockCompiler);
+
             if (r instanceof Literal<?> literal) {
                 switch (mode) {
                     case DenseInts:
@@ -295,15 +334,14 @@ public class SwitchCaseStmt extends Statement{
     }
 
     private void compileSwitchTables(SwitchTable switchTable, BlockCompiler blockCompiler) throws CompilationError {
-        this.exitLabel = blockCompiler.createLabel();
         for (Map.Entry<Integer, SwitchGroup> entry : intCasesMap.sequencedEntrySet()) {
             Integer caseValue = entry.getKey();
             SwitchGroup group = entry.getValue();
-            if(group.entranceLabel != null){
-                switchTable.addLabel(caseValue, group.entranceLabel);
+            Label entranceLabel = group.entranceLabel;
+            if(entranceLabel.isAddressDetermined()){
+                switchTable.addLabel(caseValue, entranceLabel);
             } else {
-                var entranceLabel = blockCompiler.createLabel().here();
-                group.setEntranceLabel(entranceLabel);
+                entranceLabel.here();
                 switchTable.addLabel(caseValue, entranceLabel);
                 group.visitActions(blockCompiler);
             }
@@ -311,15 +349,9 @@ public class SwitchCaseStmt extends Statement{
 
         Label defaultLabel;
         if(defaultGroup != null) {
-            if (defaultGroup.entranceLabel != null) {
-                defaultLabel = defaultGroup.entranceLabel;
-            } else {
-                var entranceLabel = blockCompiler.createLabel().here();
-                defaultGroup.setEntranceLabel(entranceLabel);
-                defaultLabel = entranceLabel;
-                defaultGroup.visitActions(blockCompiler);
-
-            }
+            defaultLabel = defaultGroup.entranceLabel;
+            defaultLabel.here();
+            defaultGroup.visitActions(blockCompiler);
         } else {
             defaultLabel = exitLabel;
         }
@@ -330,12 +362,17 @@ public class SwitchCaseStmt extends Statement{
         }
         switchTable.addLabel(defaultKey,defaultLabel);
 
+        if(nullEntrance != null && !nullEntrance.group.entranceLabel.isAddressDetermined()){
+            blockCompiler.getCode().jump(this.exitLabel);
+            nullEntrance.group.entranceLabel.here();
+            nullEntrance.group.visitActions(blockCompiler);
+        }
+
         this.exitLabel.here();     // for break stmt
         switchTable.composeBlob();
     }
 
     private void compileBranches(Var.LocalVar conditionResult, BlockCompiler blockCompiler) throws CompilationError {
-        this.exitLabel = blockCompiler.createLabel();
         CodeBuffer code = blockCompiler.getCode();
 
         Case alwaysTrueBranch = this.findAlwaysTrueBranch(conditionResult);     // TODO always false
@@ -365,6 +402,9 @@ public class SwitchCaseStmt extends Statement{
                 switch (cs.caseKind) {
                     case ConstExpression:
                     case EnumConst:
+                        if(cs.expression.inferType() instanceof NullClassDef){
+                            break;      // null handled outside
+                        }
                         var eq = new Equals(ownerFunction, condition, ownerFunction.cast(cs.expression, condition.inferType()).transform(), Equals.Type.Equals).transform().visit(blockCompiler);
                         if(eq instanceof Literal<?>){
                             r = new PipeToTempVar(ownerFunction, eq).visit(blockCompiler);
