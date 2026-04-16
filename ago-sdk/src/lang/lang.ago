@@ -285,23 +285,23 @@ interface Iterable<+T> {
 
 class Trace{
     metaclass{
-        final fun print#int(number as int) native "org.siphonlab.ago.lang.Trace.print_int";
+        final fun print#int(number as int?) native "org.siphonlab.ago.lang.Trace.print_int";
 
-        final fun print#str(text as string) native "org.siphonlab.ago.lang.Trace.print_str";
+        final fun print#str(text as string?) native "org.siphonlab.ago.lang.Trace.print_str";
 
-        final fun print#long(number as long) native "org.siphonlab.ago.lang.Trace.print_long";
+        final fun print#long(number as long?) native "org.siphonlab.ago.lang.Trace.print_long";
 
-        final fun print#double(number as double) native "org.siphonlab.ago.lang.Trace.print_double";
+        final fun print#double(number as double?) native "org.siphonlab.ago.lang.Trace.print_double";
 
-        final fun print#decimal(number as decimal) native "org.siphonlab.ago.lang.Trace.print_decimal";
+        final fun print#decimal(number as decimal?) native "org.siphonlab.ago.lang.Trace.print_decimal";
 
-        final fun print#char(number as char) native "org.siphonlab.ago.lang.Trace.print_char";
+        final fun print#char(number as char?) native "org.siphonlab.ago.lang.Trace.print_char";
 
-        final fun print#short(number as short) native "org.siphonlab.ago.lang.Trace.print_short";
+        final fun print#short(number as short?) native "org.siphonlab.ago.lang.Trace.print_short";
 
-        final fun print#byte(number as byte) native "org.siphonlab.ago.lang.Trace.print_byte";
+        final fun print#byte(number as byte?) native "org.siphonlab.ago.lang.Trace.print_byte";
 
-        final fun print#float(number as float) native "org.siphonlab.ago.lang.Trace.print_float";
+        final fun print#float(number as float?) native "org.siphonlab.ago.lang.Trace.print_float";
 
         final fun print#obj(obj as Object?){
             if(obj == null){
@@ -311,8 +311,11 @@ class Trace{
             }
         }
 
-        final fun print#b(v as boolean){
-            print#str("true" if v else "false")
+        final fun print#b(v as boolean?){
+            if(v == null)
+                print#str("null");
+            else
+                print#str("true" if v else "false")
         }
     }
 }
