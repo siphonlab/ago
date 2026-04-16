@@ -361,7 +361,7 @@ public class AgoClassParser {
         } else if(argument instanceof Long l){
             return getRoot().createLongLiteral( l);
         } else if(argument == null){
-            return root.createNullLiteral();
+            return root.nullLiteral();
         }
         throw new RuntimeException("unexpected type " + argument);
     }

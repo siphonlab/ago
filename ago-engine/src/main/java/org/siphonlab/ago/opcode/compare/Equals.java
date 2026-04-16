@@ -57,6 +57,7 @@ public class Equals implements GenericOpCode {
     public static final int equals_S_vvc = 0x09_03_02_03;
     public static final int equals_S_vvv = 0x09_03_04_03;
 
+    public static final int equals_B_vc  = 0x09_04_01_02;
     public static final int equals_B_vvc = 0x09_04_02_03;
     public static final int equals_B_vvv = 0x09_04_04_03;
 
@@ -99,6 +100,7 @@ public class Equals implements GenericOpCode {
 
             case equals_B_vvc -> "equals_B_vvc";
             case equals_B_vvv -> "equals_B_vvv";
+            case equals_B_vc -> "equals_B_vc";
 
             case equals_o_vvv -> "equals_o_vvv";
 

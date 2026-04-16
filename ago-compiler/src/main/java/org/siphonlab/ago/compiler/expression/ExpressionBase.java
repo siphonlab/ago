@@ -68,9 +68,6 @@ public abstract class ExpressionBase implements Expression{
             expr.setSourceLocation(this.sourceLocation);
             expr.setParent(this.parent);
             expr = expr.transform();
-            if(expr instanceof ExpressionBase expressionBase){
-                expressionBase.tempVars = this.tempVars;
-            }
         }
         transformed = true;
         return expr;

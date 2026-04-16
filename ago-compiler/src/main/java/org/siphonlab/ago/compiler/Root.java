@@ -715,7 +715,7 @@ public class Root extends Namespace<Package> {
         return new ClassRefLiteral(this.CLASREF, classRef);
     }
 
-    public NullLiteral createNullLiteral(){
+    public NullLiteral nullLiteral(){
         return new NullLiteral(this.NULL);
     }
 

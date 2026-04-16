@@ -17,14 +17,14 @@ package org.siphonlab.ago.compiler.expression;
 
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.PrimitiveClassDef;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
+import org.siphonlab.ago.compiler.expression.logic.AndExpr;
+import org.siphonlab.ago.compiler.expression.logic.Not;
+import org.siphonlab.ago.compiler.expression.logic.OrExpr;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 
 import java.util.Objects;
@@ -59,6 +59,59 @@ public class Equals extends BiExpression{
 
     @Override
     public Expression transformInner() throws CompilationError {
+        if(this.left.equals(this.right)){
+            return getRoot().createBooleanLiteral(true);
+        }
+
+        if(left.inferType() instanceof NullableClassDef n){
+            if(right.inferType() instanceof NullClassDef) {
+                return super.transformInner();
+            } else if(right.inferType() instanceof NullableClassDef n2){
+                PipeToTempVar leftMaybeNull, rightMaybeNull;
+
+                var leftNonNull = ownerFunction.cast(leftMaybeNull = new PipeToTempVar(ownerFunction, left, true), n.getBaseClass()).transform();
+                var rightNonNll = ownerFunction.cast(rightMaybeNull = new PipeToTempVar(ownerFunction, right, true), n2.getBaseClass()).transform();
+
+                var leftEqualsNull = new PipeToTempVar(ownerFunction, new Equals(ownerFunction, leftMaybeNull, getRoot().nullLiteral(), Type.Equals), true);
+                var rightEqualsNull = new PipeToTempVar(ownerFunction, new Equals(ownerFunction, rightMaybeNull, getRoot().nullLiteral(), Type.Equals), true);
+
+                Expression bothNull = new AndExpr(ownerFunction, leftEqualsNull, rightEqualsNull);
+
+                Expression check = new AndExpr(ownerFunction,
+                        new AndExpr(ownerFunction, new Not(ownerFunction, leftEqualsNull), new Not(ownerFunction, rightEqualsNull)),
+                        new Equals(ownerFunction, leftNonNull, rightNonNll, type).transform()
+                );
+
+                if(type == Type.Equals) {
+                    return new OrExpr(ownerFunction, bothNull, check)
+                            .usingTempVariables(leftMaybeNull, rightMaybeNull, leftEqualsNull, rightEqualsNull);
+                } else {
+                    return new IfElseExpr(ownerFunction, getRoot().createBooleanLiteral(false), bothNull, check)
+                            .usingTempVariables(leftMaybeNull, rightMaybeNull, leftEqualsNull, rightEqualsNull);
+                }
+            } else {
+                var baseClass = n.getBaseClass();
+                PipeToTempVar maybeNull;
+                var nonNull = ownerFunction.cast(maybeNull = new PipeToTempVar(ownerFunction, left, true), baseClass).transform();
+                return new AndExpr(ownerFunction,
+                    new Equals(ownerFunction, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                    new Equals(ownerFunction, nonNull, right, type).transform()
+                ).usingTempVariable(maybeNull);
+            }
+        } else if(right.inferType() instanceof NullableClassDef n){
+            if(left.inferType() instanceof NullClassDef){
+                return super.transformInner();
+            } else {
+                var baseClass = n.getBaseClass();
+                PipeToTempVar maybeNull;
+                var nonNull = ownerFunction.cast(maybeNull = new PipeToTempVar(ownerFunction, right, true), baseClass).transform();
+                return new AndExpr(ownerFunction,
+                        new Equals(ownerFunction, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                        new Equals(ownerFunction, left, nonNull, type).transform()
+                ).usingTempVariable(maybeNull);
+            }
+        }
+
         var p = transformScopeBoundClass(left, right);
         if(p.getLeft() != left || p.getRight() != right){
             this.left = p.getLeft();

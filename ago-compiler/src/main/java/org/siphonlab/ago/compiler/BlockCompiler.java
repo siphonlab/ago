@@ -1177,15 +1177,17 @@ public class BlockCompiler {
         Statement apply(Expression nonNullExpr) throws CompilationError;
     }
 
-    public static Expression nullableIfThenExpr(FunctionDef functionDef, Expression left, ExpressionSupplierOnNullableBase resultExprSupplier) throws CompilationError {
-        var exprType = left.inferType();
+    public static Expression nullableIfThenExpr(FunctionDef functionDef, Expression maybeNullExpr, ExpressionSupplierOnNullableBase resultExprSupplier) throws CompilationError {
+        var exprType = maybeNullExpr.inferType();
         if(!(exprType instanceof NullableClassDef nullableClassDef)){
-            throw new TypeMismatchError("nullable class expected", left.getSourceLocation());
+            throw new TypeMismatchError("nullable class expected", maybeNullExpr.getSourceLocation());
         }
-        var nullableResult = new PipeToTempVar(functionDef, left, true);
-        var baseTypeResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass()).setSourceLocation(left.getSourceLocation()).transform();
+        var nullableResult = new PipeToTempVar(functionDef, maybeNullExpr, true);
+        var nonNullResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass())
+                .setParent(maybeNullExpr.getParent())
+                .setSourceLocation(maybeNullExpr.getSourceLocation()).transform();
 
-        var right = resultExprSupplier.apply(baseTypeResult).usingTempVariable(nullableResult);
+        var right = resultExprSupplier.apply(nonNullResult).usingTempVariable(nullableResult);
         var nullableResultType = functionDef.getOrCreateNullableType(right.inferType(), null);
         right = functionDef.cast(nullableResult, nullableResultType).setSourceLocation(right.getSourceLocation()).transform();
         var root = functionDef.getRoot();
@@ -1200,9 +1202,12 @@ public class BlockCompiler {
             throw new TypeMismatchError("nullable class expected", maybeNullExpr.getSourceLocation());
         }
         var nullableResult = new PipeToTempVar(functionDef, maybeNullExpr, true);
-        var baseTypeResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass()).setSourceLocation(maybeNullExpr.getSourceLocation()).transform();
+        var nonNullResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass())
+                .setParent(maybeNullExpr.getParent())
+                .setSourceLocation(maybeNullExpr.getSourceLocation())
+                .transform();
 
-        var right = resultExprSupplier.apply(baseTypeResult).usingTempVariable(nullableResult);
+        var right = resultExprSupplier.apply(nonNullResult).usingTempVariable(nullableResult);
         var root = functionDef.getRoot();
         return new IfThenElseStmt(functionDef,
                 new Equals(functionDef, nullableResult, root.nullLiteral(), Equals.Type.NotEquals).transform(),

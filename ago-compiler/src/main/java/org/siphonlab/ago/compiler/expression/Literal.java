@@ -21,7 +21,6 @@ import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
-import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.math.BigDecimal;
@@ -67,7 +66,7 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
         } else if(literal instanceof AgoParser.LCharContext lChar){
             return root.createCharLiteral(LiteralParser.parseCharLiteral(lChar.CHAR_LITERAL().getText()));
         } else if(literal instanceof AgoParser.LNullContext lNullContext){
-            return root.createNullLiteral();
+            return root.nullLiteral();
         } else if(literal instanceof AgoParser.LBoolContext lBoolContext){
             return root.createBooleanLiteral(Boolean.parseBoolean(lBoolContext.getText()));
         } else if(literal instanceof AgoParser.LFloatContext floatContext){

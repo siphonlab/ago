@@ -181,10 +181,10 @@ public class CastStrategy {
 
                     case Object -> {
                         if(rightType.getTypeCode() == NULL) {
-                            right = new ForceCast(ownerFunction, right, leftType, ForceCast.CastMode.ObjectCast);
-                            yield new UnifyTypeResult(left, right, leftType, true);
-                        } else {
                             yield throwTypeMismatchError(originLeftType, originRightType);
+                        } else {
+                            left = new ForceCast(ownerFunction, left, rightType, ForceCast.CastMode.ObjectCast);
+                            yield new UnifyTypeResult(left,right,rightType, true);
                         }
                     }
 
@@ -197,7 +197,7 @@ public class CastStrategy {
                 switch (rightTypeKind){
                     case langObject ->
                         new UnifyTypeResult(new ForceCast(ownerFunction, left,rightType, ForceCast.CastMode.ObjectCast), right,rightType, true);
-                    case Object ->
+                    case Object, PrimitiveBoxer, Enum ->
                         unifyObjectTypes(left, right, leftType, rightType);
                     default -> throwTypeMismatchError(originLeftType, originRightType);
                 };

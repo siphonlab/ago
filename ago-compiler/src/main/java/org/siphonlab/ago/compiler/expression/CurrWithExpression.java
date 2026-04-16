@@ -15,11 +15,14 @@
  */
 package org.siphonlab.ago.compiler.expression;
 
+import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+
+import java.util.Objects;
 
 public class CurrWithExpression extends ExpressionInFunctionBody implements LocalVarResultExpression {
 
@@ -33,13 +36,17 @@ public class CurrWithExpression extends ExpressionInFunctionBody implements Loca
         base.setParent(this);
     }
 
+    public Expression getBase() {
+        return base;
+    }
+
     @Override
     public CurrWithExpression transform() throws CompilationError {
         ClassDef classDef = base.inferType();
         if(!classDef.getRoot().getObjectClass().isThatOrSuperOfThat(classDef)){
             throw new TypeMismatchError("with expression must be object", this.getSourceLocation());
         }
-        return this;
+        return (CurrWithExpression) super.transform();
     }
 
     @Override
@@ -85,5 +92,21 @@ public class CurrWithExpression extends ExpressionInFunctionBody implements Loca
     @Override
     public String toString() {
         return "(NowWith %s)".formatted(this.base);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof CurrWithExpression that)) return false;
+        return Objects.equals(base, that.base) && Objects.equals(localVar, that.localVar);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(base, localVar);
+    }
+
+    @Override
+    public CurrWithExpression setSourceLocation(SourceLocation sourceLocation) {
+        return (CurrWithExpression) super.setSourceLocation(sourceLocation);
     }
 }

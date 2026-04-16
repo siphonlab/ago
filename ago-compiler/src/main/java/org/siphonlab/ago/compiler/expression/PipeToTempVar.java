@@ -87,7 +87,9 @@ public class PipeToTempVar extends ExpressionInFunctionBody implements LocalVarR
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+        if(this.locked) blockCompiler.lockRegister(localVar);
         var t = this.visit(blockCompiler);
+        if(this.locked) blockCompiler.releaseRegister(localVar);
         t.outputToLocalVar(localVar, blockCompiler);
     }
 

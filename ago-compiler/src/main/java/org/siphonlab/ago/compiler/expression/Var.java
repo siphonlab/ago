@@ -80,7 +80,7 @@ public abstract class Var extends ExpressionInFunctionBody implements Assign.Ass
 
         @Override
         public void outputToLocalVar(LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-            if(localVar == this || this.variable == localVar.variable) return;
+            if(localVar == this || this.variable == localVar.variable || localVar.variable.getSlot() == this.variable.getSlot()) return;
             blockCompiler.enter(this);
 
             blockCompiler.getCode().assign(localVar.variable.getSlot(), localVar.variable.getType().getTypeCode(), this.variable.getSlot());

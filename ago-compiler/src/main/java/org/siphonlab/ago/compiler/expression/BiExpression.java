@@ -54,47 +54,6 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
         }
         transformed = true;
         return this;
-
-//        ClassDef t1 = left.inferType();
-//        ClassDef t2 = right.inferType();
-//        Expression l = left, r = right;
-//        if(t1.isPrimitiveOrBoxed() && t2.isPrimitiveOrBoxed()){
-//            boolean unboxed = false;
-//            if(!t1.isPrimitive()) {
-//                l = new Unbox(l);
-//                t1 = l.inferType();
-//                unboxed = true;
-//            }
-//            if(!t2.isPrimitive()) {
-//                r = new Unbox(r);
-//                t2 = r.inferType();
-//                unboxed = true;
-//            }
-//
-//            if(t1 == t2) {
-//                if(unboxed){
-//                    return transformUnboxed(l,r).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
-//                }
-//                return processLiterals();
-//            }
-//            if(t1 == PrimitiveClassDef.STRING && t2 == PrimitiveClassDef.INT){
-//                return this;
-//            }
-//
-//            // unify type
-//            var resultType = t2.getTypeCode().isHigherThan(t1.getTypeCode()) ? unifyPrimitiveType(t1, t2) : unifyPrimitiveType(t2, t1);
-//            if(resultType != t1) l = ownerFunction.cast(l, resultType);
-//            if(resultType != t2) r = ownerFunction.cast(r, resultType);
-//            this.left = l.transform();
-//            this.right = r.transform();
-//            return processLiterals();
-//        }
-//        if(t1.isGenericType() && t1.isPrimitiveFamily() && t2.isGenericType() && t2.isPrimitiveFamily()){
-//            if(t1.getTypeCode() != t2.getTypeCode()){
-//                throw new TypeMismatchError("generic type values must have same type",this.getSourceLocation());
-//            }
-//        }
-//        return this;
     }
 
     protected abstract Expression transformUnboxed(Expression left, Expression right) throws CompilationError;

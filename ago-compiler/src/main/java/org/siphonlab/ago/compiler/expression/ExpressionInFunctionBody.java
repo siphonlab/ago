@@ -2,7 +2,6 @@ package org.siphonlab.ago.compiler.expression;
 
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.statement.Label;
 
 public abstract class ExpressionInFunctionBody extends ExpressionBase{
 
@@ -27,7 +26,7 @@ public abstract class ExpressionInFunctionBody extends ExpressionBase{
             var nullableValue = maybeNullableExpression.visit(blockCompiler);
             nullableValue.setSourceLocation(maybeNullableExpression.getSourceLocation());
             blockCompiler.lockRegister(nullableValue);
-            var equalsNull = new Equals(ownerFunction, nullableValue, getRoot().createNullLiteral(), Equals.Type.Equals).visit(blockCompiler);
+            var equalsNull = new Equals(ownerFunction, nullableValue, getRoot().nullLiteral(), Equals.Type.Equals).visit(blockCompiler);
             blockCompiler.getCode().jumpIf(((Var.LocalVar)equalsNull).getVariableSlot(), nullableExit);
             var nonNullValue = (Var.LocalVar) ownerFunction.cast(nullableValue, n.getBaseClass()).transform().visit(blockCompiler);
             nonNullValue.setSourceLocation(maybeNullableExpression.getSourceLocation());

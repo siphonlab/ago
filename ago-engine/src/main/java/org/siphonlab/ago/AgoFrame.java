@@ -911,6 +911,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Equals.equals_S_vvc: slots.setBoolean(code[pc++], StringUtils.equals(slots.getString(code[pc++]), engine.toString(code[pc++]))); break;
             case Equals.equals_S_vvv: slots.setBoolean(code[pc++], StringUtils.equals(slots.getString(code[pc++]), slots.getString(code[pc++]))); break;
             case Equals.equals_B_vvc: slots.setBoolean(code[pc++], slots.getBoolean(code[pc++]) == (code[pc++] !=0)); break;
+            case Equals.equals_B_vc: slots.setBoolean(code[pc], slots.getBoolean(code[pc++]) == (code[pc++] !=0)); break;
             case Equals.equals_B_vvv: slots.setBoolean(code[pc++], slots.getBoolean(code[pc++]) == slots.getBoolean(code[pc++])); break;
 
             case Equals.equals_o_vvv: slots.setBoolean(code[pc++], slots.getObject(code[pc++]) == slots.getObject(code[pc++])); break;

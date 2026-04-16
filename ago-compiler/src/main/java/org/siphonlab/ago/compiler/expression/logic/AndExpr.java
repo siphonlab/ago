@@ -16,11 +16,8 @@
 package org.siphonlab.ago.compiler.expression.logic;
 
 import org.siphonlab.ago.TypeCode;
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 
@@ -46,22 +43,68 @@ public class AndExpr extends ExpressionInFunctionBody {
 
     @Override
     protected Expression transformInner() throws CompilationError {
+        boolean leftIsNullable = false,  rightIsNullable = false;
+        var left = this.left;
+        var right = this.right;
+        Expression maybeNullLeft = null;
+        Expression maybeNullRight = null;
+
         ClassDef leftType = left.inferType();
+        if(leftType instanceof NullableClassDef n){
+            leftIsNullable = true;
+            leftType = n.getBaseClass();
+            left = ownerFunction.cast(maybeNullLeft = new PipeToTempVar(ownerFunction, left), leftType).transform();
+        }
         ClassDef rightType = right.inferType();
-        if(leftType.getTypeCode() == TypeCode.BOOLEAN || leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
-            if(!(rightType.getTypeCode() == TypeCode.BOOLEAN
-                    || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN)){
-                return new AndExpr(ownerFunction, left, ownerFunction.cast(right, getRoot().BOOLEAN(), false).transform()).transform();
-            }
-        } else if(rightType.getTypeCode() == TypeCode.BOOLEAN
-                || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
-            return new AndExpr(ownerFunction, ownerFunction.cast(left, getRoot().BOOLEAN(), false).transform(), right).transform();
+        if(rightType instanceof NullableClassDef n){
+            rightIsNullable = true;
+            rightType = n.getBaseClass();
+            right = ownerFunction.cast(maybeNullRight = new PipeToTempVar(ownerFunction, right), rightType).transform();
         }
 
-        CastStrategy.UnifyTypeResult result = new CastStrategy(ownerFunction, this.getSourceLocation(), false).unifyTypes(this.left, this.right);
-        if(result.changed() || result.left() != this.left || result.right() != this.right){
-            this.left = result.left();
-            this.right = result.right();
+        if(leftType.getTypeCode() == TypeCode.BOOLEAN || rightType.getTypeCode() == TypeCode.BOOLEAN ||
+                leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
+            Expression l, r;
+            if(leftIsNullable){
+                l = new AndExpr(ownerFunction, new Equals(ownerFunction, maybeNullLeft, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                             ownerFunction.cast(left, getRoot().BOOLEAN()).transform());
+            } else {
+                l = ownerFunction.cast(left, getRoot().BOOLEAN()).transform();
+            }
+            if(rightIsNullable){
+                r = new AndExpr(ownerFunction, new Equals(ownerFunction, maybeNullRight, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                        ownerFunction.cast(right, getRoot().BOOLEAN()).transform());
+            } else {
+                r = ownerFunction.cast(right, getRoot().BOOLEAN()).transform();
+            }
+            if(l == this.left && r == this.right) return this;
+            return new AndExpr(ownerFunction, l, r).transform();
+        }
+
+        CastStrategy.UnifyTypeResult result = new CastStrategy(ownerFunction, this.getSourceLocation(), false).unifyTypes(left, right);
+
+        if(result.changed() || result.left() != left || result.right() != right) {
+            left = result.left();
+            right = result.right();
+        }
+        ClassDef finalType;
+        if(leftIsNullable || rightIsNullable) {
+            finalType = ownerFunction.getOrCreateNullableType(result.resultType(), null);
+            left = ownerFunction.cast(left, finalType).transform();
+            right = ownerFunction.cast(right, finalType).transform();
+        }
+
+        if(leftIsNullable){
+            this.left = new IfElseExpr(ownerFunction, left,
+                    new Equals(ownerFunction, maybeNullLeft, getRoot().nullLiteral(), Equals.Type.NotEquals), getRoot().nullLiteral());
+        }  else {
+            this.left = left;
+        }
+        if(rightIsNullable){
+            this.right = new IfElseExpr(ownerFunction, right,
+                    new Equals(ownerFunction, maybeNullRight, getRoot().nullLiteral(), Equals.Type.NotEquals), getRoot().nullLiteral());
+        } else {
+            this.right = right;
         }
         if(this.left instanceof Literal<?> l){
             return BooleanLiteral.isTrue(l) ? this.right : l;
@@ -69,6 +112,7 @@ public class AndExpr extends ExpressionInFunctionBody {
         if(this.right instanceof Literal<?> r){
             if(BooleanLiteral.isFalse(r)) return r;     // the left need evaluate if right means true, that is, after left evaluated return right value
         }
+
         return this;
     }
 

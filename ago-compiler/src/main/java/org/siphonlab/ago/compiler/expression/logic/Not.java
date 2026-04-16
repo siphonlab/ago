@@ -24,6 +24,9 @@ import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
 
 import java.util.Objects;
 
+/**
+ * `not` expression always return boolean result
+ */
 public class Not extends UnaryExpression {
 
     public Not(FunctionDef ownerFunction, Expression value) throws CompilationError {
@@ -36,9 +39,24 @@ public class Not extends UnaryExpression {
 
     @Override
     protected Expression transformInner() throws CompilationError {
+        if(value instanceof Not not){
+            return not.getValue();
+        }
+
+        var t = this.value.inferType();
+        if(t instanceof NullableClassDef n){
+            var baseClass = n.getBaseClass();
+            PipeToTempVar maybeNull;
+            var nonNull = ownerFunction.cast(maybeNull = new PipeToTempVar(ownerFunction, value, true), baseClass).transform();
+            return new Not(ownerFunction, new AndExpr(ownerFunction,
+                        new Equals(ownerFunction, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                        ownerFunction.cast(nonNull, getRoot().BOOLEAN()).transform()
+                    )).usingTempVariable(maybeNull);
+        }
+
         var v = ownerFunction.cast(this.value, getRoot().BOOLEAN()).transform();
         if(v instanceof Literal<?> literal){
-            return getRoot().createBooleanLiteral( !BooleanLiteral.isTrue(literal)).setParent(this.getParent()).setSourceLocation(this.getSourceLocation());
+            return getRoot().createBooleanLiteral(!BooleanLiteral.isTrue(literal)).setParent(this.getParent()).setSourceLocation(this.getSourceLocation());
         }
         if(v != this.value) {
             return new Not(ownerFunction, v).setParent(this.getParent()).setSourceLocation(this.sourceLocation);
@@ -75,5 +93,15 @@ public class Not extends UnaryExpression {
     @Override
     public boolean equals(Object obj) {
         return obj instanceof Not n && Objects.equals(n.value, this.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+
+    @Override
+    public String toString() {
+        return "(Not %s)".formatted(this.value);
     }
 }
