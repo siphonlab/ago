@@ -21,7 +21,7 @@
     <logger name="org.siphonlab.ago.classloader.ClassHeader" level="OFF"/>
     <logger name="org.siphonlab.ago.compiler" level="OFF"/>
     <logger name="org.siphonlab.ago.compiler.ClassDef" level="OFF"/>
-    <logger name="org.siphonlab.ago.AgoFrame" level="ERROR" />
+    <logger name="org.siphonlab.ago.AgoFrame" level="ON" />
     <logger name="org.siphonlab.ago.compiler.AgoClassParser" level="OFF"/>
     <logger name="io.vertx" level="ERROR"/>
 
