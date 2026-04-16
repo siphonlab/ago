@@ -664,9 +664,9 @@ namePath
 declarationType:    namePath;       // type literal
 
 variableType:       // variable and fileds
-           declarationType (brace = '[' ']')+     #VarTypeArray
+           variableType (brace = '[' ']')+        #VarTypeArray
         |  declarationType                        #VarTypeNormal
-        |  declarationType '?'                    #VarTypeNullable
+        |  variableType '?'                       #VarTypeNullable
 ;
 
 possibleName

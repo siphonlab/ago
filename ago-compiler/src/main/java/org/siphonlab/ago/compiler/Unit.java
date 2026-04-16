@@ -776,7 +776,7 @@ public class Unit {
         if (variableType instanceof AgoParser.VarTypeNormalContext varTypeNormal) {
             return parseType(scopeClass, varTypeNormal.declarationType(), acceptTypeExpr, allowGenericPlaceHolder);
         } else if (variableType instanceof AgoParser.VarTypeArrayContext varTypeArray) {
-            var elementType = parseTypeName(scopeClass, varTypeArray.declarationType().namePath(), allowGenericPlaceHolder);
+            var elementType = extractType(parseType(scopeClass, varTypeArray.variableType(), acceptTypeExpr, allowGenericPlaceHolder));
             var dimension = varTypeArray.LBRACK().size();
             ArrayClassDef lastArrayType = null;
             for (var i = 0; i < dimension; i++) {
@@ -784,7 +784,7 @@ public class Unit {
             }
             return new ConstClass(lastArrayType).setSourceLocation(SourceLocation.UNKNOWN);
         } else if(variableType instanceof AgoParser.VarTypeNullableContext varTypeNullable) {
-            var t = parseTypeName(scopeClass, varTypeNullable.declarationType().namePath(), allowGenericPlaceHolder);
+            var t = extractType(parseType(scopeClass, varTypeNullable.variableType(), acceptTypeExpr, allowGenericPlaceHolder));
             var n = scopeClass.getOrCreateNullableType(t, null);
             return new ConstClass(n);
         } else {
