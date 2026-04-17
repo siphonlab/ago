@@ -31,9 +31,10 @@ class NarrowTyping {
 
     final static int INSTALLED_POS = 1;
     final static int INSTALLED_NEG = -1;
-    final static int INSTALLED_NONE = 0;
+    final static int NOT_INSTALLED = 0;
+    final static int DISABLED = 2;
 
-    private int installation = INSTALLED_NONE;
+    private int state = NOT_INSTALLED;
 
     record ScopePair(VariableScope pos, VariableScope neg){}
 
@@ -44,7 +45,13 @@ class NarrowTyping {
     }
 
     public boolean isCollecting(){
-        return narrowTypingDepth > 0;
+        return narrowTypingDepth > 0 && state != DISABLED;
+    }
+
+    public void disable(){
+        if(this.state == DISABLED) return;
+        this.uninstallCurrentScope();
+        state = DISABLED;
     }
 
     public void collectPosVar(Var.LocalVar narrowVar) {
@@ -59,7 +66,7 @@ class NarrowTyping {
         narrowTypingDepth++;
         var scopePair = new ScopePair(new VariableScope(), new VariableScope());
         this.scopeStack.push(scopePair);
-        this.installationStack.push(this.installation);
+        this.installationStack.push(this.state);
         this.currScopePair = scopePair;
         this.installPosScope();
     }
@@ -74,31 +81,32 @@ class NarrowTyping {
             this.currScopePair = scopeStack.pop();
             var installation = installationStack.pop();
             switch (installation) {
-                case INSTALLED_NONE: this.installation = INSTALLED_NONE; break;
                 case INSTALLED_POS: this.installPosScope();break;
                 case INSTALLED_NEG: this.installNegScope();break;
+                default:
+                    this.state = DISABLED;
             }
         } else {
             this.currScopePair = null;
-            this.installation = INSTALLED_NONE;
+            this.state = NOT_INSTALLED;
         }
     }
 
     public void uninstallCurrentScope() {
         var ownerFunction = blockCompiler.getFunctionDef();
-        switch(installation) {
-            case INSTALLED_NONE:
+        switch(state) {
+            case NOT_INSTALLED, DISABLED:
                 break;
             case INSTALLED_POS: {
                 var scope = ownerFunction.leaveVariableScope();
                 assert scope == currScopePair.pos;
-                this.installation = INSTALLED_NONE;
+                this.state = NOT_INSTALLED;
                 break;
             }
             case INSTALLED_NEG: {
                 var scope = ownerFunction.leaveVariableScope();
                 assert scope == currScopePair.neg;
-                this.installation = INSTALLED_NONE;
+                this.state = NOT_INSTALLED;
                 break;
             }
         }
@@ -106,17 +114,24 @@ class NarrowTyping {
     }
 
     public void installPosScope() {
+        if(this.state == DISABLED) return;
         var ownerFunction = blockCompiler.getFunctionDef();
         uninstallCurrentScope();
         ownerFunction.enterVariableScope(currScopePair.pos);
-        this.installation = INSTALLED_POS;
+        this.state = INSTALLED_POS;
     }
 
-    public void installNegScope(){
+    public boolean installNegScope(){
+        if(this.state == DISABLED) return false;
+
         var ownerFunction = blockCompiler.getFunctionDef();
         uninstallCurrentScope();
+        if(currScopePair.neg.getVariableCount() > 1){       // for neg condition, only 1 variable allowed
+            return false;
+        }
         ownerFunction.enterVariableScope(currScopePair.neg);
-        this.installation = INSTALLED_NEG;
+        this.state = INSTALLED_NEG;
+        return true;
     }
 
 

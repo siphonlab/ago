@@ -28,6 +28,7 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
+import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
@@ -37,6 +38,7 @@ import org.siphonlab.ago.compiler.expression.math.Neg;
 import org.siphonlab.ago.compiler.expression.math.Pos;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
+import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.resolvepath.VariableScope;
 import org.siphonlab.ago.compiler.statement.*;
@@ -484,7 +486,7 @@ public class BlockCompiler {
         } else if(expression instanceof AndExprContext andExpr){
             return new AndExpr(functionDef,expression(andExpr.expression(0)), expression(andExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof OrExprContext orExpr) {
-            return new OrExpr(functionDef, expression(orExpr.expression(0)), expression(orExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
+            return orExpr(orExpr).setSourceLocation(unit.sourceLocation(orExpr));
         } else if(expression instanceof ShiftExprContext shiftExprContext){
             return shiftExpr(shiftExprContext).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof PostWithExprContext postWithExpr){
@@ -501,6 +503,13 @@ public class BlockCompiler {
             return valueFromNullable(valueFromNullableContext);
         }
         throw new UnsupportedOperationException(expression.getText());
+    }
+
+    private Expression orExpr(OrExprContext orExpr) throws CompilationError {
+        if(this.narrowTyping.isCollecting()){
+            narrowTyping.disable();
+        }
+        return new OrExpr(functionDef, expression(orExpr.expression(0)), expression(orExpr.expression(1)));
     }
 
     private Expression equals(Expression left, Expression right, Equals.Type type) throws CompilationError {

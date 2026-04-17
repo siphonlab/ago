@@ -62,6 +62,21 @@ public class Equals extends BiExpression{
         if(this.left.equals(this.right)){
             return getRoot().createBooleanLiteral(true);
         }
+        if(this.left instanceof BooleanLiteral b){
+            Cast rightToBoolean = ownerFunction.cast(this.right, getRoot().BOOLEAN());
+            if((b.value && type == Type.Equals) || (!b.value && type == Type.NotEquals)){
+                return rightToBoolean;
+            } else {
+                return new Not(ownerFunction, rightToBoolean);
+            }
+        } else if(this.right instanceof BooleanLiteral b){
+            Cast leftToBoolean = ownerFunction.cast(this.left, getRoot().BOOLEAN());
+            if((b.value && type == Type.Equals) || (!b.value && type == Type.NotEquals)){
+                return leftToBoolean;
+            } else {
+                return new Not(ownerFunction, leftToBoolean);
+            }
+        }
 
         if(left.inferType() instanceof NullableClassDef n){
             if(right.inferType() instanceof NullClassDef) {

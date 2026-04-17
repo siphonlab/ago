@@ -29,4 +29,8 @@ public class VariableScope {
     public VariableScope getParent() {
         return parent;
     }
+
+    public int getVariableCount() {
+        return variables.size();
+    }
 }
