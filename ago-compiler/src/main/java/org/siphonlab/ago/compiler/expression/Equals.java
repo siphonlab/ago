@@ -37,7 +37,7 @@ import static org.siphonlab.ago.opcode.compare.NotEquals.KIND_NOT_EQUALS;
  */
 public class Equals extends BiExpression{
 
-    private final Type type;
+    protected final Type type;
 
     public enum Type{
         Equals(KIND_EQUALS),
@@ -267,4 +267,9 @@ public class Equals extends BiExpression{
         }
         return false;
     }
+
+    public Type getType() {
+        return type;
+    }
+
 }

@@ -111,5 +111,10 @@ public class NullableTests {
         assertTrue(Trace.outputted("open file sample.txt", "read file content from sample.txt", "close file sample.txt"));
     }
 
+    @Test
+    public void narrow() throws CompilationError, IOException {
+        run("nullable/narrow.ago");
+        Trace.printOutput();
+    }
 
 }

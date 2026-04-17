@@ -29,6 +29,7 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
 import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
@@ -37,6 +38,7 @@ import org.siphonlab.ago.compiler.expression.math.Pos;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
+import org.siphonlab.ago.compiler.resolvepath.VariableScope;
 import org.siphonlab.ago.compiler.statement.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +67,8 @@ public class BlockCompiler {
     int nextLabelId = 0;
 
     private List<ClassDef> handledExceptions = new LinkedList<>();
+
+    private NarrowTyping narrowTyping = new NarrowTyping(this);
 
     public BlockCompiler(Unit unit, FunctionDef functionDef, List<BlockStatementContext> blockStatements) {
         this.unit = unit;
@@ -132,7 +136,7 @@ public class BlockCompiler {
             return statement(statement);
         } else if(blockStatement instanceof LocalVarDeclContext localVarDecl) {
             LocalVariableDeclarationContext localVariableDeclaration = localVarDecl.localVariableDeclaration();
-            return (visitLocalVariableDeclaration(localVariableDeclaration));
+            return visitLocalVariableDeclaration(localVariableDeclaration);
         } else if(blockStatement instanceof LocalTypeDeclContext localTypeDeclContext){
             // already handled
             return null;
@@ -141,6 +145,10 @@ public class BlockCompiler {
             throw new UnsupportedOperationException("TODO");
         }
     }
+
+//    private Statement statement(StatementContext statement) throws CompilationError {
+//        return statement(statement, null);
+//    }
 
     private Statement statement(StatementContext statement) throws CompilationError {
         if (statement instanceof ReturnStmtContext returnStmt) {
@@ -399,7 +407,7 @@ public class BlockCompiler {
 //                case NOT_IDENTITY_EQUAL ->
                 default -> throw new UnsupportedOperationException("'%s' not supported".formatted(equalsExpr.bop));
             };
-            return new Equals(functionDef, expression(equalsExpr.expression(0)), expression(equalsExpr.expression(1)), type).setSourceLocation(unit.sourceLocation(expression));
+            return this.equals(expression(equalsExpr.expression(0)), expression(equalsExpr.expression(1)), type).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CreatorExprContext creatorExpr) {
             return creator(creatorExpr);
         } else if(expression instanceof ChainCreatorExprContext chainCreatorExpr){
@@ -493,6 +501,36 @@ public class BlockCompiler {
             return valueFromNullable(valueFromNullableContext);
         }
         throw new UnsupportedOperationException(expression.getText());
+    }
+
+    private Expression equals(Expression left, Expression right, Equals.Type type) throws CompilationError {
+        if(narrowTyping.isCollecting()) {
+            Var.LocalVar narrowVar = null;
+            Expression nullableExpression = null;
+            NullableClassDef nullableClass = null;
+            boolean notEqualsNull = false;
+            String varName = null;
+            if (left instanceof Var.LocalVar localVar && left.inferType() instanceof NullableClassDef n && right instanceof NullLiteral) {
+                nullableExpression = left;
+                nullableClass = n;
+                varName = localVar.variable.getName();
+            } else if (right instanceof Var.LocalVar localVar && right.inferType() instanceof NullableClassDef n && left instanceof NullLiteral) {
+                nullableExpression = right;
+                nullableClass = n;
+                varName = localVar.variable.getName();
+            }
+            if (nullableExpression != null) {
+                narrowVar = this.acquireTempVar(nullableClass.getBaseClass());
+                narrowVar.variable.setName(varName);
+                if (type == Equals.Type.NotEquals) {
+                    narrowTyping.collectPosVar(narrowVar);
+                } else {
+                    narrowTyping.collectNegVar(narrowVar);
+                }
+                return new IsNull(functionDef, nullableExpression, type, narrowVar);
+            }
+        }
+        return new Equals(functionDef, left, right, type);
     }
 
     private Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
@@ -1429,18 +1467,37 @@ public class BlockCompiler {
      */
     private BlockStmt block(BlockContext block) throws CompilationError {
         List<Statement> statements = new ArrayList<>();
+        VariableScope variableScope = functionDef.enterVariableScope();
         for (BlockStatementContext blockStatementContext : block.blockStatement()) {
             var st = this.blockStatement(blockStatementContext);
             if(st != null) statements.add(st);
         }
+        functionDef.leaveVariableScope();
         return new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(block));
 
     }
 
     private Statement ifStmt(IfStmtContext ifStmt) throws CompilationError {
+        this.narrowTyping.beginCollect();
         var cond = parExpression(ifStmt.parExpression());
-        var trueBranch = statement(ifStmt.trueBranch);
-        Statement falseBranch = ifStmt.falseBranch == null ? null : statement(ifStmt.falseBranch);
+        this.narrowTyping.endCollect();
+
+        Statement trueBranch;
+        Statement falseBranch;
+
+        trueBranch = statement(ifStmt.trueBranch);
+        narrowTyping.uninstallCurrentScope();
+
+        if (ifStmt.falseBranch == null) {
+            falseBranch = null;
+        } else {
+            narrowTyping.installNegScope();
+            falseBranch = statement(ifStmt.falseBranch);
+            narrowTyping.uninstallCurrentScope();
+        }
+
+        narrowTyping.exit();
+
         return new IfThenElseStmt(functionDef, cond, trueBranch, falseBranch);
     }
 

@@ -30,6 +30,7 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.logic.Not;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.resolvepath.VariableScope;
 import org.siphonlab.ago.compiler.statement.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.siphonlab.collection.DuplicatedKeyException;
@@ -64,6 +65,8 @@ public class FunctionDef extends ClassDef {
     private final TryCatchTable tryCatchTable = new TryCatchTable(this);
     private List<ClassDef> throwsExceptions = new ArrayList<>();
     private List<SourceMapEntry> sourceMap;
+
+    private VariableScope currVariableScope = null;
 
     public FunctionDef(Root root, String name, AgoParser.MethodDeclarationContext methodDecl){
         this(root, name, methodDecl, AgoClass.PUBLIC);
@@ -230,6 +233,10 @@ public class FunctionDef extends ClassDef {
 
     @Override
     public Variable getVariable(String name) {
+        if(this.currVariableScope != null){
+            var v = this.currVariableScope.get(name);
+            if(v != null) return v.variable;
+        }
         var v = this.localVariables.get(name);
         if(v != null) return v;
         return super.getVariable(name);
@@ -663,4 +670,22 @@ public class FunctionDef extends ClassDef {
         return new Var.Field(this, instance, variable);
     }
 
+    public VariableScope enterVariableScope(){
+        var v = new VariableScope();
+        v.setParent(currVariableScope);
+        currVariableScope = v;
+        return v;
+    }
+
+    public VariableScope leaveVariableScope(){
+        var old = currVariableScope;
+        if(currVariableScope != null)
+            currVariableScope = currVariableScope.getParent();
+        return old;
+    }
+
+    public void enterVariableScope(VariableScope variableScope) {
+        variableScope.setParent(currVariableScope);
+        currVariableScope = variableScope;
+    }
 }
