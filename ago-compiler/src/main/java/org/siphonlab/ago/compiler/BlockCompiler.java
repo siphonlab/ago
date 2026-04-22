@@ -28,7 +28,6 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
-import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
@@ -38,7 +37,7 @@ import org.siphonlab.ago.compiler.expression.math.Neg;
 import org.siphonlab.ago.compiler.expression.math.Pos;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
-import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.ago.compiler.narrowtype.NarrowTyping;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.resolvepath.VariableScope;
 import org.siphonlab.ago.compiler.statement.*;
@@ -484,7 +483,7 @@ public class BlockCompiler {
         } else if(expression instanceof BitOrExprContext expr){
             return new BitOpExpr(functionDef,BitOpExpr.Type.BitOr,expression(expr.expression(0)), expression(expr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof AndExprContext andExpr){
-            return new AndExpr(functionDef,expression(andExpr.expression(0)), expression(andExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
+            return andExpr(andExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof OrExprContext orExpr) {
             return orExpr(orExpr).setSourceLocation(unit.sourceLocation(orExpr));
         } else if(expression instanceof ShiftExprContext shiftExprContext){
@@ -503,43 +502,6 @@ public class BlockCompiler {
             return valueFromNullable(valueFromNullableContext);
         }
         throw new UnsupportedOperationException(expression.getText());
-    }
-
-    private Expression orExpr(OrExprContext orExpr) throws CompilationError {
-        if(this.narrowTyping.isCollecting()){
-            narrowTyping.disable();
-        }
-        return new OrExpr(functionDef, expression(orExpr.expression(0)), expression(orExpr.expression(1)));
-    }
-
-    private Expression equals(Expression left, Expression right, Equals.Type type) throws CompilationError {
-        if(narrowTyping.isCollecting()) {
-            Var.LocalVar narrowVar = null;
-            Expression nullableExpression = null;
-            NullableClassDef nullableClass = null;
-            boolean notEqualsNull = false;
-            String varName = null;
-            if (left instanceof Var.LocalVar localVar && left.inferType() instanceof NullableClassDef n && right instanceof NullLiteral) {
-                nullableExpression = left;
-                nullableClass = n;
-                varName = localVar.variable.getName();
-            } else if (right instanceof Var.LocalVar localVar && right.inferType() instanceof NullableClassDef n && left instanceof NullLiteral) {
-                nullableExpression = right;
-                nullableClass = n;
-                varName = localVar.variable.getName();
-            }
-            if (nullableExpression != null) {
-                narrowVar = this.acquireTempVar(nullableClass.getBaseClass());
-                narrowVar.variable.setName(varName);
-                if (type == Equals.Type.NotEquals) {
-                    narrowTyping.collectPosVar(narrowVar);
-                } else {
-                    narrowTyping.collectNegVar(narrowVar);
-                }
-                return new IsNull(functionDef, nullableExpression, type, narrowVar);
-            }
-        }
-        return new Equals(functionDef, left, right, type);
     }
 
     private Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
@@ -654,14 +616,21 @@ public class BlockCompiler {
     }
 
     private Expression prefixExpr(PrefixExprContext prefixExpr) throws CompilationError {
+        int type = prefixExpr.prefix.getType();
+        if(type == NOT) {
+            var expr = expression(prefixExpr.expression());
+            if(narrowTyping.isCollecting()){
+                NarrowTyping.NarrowNodePair mapper = narrowTyping.peek();
+                narrowTyping.updateCurrent(mapper.not(), true);
+            }
+            return new Not(functionDef, expr);
+        }
         Expression expression = expression(prefixExpr.expression());
-        switch (prefixExpr.prefix.getType()) {
+        switch (type) {
             case ADD:
                 return new Pos(functionDef, expression);
             case SUB:
                 return new Neg(functionDef, expression);
-            case NOT:
-                return new Not(functionDef,expression);
             case INC:
                 return new SelfArithmetic(functionDef,expression, getRoot().createIntLiteral(1), SelfArithmetic.Type.Inc);
             case DEC:
@@ -1434,6 +1403,19 @@ public class BlockCompiler {
         return new Var.LocalVar(functionDef, v, Var.LocalVar.VarMode.Temp);
     }
 
+    public Var.NarrowTypingLocalVar acquireNarrowTypingVar(Variable variable, ClassDef narrowType) throws CompilationError {
+        var v = new Variable();
+        v.setType(narrowType);
+        if(narrowType instanceof ConcreteType c){
+            functionDef.registerConcreteType(c);
+        }
+        v.setOwnerClass(this.functionDef);
+        v.setName(variable.getName());
+        v.setSourceLocation(variable.getSourceLocation());
+        v.setModifiers(variable.getModifiers());        // slot not allocated, will allocate when invoked, and don't register variable in functionDef.variables
+        return new Var.NarrowTypingLocalVar(functionDef, v, variable);
+    }
+
 
     public void lockRegister(TermExpression tempVar) {
         if(tempVar instanceof Var.LocalVar localVar && localVar.varMode == Var.LocalVar.VarMode.Temp){
@@ -1487,27 +1469,118 @@ public class BlockCompiler {
     }
 
     private Statement ifStmt(IfStmtContext ifStmt) throws CompilationError {
-        this.narrowTyping.beginCollect();
+        this.narrowTyping.enter();
         var cond = parExpression(ifStmt.parExpression());
-        this.narrowTyping.endCollect();
+        var mapper = this.narrowTyping.exit();
 
         Statement trueBranch;
         Statement falseBranch;
 
-        trueBranch = statement(ifStmt.trueBranch);
-        narrowTyping.uninstallCurrentScope();
+        if(mapper.isDirty()) {
+            this.narrowTyping.reenter(mapper, true);
+            trueBranch = statement(ifStmt.trueBranch);
+            narrowTyping.exit();
+        } else {
+            trueBranch = statement(ifStmt.trueBranch);
+        }
 
         if (ifStmt.falseBranch == null) {
             falseBranch = null;
         } else {
-            narrowTyping.installNegScope();
-            falseBranch = statement(ifStmt.falseBranch);
-            narrowTyping.uninstallCurrentScope();
+            if(mapper.isDirty()) {
+                this.narrowTyping.reenter(mapper, false);
+                falseBranch = statement(ifStmt.falseBranch);
+                narrowTyping.exit();
+            } else {
+                falseBranch = statement(ifStmt.falseBranch);
+            }
         }
 
-        narrowTyping.exit();
-
         return new IfThenElseStmt(functionDef, cond, trueBranch, falseBranch);
+    }
+
+    private Expression narrowTyping(ExpressionContext expression) throws CompilationError {
+        if(expression instanceof PrimaryExprContext primaryExprContext){
+            var expr = expression(primaryExprContext);
+            if(expr instanceof Var.LocalVar localVar && localVar.inferType() instanceof NullableClassDef){
+
+            }
+            return expr;
+        } else if(expression instanceof EqualsExprContext equalsExprContext){
+
+        }
+        return expression(expression);
+    }
+
+    private Expression narrowTyping(ParExpressionContext parExpression) throws CompilationError {
+        if(parExpression.expression() != null){
+            return narrowTyping(parExpression.expression());
+        } else {
+            return parExpression(parExpression);
+        }
+    }
+
+
+    private AndExpr andExpr(AndExprContext andExpr) throws CompilationError {
+        this.narrowTyping.enter();
+        Expression left = expression(andExpr.expression(0));
+        var leftMapper = narrowTyping.peek();   // don't exit
+
+        this.narrowTyping.enter();
+        Expression right = expression(andExpr.expression(1));
+        var rightMapper = this.narrowTyping.exit();
+
+        this.narrowTyping.exit();       // exit left
+
+        if(this.narrowTyping.isCollecting()){   // still collecting
+            narrowTyping.updateCurrent(leftMapper.intersect(this, rightMapper), true);
+        }
+
+        return new AndExpr(functionDef, left, right);
+    }
+
+    private Expression orExpr(OrExprContext orExpr) throws CompilationError {
+        this.narrowTyping.enter();
+        Expression left = expression(orExpr.expression(0));
+        var leftMapper = narrowTyping.exit();
+
+        this.narrowTyping.enter();
+        Expression right = expression(orExpr.expression(1));
+        var rightMapper = this.narrowTyping.exit();
+
+        if(this.narrowTyping.isCollecting()){   // still collecting
+            narrowTyping.updateCurrent(leftMapper.union(this, rightMapper), true);
+        }
+
+        return new OrExpr(functionDef, left, right);
+    }
+
+    private Expression equals(Expression left, Expression right, Equals.Type type) throws CompilationError {
+        if(narrowTyping.isCollecting()) {
+            Expression nullableExpression = null;
+            NullableClassDef nullableClass = null;
+            Variable variable = null;
+            if (left instanceof Var.LocalVar localVar && left.inferType() instanceof NullableClassDef n && right instanceof NullLiteral) {
+                nullableExpression = left;
+                nullableClass = n;
+                variable = localVar.variable;
+            } else if (right instanceof Var.LocalVar localVar && right.inferType() instanceof NullableClassDef n && left instanceof NullLiteral) {
+                nullableExpression = right;
+                nullableClass = n;
+                variable = localVar.variable;
+            }
+            if (nullableExpression != null) {
+                var nonNullVar = this.acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
+                var nullVar = this.acquireNarrowTypingVar(variable, root.NULL());
+                if (type == Equals.Type.NotEquals) {
+                    narrowTyping.collectNarrowVar(nonNullVar, nullVar);
+                } else {
+                    narrowTyping.collectNarrowVar(nullVar, nonNullVar);
+                }
+                return new IsNull(functionDef, nullableExpression, type, nonNullVar);
+            }
+        }
+        return new Equals(functionDef, left, right, type);
     }
 
     private Expression parExpression(ParExpressionContext parExpression) throws CompilationError {

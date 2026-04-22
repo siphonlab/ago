@@ -33,4 +33,9 @@ public class VariableScope {
     public int getVariableCount() {
         return variables.size();
     }
+
+    @Override
+    public String toString() {
+        return "(VariableScope %s %s)".formatted(this.hashCode(), this.variables);
+    }
 }

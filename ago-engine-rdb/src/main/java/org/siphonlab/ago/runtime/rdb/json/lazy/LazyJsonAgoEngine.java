@@ -25,6 +25,7 @@ import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.runtime.IntArrayInstance;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.json.*;

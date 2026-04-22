@@ -679,12 +679,14 @@ public class FunctionDef extends ClassDef {
 
     public VariableScope leaveVariableScope(){
         var old = currVariableScope;
+        if(LOGGER.isDebugEnabled()) LOGGER.debug("leave " + currVariableScope);
         if(currVariableScope != null)
             currVariableScope = currVariableScope.getParent();
         return old;
     }
 
     public void enterVariableScope(VariableScope variableScope) {
+        if(LOGGER.isDebugEnabled()) LOGGER.debug("enter " + variableScope);
         variableScope.setParent(currVariableScope);
         currVariableScope = variableScope;
     }

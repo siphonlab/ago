@@ -140,6 +140,30 @@ public abstract class Var extends ExpressionInFunctionBody implements Assign.Ass
         }
     }
 
+    public static class NarrowTypingLocalVar extends LocalVar{
+
+        private final Variable originVariable;
+
+        public NarrowTypingLocalVar(FunctionDef ownerFunction, Variable narrowVariable, Variable originVariable) {
+            super(ownerFunction, narrowVariable, VarMode.Temp);
+            this.originVariable = originVariable;
+        }
+
+        public Variable getOriginVariable() {
+            return originVariable;
+        }
+
+        @Override
+        public SlotDef getVariableSlot() {
+            if(this.variable.getSlot() != null) {
+                return  this.variable.getSlot();
+            }
+            SlotDef slot = ownerFunction.getSlotsAllocator().acquireRegister(this.variable.getType());
+            this.variable.setSlot(slot);
+            return slot;
+        }
+    }
+
     // allow base is LocalVar, PipeToTempVar, and Scope
     public static class Field extends Var {
 
