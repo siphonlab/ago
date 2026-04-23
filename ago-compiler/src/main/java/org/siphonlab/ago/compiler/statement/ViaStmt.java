@@ -40,10 +40,6 @@ public class ViaStmt extends Statement{
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        if(this.viaObject.inferType() instanceof NullableClassDef){
-            return BlockCompiler.nullableIfThenStmt(ownerFunction, this.viaObject,
-                    baseOfExpr -> new ViaStmt(ownerFunction, baseOfExpr, statement));
-        }
         return super.transformInner();
     }
 

@@ -18,7 +18,7 @@ fun main(){
     var b2 as boolean? = false;
     var b3 as boolean? = null;
 
-    var i as int? = 200;
+    var i as int? = 2026;
     var n as int? = null;
 
     if(b){
@@ -40,13 +40,15 @@ fun main(){
     }
 
     if(i){
-        Trace.print("i yes");
+        i++;
+        Trace.print("i yes, " + i);
     } else {
         Trace.print("i no");
     }
 
     if(n){
-        Trace.print("n yes");
+        n++;
+        Trace.print("n yes, " + n);
     } else {
         Trace.print("n no");
     }
@@ -72,12 +74,14 @@ fun main(){
     if(not i){
         Trace.print("i no");
     } else {
-        Trace.print("i yes");
+        i ++;
+        Trace.print("i yes, " + i);
     }
 
     if(not n){
         Trace.print("n no");
     } else {
-        Trace.print("n yes");
+        n ++;
+        Trace.print("n yes, " + n);
     }
 }

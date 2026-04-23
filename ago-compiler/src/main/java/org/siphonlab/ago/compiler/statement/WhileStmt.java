@@ -66,8 +66,8 @@ public class WhileStmt extends LoopStmt {
                 var bodyBeginLabel = blockCompiler.createLabel().here();
                 this.continueLabel = bodyBeginLabel;
                 this.body.termVisit(blockCompiler);
-                this.exitLabel.here();
                 code.jump(bodyBeginLabel);
+                this.exitLabel.here();
                 return;
             }
 

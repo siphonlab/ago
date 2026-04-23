@@ -73,4 +73,7 @@ public class IsNull extends Equals{
 
     }
 
+    public Var.LocalVar getNonNullValueReceiver() {
+        return nonNullValueReceiver;
+    }
 }

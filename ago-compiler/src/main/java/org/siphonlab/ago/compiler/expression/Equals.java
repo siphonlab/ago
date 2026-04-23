@@ -26,6 +26,7 @@ import org.siphonlab.ago.compiler.expression.logic.AndExpr;
 import org.siphonlab.ago.compiler.expression.logic.Not;
 import org.siphonlab.ago.compiler.expression.logic.OrExpr;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
+import org.siphonlab.ago.compiler.narrowtype.NarrowTyper;
 
 import java.util.Objects;
 
@@ -38,6 +39,7 @@ import static org.siphonlab.ago.opcode.compare.NotEquals.KIND_NOT_EQUALS;
 public class Equals extends BiExpression{
 
     protected final Type type;
+    private final BlockCompiler blockCompiler;
 
     public enum Type{
         Equals(KIND_EQUALS),
@@ -52,10 +54,18 @@ public class Equals extends BiExpression{
         }
     }
 
-    public Equals(FunctionDef ownerFunction, Expression left, Expression right, Type type) throws CompilationError {
-        super(ownerFunction, left, right);
+    public Equals(BlockCompiler blockCompiler, Expression left, Expression right, Type type) throws CompilationError {
+        super(blockCompiler.getFunctionDef(), left, right);
         this.type = type;
+        this.blockCompiler = blockCompiler;
     }
+
+    public Equals(FunctionDef functionDef, Expression left, Expression right, Type type) throws CompilationError {
+        super(functionDef, left, right);
+        this.type = type;
+        this.blockCompiler = null;
+    }
+
 
     @Override
     public Expression transformInner() throws CompilationError {
@@ -80,21 +90,24 @@ public class Equals extends BiExpression{
 
         if(left.inferType() instanceof NullableClassDef n){
             if(right.inferType() instanceof NullClassDef) {
+                if(left instanceof Var.LocalVar localVar){
+                    return narrowTyping(localVar);
+                }
                 return super.transformInner();
-            } else if(right.inferType() instanceof NullableClassDef n2){
+            } else if(right.inferType() instanceof NullableClassDef n2){        // both nullable
                 PipeToTempVar leftMaybeNull, rightMaybeNull;
 
                 var leftNonNull = ownerFunction.cast(leftMaybeNull = new PipeToTempVar(ownerFunction, left, true), n.getBaseClass()).transform();
                 var rightNonNll = ownerFunction.cast(rightMaybeNull = new PipeToTempVar(ownerFunction, right, true), n2.getBaseClass()).transform();
 
-                var leftEqualsNull = new PipeToTempVar(ownerFunction, new Equals(ownerFunction, leftMaybeNull, getRoot().nullLiteral(), Type.Equals), true);
-                var rightEqualsNull = new PipeToTempVar(ownerFunction, new Equals(ownerFunction, rightMaybeNull, getRoot().nullLiteral(), Type.Equals), true);
+                var leftEqualsNull = new PipeToTempVar(ownerFunction, new Equals(blockCompiler, leftMaybeNull, getRoot().nullLiteral(), Type.Equals), true);
+                var rightEqualsNull = new PipeToTempVar(ownerFunction, new Equals(blockCompiler, rightMaybeNull, getRoot().nullLiteral(), Type.Equals), true);
 
                 Expression bothNull = new AndExpr(ownerFunction, leftEqualsNull, rightEqualsNull);
 
                 Expression check = new AndExpr(ownerFunction,
                         new AndExpr(ownerFunction, new Not(ownerFunction, leftEqualsNull), new Not(ownerFunction, rightEqualsNull)),
-                        new Equals(ownerFunction, leftNonNull, rightNonNll, type).transform()
+                        new Equals(blockCompiler, leftNonNull, rightNonNll, type).transform()
                 );
 
                 if(type == Type.Equals) {
@@ -109,20 +122,23 @@ public class Equals extends BiExpression{
                 PipeToTempVar maybeNull;
                 var nonNull = ownerFunction.cast(maybeNull = new PipeToTempVar(ownerFunction, left, true), baseClass).transform();
                 return new AndExpr(ownerFunction,
-                    new Equals(ownerFunction, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
-                    new Equals(ownerFunction, nonNull, right, type).transform()
+                    new Equals(blockCompiler, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                    new Equals(blockCompiler, nonNull, right, type).transform()
                 ).usingTempVariable(maybeNull);
             }
         } else if(right.inferType() instanceof NullableClassDef n){
             if(left.inferType() instanceof NullClassDef){
+                if(right instanceof Var.LocalVar localVar){
+                    return narrowTyping(localVar);
+                }
                 return super.transformInner();
             } else {
                 var baseClass = n.getBaseClass();
                 PipeToTempVar maybeNull;
                 var nonNull = ownerFunction.cast(maybeNull = new PipeToTempVar(ownerFunction, right, true), baseClass).transform();
                 return new AndExpr(ownerFunction,
-                        new Equals(ownerFunction, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
-                        new Equals(ownerFunction, left, nonNull, type).transform()
+                        new Equals(blockCompiler, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                        new Equals(blockCompiler, left, nonNull, type).transform()
                 ).usingTempVariable(maybeNull);
             }
         }
@@ -133,6 +149,26 @@ public class Equals extends BiExpression{
             this.right = p.getRight();
         }
         return super.transformInner();
+    }
+
+    private Expression narrowTyping(Var.LocalVar localVar) throws CompilationError {
+        if(blockCompiler == null) return super.transformInner();
+
+        NarrowTyper narrowTyper = blockCompiler.getNarrowTyper();
+        var variable = localVar.variable;
+        var nullableClass = (NullableClassDef)variable.getType();
+        if(narrowTyper.isCollecting()) {
+            var nonNullVar = blockCompiler.acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
+            var nullVar = blockCompiler.acquireNarrowTypingVar(variable, getRoot().NULL());
+            if (type == Equals.Type.NotEquals) {
+                narrowTyper.collectNarrowVar(nonNullVar, nullVar);
+            } else {
+                narrowTyper.collectNarrowVar(nullVar, nonNullVar);
+            }
+            return new IsNull(ownerFunction, localVar, type, nonNullVar);
+        } else {
+            return super.transformInner();
+        }
     }
 
     // according org.siphonlab.ago.compile.expression.Assign.processBoundClass
@@ -174,7 +210,7 @@ public class Equals extends BiExpression{
 
     @Override
     protected Expression transformUnboxed(Expression left, Expression right) throws CompilationError {
-        return new Equals(this.ownerFunction, left,right,this.type);
+        return new Equals(this.blockCompiler, left,right,this.type);
     }
 
     @Override
@@ -276,7 +312,7 @@ public class Equals extends BiExpression{
     }
 
     public static boolean isLiteralEquals(Expression expression1, Expression expression2) throws CompilationError {
-        var eq = new Equals(null, expression1,expression2,Type.Equals).transform();
+        var eq = new Equals((FunctionDef) null, expression1,expression2,Type.Equals).transform();
         if(eq instanceof BooleanLiteral booleanLiteral){
             return booleanLiteral.value;
         }

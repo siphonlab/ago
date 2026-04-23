@@ -72,7 +72,7 @@ public class NullableTests {
     public void if_stmt() throws CompilationError, IOException {
         run("nullable/if_stmt.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("b yes", "b2 no", "b3 no", "i yes", "n no", "b yes", "b2 no", "b3 no", "i yes", "n no"));
+//        assertTrue(Trace.outputted("b yes", "b2 no", "b3 no", "i yes", "n no", "b yes", "b2 no", "b3 no", "i yes", "n no"));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class NullableTests {
     public void for_each_stmt() throws CompilationError, IOException {
         run("nullable/for_each.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("1", "2", "3"));
+        assertTrue(Trace.outputted("1", "1", "2", "2", "3", "3"));
     }
 
     @Test

@@ -17,9 +17,11 @@ fun main(){
     var arr as int[]? = [1,2,3]
     for(var i in arr){
         Trace.print(i)
+        Trace.print(arr[i-1])
     }
     arr = null;
     for(var i in arr){
         Trace.print(i)
+        Trace.print(arr[i-1])
     }
 }

@@ -45,17 +45,6 @@ public class WithExpr extends ExpressionInFunctionBody{
     }
 
     @Override
-    protected Expression transformInner() throws CompilationError {
-        if(this.withExpression.inferType() instanceof NullableClassDef){
-            return BlockCompiler.nullableIfThenExpr(ownerFunction, this.withExpression.getBase(),
-                    baseOfExpr -> new WithExpr(ownerFunction,
-                            new CurrWithExpression(ownerFunction, baseOfExpr).setSourceLocation(withExpression.getSourceLocation()),
-                            statement));
-        }
-        return this;
-    }
-
-    @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         try {
             blockCompiler.lockRegister(localVar);

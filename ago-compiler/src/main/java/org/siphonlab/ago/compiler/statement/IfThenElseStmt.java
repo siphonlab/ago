@@ -23,6 +23,7 @@ import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
+import org.siphonlab.ago.compiler.expression.logic.AndExpr;
 import org.siphonlab.ago.compiler.expression.logic.Not;
 
 public class IfThenElseStmt extends Statement {
@@ -48,6 +49,11 @@ public class IfThenElseStmt extends Statement {
             this.condition = not.getValue();
         }
         this.condition = condition.transform();
+
+        if(this.condition.inferType() instanceof NullableClassDef && !(this.condition instanceof NullableValue)){
+            this.condition = new NullableValue(ownerFunction, this.condition);
+        }
+
         if(trueBranch instanceof EmptyStmt){
             if(falseBranch != null && !(falseBranch instanceof EmptyStmt)){
                 return new IfThenElseStmt(ownerFunction, new Not(ownerFunction, condition), falseBranch, null).setSourceLocation(this.getSourceLocation()).transform();
@@ -94,16 +100,16 @@ public class IfThenElseStmt extends Statement {
             var exitLabel = blockCompiler.createLabel();
             Label elseLabel = blockCompiler.createLabel();
             Label trueLabel = blockCompiler.createLabel();
-            if(condResult.inferType() instanceof NullableClassDef nullableClassDef){
+            if(condition instanceof NullableValue nullableValue){
                 blockCompiler.lockRegister(condResult);
-                var isNull = (Var.LocalVar)new Equals(ownerFunction, condResult, getRoot().nullLiteral(), Equals.Type.Equals).visit(blockCompiler);
+                var isNull = nullableValue.isNull().visit(blockCompiler);
                 blockCompiler.releaseRegister(condResult);
                 if(!conditionNeg) {
                     code.jumpIf(isNull.getVariableSlot(), elseLabel);       // if is null, goto else
                 } else {
                     code.jumpIf(isNull.getVariableSlot(), trueLabel);
                 }
-                condResult = (Var.LocalVar) ownerFunction.cast(condResult, nullableClassDef.getBaseClass()).transform().visit(blockCompiler);
+                condResult = nullableValue.nonNullValue().visit(blockCompiler);
             }
             if(!conditionNeg) {
                 code.jumpIfNot(condResult.getVariableSlot(), elseLabel);

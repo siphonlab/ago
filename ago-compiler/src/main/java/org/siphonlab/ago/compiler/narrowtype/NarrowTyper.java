@@ -58,9 +58,9 @@ or expr:
     }
 
  */
-public class NarrowTyping {
+public class NarrowTyper {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(NarrowTyping.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(NarrowTyper.class);
 
     private final BlockCompiler blockCompiler;
 
@@ -187,7 +187,7 @@ public class NarrowTyping {
 
     NarrowNodePair currNarrowNodePair;
 
-    public NarrowTyping(BlockCompiler blockCompiler){
+    public NarrowTyper(BlockCompiler blockCompiler){
         this.blockCompiler = blockCompiler;
     }
 

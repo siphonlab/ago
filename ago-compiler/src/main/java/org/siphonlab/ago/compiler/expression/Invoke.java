@@ -85,39 +85,39 @@ public class Invoke extends ExpressionInFunctionBody{
     @Override
     protected Expression transformInner() throws CompilationError {
         List<Expression> transformedArguments = new ArrayList<>(arguments.size());
-        if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
-            Expression firstArg = bindExtensionMethod.setParent(this).getTarget().transform();
-            if(firstArg instanceof NullConditional nullConditional){
-                Expression expression = nullConditional.getExpression();
-                this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, expression, baseOfFirstArg -> {
-                        var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
-                        return new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform();
-                    }
-                );
-                this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, expression, baseOfFirstArg ->{
-                    var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
-                    return new ExpressionStmt(ownerFunction, new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform());
-                });
-                return this;
-            }
-            transformedArguments.add(firstArg);
-        }
-
-        if(this.scope instanceof NullConditional nullConditional){
-            Expression expression = nullConditional.getExpression();
-            this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, expression, baseOfScope -> {
-                    var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
-                    r.setScope(baseOfScope);
-                    return r.transform();
-                }
-            );
-            this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, expression, baseOfScope ->{
-                var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
-                r.setScope(baseOfScope);
-                return new ExpressionStmt(ownerFunction, r.transform());
-            });
-            return this;
-        }
+//        if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
+//            Expression firstArg = bindExtensionMethod.setParent(this).getTarget().transform();
+//            if(firstArg instanceof NullConditional nullConditional){
+//                Expression expression = nullConditional.getExpression();
+//                this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, expression, baseOfFirstArg -> {
+//                        var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
+//                        return new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform();
+//                    }
+//                );
+//                this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, expression, baseOfFirstArg ->{
+//                    var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
+//                    return new ExpressionStmt(ownerFunction, new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform());
+//                });
+//                return this;
+//            }
+//            transformedArguments.add(firstArg);
+//        }
+//
+//        if(this.scope instanceof NullConditional nullConditional){
+//            Expression expression = nullConditional.getExpression();
+//            this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, expression, baseOfScope -> {
+//                    var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
+//                    r.setScope(baseOfScope);
+//                    return r.transform();
+//                }
+//            );
+//            this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, expression, baseOfScope ->{
+//                var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
+//                r.setScope(baseOfScope);
+//                return new ExpressionStmt(ownerFunction, r.transform());
+//            });
+//            return this;
+//        }
 
         for (Expression argument : arguments) {
             transformedArguments.add(argument.transform().setParent(this));
@@ -310,12 +310,15 @@ public class Invoke extends ExpressionInFunctionBody{
             code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
         } else if(maybeFunction instanceof ClassOf.ClassOfScope classOfScope){
             assert (classOfScope.metaLevel == 1); // if it's metaclass it won't be Function
-            Scope scope = (Scope) this.scope;
-            //TODO why this happen?
-            //TODO handle resolvedFunctionDefGenericInstantiateRequired
+            Scope scope = (Scope) classOfScope.getScope();      // for recursive will cause this
             var n = Creator.NewProps.resolve(fun, scope.getClassDef());
-            code.new_scope_method(resultSlot, scope.getDepth(),  false, fun.simpleNameOfFunction(resolvedFunctionDef),
-                    n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+            var parent = scope.getParentScope();
+            if(parent == null){
+                code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+            } else {
+                code.new_scope_method(resultSlot, parent.getDepth(), false, fun.simpleNameOfFunction(resolvedFunctionDef),
+                        n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+            }
         } else if(maybeFunction instanceof ClassUnder.ClassUnderScope classUnderScope){
             Scope scope = (Scope) this.scope;
             boolean isSuper = false;

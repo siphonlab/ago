@@ -37,12 +37,6 @@ public class WithStmt extends Statement{
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        if(this.withExpression.inferType() instanceof NullableClassDef){
-            return BlockCompiler.nullableIfThenStmt(ownerFunction, this.withExpression.getBase(),
-                    baseOfExpr -> new WithStmt(ownerFunction,
-                            new CurrWithExpression(ownerFunction, baseOfExpr).setSourceLocation(withExpression.getSourceLocation()),
-                            statement));
-        }
         return super.transformInner();
     }
 
