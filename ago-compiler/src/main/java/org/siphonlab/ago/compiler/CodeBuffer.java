@@ -27,6 +27,7 @@ import org.siphonlab.ago.opcode.compare.Equals;
 import org.siphonlab.ago.opcode.compare.GreaterEquals;
 import org.siphonlab.ago.opcode.compare.InstanceOf;
 import org.siphonlab.ago.opcode.compare.NotEquals;
+import org.siphonlab.ago.opcode.logic.And;
 import org.siphonlab.ago.opcode.logic.BitNot;
 import org.siphonlab.ago.opcode.logic.Not;
 import org.siphonlab.ago.opcode.*;
@@ -938,6 +939,18 @@ public class CodeBuffer {
         ls.addInt(Pause.pause);
     }
 
+    public void and(SlotDef target, SlotDef slot) {
+        ls.addInt(And.and_vv);
+        slot(target);
+        slot(slot);
+    }
+
+    public void and(SlotDef target, SlotDef left, SlotDef right) {
+        ls.addInt(And.and_vvv);
+        slot(target);
+        slot(left);
+        slot(right);
+    }
 
     private static class SizeVerifier{
         final CodeBuffer thisBuff;

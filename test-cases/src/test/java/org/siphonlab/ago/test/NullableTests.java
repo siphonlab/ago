@@ -58,7 +58,7 @@ public class NullableTests {
     public void equals() throws CompilationError, IOException {
         run("nullable/equals.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("true", "true", "false", "true", "true", "false", "false", "true", "true", "false", "false", "true"));
+        assertTrue(Trace.outputted("true", "true", "false", "true", "true", "false", "true", "false", "false", "true", "true", "false", "false", "true"));
     }
 
     @Test

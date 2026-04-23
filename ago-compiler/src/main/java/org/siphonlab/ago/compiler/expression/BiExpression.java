@@ -63,9 +63,19 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
         try {
             blockCompiler.enter(this);
 
-            TermExpression left = this.left.visit(blockCompiler);
+            TermExpression left;
+            if(!(this.left instanceof NullableValue.NonNullValue n)) {
+                left = this.left.visit(blockCompiler);
+            } else {
+                left = n.getNullableValue().visit(blockCompiler);
+            }
             blockCompiler.lockRegister(left);
-            TermExpression right = this.right.visit(blockCompiler);
+            TermExpression right;
+            if(!(this.right instanceof NullableValue.NonNullValue n)){
+                right = this.right.visit(blockCompiler);
+            } else {
+                right = n.getNullableValue().visit(blockCompiler);
+            }
             blockCompiler.releaseRegister(left);
             if (left instanceof Literal<?> literal1 && right instanceof Literal<?> literal2) {
                 return processTwoLiteralsInner(literal1, literal2);
@@ -73,6 +83,7 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
 
             Var.LocalVar tempVar = blockCompiler.acquireTempVar(this);
             outputToLocalVar(tempVar, left, right, blockCompiler);
+
             return tempVar;
         } catch (CompilationError e) {
             throw e;
@@ -88,7 +99,7 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
         this.right.termVisit(blockCompiler);
     }
 
-    private void outputToLocalVar(Var.LocalVar localVar, TermExpression evaluatedLeft, TermExpression evaluatedRight, BlockCompiler blockCompiler) throws CompilationError {
+    protected void outputToLocalVar(Var.LocalVar localVar, TermExpression evaluatedLeft, TermExpression evaluatedRight, BlockCompiler blockCompiler) throws CompilationError {
         if(evaluatedLeft instanceof Literal<?> literal1){
             processLeftLiteral(localVar, literal1, (Var.LocalVar) evaluatedRight, blockCompiler);
         } else if(evaluatedRight instanceof Literal<?> literal){

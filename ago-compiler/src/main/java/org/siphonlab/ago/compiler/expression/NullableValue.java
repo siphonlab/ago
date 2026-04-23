@@ -78,6 +78,11 @@ public class NullableValue extends ExpressionInFunctionBody{
         return Objects.hashCode(nullableExpression);
     }
 
+    @Override
+    public String toString() {
+        return "(NullableValue %s)".formatted(nullableExpression);
+    }
+
     public IsNotNull isNotNull(){
         return new IsNotNull(ownerFunction);
     }
@@ -103,13 +108,17 @@ public class NullableValue extends ExpressionInFunctionBody{
 
         @Override
         public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-            new Equals(ownerFunction, outputted, getRoot().nullLiteral(), Equals.Type.NotEquals).transform()
-                    .outputToLocalVar(localVar, blockCompiler);
+            blockCompiler.getCode().notEqualsNull(localVar.getVariableSlot(), outputted.getVariableSlot());
         }
 
         @Override
         public Var.LocalVar visit(BlockCompiler blockCompiler) throws CompilationError {
             return (Var.LocalVar) super.visit(blockCompiler);
+        }
+
+        @Override
+        public String toString() {
+            return "(%s != null)".formatted(nullableExpression);
         }
     }
 
@@ -126,13 +135,17 @@ public class NullableValue extends ExpressionInFunctionBody{
 
         @Override
         public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-            new Equals(ownerFunction, outputted, getRoot().nullLiteral(), Equals.Type.Equals).transform()
-                    .outputToLocalVar(localVar, blockCompiler);
+            blockCompiler.getCode().equalsNull(localVar.getVariableSlot(), outputted.getVariableSlot());
         }
 
         @Override
         public Var.LocalVar visit(BlockCompiler blockCompiler) throws CompilationError {
             return (Var.LocalVar) super.visit(blockCompiler);
+        }
+
+        @Override
+        public String toString() {
+            return "(%s == null)".formatted(nullableExpression);
         }
     }
 
@@ -158,6 +171,10 @@ public class NullableValue extends ExpressionInFunctionBody{
             ownerFunction.cast(outputted, inferType()).transform().outputToLocalVar(localVar, blockCompiler);
         }
 
+        public NullableValue getNullableValue(){
+            return NullableValue.this;
+        }
+
         @Override
         public Var.LocalVar visit(BlockCompiler blockCompiler) throws CompilationError {
             if(nonNullValueReceiver != null){
@@ -166,6 +183,11 @@ public class NullableValue extends ExpressionInFunctionBody{
             } else {
                 return (Var.LocalVar) super.visit(blockCompiler);
             }
+        }
+
+        @Override
+        public String toString() {
+            return "(NonNullValue %s)".formatted(nullableExpression);
         }
     }
 }

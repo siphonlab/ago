@@ -28,6 +28,9 @@ fun main(){
 
     Trace.print(i == 200)       // true
     Trace.print(n == 200)       // false
+    Trace.print(200 == i)       // true
+    Trace.print(200 == n)       // false
+
     Trace.print(n != 200)       // false
     Trace.print(n == null)      // true
 

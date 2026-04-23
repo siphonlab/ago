@@ -23,11 +23,13 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
  */
 public class IsNull extends Equals{
 
-    private final Var.LocalVar nonNullValueReceiver;
-
-    public IsNull(FunctionDef ownerFunction, Expression nullableExpression, Type type, Var.LocalVar nonNullValueReceiver) throws CompilationError {
+    public IsNull(FunctionDef ownerFunction, NullableValue nullableExpression, Type type) throws CompilationError {
         super(ownerFunction, nullableExpression, ownerFunction.getRoot().nullLiteral(), type);
-        this.nonNullValueReceiver = nonNullValueReceiver;
+    }
+
+    @Override
+    public Expression transformInner() throws CompilationError {
+        return this;
     }
 
     @Override
@@ -39,32 +41,17 @@ public class IsNull extends Equals{
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        CodeBuffer code = blockCompiler.getCode();
         try {
             blockCompiler.enter(this);
 
-            NullableClassDef nullableClassDef = (NullableClassDef) this.left.inferType();
-            var result = (Var.LocalVar)this.left.visit(blockCompiler);
-            blockCompiler.lockRegister(localVar);
-
-            if(type == Type.Equals) {
-                code.equalsNull(localVar.getVariableSlot(), result.getVariableSlot());
+            NullableValue nullableValue = (NullableValue) this.left;
+            nullableValue.visit(blockCompiler);
+            if(this.type == Type.Equals) {
+                nullableValue.isNull().outputToLocalVar(localVar, blockCompiler);
             } else {
-                code.notEqualsNull(localVar.getVariableSlot(), result.getVariableSlot());
+                nullableValue.isNotNull().outputToLocalVar(localVar, blockCompiler);
             }
 
-            if(this.nonNullValueReceiver != null){
-                var exit = blockCompiler.createLabel();
-                if(type == Type.Equals) {
-                    code.jumpIf(localVar.getVariableSlot(), exit);
-                } else {
-                    code.jumpIfNot(localVar.getVariableSlot(), exit);
-                }
-                ownerFunction.cast(result, nullableClassDef.getBaseClass()).transform().outputToLocalVar(nonNullValueReceiver, blockCompiler);
-                exit.here();
-            }
-
-            blockCompiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
         } finally {
@@ -73,7 +60,4 @@ public class IsNull extends Equals{
 
     }
 
-    public Var.LocalVar getNonNullValueReceiver() {
-        return nonNullValueReceiver;
-    }
 }

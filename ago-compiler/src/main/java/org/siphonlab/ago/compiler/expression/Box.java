@@ -73,50 +73,6 @@ public class Box extends ExpressionInFunctionBody{
         return this;
     }
 
-    //    @Override
-//    protected Expression transformInner() throws CompilationError {
-//        var type = expression.inferType();
-//        if(type instanceof PrimitiveClassDef primitiveClassDef) {
-//            this.boxType = primitiveClassDef.getBoxedType();
-//            if (this.boxType != this.expectedType) {
-//                boolean castToSuper = (boxType.isDerivedFrom(expectedType));
-//                boolean boxToDown = (this.expression instanceof ClassRefLiteral && expectedType.isDerivedFrom(boxType));
-//                if (boxToDown) {
-//                    this.boxType = this.expectedType;
-//                } else if (castToSuper) {
-//                    return ownerFunction.cast(new Box(this.expression, this.boxType), expectedType).setSourceLocation(this.getSourceLocation()).transform();
-//                } else if (this.expectedType.isDerivedFrom(boxType)) {
-//                    this.boxType = this.expectedType;
-//                } else if (this.expectedType.isEnum()) {
-//                    var enumDef = this.expectedType;
-//                    if (type == enumDef.getEnumBasePrimitiveType()) {
-//                        this.boxType = expectedType;
-//                        return this;
-//                    } else if (enumDef.getEnumBasePrimitiveType().getTypeCode().isHigherThan(type.getTypeCode())) {
-//                        return new Box(ownerFunction.cast(this.expression, enumDef.getEnumBasePrimitiveType()).transform(), enumDef);
-//                    }
-//                } else {
-//                    throw new TypeMismatchError("'%s' cannot cast to '%s'".formatted(this.boxType, expectedType), this.getSourceLocation());
-//                }
-//            }
-//        } else if(type instanceof GenericTypeCode.GenericCodeAvatarClassDef a) {
-//            if (expectedType != type.getRoot().getObjectClass()) {
-//                throw new TypeMismatchError("'%s' can only box to Object".formatted(expression, type.getFullname()), getSourceLocation());
-//            } else {
-//                this.boxType = type.getRoot().getObjectClass();
-//            }
-//        } else if (type.isThatOrDerivedFromThat(type.getRoot().getPrimitiveTypeInterface())) {
-//            if (expectedType != type.getRoot().getObjectClass()) {
-//                throw new TypeMismatchError("'%s' can only box to Object".formatted(expression, type.getFullname()), getSourceLocation());
-//            } else {
-//                this.boxType = type.getRoot().getObjectClass();
-//            }
-//        } else {
-//            throw new TypeMismatchError("the type of %s is %s, it's not primitive".formatted(expression, type.getFullname()), getSourceLocation());
-//        }
-//        return this;
-//    }
-
     @Override
     public ClassDef inferType() throws CompilationError {
         return boxType;

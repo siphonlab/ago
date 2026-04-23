@@ -400,15 +400,7 @@ public class BlockCompiler {
         } else if(expression instanceof QuotedExprContext quotedExpr){
             return expression(quotedExpr.expression());
         } else if(expression instanceof EqualsExprContext equalsExpr){
-            Equals.Type type = switch(equalsExpr.bop.getType()){
-                case EQUAL -> Equals.Type.Equals;
-                case NOTEQUAL -> Equals.Type.NotEquals;
-//                case IDENTITY_EQUAL -> ;
-//                case NOT_IDENTITY_EQUAL ->
-                default -> throw new UnsupportedOperationException("'%s' not supported".formatted(equalsExpr.bop));
-            };
-            return this.equals(expression(equalsExpr.expression(0)), expression(equalsExpr.expression(1)), type)
-                        .setSourceLocation(unit.sourceLocation(expression));
+            return this.equalsExpr(equalsExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CreatorExprContext creatorExpr) {
             return creator(creatorExpr);
         } else if(expression instanceof ChainCreatorExprContext chainCreatorExpr){
@@ -1215,15 +1207,10 @@ public class BlockCompiler {
         var eqNull = new Equals(this, nullableResult, root.nullLiteral(), Equals.Type.NotEquals).setSourceLocation(maybeNullExpr.getSourceLocation()).transform();
 
         Expression nonNullResult;
-        if(eqNull instanceof IsNull isNull){
-            nonNullResult = isNull.getNonNullValueReceiver();
-        } else {
             nonNullResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass())
                     .setParent(maybeNullExpr.getParent())
                     .setSourceLocation(maybeNullExpr.getSourceLocation())
                     .transform();
-        }
-
         var right = resultExprSupplier.apply(nonNullResult);
         if(nullableResult instanceof PipeToTempVar p) right.usingTempVariable(p);
 
@@ -1248,14 +1235,10 @@ public class BlockCompiler {
         var eqNull = new Equals(this, nullableResult, root.nullLiteral(), Equals.Type.NotEquals).setSourceLocation(maybeNullExpr.getSourceLocation()).transform();
 
         Expression nonNullResult;
-        if(eqNull instanceof IsNull isNull){
-            nonNullResult = isNull.getNonNullValueReceiver();
-        } else {
             nonNullResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass())
                     .setParent(maybeNullExpr.getParent())
                     .setSourceLocation(maybeNullExpr.getSourceLocation())
                     .transform();
-        }
 
         var right = resultExprSupplier.apply(nonNullResult);
         if(nullableResult instanceof PipeToTempVar p) right.usingTempVariable(p);
@@ -1535,13 +1518,11 @@ public class BlockCompiler {
                     var nullValue = acquireNarrowTypingVar(localVar.variable, root.NULL());
                     narrowTyper.collectNarrowVar(nonNullValueReceiver, nullValue);
                     return new NullableValue(functionDef, localVar, nonNullValueReceiver);
-                } else {
-                    return new NullableValue(functionDef, expr);
                 }
             }
             return expr;
         } else if(expression instanceof EqualsExprContext equalsExprContext){
-            return expression(equalsExprContext).transform();
+            return this.equalsExpr(equalsExprContext).transform();
         }
         return expression(expression);
     }
@@ -1553,7 +1534,6 @@ public class BlockCompiler {
             return parExpression(parExpression);
         }
     }
-
 
     private AndExpr andExpr(AndExprContext andExpr) throws CompilationError {
         this.narrowTyper.enter();
@@ -1593,8 +1573,17 @@ public class BlockCompiler {
         return narrowTyper;
     }
 
-    private Expression equals(Expression left, Expression right, Equals.Type type) throws CompilationError {
-        return new Equals(this, left, right, type);
+    private Expression equalsExpr(EqualsExprContext equalsExpr) throws CompilationError {
+        Equals.Type type = switch(equalsExpr.bop.getType()){
+            case EQUAL -> Equals.Type.Equals;
+            case NOTEQUAL -> Equals.Type.NotEquals;
+//                case IDENTITY_EQUAL -> ;
+//                case NOT_IDENTITY_EQUAL ->
+            default -> throw new UnsupportedOperationException("'%s' not supported".formatted(equalsExpr.bop));
+        };
+        Expression left = expression(equalsExpr.expression(0));
+        Expression right = expression(equalsExpr.expression(1));
+        return new Equals(this, left, right, type).setSourceLocation(unit.sourceLocation(equalsExpr));
     }
 
     private Expression parExpression(ParExpressionContext parExpression) throws CompilationError {
