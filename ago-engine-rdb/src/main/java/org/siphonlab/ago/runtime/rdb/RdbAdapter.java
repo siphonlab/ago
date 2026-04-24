@@ -363,15 +363,15 @@ public abstract class RdbAdapter {
         saveInstance(instance, new HashSet<>());
     }
 
-    public void saveRunSpace(RdbRunSpace runSpace) {
+    public void saveRunSpace(SavableRunSpace runSpace) {
         throw new NotImplementedException("not implemented yet");
     }
 
-    public void updateRunSpace(RdbRunSpace runSpace) {
+    public void updateRunSpace(SavableRunSpace runSpace) {
         throw new NotImplementedException("not implemented yet");
     }
 
-    public void updateCallFrameRunningState(CallFrame<?> statefulCallFrame, byte runningState) {
+    public void updateCallFrameRunningState(CallFrame<?> statefulCallFrame, byte runningState, int pc) {
         throw new NotImplementedException();
     }
 
@@ -430,7 +430,7 @@ public abstract class RdbAdapter {
             if (!boxTypes.isBoxTypeOrWithin(slotDef.getAgoClass()) && !(slotDef.getAgoClass() instanceof MetaClass)) {
                 Instance<?> object = rdbSlots.getObject(slotDef.getIndex());
                 if(object != null && object.getSlots() instanceof RdbSlots objectSlots && objectSlots.getRowState() == RowState.Added){
-                    saveInstance(object);
+                    // saveInstance(object);
                 }
             }
         }

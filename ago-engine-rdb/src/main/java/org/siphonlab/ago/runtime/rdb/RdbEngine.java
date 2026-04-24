@@ -173,7 +173,7 @@ public class RdbEngine extends AgoEngine {
     }
 
     @Override
-    protected RdbRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
+    protected SavableRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
         return new RdbRunSpace(this, rdbAdapter, runSpaceHost);
     }
 
@@ -183,7 +183,7 @@ public class RdbEngine extends AgoEngine {
         if (parentScope == null) return c;
 
         ((RdbSlots)c.getSlots()).setId(rdbAdapter.nextId());
-        this.rdbAdapter.saveInstance(c);
+        // this.rdbAdapter.saveInstance(c);
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if (emptyArgsConstructor != null) {

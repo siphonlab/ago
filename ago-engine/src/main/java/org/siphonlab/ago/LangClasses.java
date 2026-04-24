@@ -63,6 +63,8 @@ public class LangClasses {
     private final AgoClass shortEnumClass;
     private final AgoClass longEnumClass;
 
+    public final AgoInterface taskInterface;
+
     public LangClasses(ClassManager classManager) {
         this.objectClass = classManager.getClass("lang.Object");
         this.classClass = classManager.getClass("lang.Class");
@@ -109,6 +111,7 @@ public class LangClasses {
         this.shortEnumClass = classManager.getClass("lang.ShortEnum");
         this.longEnumClass = classManager.getClass("lang.LongEnum");
 
+        this.taskInterface = (AgoInterface) classManager.getClass("lang.Task");
     }
 
     public AgoClass getObjectClass() {

@@ -64,6 +64,10 @@ public class TestFunctions {
         }
     }
 
+    public static void quitNow(NativeFrame frame) {
+        System.exit(0);
+    }
+
     //TODO auto convert enum to primitive type
     public static void jsonSerialize(NativeFrame nativeFrame,
                                      Instance<?> input,

@@ -1,0 +1,24 @@
+fun fail() native "org.siphonlab.ago.test.TestFunctions.quitNow";
+
+fun save(n as int) as int with Task {
+    return n + 1;
+}
+
+fun nosave(n as int) as string {
+    return "String: " + n;
+}
+
+fun main() {
+    var n = 10;
+    Trace.print("======");
+    var x = save(n);
+    Trace.print(x);
+
+    var s = nosave(x);
+    Trace.print(s);
+
+    fail();
+
+    var y = save(x);
+    Trace.print(y);
+}

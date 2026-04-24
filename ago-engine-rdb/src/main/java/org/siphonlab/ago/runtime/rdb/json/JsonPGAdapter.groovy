@@ -37,6 +37,7 @@ import org.siphonlab.ago.runtime.rdb.RdbType
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
+import org.siphonlab.ago.runtime.rdb.SavableRunSpace
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
@@ -232,13 +233,13 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
 
-    void updateCallFrameRunningState(CallFrame callFrame, byte runningState) {
+    void updateCallFrameRunningState(CallFrame callFrame, byte runningState, int pc = -1) {
         var objectRef = ObjectRefOwner.extractObjectRef(callFrame);
         logger.info("UPDATE " + objectRef)
         var map = [
                 "id"       : objectRef.id() as Object,
                 "suspended": callFrame.suspended,
-                "runspace" : (callFrame.runSpace as RdbRunSpace)?.id,
+                "runspace" : (callFrame.runSpace as SavableRunSpace)?.id,
         ]
         if(runningState != (byte)-1) map["state"] = runningState
 
@@ -283,7 +284,11 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         }
 
         if(callFrame instanceof AgoFrame) {
-            map["pc"] = callFrame.pc
+            var savedPc = pc;
+            if (pc == -1) {
+                savedPc = callFrame.pc;
+            }
+            map["pc"] = savedPc;
         } else if(callFrame instanceof NativeFrame) {
             map["payload"] = callFrame.nativePayload ? toJsonb(callFrame.nativePayload) : null;
         } else {
@@ -542,7 +547,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         )
     }
 
-    void saveRunSpace(RdbRunSpace runSpace){
+    void saveRunSpace(SavableRunSpace runSpace){
         sql.executeInsert(toMap(runSpace),
             """insert into ago_runspace (
                     id, application, native_host_class, curr_frame_table, curr_frame_id, result_slots, running_state, exception_id, pausing_parents, forked_runspaces, parent_runspace
@@ -553,7 +558,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 """);
     }
 
-    void updateRunSpace(RdbRunSpace runSpace){
+    void updateRunSpace(SavableRunSpace runSpace){
         sql.executeUpdate(toUpdateMap(runSpace),
             """UPDATE ago_runspace
                 SET
@@ -567,7 +572,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 WHERE id = :id""")
     }
 
-    Map<String, Object> toMap(RdbRunSpace runSpace){
+    Map<String, Object> toMap(SavableRunSpace runSpace){
         RdbEngine rdbEngine = this.classManager as RdbEngine
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
         return [
@@ -584,10 +589,11 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ];      // UnhandledException
     }
 
-    Map<String, Object> toUpdateMap(RdbRunSpace runSpace) {
+    Map<String, Object> toUpdateMap(SavableRunSpace runSpace) {
         RdbEngine rdbEngine = this.classManager as RdbEngine
 
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
+        def x = currFrameRef?.className() ?: "_____"
         return [
                 "id"               : (Object) runSpace.id,
                 "curr_frame_table" : currFrameRef?.className(),

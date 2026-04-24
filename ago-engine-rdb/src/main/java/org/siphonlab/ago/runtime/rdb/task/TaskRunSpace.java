@@ -13,43 +13,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.runtime.rdb;
+package org.siphonlab.ago.runtime.rdb.task;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
 
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.*;
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.foldObjectRefFrame;
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.increaseRef;
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseCaller;
+import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseRef;
 
-public class RdbRunSpace extends SavableRunSpace {
-    private final static Logger logger = LoggerFactory.getLogger(RdbRunSpace.class);
+public class TaskRunSpace extends SavableRunSpace {
+    private final static Logger logger = LoggerFactory.getLogger(TaskRunSpace.class);
 
-    public RdbRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
-        this(agoEngine, rdbAdapter, runSpaceHost, rdbAdapter.nextId());
+    private static boolean isEntranceOrTask(CallFrame<?> frame) {
+        if (frame == null) {
+            return false;
+        }
+        if (frame instanceof EntranceCallFrame<?>) {
+            return true;
+        }
+
+        AgoInterface taskType;
+        if (frame instanceof ExpandableCallFrame<?> ef) {
+            taskType = ef.expand().getAgoEngine().getLangClasses().taskInterface;
+        }
+        else {
+            taskType = frame.getAgoEngine().getLangClasses().taskInterface;
+        }
+
+        return frame.getAgoClass().isThatOrDerivedFrom(taskType);
     }
 
-    public RdbRunSpace(RdbEngine agoEngine, RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost, long id) {
+    public TaskRunSpace(RdbEngine agoEngine, TaskAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
+        super(agoEngine, rdbAdapter, runSpaceHost);
+    }
+
+    public TaskRunSpace(RdbEngine agoEngine, TaskAdapter rdbAdapter, RunSpaceHost runSpaceHost, long id) {
         super(agoEngine, rdbAdapter, runSpaceHost, id);
     }
 
-
-    public long getId() {
-        return id;
-    }
+    HashSet<CallFrame<?>> callFrames = new HashSet<>();
 
     @Override
     public void run() {
         if (this.currCallFrame == null) {
-            if (logger.isDebugEnabled()) logger.debug(this + " has no callframe, exit");
+            if (logger.isDebugEnabled()) logger.debug("{} has no callframe, exit", this);
         } else {
-            if (logger.isDebugEnabled()) logger.debug(this + " run callframe " + this.currCallFrame);
+            if (logger.isDebugEnabled()) logger.debug("{} run callframe {}", this, this.currCallFrame);
         }
 
         this.setRunningState(RunningState.RUNNING);
@@ -59,44 +82,62 @@ public class RdbRunSpace extends SavableRunSpace {
             cf = currCallFrame;
 
             if(isRefCallFrame(cf)){
-                increaseRef(cf, Reason.RunCallFrame);
-                rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+                if (callFrames.add(cf)) {
+                    increaseRef(cf, ReferenceCounter.Reason.RunCallFrame);
+                }
             }
 
             this.currCallFrame.run();
 
             if(this.currCallFrame == null) {     // exited goto tryComplete
                 saveAtEnd = true;
-            } else {        // whenever this.currCallFrame == cf or this.currCallFrame != cf, only save cf, for currCallFrame will save at LN39
-                if(isRefCallFrame(cf)) {
-                    if (!ObjectRefOwner.equals(cf, this.currCallFrame)) {
-                        assert !cf.isSuspended();
-                        // cf is calling currCallFrame
-                        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
-                    } else {
-                        // it's suspended
-                        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
-                    }
-                }
-
-                if(isRefCallFrame(cf)){
-                    if(isRefCallFrame(this.currCallFrame)) {
-                        releaseCaller(cf);
-                        foldObjectRefFrame(cf);     // the frame always referenced by caller, it won't release slots/scope now
-                    }
-                    releaseRef(cf,Reason.CleanSlotsForCallFrameQuit);
-                } else {    // not reference frame, that means, basic AgoFrame and NativeFrame, don't release prev frame
-                    //
-                }
             }
         }
         tryComplete();
         if(saveAtEnd && isRefCallFrame(cf)) {
-            rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
-            foldObjectRefFrame(cf);
-            releaseCaller(cf);
-            releaseRef(cf, Reason.CleanSlotsForCallFrameQuit);
+            // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
+            // foldObjectRefFrame(cf);
+            // releaseCaller(cf);
+            // releaseRef(cf, Reason.CleanSlotsForCallFrameQuit);
         }
+    }
+
+    static void runRealease(CallFrame<?> caller) {
+        if (isRefCallFrame(caller)) {
+            releaseCaller(caller);
+            foldObjectRefFrame(caller);
+        }
+        releaseRef(caller, Reason.CleanSlotsForCallFrameQuit);
+    }
+
+    @Override
+    public void acceptVoid(CallFrame<?> caller) {
+        super.acceptVoid(caller);
+        runRealease(caller);
+    }
+
+    @Override
+    public void acceptBoolean(boolean result, CallFrame<?> caller) {
+        super.acceptBoolean(result, caller);
+        runRealease(caller);
+    }
+
+    @Override
+    public void acceptObject(Instance<?> result, CallFrame<?> caller) {
+        super.acceptObject(result, caller);
+        runRealease(caller);
+    }
+
+    @Override
+    public void acceptString(String result, CallFrame<?> caller) {
+        super.acceptString(result, caller);
+        runRealease(caller);
+    }
+
+    @Override
+    public void acceptInt(int result, CallFrame<?> caller) {
+        super.acceptInt(result, caller);
+        runRealease(caller);
     }
 
     private static boolean isRefCallFrame(CallFrame<?> currCallFrame) {
@@ -112,17 +153,9 @@ public class RdbRunSpace extends SavableRunSpace {
     protected boolean tryComplete() {
         boolean r = super.tryComplete();
         if(r && agoEngine instanceof PersistentRdbEngine persistentRdbEngine){
-            persistentRdbEngine.releaseRunSpace(this.getId());
+            persistentRdbEngine.releaseRunSpace(this.id);
         }
         return r;
-    }
-
-    @Override
-    public Object awaitTillComplete(CallFrame<?> frame) {
-        if(frame.getRunSpace() instanceof RdbRunSpace rdbAgoRunSpace){
-            rdbAgoRunSpace.save(frame);
-        }
-        return super.awaitTillComplete(frame);
     }
 
     protected void save(Instance<?> instance){
@@ -188,8 +221,6 @@ public class RdbRunSpace extends SavableRunSpace {
         super.setCurrCallFrame(currCallFrame);
 
         increaseRef(currCallFrame, ReferenceCounter.Reason.InstallCurrentCallFrame);
-
-        rdbAdapter.updateRunSpace(this);
     }
 
     @Override
@@ -198,7 +229,7 @@ public class RdbRunSpace extends SavableRunSpace {
             frame = objectRefCallFrame.expandFor(objectRefCallFrame);
         }   // for ExpandableCallFrame, let's move on
         super.fork(frame);
-        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
+        // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
     }
 
     @Override
@@ -207,7 +238,7 @@ public class RdbRunSpace extends SavableRunSpace {
             frame = objectRefCallFrame.expandFor(objectRefCallFrame, false);
         }
         super.spawn(frame);
-        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
+        // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
     }
 
     @Override
@@ -239,7 +270,7 @@ public class RdbRunSpace extends SavableRunSpace {
         releaseCaller(callFrame);
         releaseRef(callFrame,Reason.CallFrameInterrupt);
 
-        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(callFrame, RunningState.INTERRUPTED));
+        // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(callFrame, RunningState.INTERRUPTED));
     }
 
     public void resumeByRestore() {
@@ -259,5 +290,17 @@ public class RdbRunSpace extends SavableRunSpace {
         if(pausingParents != null) this.pausingParents.addAll(pausingParents);
         this.exception = exception;
         if(resultSlots != null) this.resultSlots = resultSlots;
+    }
+
+    public void saveTask(CallFrame<?> prev, CallFrame<?> cur, int pc) {
+        if (cur == null) {
+            return ;
+        }
+        if (isEntranceOrTask(cur)) {
+            logger.debug("saving task instances {}", prev);
+            this.save(prev);
+            // this.rdbAdapter.saveInstance(new CallFrameWithRunningState<>(prev, this.runningState));
+            this.rdbAdapter.updateCallFrameRunningState(prev, prev.getRunSpace().getRunningState(), pc);
+        }
     }
 }

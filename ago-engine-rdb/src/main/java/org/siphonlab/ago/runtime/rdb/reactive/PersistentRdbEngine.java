@@ -25,6 +25,7 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.RdbRunSpace;
 import org.siphonlab.ago.runtime.rdb.RdbEngine;
+import org.siphonlab.ago.runtime.rdb.SavableRunSpace;
 import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
 
@@ -113,8 +114,8 @@ public class PersistentRdbEngine extends RdbEngine {
     @Override
     protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
         var r = super.createRunSpace(runSpaceHost);
-        if(r instanceof RdbRunSpace rdbAgoRunSpace){
-            this.runspaces.put(rdbAgoRunSpace.getId(), rdbAgoRunSpace);
+        if(r instanceof SavableRunSpace rdbAgoRunSpace){
+            this.runspaces.put(rdbAgoRunSpace.id, rdbAgoRunSpace);
         }
         return r;
     }

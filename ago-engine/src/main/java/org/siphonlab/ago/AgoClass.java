@@ -188,7 +188,7 @@ public class AgoClass extends Instance<MetaClass>{
         if(this.equals(anotherClass)) return anotherClass;
 
 //        ClassDef anyClass = getRoot().getAnyClass();      // any class only works in ClassBound
-        if(this.getSuperClass().equals(this)) return anotherClass;       // lang.Object
+        if(Objects.equals(this.getSuperClass(), this)) return anotherClass;       // lang.Object
 
         if (visited != null) {
             if (visited.contains(anotherClass)) {
