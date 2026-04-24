@@ -51,7 +51,19 @@ public class IsNull extends Equals{
             } else {
                 nullableValue.isNotNull().outputToLocalVar(localVar, blockCompiler);
             }
-
+            if(nullableValue.hasReceiver()){
+                var code = blockCompiler.getCode();
+                var exit = blockCompiler.createLabel();
+                if(type == Type.Equals) {
+                    code.jumpIf(localVar.getVariableSlot(), exit);
+                } else {
+                    code.jumpIfNot(localVar.getVariableSlot(), exit);
+                }
+                nullableValue.nonNullValue().visit(blockCompiler);
+                exit.here();
+            } else {
+                nullableValue.releaseResult(blockCompiler);
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {

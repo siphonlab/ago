@@ -22,9 +22,7 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
-import org.siphonlab.ago.compiler.expression.logic.AndExpr;
 import org.siphonlab.ago.compiler.expression.logic.Not;
-import org.siphonlab.ago.compiler.expression.logic.OrExpr;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 import org.siphonlab.ago.compiler.narrowtype.NarrowTyper;
 
@@ -86,7 +84,7 @@ public class Equals extends BiExpression{
             if(right.inferType() instanceof NullClassDef){
                 return new IsNull(ownerFunction, (NullableValue) left, type);
             }
-            left = ((NullableValue) left).nonNullValue();
+            left = ((NullableValue) left).nonNullPlaceHolder();
             nullableFound = true;
         }
         if(right.inferType() instanceof NullableClassDef n){
@@ -99,7 +97,7 @@ public class Equals extends BiExpression{
             if(left.inferType() instanceof NullClassDef){
                 return new IsNull(ownerFunction, (NullableValue) right, type);
             }
-            right = ((NullableValue) right).nonNullValue();
+            right = ((NullableValue) right).nonNullPlaceHolder();
             nullableFound = true;
         }
 
@@ -156,28 +154,25 @@ public class Equals extends BiExpression{
         try {
             blockCompiler.enter(this);
 
-            if (this.left instanceof NullableValue.NonNullValue leftNonNull) {
-                if (this.right instanceof NullableValue.NonNullValue rightNonNull) {
-                    blockCompiler.lockRegister(evaluatedLeft);
-                    blockCompiler.lockRegister(evaluatedRight);
+            if (this.left instanceof NullableValue.NonNullPlaceHolder leftPlaceHolder) {
+                NullableValue leftNullableValue = leftPlaceHolder.getNullableValue();
+                if (this.right instanceof NullableValue.NonNullPlaceHolder rightNonNull) {
 
-                    var lIsNull = leftNonNull.getNullableValue().isNull().visit(blockCompiler);
-                    var rIsNull = rightNonNull.getNullableValue().isNull().visit(blockCompiler);
+                    var lIsNull = leftNullableValue.isNull().visit(blockCompiler);
+                    NullableValue rightNullableValue = rightNonNull.getNullableValue();
+                    var rIsNull = rightNullableValue.isNull().visit(blockCompiler);
                     code = blockCompiler.getCode();
                     code.and(lIsNull.getVariableSlot(), rIsNull.getVariableSlot());
 
-                    var n1 = leftNonNull.visit(blockCompiler);
+                    var n1 = leftNullableValue.nonNullValue().visit(blockCompiler);
                     blockCompiler.lockRegister(n1);
-                    var n2 = rightNonNull.visit(blockCompiler);
+                    var n2 = rightNullableValue.nonNullValue().visit(blockCompiler);
                     blockCompiler.releaseRegister(n1);
-
-                    blockCompiler.releaseRegister(evaluatedLeft);
-                    blockCompiler.releaseRegister(evaluatedRight);
 
                     new IfElseExpr(ownerFunction, getRoot().createBooleanLiteral(false), lIsNull, new Equals(ownerFunction, n1, n2, type).transform())
                             .outputToLocalVar(localVar, blockCompiler);
                 } else {
-                    var isNull = leftNonNull.getNullableValue().isNull().visit(blockCompiler);
+                    var isNull = leftNullableValue.isNull().visit(blockCompiler);
                     var exitLabel = blockCompiler.createLabel();
                     var trueLabel = blockCompiler.createLabel();
 
@@ -186,11 +181,12 @@ public class Equals extends BiExpression{
                     code.jump(exitLabel);
 
                     trueLabel.here();
-                    super.outputToLocalVar(localVar, leftNonNull.visit(blockCompiler), evaluatedRight, blockCompiler);
+                    super.outputToLocalVar(localVar, leftNullableValue.nonNullValue().visit(blockCompiler), evaluatedRight, blockCompiler);
                     exitLabel.here();
                 }
-            } else if (this.right instanceof NullableValue.NonNullValue rightNonNull) {
-                var isNull = rightNonNull.getNullableValue().isNull().visit(blockCompiler);
+            } else if (this.right instanceof NullableValue.NonNullPlaceHolder rightPlaceHolder) {
+                NullableValue rightNullableValue = rightPlaceHolder.getNullableValue();
+                var isNull = rightNullableValue.isNull().visit(blockCompiler);
                 var exitLabel = blockCompiler.createLabel();
                 var trueLabel = blockCompiler.createLabel();
 
@@ -199,7 +195,7 @@ public class Equals extends BiExpression{
                 code.jump(exitLabel);
 
                 trueLabel.here();
-                super.outputToLocalVar(localVar, evaluatedLeft, rightNonNull.visit(blockCompiler), blockCompiler);
+                super.outputToLocalVar(localVar, evaluatedLeft, rightNullableValue.nonNullValue().visit(blockCompiler), blockCompiler);
                 exitLabel.here();
             } else {
                 super.outputToLocalVar(localVar, evaluatedLeft, evaluatedRight, blockCompiler);

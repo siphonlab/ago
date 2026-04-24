@@ -1167,18 +1167,17 @@ public class BlockCompiler {
         boolean nullConditional = memberAccessExpr.bop.getText().equals("?.");
         if(methodCall != null){
             if(nullConditional){
-                left = new NullConditional(functionDef, left).setSourceLocation(unit.sourceLocation(memberAccessExpr)).transform();
+                left = new NullableValue(functionDef, left).setSourceLocation(unit.sourceLocation(memberAccessExpr)).nonNullPlaceHolder();
             }
             return this.methodCall(left, methodCall);
         } else {
             var namePath = memberAccessExpr.namePath();
             if(nullConditional){
-                return nullableIfThenExpr(left, baseOfLeft ->
+                return nullableIfThenExpr(functionDef, left, baseOfLeft ->
                     new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, baseOfLeft, (FormalNamePathContext) namePath).resolve()
                 );
             } else {
-                var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, left, (FormalNamePathContext) namePath).resolve();
-                return right;
+                return new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, left, (FormalNamePathContext) namePath).resolve();
             }
         }
     }
@@ -1191,59 +1190,36 @@ public class BlockCompiler {
         Statement apply(Expression nonNullExpr) throws CompilationError;
     }
 
-    public Expression nullableIfThenExpr(Expression maybeNullExpr, ExpressionSupplierOnNullableBase resultExprSupplier) throws CompilationError {
+    public static Expression nullableIfThenExpr(FunctionDef functionDef, Expression maybeNullExpr, ExpressionSupplierOnNullableBase resultExprSupplier) throws CompilationError {
         var exprType = maybeNullExpr.inferType();
         if(!(exprType instanceof NullableClassDef nullableClassDef)){
             throw new TypeMismatchError("nullable class expected", maybeNullExpr.getSourceLocation());
         }
 
-        Expression nullableResult;
-        if(maybeNullExpr instanceof Var.LocalVar localVar){
-            nullableResult = localVar;
-        } else {
-            nullableResult = new PipeToTempVar(functionDef, maybeNullExpr, true);
-        }
+        NullableValue nullableResult = maybeNullExpr instanceof NullableValue n ? n : new NullableValue(functionDef, maybeNullExpr);
 
-        var eqNull = new Equals(this, nullableResult, root.nullLiteral(), Equals.Type.NotEquals).setSourceLocation(maybeNullExpr.getSourceLocation()).transform();
+        var notEqNull = nullableResult.isNotNull();
 
-        Expression nonNullResult;
-            nonNullResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass())
-                    .setParent(maybeNullExpr.getParent())
-                    .setSourceLocation(maybeNullExpr.getSourceLocation())
-                    .transform();
-        var right = resultExprSupplier.apply(nonNullResult);
-        if(nullableResult instanceof PipeToTempVar p) right.usingTempVariable(p);
+        var right = resultExprSupplier.apply(nullableResult.nonNullValue());
 
         var nullableResultType = functionDef.getOrCreateNullableType(right.inferType(), null);
         right = functionDef.cast(right, nullableResultType).setSourceLocation(right.getSourceLocation()).transform();
         var root = functionDef.getRoot();
-        return new IfElseExpr(functionDef, right, eqNull, root.nullLiteral());
+        return new IfElseExpr(functionDef, right, notEqNull, root.nullLiteral());
     }
 
-    public Statement nullableIfThenStmt(Expression maybeNullExpr, StatementSupplierOnNullableBase resultExprSupplier) throws CompilationError {
+    public static Statement nullableIfThenStmt(FunctionDef functionDef, Expression maybeNullExpr, StatementSupplierOnNullableBase resultExprSupplier) throws CompilationError {
         var exprType = maybeNullExpr.inferType();
         if(!(exprType instanceof NullableClassDef nullableClassDef)){
             throw new TypeMismatchError("nullable class expected", maybeNullExpr.getSourceLocation());
         }
-        Expression nullableResult;
-        if(maybeNullExpr instanceof Var.LocalVar localVar){
-            nullableResult = localVar;
-        } else {
-            nullableResult = new PipeToTempVar(functionDef, maybeNullExpr, true);
-        }
+        NullableValue nullableResult = maybeNullExpr instanceof NullableValue n ? n : new NullableValue(functionDef, maybeNullExpr);
 
-        var eqNull = new Equals(this, nullableResult, root.nullLiteral(), Equals.Type.NotEquals).setSourceLocation(maybeNullExpr.getSourceLocation()).transform();
+        var notEqNull = nullableResult.isNotNull();
 
-        Expression nonNullResult;
-            nonNullResult = functionDef.cast(nullableResult, nullableClassDef.getBaseClass())
-                    .setParent(maybeNullExpr.getParent())
-                    .setSourceLocation(maybeNullExpr.getSourceLocation())
-                    .transform();
+        var right = resultExprSupplier.apply(nullableResult.nonNullValue());
 
-        var right = resultExprSupplier.apply(nonNullResult);
-        if(nullableResult instanceof PipeToTempVar p) right.usingTempVariable(p);
-
-        return new IfThenElseStmt(functionDef, eqNull, right,null);
+        return new IfThenElseStmt(functionDef, notEqNull, right,null);
     }
 
 
@@ -1820,7 +1796,7 @@ public class BlockCompiler {
     Statement withStmt(WithStmtContext withStmt) throws CompilationError {
         Expression withExpr = parExpression(withStmt.parExpression());
         if(withExpr.inferType() instanceof NullableClassDef){
-            return nullableIfThenStmt(withExpr, nonNullExpression ->
+            return nullableIfThenStmt(functionDef, withExpr, nonNullExpression ->
                     withStmt(withStmt, nonNullExpression));
         }
         return withStmt(withStmt, withExpr);
@@ -1837,7 +1813,7 @@ public class BlockCompiler {
     private Expression withExpr(PostWithExprContext postWithExpr) throws CompilationError {
         Expression withExpr = this.expression(postWithExpr.expression());
         if(withExpr.inferType() instanceof NullableClassDef){
-            return nullableIfThenExpr(withExpr, nonNullExpression ->
+            return nullableIfThenExpr(functionDef, withExpr, nonNullExpression ->
                     withExpr(postWithExpr, nonNullExpression));
         }
         return withExpr(postWithExpr, withExpr);
@@ -1854,7 +1830,7 @@ public class BlockCompiler {
     Statement viaStmt(ViaStmtContext viaStmt ) throws CompilationError {
         Expression par = this.parExpression(viaStmt.parExpression());
         if(par.inferType() instanceof NullableClassDef){
-            return nullableIfThenStmt(par, nonNullExpression ->
+            return nullableIfThenStmt(functionDef, par, nonNullExpression ->
                     viaStmt(viaStmt, nonNullExpression));
         }
         return viaStmt(viaStmt, par);

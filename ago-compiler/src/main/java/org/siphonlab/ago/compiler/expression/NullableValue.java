@@ -32,22 +32,22 @@ public class NullableValue extends ExpressionInFunctionBody{
 
     public NullableValue(FunctionDef ownerFunction, Expression nullableExpression, Var.LocalVar nonNullValueReceiver) throws CompilationError {
         super(ownerFunction);
-        this.nullableExpression = nullableExpression;
+        this.setParent(nullableExpression.getParent());
+        nullableExpression.setParent(this);
+        this.setSourceLocation(nullableExpression.getSourceLocation());
+        this.nullableExpression = nullableExpression.transform();
         this.nonNullValueReceiver = nonNullValueReceiver;
         if(!(nullableExpression.inferType() instanceof NullableClassDef)){
             throw new IllegalArgumentException("an nullable expression expected");
         }
-        this.setParent(nullableExpression.getParent());
-        nullableExpression.setParent(this);
     }
 
     public NullableValue(FunctionDef ownerFunction, Expression nullableExpression) throws CompilationError {
         this(ownerFunction, nullableExpression, null);
     }
 
-    @Override
-    public SourceLocation getSourceLocation() {
-        return nullableExpression.getSourceLocation();
+    public void releaseResult(BlockCompiler blockCompiler) {
+        blockCompiler.releaseRegister(outputted);
     }
 
     @Override
@@ -55,15 +55,37 @@ public class NullableValue extends ExpressionInFunctionBody{
         return nullableExpression.inferType();
     }
 
+
+    @Override
+    public NullableValue setSourceLocation(SourceLocation sourceLocation) {
+        super.setSourceLocation(sourceLocation);
+        return this;
+    }
+
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        nullableExpression.outputToLocalVar(localVar, blockCompiler);
+        if(outputted != null){
+            if(localVar == outputted){
+                return;
+            } else {
+                blockCompiler.releaseRegister(outputted);
+                ownerFunction.assign(localVar, outputted).termVisit(blockCompiler);
+            }
+        } else {
+            nullableExpression.outputToLocalVar(localVar, blockCompiler);
+        }
+
         outputted = localVar;
+        blockCompiler.lockRegister(outputted);
     }
 
     @Override
     public Var.LocalVar visit(BlockCompiler blockCompiler) throws CompilationError {
+        if(outputted != null){
+            return outputted;
+        }
         outputted = (Var.LocalVar) nullableExpression.visit(blockCompiler);
+        blockCompiler.lockRegister(outputted);
         return outputted;
     }
 
@@ -95,6 +117,14 @@ public class NullableValue extends ExpressionInFunctionBody{
         return new NonNullValue(ownerFunction);
     }
 
+    public NonNullPlaceHolder nonNullPlaceHolder(){
+        return new NonNullPlaceHolder(ownerFunction);
+    }
+
+    public boolean hasReceiver() {
+        return this.nonNullValueReceiver != null && this.nonNullValueReceiver.variable.getSlot() != null;
+    }
+
     public class IsNotNull extends ExpressionInFunctionBody{
 
         public IsNotNull(FunctionDef ownerFunction) {
@@ -108,11 +138,17 @@ public class NullableValue extends ExpressionInFunctionBody{
 
         @Override
         public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+            if(outputted == null){
+                NullableValue.this.visit(blockCompiler);
+            }
             blockCompiler.getCode().notEqualsNull(localVar.getVariableSlot(), outputted.getVariableSlot());
         }
 
         @Override
         public Var.LocalVar visit(BlockCompiler blockCompiler) throws CompilationError {
+            if(outputted == null){
+                NullableValue.this.visit(blockCompiler);
+            }
             return (Var.LocalVar) super.visit(blockCompiler);
         }
 
@@ -135,11 +171,17 @@ public class NullableValue extends ExpressionInFunctionBody{
 
         @Override
         public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+            if(outputted == null){
+                NullableValue.this.visit(blockCompiler);
+            }
             blockCompiler.getCode().equalsNull(localVar.getVariableSlot(), outputted.getVariableSlot());
         }
 
         @Override
         public Var.LocalVar visit(BlockCompiler blockCompiler) throws CompilationError {
+            if(outputted == null){
+                NullableValue.this.visit(blockCompiler);
+            }
             return (Var.LocalVar) super.visit(blockCompiler);
         }
 
@@ -163,12 +205,16 @@ public class NullableValue extends ExpressionInFunctionBody{
 
         @Override
         public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+            if(outputted == null){
+                NullableValue.this.visit(blockCompiler);
+            }
             if(nonNullValueReceiver != null){
                 assert localVar == nonNullValueReceiver;
             } else {
                 nonNullValueReceiver = localVar;
             }
             ownerFunction.cast(outputted, inferType()).transform().outputToLocalVar(localVar, blockCompiler);
+            blockCompiler.releaseRegister(outputted);
         }
 
         public NullableValue getNullableValue(){
@@ -188,6 +234,37 @@ public class NullableValue extends ExpressionInFunctionBody{
         @Override
         public String toString() {
             return "(NonNullValue %s)".formatted(nullableExpression);
+        }
+    }
+
+    public class NonNullPlaceHolder extends ExpressionInFunctionBody{
+        public NonNullPlaceHolder(FunctionDef ownerFunction) {
+            super(ownerFunction);
+        }
+
+        @Override
+        public ClassDef inferType() throws CompilationError {
+            var n = (NullableClassDef) NullableValue.this.inferType();
+            return n.getBaseClass();
+        }
+
+        @Override
+        public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+            throw new UnsupportedOperationException("NullableCondition is a placeholder class");
+        }
+
+        public NullableValue getNullableValue(){
+            return NullableValue.this;
+        }
+
+        @Override
+        public Var.LocalVar visit(BlockCompiler blockCompiler) throws CompilationError {
+            throw new UnsupportedOperationException("NullableCondition is a placeholder class");
+        }
+
+        @Override
+        public String toString() {
+            return "(NullableCondition %s)".formatted(nullableExpression);
         }
     }
 }

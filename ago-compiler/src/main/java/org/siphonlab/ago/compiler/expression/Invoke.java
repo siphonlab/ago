@@ -27,10 +27,7 @@ import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
-import org.siphonlab.ago.compiler.parser.AgoParser;
-import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.statement.ExpressionStmt;
-import org.siphonlab.ago.compiler.statement.Label;
 import org.siphonlab.ago.compiler.statement.Statement;
 
 import java.util.ArrayList;
@@ -85,39 +82,37 @@ public class Invoke extends ExpressionInFunctionBody{
     @Override
     protected Expression transformInner() throws CompilationError {
         List<Expression> transformedArguments = new ArrayList<>(arguments.size());
-//        if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
-//            Expression firstArg = bindExtensionMethod.setParent(this).getTarget().transform();
-//            if(firstArg instanceof NullConditional nullConditional){
-//                Expression expression = nullConditional.getExpression();
-//                this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, expression, baseOfFirstArg -> {
-//                        var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
-//                        return new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform();
-//                    }
-//                );
-//                this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, expression, baseOfFirstArg ->{
-//                    var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
-//                    return new ExpressionStmt(ownerFunction, new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform());
-//                });
-//                return this;
-//            }
-//            transformedArguments.add(firstArg);
-//        }
-//
-//        if(this.scope instanceof NullConditional nullConditional){
-//            Expression expression = nullConditional.getExpression();
-//            this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, expression, baseOfScope -> {
-//                    var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
-//                    r.setScope(baseOfScope);
-//                    return r.transform();
-//                }
-//            );
-//            this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, expression, baseOfScope ->{
-//                var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
-//                r.setScope(baseOfScope);
-//                return new ExpressionStmt(ownerFunction, r.transform());
-//            });
-//            return this;
-//        }
+        if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
+            Expression firstArg = bindExtensionMethod.setParent(this).getTarget().transform();
+            if(firstArg instanceof NullableValue.NonNullPlaceHolder nc){
+                this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, nc.getNullableValue(), baseOfFirstArg -> {
+                        var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
+                        return new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform();
+                    }
+                );
+                this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, nc.getNullableValue(), baseOfFirstArg ->{
+                    var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
+                    return new ExpressionStmt(ownerFunction, new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform());
+                });
+                return this;
+            }
+            transformedArguments.add(firstArg);
+        }
+
+        if(this.scope instanceof NullableValue.NonNullPlaceHolder nc){
+            this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, nc.getNullableValue(), baseOfScope -> {
+                    var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
+                    r.setScope(baseOfScope);
+                    return r.transform();
+                }
+            );
+            this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, nc.getNullableValue(), baseOfScope ->{
+                var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
+                r.setScope(baseOfScope);
+                return new ExpressionStmt(ownerFunction, r.transform());
+            });
+            return this;
+        }
 
         for (Expression argument : arguments) {
             transformedArguments.add(argument.transform().setParent(this));

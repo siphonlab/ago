@@ -64,14 +64,14 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
             blockCompiler.enter(this);
 
             TermExpression left;
-            if(!(this.left instanceof NullableValue.NonNullValue n)) {
+            if(!(this.left instanceof NullableValue.NonNullPlaceHolder n)) {
                 left = this.left.visit(blockCompiler);
             } else {
                 left = n.getNullableValue().visit(blockCompiler);
             }
             blockCompiler.lockRegister(left);
             TermExpression right;
-            if(!(this.right instanceof NullableValue.NonNullValue n)){
+            if(!(this.right instanceof NullableValue.NonNullPlaceHolder n)){
                 right = this.right.visit(blockCompiler);
             } else {
                 right = n.getNullableValue().visit(blockCompiler);

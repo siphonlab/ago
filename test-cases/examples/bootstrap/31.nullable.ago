@@ -68,7 +68,7 @@ fun main(){
 
     var k = i?.neg();
     if(k != null)
-        Trace.print(k!)
+        Trace.print(k)
 
     foo(null);
     foo(new Dog())
@@ -78,14 +78,14 @@ fun main(){
 fun foo(animal as Animal?){
     var fld = animal?.name;
     if(fld != null){
-        Trace.print(fld!);
+        Trace.print(fld);
     }
 
     animal?.bark();
 
     var n = animal?.getName();      // n is string?
     if(n != null){
-        Trace.print(n!);
+        Trace.print(n);
     } else {
         Trace.print('animal is null or name is null')
     }
@@ -93,6 +93,6 @@ fun foo(animal as Animal?){
     if(animal == null){
         Trace.print('animal is null')
     } else {
-        animal!.bark();
+        animal.bark();
     }
 }
