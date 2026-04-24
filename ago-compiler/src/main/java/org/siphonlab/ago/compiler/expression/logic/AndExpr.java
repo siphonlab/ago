@@ -33,6 +33,9 @@ public class AndExpr extends ExpressionInFunctionBody {
     public Expression left;
     public Expression right;
 
+    private NullableValue originalNullableLeft;
+    private NullableValue originalNullableRight;
+
     public AndExpr(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
         super(ownerFunction);
         this.left = left.transform();
@@ -43,36 +46,43 @@ public class AndExpr extends ExpressionInFunctionBody {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        boolean leftIsNullable = false,  rightIsNullable = false;
+        boolean leftIsNullable = false, rightIsNullable = false;
         var left = this.left;
         var right = this.right;
-        Expression maybeNullLeft = null;
-        Expression maybeNullRight = null;
 
         ClassDef leftType = left.inferType();
-        if(leftType instanceof NullableClassDef n){
+        if (leftType instanceof NullableClassDef) {
+            if (!(left instanceof NullableValue)) {
+                left = new NullableValue(ownerFunction, left);
+            }
             leftIsNullable = true;
-            leftType = n.getBaseClass();
-            left = ownerFunction.cast(maybeNullLeft = new PipeToTempVar(ownerFunction, left), leftType).transform();
+            originalNullableLeft = (NullableValue) left;
+            left = originalNullableLeft.nonNullValue();
+            leftType = left.inferType();
         }
+
         ClassDef rightType = right.inferType();
-        if(rightType instanceof NullableClassDef n){
+        if (rightType instanceof NullableClassDef) {
+            if (!(right instanceof NullableValue)) {
+                right = new NullableValue(ownerFunction, right);
+            }
             rightIsNullable = true;
-            rightType = n.getBaseClass();
-            right = ownerFunction.cast(maybeNullRight = new PipeToTempVar(ownerFunction, right), rightType).transform();
+            originalNullableRight = (NullableValue) right;
+            right = originalNullableRight.nonNullValue();
+            rightType = right.inferType();
         }
 
         if(leftType.getTypeCode() == TypeCode.BOOLEAN || rightType.getTypeCode() == TypeCode.BOOLEAN ||
                 leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
             Expression l, r;
             if(leftIsNullable){
-                l = new AndExpr(ownerFunction, new Equals(ownerFunction, maybeNullLeft, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                l = new AndExpr(ownerFunction, originalNullableLeft.isNotNull(),
                              ownerFunction.cast(left, getRoot().BOOLEAN()).transform());
             } else {
                 l = ownerFunction.cast(left, getRoot().BOOLEAN()).transform();
             }
             if(rightIsNullable){
-                r = new AndExpr(ownerFunction, new Equals(ownerFunction, maybeNullRight, getRoot().nullLiteral(), Equals.Type.NotEquals),
+                r = new AndExpr(ownerFunction, originalNullableRight.isNotNull(),
                         ownerFunction.cast(right, getRoot().BOOLEAN()).transform());
             } else {
                 r = ownerFunction.cast(right, getRoot().BOOLEAN()).transform();
@@ -87,25 +97,24 @@ public class AndExpr extends ExpressionInFunctionBody {
             left = result.left();
             right = result.right();
         }
-        ClassDef finalType;
+        ClassDef finalType ;
         if(leftIsNullable || rightIsNullable) {
             finalType = ownerFunction.getOrCreateNullableType(result.resultType(), null);
-            left = ownerFunction.cast(left, finalType).transform();
-            right = ownerFunction.cast(right, finalType).transform();
-        }
-
-        if(leftIsNullable){
-            this.left = new IfElseExpr(ownerFunction, left,
-                    new Equals(ownerFunction, maybeNullLeft, getRoot().nullLiteral(), Equals.Type.NotEquals), getRoot().nullLiteral());
-        }  else {
-            this.left = left;
-        }
-        if(rightIsNullable){
-            this.right = new IfElseExpr(ownerFunction, right,
-                    new Equals(ownerFunction, maybeNullRight, getRoot().nullLiteral(), Equals.Type.NotEquals), getRoot().nullLiteral());
+            if (this.left.inferType() != finalType) {
+                this.left = ownerFunction.cast(left, finalType).transform();
+            } else {
+                this.left = originalNullableLeft;
+            }
+            if(this.right.inferType() != finalType) {
+                this.right = ownerFunction.cast(right, finalType).transform();
+            } else {
+                this.right = originalNullableRight;
+            }
         } else {
+            this.left = left;
             this.right = right;
         }
+
         if(this.left instanceof Literal<?> l){
             return BooleanLiteral.isTrue(l) ? this.right : l;
         }
@@ -124,8 +133,12 @@ public class AndExpr extends ExpressionInFunctionBody {
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+        CodeBuffer code = blockCompiler.getCode();
         try {
             blockCompiler.enter(this);
+            // make shortcut
+            boolean returnsNullable = this.originalNullableLeft != null || this.originalNullableRight != null;
+            Label skip = blockCompiler.createLabel();
 
             if (this.left instanceof LiteralResultExpression lre) {
                 Literal<?> literal = lre.visit(blockCompiler);
@@ -134,23 +147,60 @@ public class AndExpr extends ExpressionInFunctionBody {
                 } else {
                     ownerFunction.assign(localVar, literal).visit(blockCompiler);
                 }
+                code.jumpIfNot(localVar.getVariableSlot(), skip);
             } else {
-                this.left.outputToLocalVar(localVar, blockCompiler);
-            }
-            if (this.right instanceof Var var) {
-                if (this.left.inferType().isBoolean()) {
-                    var v1 = localVar;
-                    Var.LocalVar v2 = (Var.LocalVar) var.visit(blockCompiler);
-                    blockCompiler.getCode().biOperate(KIND_AND, left.inferType().getTypeCode(), v1.getVariableSlot(), v2.getVariableSlot(), localVar.getVariableSlot());
-                    return;
+                if (this.originalNullableLeft == null) {
+                    assert !(this.left.inferType() instanceof NullableClassDef);
+                    if(this.originalNullableRight == null) {
+                        this.left.outputToLocalVar(localVar, blockCompiler);
+
+                        if (!returnsNullable) {
+                            if (this.right instanceof Var var) {
+                                if (this.left.inferType().isBoolean()) {
+                                    var v1 = localVar;
+                                    Var.LocalVar v2 = (Var.LocalVar) var.visit(blockCompiler);
+                                    code.biOperate(KIND_AND, left.inferType().getTypeCode(), v1.getVariableSlot(), v2.getVariableSlot(), localVar.getVariableSlot());
+                                    return;
+                                }
+                            }
+                        }
+                        code.jumpIfNot(localVar.getVariableSlot(), skip);
+                    } else {
+                        Var.LocalVar leftResult = (Var.LocalVar) this.left.visit(blockCompiler);
+                        code.jumpIfNot(leftResult.getVariableSlot(), skip);
+                    }
+                } else {
+                    this.originalNullableLeft.outputToLocalVar(localVar, blockCompiler);
+                    code.jumpIf(originalNullableLeft.isNull().visit(blockCompiler).getVariableSlot(), skip);
+
+                    Var.LocalVar leftResult;
+                    if (this.left != this.originalNullableLeft) {
+                        assert !(this.left.inferType() instanceof NullableClassDef);
+                        leftResult = (Var.LocalVar)this.left.visit(blockCompiler);
+                    } else {
+                        leftResult = this.originalNullableLeft.nonNullValue().visit(blockCompiler);
+                    }
+                    code.jumpIfNot(leftResult.getVariableSlot(), skip);
                 }
             }
 
-            // make shortcut
-            Label skip = blockCompiler.createLabel();
-            blockCompiler.getCode().jumpIfNot(localVar.getVariableSlot(), skip);
-            right.outputToLocalVar(localVar, blockCompiler);
-            skip.here();
+            if(this.originalNullableRight != null) {
+                this.originalNullableRight.outputToLocalVar(localVar, blockCompiler);
+                if(this.right != originalNullableRight){
+                    this.right.outputToLocalVar(localVar, blockCompiler);
+                }
+            } else {
+                this.right.outputToLocalVar(localVar, blockCompiler);
+            }
+            var exit = blockCompiler.createLabel();
+            if(returnsNullable){
+                code.jump(exit);
+                skip.here();
+                code.assignLiteral(localVar.getVariableSlot(), getRoot().nullLiteral());
+                exit.here();
+            } else {
+                skip.here();
+            }
         } catch (CompilationError e) {
             throw e;
         } finally {

@@ -209,7 +209,8 @@ public class NullableValue extends ExpressionInFunctionBody{
                 NullableValue.this.visit(blockCompiler);
             }
             if(nonNullValueReceiver != null){
-                assert localVar == nonNullValueReceiver;
+                ownerFunction.cast(outputted, inferType()).transform().outputToLocalVar(nonNullValueReceiver, blockCompiler);
+                ownerFunction.assign(localVar, nonNullValueReceiver).termVisit(blockCompiler);
             } else {
                 nonNullValueReceiver = localVar;
             }

@@ -27,6 +27,20 @@ import static org.siphonlab.ago.test.Util.run;
 public class NullableTests {
 
     @Test
+    public void equals() throws CompilationError, IOException {
+        run("nullable/equals.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("true", "true", "false", "true", "true", "false", "true", "false", "false", "true", "true", "false", "false", "true"));
+    }
+
+    @Test
+    public void if_else() throws CompilationError, IOException {
+        run("nullable/if_else.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("yes", "no", "no", "yes", "no", "no", "yes", "no", "yes", "no"));
+    }
+
+    @Test
     public void and() throws CompilationError, IOException {
         run("nullable/and.ago");
         Trace.printOutput();
@@ -45,20 +59,6 @@ public class NullableTests {
         run("nullable/not.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("false", "true", "true", "false", "true"));
-    }
-
-    @Test
-    public void if_else() throws CompilationError, IOException {
-        run("nullable/if_else.ago");
-        Trace.printOutput();
-        assertTrue(Trace.outputted("yes", "no", "no", "yes", "no", "no", "yes", "no", "yes", "no"));
-    }
-
-    @Test
-    public void equals() throws CompilationError, IOException {
-        run("nullable/equals.ago");
-        Trace.printOutput();
-        assertTrue(Trace.outputted("true", "true", "false", "true", "true", "false", "true", "false", "false", "true", "true", "false", "false", "true"));
     }
 
     @Test
