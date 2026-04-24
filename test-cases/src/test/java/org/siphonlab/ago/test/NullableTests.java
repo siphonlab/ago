@@ -37,7 +37,7 @@ public class NullableTests {
     public void if_else() throws CompilationError, IOException {
         run("nullable/if_else.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("yes", "no", "no", "yes", "no", "no", "yes", "no", "yes", "no"));
+        assertTrue(Trace.outputted("yes", "no", "no", "yes", "no", "no", "hello 2027", "no", "hello 2027", "no"));
     }
 
     @Test

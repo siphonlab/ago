@@ -601,10 +601,29 @@ public class BlockCompiler {
     }
 
     private Expression ifElseExpr(IfElseExprContext ifElseExpr) throws CompilationError {
-        var ifPart = expression(ifElseExpr.ifPart);
-        var elsePart = expression(ifElseExpr.elsePart);
-        var cond = expression(ifElseExpr.condition);
-        return new IfElseExpr(functionDef, ifPart, cond, elsePart);
+        this.narrowTyper.enter();
+        var cond = narrowType(ifElseExpr.condition);
+        var mapper = this.narrowTyper.exit();
+
+        Expression trueBranch;
+        Expression falseBranch;
+
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            trueBranch = expression(ifElseExpr.ifPart);
+            narrowTyper.exit();
+        } else {
+            trueBranch = expression(ifElseExpr.ifPart);
+        }
+
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, false);
+            falseBranch = expression(ifElseExpr.elsePart);
+            narrowTyper.exit();
+        } else {
+            falseBranch = expression(ifElseExpr.elsePart);
+        }
+        return new IfElseExpr(functionDef, trueBranch, cond, falseBranch);
     }
 
     private Expression prefixExpr(PrefixExprContext prefixExpr) throws CompilationError {

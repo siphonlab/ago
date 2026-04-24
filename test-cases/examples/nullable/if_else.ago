@@ -30,11 +30,11 @@ fun testIfElse(){
     Trace.print("no" if not b2 else "yes");     // no
     Trace.print("no" if not b3 else "yes");     // no
 
-    var i as int? = 200;
+    var i as int? = 2026;
     var n as int? = null;
 
-    Trace.print("yes" if i else "no");      // yes
-    Trace.print("yes" if n else "no");      // no
-    Trace.print("no" if not i else "yes");      // yes
-    Trace.print("no" if not n else "yes");      // no
+    Trace.print("hello " + (i + 1) if i else "no");      // yes
+    Trace.print("hello " + (n + 1) if n else "no");      // no
+    Trace.print("no" if not i else "hello " + (i + 1));      // yes
+    Trace.print("no" if not n else "hello " + (n + 1));      // no
 }

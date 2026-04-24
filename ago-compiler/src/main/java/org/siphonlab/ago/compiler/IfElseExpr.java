@@ -51,22 +51,16 @@ public class IfElseExpr extends ExpressionInFunctionBody {
         }
         this.condition = this.condition.transform();
 
+        if(this.condition.inferType() instanceof NullableClassDef && !(this.condition instanceof NullableValue)){
+            this.condition = new NullableValue(ownerFunction, this.condition);
+        }
+
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isTrue(literal)){
                 return ifPart;
             } else {
                 return elsePart;
             }
-        }
-        var t = this.condition.inferType();
-        if(t instanceof NullableClassDef n){
-            var baseClass = n.getBaseClass();
-            PipeToTempVar maybeNull;
-            var nonNull = ownerFunction.cast(maybeNull = new PipeToTempVar(ownerFunction, condition,true), baseClass).transform();
-            this.condition = new AndExpr(ownerFunction,
-                    new Equals(ownerFunction, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
-                    ownerFunction.cast(nonNull, getRoot().BOOLEAN()).transform()
-            ).usingTempVariable(maybeNull).transform();
         }
         return this;
     }
@@ -78,9 +72,10 @@ public class IfElseExpr extends ExpressionInFunctionBody {
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        var term = this.condition.transform().visit(blockCompiler);
         try {
             blockCompiler.enter(this);
+
+            var term = condition.visit(blockCompiler);
 
             if(term instanceof Literal<?> literal){
                 if(BooleanLiteral.isTrue(literal)){
@@ -94,16 +89,14 @@ public class IfElseExpr extends ExpressionInFunctionBody {
                 Label elseLabel = blockCompiler.createLabel();
                 Label trueLabel = blockCompiler.createLabel();
                 Label exit = blockCompiler.createLabel();
-                if(condResult.inferType() instanceof NullableClassDef nullableClassDef){
-                    blockCompiler.lockRegister(condResult);
-                    var isNull = (Var.LocalVar)new Equals(ownerFunction, condResult, getRoot().nullLiteral(), Equals.Type.Equals).visit(blockCompiler);
-                    blockCompiler.releaseRegister(condResult);
+                if(condition instanceof NullableValue nullableValue){
+                    var isNull = nullableValue.isNull().visit(blockCompiler);
                     if(!conditionNeg) {
                         code.jumpIf(isNull.getVariableSlot(), elseLabel);       // if is null, goto else
                     } else {
                         code.jumpIf(isNull.getVariableSlot(), trueLabel);
                     }
-                    condResult = (Var.LocalVar) ownerFunction.cast(condResult, nullableClassDef.getBaseClass()).transform().visit(blockCompiler);
+                    condResult = nullableValue.nonNullValue().visit(blockCompiler);
                 }
                 if(!conditionNeg) {
                     code.jumpIfNot(condResult.getVariableSlot(), elseLabel);
