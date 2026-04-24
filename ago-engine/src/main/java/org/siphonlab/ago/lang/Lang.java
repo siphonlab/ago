@@ -84,7 +84,7 @@ public class Lang {
             inst.getSlots().setInt(length.getSlotIndex(), sourceLocation.getLength());
             stackElements.add(inst);
         }
-        AgoClass arrClass = agoEngine.getClass("lang.[StackTraceElement");
+        AgoClass arrClass = agoEngine.getClass("lang.StackTraceElement[]");
         var arrayInst = new ObjectArrayInstance(arrClass.createSlots(), arrClass, stackElements.size());
         for (int i = 0; i < stackElements.size(); i++) {
             Instance<?> stackElement = stackElements.get(i);

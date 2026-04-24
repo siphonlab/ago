@@ -91,18 +91,18 @@ public class LangClasses {
         this.primitiveNumberClass = classManager.getClass("lang.PrimitiveNumber");
 
         this.arrayClass = classManager.getClass("lang.Array");
-        this.intArrayClass = classManager.getClass("lang.[int");
-        this.longArrayClass = classManager.getClass("lang.[long");
-        this.byteArrayClass = classManager.getClass("lang.[byte");
-        this.charArrayClass = classManager.getClass("lang.[char");
-        this.shortArrayClass = classManager.getClass("lang.[short");
-        this.stringArrayClass = classManager.getClass("lang.[string");
-        this.booleanArrayClass = classManager.getClass("lang.[boolean");
-        this.floatArrayClass = classManager.getClass("lang.[float");
-        this.doubleArrayClass = classManager.getClass("lang.[double");
-        this.decimalArrayClass = classManager.getClass("lang.[decimal");
-        this.classRefArrayClass = classManager.getClass("lang.[classref");
-        this.objectArrayClass = classManager.getClass("lang.[Object");
+        this.intArrayClass = classManager.getClass("lang.int[]");
+        this.longArrayClass = classManager.getClass("lang.long[]");
+        this.byteArrayClass = classManager.getClass("lang.byte[]");
+        this.charArrayClass = classManager.getClass("lang.char[]");
+        this.shortArrayClass = classManager.getClass("lang.short[]");
+        this.stringArrayClass = classManager.getClass("lang.string[]");
+        this.booleanArrayClass = classManager.getClass("lang.boolean[]");
+        this.floatArrayClass = classManager.getClass("lang.float[]");
+        this.doubleArrayClass = classManager.getClass("lang.double[]");
+        this.decimalArrayClass = classManager.getClass("lang.decimal[]");
+        this.classRefArrayClass = classManager.getClass("lang.classref[]");
+        this.objectArrayClass = classManager.getClass("lang.Object[]");
 
         this.intEnumClass = classManager.getClass("lang.IntEnum");
         this.byteEnumClass = classManager.getClass("lang.ByteEnum");
