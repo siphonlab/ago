@@ -46,6 +46,10 @@ public class WhileStmt extends LoopStmt {
         }
         this.condition = condition.transform();
 
+        if(this.condition.inferType() instanceof NullableClassDef && !(this.condition instanceof NullableValue)){
+            this.condition = new NullableValue(ownerFunction, this.condition);
+        }
+
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isFalse(literal)){    // always false
                 return new EmptyStmt(ownerFunction).setSourceLocation(this.getSourceLocation());
@@ -63,10 +67,9 @@ public class WhileStmt extends LoopStmt {
             this.exitLabel = blockCompiler.createLabel();
 
             if (this.condition instanceof Literal<?> literal && BooleanLiteral.isTrue(literal)) {
-                var bodyBeginLabel = blockCompiler.createLabel().here();
-                this.continueLabel = bodyBeginLabel;
+                var continueLabel = blockCompiler.createLabel().here();
                 this.body.termVisit(blockCompiler);
-                code.jump(bodyBeginLabel);
+                code.jump(continueLabel);
                 this.exitLabel.here();
                 return;
             }
@@ -81,17 +84,14 @@ public class WhileStmt extends LoopStmt {
                 }
             } else {
                 Var.LocalVar condResult = (Var.LocalVar) condition.visit(blockCompiler);
-
-                if(condResult.inferType() instanceof NullableClassDef nullableClassDef){
-                    blockCompiler.lockRegister(condResult);
-                    var isNull = (Var.LocalVar)new Equals(ownerFunction, condResult, getRoot().nullLiteral(), Equals.Type.Equals).visit(blockCompiler);
-                    blockCompiler.releaseRegister(condResult);
+                if(condition instanceof NullableValue nullableValue){
+                    var isNull = nullableValue.isNull().visit(blockCompiler);
                     if(!conditionNeg) {
                         code.jumpIf(isNull.getVariableSlot(), exitLabel);       // if is null, exit
                     } else {
                         code.jumpIf(isNull.getVariableSlot(), loopBodyLabel);
                     }
-                    condResult = (Var.LocalVar) ownerFunction.cast(condResult, nullableClassDef.getBaseClass()).transform().visit(blockCompiler);
+                    condResult = nullableValue.nonNullValue().visit(blockCompiler);
                 }
                 if(!conditionNeg) {
                     code.jumpIfNot(condResult.getVariableSlot(), exitLabel);

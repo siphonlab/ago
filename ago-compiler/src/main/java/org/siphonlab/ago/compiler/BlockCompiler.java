@@ -1688,9 +1688,22 @@ public class BlockCompiler {
     }
 
     private Statement whileStmt(WhileStmtContext whileStmt) throws CompilationError {
-        var cond = parExpression(whileStmt.parExpression());
+        this.narrowTyper.enter();
+        var cond = narrowType(whileStmt.parExpression());
+        var mapper = this.narrowTyper.exit();
+
         String label = whileStmt.label() != null ? whileStmt.label().identifier().getText() : null;
-        return new WhileStmt(functionDef, label, cond, statement(whileStmt.statement()));
+
+        Statement body;
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            body = statement(whileStmt.statement());
+            narrowTyper.exit();
+        } else {
+            body = statement(whileStmt.statement());
+        }
+
+        return new WhileStmt(functionDef, label, cond, body);
     }
     DoWhileStmt doWhileStmt(DoWhileStmtContext doWhileStmt) throws CompilationError {
         var cond = parExpression(doWhileStmt.parExpression());

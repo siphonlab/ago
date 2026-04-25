@@ -56,16 +56,16 @@ fun testWhile(){
         break;
     }
 
-    while(i){
-        Trace.print(i);
-        i = i! - 1;
-    }
+//    while(i){
+//        Trace.print(i);
+//        i = i - 1;        // after narrow typed, it cannot work now
+//    }
 
-    i = 5;
-    while(i){
-        Trace.print(i);
-        i = null;
-    }
+//    i = 5;
+//    while(i){
+//        Trace.print(i);
+//        i = null;     // after narrow typed, it cannot work now
+//    }
 }
 
 fun testDoWhile(){
