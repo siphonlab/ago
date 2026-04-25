@@ -113,6 +113,7 @@ public class Compare extends BiExpression{
             Label returnFalse = blockCompiler.createLabel();
             Label exit = blockCompiler.createLabel();
             boolean hasNullValue = false;
+            boolean lockedLeft = false;
             if (this.left instanceof NullableValue.NonNullPlaceHolder leftPlaceHolder) {
                 NullableValue nullableValue = leftPlaceHolder.getNullableValue();
                 var isNull = nullableValue.isNull().visit(blockCompiler);
@@ -120,6 +121,7 @@ public class Compare extends BiExpression{
 
                 evaluatedLeft = nullableValue.nonNullValue().visit(blockCompiler);
                 blockCompiler.lockRegister(evaluatedLeft);
+                lockedLeft = true;
                 hasNullValue = true;
             }
             if (this.right instanceof NullableValue.NonNullPlaceHolder rightPlaceHolder) {
@@ -130,7 +132,7 @@ public class Compare extends BiExpression{
                 evaluatedRight = nullableValue.nonNullValue().visit(blockCompiler);
                 hasNullValue = true;
             }
-            blockCompiler.releaseRegister(evaluatedLeft);
+            if(lockedLeft) blockCompiler.releaseRegister(evaluatedLeft);
 
             super.outputToLocalVar(localVar, evaluatedLeft, evaluatedRight, blockCompiler);
 

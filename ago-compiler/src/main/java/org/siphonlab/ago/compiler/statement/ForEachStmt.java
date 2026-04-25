@@ -76,7 +76,7 @@ public class ForEachStmt extends LoopStmt{
 
             Var.LocalVar iteratorValue;
             if(this.expression instanceof NullableValue nullableValue) {
-                var n = nullableValue.visit(blockCompiler);
+                nullableValue.visit(blockCompiler);
                 var isNull = nullableValue.isNull().visit(blockCompiler);
                 code.jumpIf(isNull.getVariableSlot(), this.exitLabel);
                 iteratorValue = nullableValue.nonNullValue().visit(blockCompiler);
@@ -129,6 +129,8 @@ public class ForEachStmt extends LoopStmt{
 
             CodeBuffer code = blockCompiler.getCode();
 
+            blockCompiler.lockRegister(iterVar);
+
             Var.LocalVar i = blockCompiler.acquireTempVar(getRoot().createIntLiteral(0));
             blockCompiler.lockRegister(i);
 
@@ -136,7 +138,7 @@ public class ForEachStmt extends LoopStmt{
 
             Var.LocalVar array;
             if(this.expression instanceof NullableValue nullableValue) {
-                var n = nullableValue.visit(blockCompiler);
+                nullableValue.visit(blockCompiler);
                 var isNull = nullableValue.isNull().visit(blockCompiler);
                 code.jumpIf(isNull.getVariableSlot(), this.exitLabel);
                 array = nullableValue.nonNullValue().visit(blockCompiler);
@@ -161,6 +163,7 @@ public class ForEachStmt extends LoopStmt{
 
             exitLabel.here();
 
+            blockCompiler.releaseRegister(iterVar);
             blockCompiler.releaseRegister(length);
             blockCompiler.releaseRegister(array);
             blockCompiler.releaseRegister(i);
