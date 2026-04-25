@@ -629,10 +629,13 @@ public class BlockCompiler {
     private Expression prefixExpr(PrefixExprContext prefixExpr) throws CompilationError {
         int type = prefixExpr.prefix.getType();
         if(type == NOT) {
-            var expr = narrowType(prefixExpr.expression());
+            Expression expr;
             if(narrowTyper.isCollecting()){
+                expr = narrowType(prefixExpr.expression());
                 NarrowTyper.NarrowNodePair mapper = narrowTyper.peek();
                 narrowTyper.updateCurrent(mapper.not(), true);
+            } else {
+                expr = expression(prefixExpr.expression());
             }
             return new Not(functionDef, expr);
         }

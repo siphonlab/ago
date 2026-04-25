@@ -45,13 +45,16 @@ public class Not extends UnaryExpression {
 
         var t = this.value.inferType();
         if(t instanceof NullableClassDef n){
-            var baseClass = n.getBaseClass();
-            PipeToTempVar maybeNull;
-            var nonNull = ownerFunction.cast(maybeNull = new PipeToTempVar(ownerFunction, value, true), baseClass).transform();
+            NullableValue v;
+            if(!(value instanceof NullableValue nullableValue)){
+                v = new NullableValue(ownerFunction, value);
+            } else {
+                v = nullableValue;
+            }
             return new Not(ownerFunction, new AndExpr(ownerFunction,
-                        new Equals(ownerFunction, maybeNull, getRoot().nullLiteral(), Equals.Type.NotEquals),
-                        ownerFunction.cast(nonNull, getRoot().BOOLEAN()).transform()
-                    )).usingTempVariable(maybeNull);
+                        v.isNotNull(),
+                        ownerFunction.cast(v.nonNullValue(), getRoot().BOOLEAN()).transform()
+                    ));
         }
 
         var v = ownerFunction.cast(this.value, getRoot().BOOLEAN()).transform();
