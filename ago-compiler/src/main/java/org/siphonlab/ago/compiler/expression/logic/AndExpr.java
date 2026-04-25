@@ -36,6 +36,8 @@ public class AndExpr extends ExpressionInFunctionBody {
     private NullableValue originalNullableLeft;
     private NullableValue originalNullableRight;
 
+    private ClassDef resultType;
+
     public AndExpr(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
         super(ownerFunction);
         this.left = left.transform();
@@ -72,23 +74,18 @@ public class AndExpr extends ExpressionInFunctionBody {
             rightType = right.inferType();
         }
 
-        if(leftType.getTypeCode() == TypeCode.BOOLEAN || rightType.getTypeCode() == TypeCode.BOOLEAN ||
-                leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN){
-            Expression l, r;
-            if(leftIsNullable){
-                l = new AndExpr(ownerFunction, originalNullableLeft.isNotNull(),
-                             ownerFunction.cast(left, getRoot().BOOLEAN()).transform());
-            } else {
+        if(!leftIsNullable && !rightIsNullable) {
+            if (leftType.getTypeCode() == TypeCode.BOOLEAN || rightType.getTypeCode() == TypeCode.BOOLEAN ||
+                    leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN) {
+                Expression l, r;
                 l = ownerFunction.cast(left, getRoot().BOOLEAN()).transform();
-            }
-            if(rightIsNullable){
-                r = new AndExpr(ownerFunction, originalNullableRight.isNotNull(),
-                        ownerFunction.cast(right, getRoot().BOOLEAN()).transform());
-            } else {
                 r = ownerFunction.cast(right, getRoot().BOOLEAN()).transform();
+                if (l == this.left && r == this.right) {
+                    resultType = this.left.inferType();
+                    return this;
+                }
+                return new AndExpr(ownerFunction, l, r).transform();
             }
-            if(l == this.left && r == this.right) return this;
-            return new AndExpr(ownerFunction, l, r).transform();
         }
 
         CastStrategy.UnifyTypeResult result = new CastStrategy(ownerFunction, this.getSourceLocation(), false).unifyTypes(left, right);
@@ -101,18 +98,20 @@ public class AndExpr extends ExpressionInFunctionBody {
         if(leftIsNullable || rightIsNullable) {
             finalType = ownerFunction.getOrCreateNullableType(result.resultType(), null);
             if (this.left.inferType() != finalType) {
-                this.left = ownerFunction.cast(left, finalType).transform();
+                this.left = ownerFunction.cast(left, result.resultType()).transform();        // maybe int? cast to double?, now the left is (double)nonNullValue
             } else {
                 this.left = originalNullableLeft;
             }
             if(this.right.inferType() != finalType) {
-                this.right = ownerFunction.cast(right, finalType).transform();
+                this.right = ownerFunction.cast(right, result.resultType()).transform();
             } else {
                 this.right = originalNullableRight;
             }
+            resultType = finalType;
         } else {
             this.left = left;
             this.right = right;
+            resultType = this.left.inferType();
         }
 
         if(this.left instanceof Literal<?> l){
@@ -128,7 +127,7 @@ public class AndExpr extends ExpressionInFunctionBody {
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return this.left.inferType();
+        return resultType;
     }
 
     @Override
@@ -136,71 +135,81 @@ public class AndExpr extends ExpressionInFunctionBody {
         CodeBuffer code = blockCompiler.getCode();
         try {
             blockCompiler.enter(this);
-            // make shortcut
+
             boolean returnsNullable = this.originalNullableLeft != null || this.originalNullableRight != null;
-            Label skip = blockCompiler.createLabel();
 
-            if (this.left instanceof LiteralResultExpression lre) {
-                Literal<?> literal = lre.visit(blockCompiler);
-                if (BooleanLiteral.isTrue(literal)) {
-                    ownerFunction.assign(localVar, this.right).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
-                } else {
-                    ownerFunction.assign(localVar, literal).visit(blockCompiler);
-                }
-                code.jumpIfNot(localVar.getVariableSlot(), skip);
-            } else {
-                if (this.originalNullableLeft == null) {
-                    assert !(this.left.inferType() instanceof NullableClassDef);
-                    if(this.originalNullableRight == null) {
-                        this.left.outputToLocalVar(localVar, blockCompiler);
-
-                        if (!returnsNullable) {
-                            if (this.right instanceof Var var) {
-                                if (this.left.inferType().isBoolean()) {
-                                    var v1 = localVar;
-                                    Var.LocalVar v2 = (Var.LocalVar) var.visit(blockCompiler);
-                                    code.biOperate(KIND_AND, left.inferType().getTypeCode(), v1.getVariableSlot(), v2.getVariableSlot(), localVar.getVariableSlot());
-                                    return;
-                                }
-                            }
-                        }
-                        code.jumpIfNot(localVar.getVariableSlot(), skip);
+            if(!returnsNullable){
+                if (this.left instanceof LiteralResultExpression lre) {
+                    Literal<?> literal = lre.visit(blockCompiler);
+                    if (BooleanLiteral.isTrue(literal)) {
+                        ownerFunction.assign(localVar, this.right).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
+                        return;
                     } else {
-                        Var.LocalVar leftResult = (Var.LocalVar) this.left.visit(blockCompiler);
-                        code.jumpIfNot(leftResult.getVariableSlot(), skip);
+                        ownerFunction.assign(localVar, literal).visit(blockCompiler);
                     }
                 } else {
-                    this.originalNullableLeft.outputToLocalVar(localVar, blockCompiler);
-                    code.jumpIf(originalNullableLeft.isNull().visit(blockCompiler).getVariableSlot(), skip);
-
-                    Var.LocalVar leftResult;
-                    if (this.left != this.originalNullableLeft) {
-                        assert !(this.left.inferType() instanceof NullableClassDef);
-                        leftResult = (Var.LocalVar)this.left.visit(blockCompiler);
-                    } else {
-                        leftResult = this.originalNullableLeft.nonNullValue().visit(blockCompiler);
+                    this.left.outputToLocalVar(localVar, blockCompiler);
+                }
+                if (this.right instanceof Var var) {
+                    if (this.left.inferType().isBoolean()) {
+                        var v1 = localVar;
+                        Var.LocalVar v2 = (Var.LocalVar) var.visit(blockCompiler);
+                        blockCompiler.getCode().biOperate(KIND_AND, left.inferType().getTypeCode(), v1.getVariableSlot(), v2.getVariableSlot(), localVar.getVariableSlot());
+                        return;
                     }
-                    code.jumpIfNot(leftResult.getVariableSlot(), skip);
                 }
+
+                // make shortcut
+                Label skip = blockCompiler.createLabel();
+                blockCompiler.getCode().jumpIfNot(localVar.getVariableSlot(), skip);
+                right.outputToLocalVar(localVar, blockCompiler);
+                skip.here();
+
+                return;
             }
 
-            if(this.originalNullableRight != null) {
-                this.originalNullableRight.outputToLocalVar(localVar, blockCompiler);
-                if(this.right != originalNullableRight){
-                    this.right.outputToLocalVar(localVar, blockCompiler);
-                }
-            } else {
-                this.right.outputToLocalVar(localVar, blockCompiler);
-            }
+            Label setNull = blockCompiler.createLabel();
             var exit = blockCompiler.createLabel();
-            if(returnsNullable){
-                code.jump(exit);
-                skip.here();
-                code.assignLiteral(localVar.getVariableSlot(), getRoot().nullLiteral());
-                exit.here();
-            } else {
-                skip.here();
+            var setRight = blockCompiler.createLabel();
+
+            if (this.originalNullableLeft != null) {    // that means, this.originalNullableLeft != this.left, and left based on the nonNullValue of it
+                this.originalNullableLeft.outputToLocalVar(localVar, blockCompiler);        // visit at first, to make nonNullValue of left has value
+                code.jumpIf(originalNullableLeft.isNull().visit(blockCompiler).getVariableSlot(), exit);
             }
+            if(this.left.inferType() instanceof NullableClassDef) {
+                NullableValue n = this.left instanceof NullableValue ? (NullableValue) this.left : new NullableValue(ownerFunction, this.left);
+                this.left.outputToLocalVar(localVar, blockCompiler);
+                code.jumpIf(n.isNull().visit(blockCompiler).getVariableSlot(), exit);       // already is null
+                code.jumpIfNot(n.nonNullValue().visit(blockCompiler).getVariableSlot(), exit);
+            } else {
+                var leftResult = this.left.visit(blockCompiler);
+                if(leftResult instanceof Literal<?> literal){
+                    if (BooleanLiteral.isFalse(literal)) {
+                        ownerFunction.cast(literal, resultType).transform().termVisit(blockCompiler);
+                        code.jump(exit);
+                    } // otherwise decide by the right value
+                } else {
+                    code.jumpIf(((Var.LocalVar)leftResult).getVariableSlot(), setRight);        // setRight
+                    ownerFunction.cast(leftResult, resultType).transform().termVisit(blockCompiler);
+                }
+            }
+
+            setRight.here();
+
+            if (this.originalNullableRight != null) {
+                this.originalNullableRight.outputToLocalVar(localVar, blockCompiler);
+                code.jumpIf(originalNullableRight.isNull().visit(blockCompiler).getVariableSlot(), exit);
+            }
+            if(this.right.inferType() instanceof NullableClassDef) {
+                this.right.outputToLocalVar(localVar, blockCompiler);
+            } else {
+                ownerFunction.cast(this.right, resultType).transform().outputToLocalVar(localVar, blockCompiler);
+            }
+            code.jump(exit);
+
+            setNull.here();
+            code.assignLiteral(localVar.getVariableSlot(), getRoot().nullLiteral());
+            exit.here();
         } catch (CompilationError e) {
             throw e;
         } finally {

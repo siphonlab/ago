@@ -22,16 +22,16 @@ fun testAnd(){
     var b2 as boolean? = false;
     var b3 as boolean? = null;
     Trace.print(b and b2)       // false
-    Trace.print(b3 and b)       // false
+    Trace.print(b3 and b)       // null
     Trace.print(b2 and b)       // false
-    Trace.print(b3 and b3)      // false
+    Trace.print(b3 and b3)      // null
 
     Trace.print(b and true)     // true
     Trace.print(true and b)     // true
     Trace.print(b2 and true)    // false
     Trace.print(true and b2)    // false
-    Trace.print(b3 and true)    // false
-    Trace.print(true and b3)    // false
+    Trace.print(b3 and true)    // null
+    Trace.print(true and b3)    // null
 
     var i as int? = 200;
     var n as int? = null;

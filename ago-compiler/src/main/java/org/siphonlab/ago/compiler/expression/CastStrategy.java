@@ -249,6 +249,10 @@ public class CastStrategy {
         if (t2 == STRING)
             return loType;
 
+        if(t2 == BOOLEAN){
+            return hiType;
+        }
+
         switch (t1.value) {
             case BYTE_VALUE, SHORT_VALUE, CHAR_VALUE:
                 if (t2 == CHAR || t2 == SHORT || t2 == INT || t2 == FLOAT || t2 == LONG || t2 == DOUBLE) {

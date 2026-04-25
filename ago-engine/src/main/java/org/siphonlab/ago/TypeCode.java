@@ -176,7 +176,7 @@ public class TypeCode {
             return another == TypeCode.FLOAT || another == TypeCode.LONG || another == TypeCode.INT || another == TypeCode.SHORT || another == TypeCode.BYTE || another == TypeCode.CHAR;
         } else if (this == FLOAT) {
             return another == TypeCode.INT || another == TypeCode.SHORT || another == TypeCode.BYTE || another == TypeCode.CHAR;
-        } else if (this == STRING) {
+        } else if (this == STRING || this == BOOLEAN) {
             return true;
         } else if (this == OBJECT) {
             return true;
