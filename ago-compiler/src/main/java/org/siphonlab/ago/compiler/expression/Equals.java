@@ -75,7 +75,7 @@ public class Equals extends BiExpression{
         if(left.inferType() instanceof NullableClassDef n){
             if(!(right.inferType() instanceof NullableClassDef)) {
                 if(left instanceof Var.LocalVar localVar){
-                    left = narrowTyping(localVar);
+                    left = narrowTyping(localVar, right);
                 }
             }
             if(!(left instanceof NullableValue)) {
@@ -89,7 +89,7 @@ public class Equals extends BiExpression{
         }
         if(right.inferType() instanceof NullableClassDef n){
             if(right instanceof Var.LocalVar localVar){
-                right = narrowTyping(localVar);
+                right = narrowTyping(localVar, left);
             }
             if(!(right instanceof NullableValue)) {
                 right = new NullableValue(ownerFunction, right);
@@ -126,7 +126,7 @@ public class Equals extends BiExpression{
         return super.transformInner();
     }
 
-    private Expression narrowTyping(Var.LocalVar localVar) throws CompilationError {
+    private Expression narrowTyping(Var.LocalVar localVar, Expression value) throws CompilationError {
         if(blockCompiler == null) return super.transformInner();
 
         NarrowTyper narrowTyper = blockCompiler.getNarrowTyper();
@@ -135,10 +135,10 @@ public class Equals extends BiExpression{
         if(narrowTyper.isCollecting()) {
             var nonNullVar = blockCompiler.acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
             var nullVar = blockCompiler.acquireNarrowTypingVar(variable, getRoot().NULL());
-            if (type == Equals.Type.NotEquals) {
-                narrowTyper.collectNarrowVar(nonNullVar, nullVar);
-            } else {
+            if(type == Type.Equals && value.inferType() instanceof NullClassDef) {
                 narrowTyper.collectNarrowVar(nullVar, nonNullVar);
+            } else {
+                narrowTyper.collectNarrowVar(nonNullVar, nullVar);
             }
             return new NullableValue(ownerFunction, localVar, nonNullVar);
         } else {
@@ -161,7 +161,6 @@ public class Equals extends BiExpression{
                     var lIsNull = leftNullableValue.isNull().visit(blockCompiler);
                     NullableValue rightNullableValue = rightNonNull.getNullableValue();
                     var rIsNull = rightNullableValue.isNull().visit(blockCompiler);
-                    code = blockCompiler.getCode();
                     code.and(lIsNull.getVariableSlot(), rIsNull.getVariableSlot());
 
                     var n1 = leftNullableValue.nonNullValue().visit(blockCompiler);

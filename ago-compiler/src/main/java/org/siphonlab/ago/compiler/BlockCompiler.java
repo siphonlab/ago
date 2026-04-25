@@ -735,7 +735,7 @@ public class BlockCompiler {
             case LE -> Compare.Type.LE;
             default -> throw new UnsupportedOperationException("'%s' not supported".formatted(compareExpr.bop));
         };
-        return new Compare(functionDef, expression( compareExpr.expression(0)),expression(compareExpr.expression(1)), type);
+        return new Compare(this, expression( compareExpr.expression(0)),expression(compareExpr.expression(1)), type);
     }
 
     private Expression shiftExpr(ShiftExprContext shiftExprContext) throws CompilationError {
@@ -1530,6 +1530,19 @@ public class BlockCompiler {
             return narrowType(parExpression.expression());
         } else {
             return parExpression(parExpression);
+        }
+    }
+
+    public Expression narrowType(Var.LocalVar localVar, Expression value) throws CompilationError {
+        var variable = localVar.variable;
+        var nullableClass = (NullableClassDef)variable.getType();
+        if(narrowTyper.isCollecting()) {
+            var nonNullVar = acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
+            var nullVar = acquireNarrowTypingVar(variable, getRoot().NULL());
+            narrowTyper.collectNarrowVar(nonNullVar, nullVar);
+            return new NullableValue(functionDef, localVar, nonNullVar);
+        } else {
+            return localVar;
         }
     }
 
