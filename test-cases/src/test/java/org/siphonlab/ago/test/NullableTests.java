@@ -72,7 +72,7 @@ public class NullableTests {
     public void if_stmt() throws CompilationError, IOException {
         run("nullable/if_stmt.ago");
         Trace.printOutput();
-//        assertTrue(Trace.outputted("b yes", "b2 no", "b3 no", "i yes", "n no", "b yes", "b2 no", "b3 no", "i yes", "n no"));
+        assertTrue(Trace.outputted("b yes", "b2 no", "b3 no", "i yes, 2027", "n no", "b yes", "b2 no", "b3 no", "i yes, 2027", "n no"));
     }
 
     @Test

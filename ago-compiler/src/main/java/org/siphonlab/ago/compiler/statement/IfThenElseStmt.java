@@ -101,9 +101,7 @@ public class IfThenElseStmt extends Statement {
             Label elseLabel = blockCompiler.createLabel();
             Label trueLabel = blockCompiler.createLabel();
             if(condition instanceof NullableValue nullableValue){
-                blockCompiler.lockRegister(condResult);
                 var isNull = nullableValue.isNull().visit(blockCompiler);
-                blockCompiler.releaseRegister(condResult);
                 if(!conditionNeg) {
                     code.jumpIf(isNull.getVariableSlot(), elseLabel);       // if is null, goto else
                 } else {
