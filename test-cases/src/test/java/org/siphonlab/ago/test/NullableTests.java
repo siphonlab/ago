@@ -44,14 +44,14 @@ public class NullableTests {
     public void and() throws CompilationError, IOException {
         run("nullable/and.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("false", "false", "false", "false", "true", "true", "false", "false", "false", "false", "null", "200", "true", "null"));
+        assertTrue(Trace.outputted("false", "null", "false", "null", "true", "true", "false", "false", "null", "null", "null", "200", "true", "null"));
     }
 
     @Test
     public void or() throws CompilationError, IOException {
         run("nullable/or.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("true", "true", "true", "false", "true", "true", "false", "false", "false", "false", "200", "200", "true", "200", "null"));
+        assertTrue(Trace.outputted("true", "true", "true", "null", "true", "true", "false", "false", "false", "null", "200", "200", "true", "200", "null"));
     }
 
     @Test

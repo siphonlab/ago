@@ -127,7 +127,7 @@ public class AndExpr extends ExpressionInFunctionBody {
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return resultType;
+        return Objects.requireNonNull(resultType);
     }
 
     @Override
@@ -143,10 +143,10 @@ public class AndExpr extends ExpressionInFunctionBody {
                     Literal<?> literal = lre.visit(blockCompiler);
                     if (BooleanLiteral.isTrue(literal)) {
                         ownerFunction.assign(localVar, this.right).setSourceLocation(this.getSourceLocation()).visit(blockCompiler);
-                        return;
                     } else {
                         ownerFunction.assign(localVar, literal).visit(blockCompiler);
                     }
+                    return;
                 } else {
                     this.left.outputToLocalVar(localVar, blockCompiler);
                 }
@@ -191,6 +191,7 @@ public class AndExpr extends ExpressionInFunctionBody {
                 } else {
                     code.jumpIf(((Var.LocalVar)leftResult).getVariableSlot(), setRight);        // setRight
                     ownerFunction.cast(leftResult, resultType).transform().termVisit(blockCompiler);
+                    code.jump(exit);
                 }
             }
 

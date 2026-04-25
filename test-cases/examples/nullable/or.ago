@@ -24,14 +24,14 @@ fun testOr(){
     Trace.print(b or b2)        // true
     Trace.print(b3 or b)        // true
     Trace.print(b2 or b)        // true
-    Trace.print(b3 or b3)       // false
+    Trace.print(b3 or b3)       // null
 
     Trace.print(b or false)     // true
     Trace.print(false or b)     // true
     Trace.print(b2 or false)    // false
     Trace.print(false or b2)    // false
     Trace.print(b3 or false)    // false
-    Trace.print(false or b3)    // false
+    Trace.print(false or b3)    // null
 
     var i as int? = 200;
     var n as int? = null;
