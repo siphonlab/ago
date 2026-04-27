@@ -1842,12 +1842,27 @@ public class BlockCompiler {
     }
 
     Statement withStmt(WithStmtContext withStmt) throws CompilationError {
-        Expression withExpr = parExpression(withStmt.parExpression());
-        if(withExpr.inferType() instanceof NullableClassDef){
-            return nullableIfThenStmt(functionDef, withExpr, nonNullExpression ->
-                    withStmt(withStmt, nonNullExpression));
+        narrowTyper.enter();
+        var withExpr = this.narrowType(withStmt.parExpression()).transform();
+        var mapper = narrowTyper.exit();
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            Statement r;
+            if(withExpr.inferType() instanceof NullableClassDef){
+                r =nullableIfThenStmt(functionDef, withExpr, nonNullExpression ->
+                        withStmt(withStmt, nonNullExpression));
+            } else {
+                r = withStmt(withStmt, withExpr);
+            }
+            this.narrowTyper.exit();
+            return r;
+        } else {
+            if(withExpr.inferType() instanceof NullableClassDef){
+                return nullableIfThenStmt(functionDef, withExpr, nonNullExpression ->
+                        withStmt(withStmt, nonNullExpression));
+            }
+            return withStmt(withStmt, withExpr);
         }
-        return withStmt(withStmt, withExpr);
     }
 
     private WithStmt withStmt(WithStmtContext withStmt, Expression withExpr) throws CompilationError {
@@ -1859,12 +1874,27 @@ public class BlockCompiler {
     }
 
     private Expression withExpr(PostWithExprContext postWithExpr) throws CompilationError {
-        Expression withExpr = this.expression(postWithExpr.expression());
-        if(withExpr.inferType() instanceof NullableClassDef){
-            return nullableIfThenExpr(functionDef, withExpr, nonNullExpression ->
-                    withExpr(postWithExpr, nonNullExpression));
+        narrowTyper.enter();
+        var withExpr = this.narrowType(postWithExpr.expression()).transform();
+        var mapper = narrowTyper.exit();
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            Expression r;
+            if(withExpr.inferType() instanceof NullableClassDef){
+                r = nullableIfThenExpr(functionDef, withExpr, nonNullExpression ->
+                        withExpr(postWithExpr, nonNullExpression));
+            } else {
+                r = withExpr(postWithExpr, withExpr);
+            }
+            this.narrowTyper.exit();
+            return r;
+        } else {
+            if(withExpr.inferType() instanceof NullableClassDef){
+                return nullableIfThenExpr(functionDef, withExpr, nonNullExpression ->
+                        withExpr(postWithExpr, nonNullExpression));
+            }
+            return withExpr(postWithExpr, withExpr);
         }
-        return withExpr(postWithExpr, withExpr);
     }
 
     private WithExpr withExpr(PostWithExprContext postWithExpr, Expression withExpr) throws CompilationError {
@@ -1876,12 +1906,27 @@ public class BlockCompiler {
     }
 
     Statement viaStmt(ViaStmtContext viaStmt ) throws CompilationError {
-        Expression par = this.parExpression(viaStmt.parExpression());
-        if(par.inferType() instanceof NullableClassDef){
-            return nullableIfThenStmt(functionDef, par, nonNullExpression ->
-                    viaStmt(viaStmt, nonNullExpression));
+        narrowTyper.enter();
+        var par = this.narrowType(viaStmt.parExpression()).transform();
+        var mapper = narrowTyper.exit();
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            Statement r;
+            if(par.inferType() instanceof NullableClassDef){
+                r = nullableIfThenStmt(functionDef, par, nonNullExpression ->
+                        viaStmt(viaStmt, nonNullExpression));
+            } else {
+                r = viaStmt(viaStmt, par);
+            }
+            this.narrowTyper.exit();
+            return r;
+        } else {
+            if(par.inferType() instanceof NullableClassDef){
+                return nullableIfThenStmt(functionDef, par, nonNullExpression ->
+                        viaStmt(viaStmt, nonNullExpression));
+            }
+            return viaStmt(viaStmt, par);
         }
-        return viaStmt(viaStmt, par);
     }
 
     private ViaStmt viaStmt(ViaStmtContext viaStmt, Expression par) throws CompilationError {

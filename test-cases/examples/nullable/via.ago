@@ -28,7 +28,7 @@ class File with ViaObject{
 fun main(){
     var f as File? = new File('sample.txt')
     via (f){
-        Trace.print('read file content from ' + f!.filename)
+        Trace.print('read file content from ' + f.filename)
     }
     f = null;
     via(f){

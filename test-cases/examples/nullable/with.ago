@@ -21,8 +21,8 @@ fun main(){
     var p as Person? = new Person('Unknown', 0);
     var p2 as Person? = null;
 
-    var p3 = p with {.name = 'John'; .age = 20;};
-    var p4 = p2 with {.name = 'John'; .age = 20};
+    var p3 = p with {.name = 'John'; .age = 20; p.name = 'Peter'};
+    var p4 = p2 with {.name = 'John'; .age = 20; p2.name = 'Anny'};
 
     with (p3){
         Trace.print(.name);
