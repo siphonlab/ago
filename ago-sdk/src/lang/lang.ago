@@ -307,7 +307,7 @@ class Trace{
             if(obj == null){
                 print#str("null");
             } else {
-                print#str(obj!.toString())
+                print#str(obj.toString())
             }
         }
 

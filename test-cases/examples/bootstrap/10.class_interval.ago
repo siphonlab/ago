@@ -26,17 +26,17 @@ class Dog from Animal{
 fun main(){
     var T as [Animal to _]
     T = Cat     // T got ScopedClassInterval::(Animal, _)(value=Cat, scope=assign Scope)
-    T.foo()     // Invoke(ClassUnder.Instance(Cast(LocalVar(T), Meta@Animal), "foo#")
+    T.foo()     // Invoke(ClassUnder.Instance(Cast(LocalVar(T), Meta@Animal), "foo#")       // Cat.foo
 
     var U like Animal
     U = Dog
-    U.foo()
+    U.foo()     // Animal.foo
 
 //    var c = new T()     // exception, lBound != uBound
 //    c.bark()
     var T2 as [Cat to Cat] = Cat
     var c = new T2()
-    c.bark()
+    c.bark()        // meow
 
     Trace.print(T == Cat)
     Trace.print(Dog != T)
