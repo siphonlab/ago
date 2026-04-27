@@ -81,6 +81,8 @@ public class ArithmeticExpr extends BiExpression {
 
     @Override
     public Expression transformInner() throws CompilationError {
+        this.left = this.left.transform();
+        this.right = this.right.transform();
         if(this.type == Type.Add &&
                 (left.inferType().getUnboxedTypeCode() == TypeCode.STRING
                 || right.inferType().getUnboxedTypeCode() == TypeCode.STRING)){

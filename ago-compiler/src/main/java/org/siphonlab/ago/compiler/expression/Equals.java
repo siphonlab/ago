@@ -80,6 +80,19 @@ public class Equals extends BiExpression{
     }
 
     @Override
+    protected Root getRoot() {
+        Root root;
+        if(this.ownerFunction != null) return super.getRoot();
+        try {
+            root = this.left.inferType().getRoot();
+            if(root == null) root = this.right.inferType().getRoot();
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+        return Objects.requireNonNull(root);
+    }
+
+    @Override
     public Expression transformInner() throws CompilationError {
         boolean nullableFound = false;
         if(left.inferType() instanceof NullableClassDef n){

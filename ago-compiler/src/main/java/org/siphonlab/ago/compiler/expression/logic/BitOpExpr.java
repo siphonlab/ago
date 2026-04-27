@@ -69,6 +69,8 @@ public class BitOpExpr extends BiExpression {
 
     @Override
     public Expression transformInner() throws CompilationError {
+        this.left = this.left.transform();
+        this.right = this.right.transform();
         CastStrategy.UnifyTypeResult result = new CastStrategy(ownerFunction, this.getSourceLocation(), false).unifyTypes(this.left, this.right);
         if (result.changed() || result.left() != this.left || result.right() != this.right) {
             this.left = result.left();

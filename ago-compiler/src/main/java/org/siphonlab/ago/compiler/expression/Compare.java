@@ -71,6 +71,9 @@ public class Compare extends BiExpression{
 
     @Override
     public Expression transformInner() throws CompilationError {
+        this.left = this.left.transform();
+        this.right = this.right.transform();
+
         if(this.left.equals(this.right)){
             return getRoot().createBooleanLiteral(false);
         }
