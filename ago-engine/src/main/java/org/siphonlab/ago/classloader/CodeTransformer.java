@@ -98,7 +98,7 @@ public class CodeTransformer {
 
         String methodName = strings[codeBuffer.getInt()];       // with postfix
         var clazz = classLoader.getClass(methodClass.fullname);
-        var methodDesc = methodClass.findMethod(methodName, headers);
+        var methodDesc = methodClass.findMethod(methodName);
         int p = methodDesc.getMethodIndex();
         var method = headers.get(methodDesc.getFullname());
         assert clazz.getMethod(p) == method.agoClass;

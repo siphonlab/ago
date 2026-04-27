@@ -120,6 +120,9 @@ public class ArrayTypeHeader extends ClassHeader {
             arrayBase.resolveHierarchicalClasses();
         }
         var instantiation = arrayBase.instantiate(new InstantiationArguments(arrayBase, new ClassHeader[]{this.getElementType()}), null, null, null);
+        if(instantiation.getLoadingStage() == ResolveHierarchicalClasses){
+            instantiation.resolveHierarchicalClasses();
+        }
         this.setSuperClass(instantiation.fullname);
         this.setChildren(instantiation.getChildren());
         this.setMethods(instantiation.methods.stream().map(

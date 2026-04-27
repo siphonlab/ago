@@ -656,7 +656,7 @@ public class ClassHeader {
         return this.modifiers & 0b111;
     }
 
-    public MethodDesc findMethod(String methodName, Map<String, ClassHeader> headers) {
+    public MethodDesc findMethod(String methodName) {
         var r = this.methodsByName.get(methodName);
         if (r != null) return r;
         throw new RuntimeException("'%s' not found in '%s'".formatted(methodName, this));
