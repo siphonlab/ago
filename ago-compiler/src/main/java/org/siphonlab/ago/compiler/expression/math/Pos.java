@@ -38,6 +38,7 @@ public class Pos extends UnaryArithmetic {
 
     @Override
     protected Expression transformInner() throws CompilationError {
+        this.value = this.value.transform();
         ClassDef type = this.value.inferType();
 
         if(type.getTypeCode() == STRING){   // auto cast to double like js does

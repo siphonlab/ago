@@ -21,11 +21,11 @@ import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 public abstract class UnaryExpression extends ExpressionInFunctionBody{
-    protected final Expression value;
+    protected Expression value;
 
     public UnaryExpression(FunctionDef ownerFunction,  Expression value) throws CompilationError {
         super(ownerFunction);
-        this.value = value.transform();
+        this.value = value;
         this.value.setParent(this);
     }
 

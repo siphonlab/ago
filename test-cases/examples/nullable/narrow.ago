@@ -34,16 +34,24 @@ fun main(){
         Trace.print(i);
     }
 
-//    var n as int? = null;
-//    var m as int? = 2027
-//    if(n == null and m == null and i == null){
-//        //
-//    } else {
-//        // for multiple variable, narrow typing won't work, i, m, n are still int?
-//        Trace.print(m + 1)  // cannot cast 'int?' to 'int'
-//        Trace.print(i + 1)
-//        Trace.print(n + 1)
-//    }
-// TODO     if((i != null) == false){}
-// TODO     if(i == null) return;
+    var n as int? = 2027
+    if(i == null or n == null){
+        //
+    } else {
+        Trace.print(i + 1)
+        Trace.print(n + 1)
+    }
+
+
+    if((i != null) == false){
+
+    } else {
+        Trace.print(i);
+    }
+// TODO return shortcut
+//    if(i == null) return;
+//
+//    i++;
+//    Trace.print(i);
+
 }

@@ -40,13 +40,15 @@ public class BitNot extends UnaryExpression {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        var type = this.value.inferType();
+        var value = this.value.transform();
+        var type = value.inferType();
         if(!type.getUnboxedTypeCode().isIntFamily()){
             throw new TypeMismatchError("int family value expected",this.getSourceLocation());
         }
         if(value instanceof Literal<?> literal){
             return bitNot(literal);
         }
+        this.value = value;
         return this;
     }
 

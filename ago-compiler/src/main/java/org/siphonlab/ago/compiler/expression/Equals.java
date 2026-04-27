@@ -64,13 +64,23 @@ public class Equals extends BiExpression{
         this.blockCompiler = null;
     }
 
-
     @Override
-    public Expression transformInner() throws CompilationError {
+    public Expression transform() throws CompilationError {
         if(this.left.equals(this.right)){
             return getRoot().createBooleanLiteral(true);
         }
 
+        if(this.left instanceof BooleanLiteral b){
+            return transformBooleanLiteral(BooleanLiteral.isTrue(b), this.right).transform();
+        } else if(this.right instanceof BooleanLiteral b){
+            return transformBooleanLiteral(BooleanLiteral.isTrue(b), this.left).transform();
+        }
+
+        return super.transform();
+    }
+
+    @Override
+    public Expression transformInner() throws CompilationError {
         boolean nullableFound = false;
         if(left.inferType() instanceof NullableClassDef n){
             if(!(right.inferType() instanceof NullableClassDef)) {
@@ -124,6 +134,14 @@ public class Equals extends BiExpression{
             }
         }
         return super.transformInner();
+    }
+
+    private Expression transformBooleanLiteral(boolean b, Expression expression) throws CompilationError {
+        if((b && type == Type.Equals) || (!b && type == Type.NotEquals)){
+            return expression;
+        } else {
+            return new Not(ownerFunction, expression);
+        }
     }
 
     private Expression narrowTyping(Var.LocalVar localVar, Expression value) throws CompilationError {
@@ -356,6 +374,14 @@ public class Equals extends BiExpression{
 
     public Type getType() {
         return type;
+    }
+
+    public Equals neg() throws CompilationError {
+        if(blockCompiler != null){
+            return new Equals(blockCompiler, left, right, type == Type.Equals ? Type.NotEquals : Type.Equals);
+        } else {
+            return new Equals(ownerFunction, left, right, type == Type.Equals ? Type.NotEquals : Type.Equals);
+        }
     }
 
 }

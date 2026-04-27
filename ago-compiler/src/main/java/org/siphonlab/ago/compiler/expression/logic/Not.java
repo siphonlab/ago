@@ -42,6 +42,11 @@ public class Not extends UnaryExpression {
         if(value instanceof Not not){
             return not.getValue();
         }
+        if(value instanceof Equals equals){
+            return equals.neg();
+        }
+
+        this.value = this.value.transform();
 
         var t = this.value.inferType();
         if(t instanceof NullableClassDef n){

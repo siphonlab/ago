@@ -27,8 +27,8 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
 
     protected BiExpression(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
         super(ownerFunction);
-        this.left = left.transform();
-        this.right = right.transform();
+        this.left = left;
+        this.right = right;
         this.left.setParent(this);
         this.right.setParent(this);
     }
@@ -38,6 +38,8 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
     public Expression transformInner() throws CompilationError {
         if(transformed) return this;
 
+        var left = this.left.transform();
+        var right = this.right.transform();
         CastStrategy.UnifyTypeResult unifyTypeResult = new CastStrategy(ownerFunction, getSourceLocation(), false).unifyTypes(left, right);
         var l = unifyTypeResult.left();
         var r = unifyTypeResult.right();
