@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.*;
@@ -117,6 +118,8 @@ public class Root extends Namespace<Package> {
 
     // all classes and functions, sorted from hierarchy base to descendants
     private LinkedHashSet<ClassDef> sortedClassesAndFunctions = new LinkedHashSet<>();
+
+    private final Map<Pair<ClassDef, ClassDef>, Boolean> dependencyResultCache = new HashMap<>();
 
     public Root() {
         super("");
@@ -747,5 +750,9 @@ public class Root extends Namespace<Package> {
         }
         return n;
 
+    }
+
+    public Map<Pair<ClassDef, ClassDef>, Boolean> getDependencyResultCache() {
+        return dependencyResultCache;
     }
 }

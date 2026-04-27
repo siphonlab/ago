@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.expression.Equals;
 import org.siphonlab.ago.compiler.expression.Literal;
@@ -1098,14 +1099,25 @@ public class ClassDef extends ClassContainer {
     }
 
     public boolean isDependingOn(ClassDef classDef, int depth) {
+//        if(LOGGER.isDebugEnabled()) LOGGER.debug("%stest %s depend on %s".formatted("\t".repeat(depth), this, classDef));
         if(depth > 100){
             System.out.println(1);
         }
         if(this == classDef) return false;
+        var dependencyResultCache = root.getDependencyResultCache();
+        Pair<ClassDef, ClassDef> p = Pair.of(this, classDef);
+        Boolean r = dependencyResultCache.get(p);
+        if(r != null) return r;
+
         for (ClassDef dependency : this.dependencies) {
-            if(dependency == classDef || dependency.isDependingOn(classDef, depth + 1)) return true;
+            if(dependency == classDef || dependency.isDependingOn(classDef, depth + 1)) {
+                r = true;
+                break;
+            }
         }
-        return false;
+        if(r == null) r = false;
+        dependencyResultCache.put(p, r);
+        return r;
     }
 
     /**
