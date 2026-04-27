@@ -125,6 +125,10 @@ public class NullableValue extends ExpressionInFunctionBody{
         return this.nonNullValueReceiver != null && this.nonNullValueReceiver.variable.getSlot() != null;
     }
 
+    public Var.LocalVar getNonNullValueReceiver() {
+        return nonNullValueReceiver;
+    }
+
     public class IsNotNull extends ExpressionInFunctionBody{
 
         public IsNotNull(FunctionDef ownerFunction) {
@@ -213,8 +217,8 @@ public class NullableValue extends ExpressionInFunctionBody{
                 ownerFunction.assign(localVar, nonNullValueReceiver).termVisit(blockCompiler);
             } else {
                 nonNullValueReceiver = localVar;
+                ownerFunction.cast(outputted, inferType()).transform().outputToLocalVar(localVar, blockCompiler);
             }
-            ownerFunction.cast(outputted, inferType()).transform().outputToLocalVar(localVar, blockCompiler);
             blockCompiler.releaseRegister(outputted);
         }
 

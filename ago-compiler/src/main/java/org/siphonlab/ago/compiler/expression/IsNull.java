@@ -29,12 +29,22 @@ public class IsNull extends Equals{
 
     @Override
     public Expression transformInner() throws CompilationError {
+        this.left = this.left.transform();
         return this;
     }
 
     @Override
     public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
-        Var.LocalVar tempVar = blockCompiler.acquireTempVar(this);
+        NullableValue nullableValue = (NullableValue) this.left;
+        Var.LocalVar tempVar;
+        if(nullableValue.hasReceiver() && ((NullableClassDef)nullableValue.inferType()).getBaseClass() == getRoot().BOOLEAN()){
+            blockCompiler.lockRegister(nullableValue.getNonNullValueReceiver());
+            tempVar = blockCompiler.acquireTempVar(this);
+            blockCompiler.releaseRegister(nullableValue.getNonNullValueReceiver());
+        } else {
+            tempVar = blockCompiler.acquireTempVar(this);
+        }
+
         this.outputToLocalVar(tempVar, blockCompiler);
         return tempVar;
     }
