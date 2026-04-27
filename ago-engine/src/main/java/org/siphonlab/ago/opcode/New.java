@@ -56,6 +56,10 @@ public class New {
 
     // new_vv(target, scoped class instance)
     public static final int new_vo = 0x04_ff_08_02;
+    // new_scope with class of scope, new_scope(target, scope depth)
+    public static final int new_scope_vc = 0x04_ff_0b_02;
+    // new_scope(target), scope depth = 0, recursive invoke
+    public static final int new_scope_v  = 0x04_ff_0b_01;
 
     // new_dynamic(target, scoped class instance, args_array)
     // auto find constructor to match the args to create instance
@@ -89,6 +93,8 @@ public class New {
             case 0x04_ff_0a_04 -> "new_scope_method_fix_voma";
             case 0x04_ff_0b_04 -> "new_scope_method_fix_vcCm";
             case 0x04_ff_0c_04 -> "new_method_voIm";
+            case new_scope_vc -> "new_scope_vc";
+            case new_scope_v  -> "new_scope_v";
             case newn_vC        -> "newn_vC";
             case newn_child_voC     -> "newn_child_voC";
             case newn_scope_child_vcC       -> "newn_scope_child_vcC";

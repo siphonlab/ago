@@ -1,0 +1,10 @@
+fun f(n as int) as int{
+    if(n <= 0)
+        return 0;
+    else
+        return n + f(n-1);
+}
+fun main(){
+    var i = f(10);
+    Trace.print(i)
+}

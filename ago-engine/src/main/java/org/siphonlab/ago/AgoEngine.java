@@ -283,8 +283,8 @@ public class AgoEngine implements ClassManager{
     }
 
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        if (agoClass instanceof AgoFunction fun)
-            return createFunctionInstance(parentScope, fun, creator, creator);
+        if (agoClass.isFunction())
+            return createFunctionInstance(parentScope, (AgoFunction) agoClass, creator, creator);
 
         var instance = new Instance<>(agoClass.createSlots(), agoClass);
         if(parentScope != null) instance.setParentScope(parentScope);
@@ -308,7 +308,7 @@ public class AgoEngine implements ClassManager{
     }
 
     public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        if (agoClass instanceof AgoNativeFunction agoNativeFunction) {
+        if (agoClass.isFunction() && agoClass instanceof AgoNativeFunction agoNativeFunction) {
             return createFunctionInstance(parentScope, agoNativeFunction, creator, creator);
         }
         var instance = new NativeInstance(agoClass.createSlots(), agoClass);

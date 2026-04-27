@@ -1301,6 +1301,16 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     slots.setObject(code[pc++], engine.createInstanceFromScopedClassInterval(slots.getObject(code[pc++]),this ));
                     break;
                 }
+                case New.new_scope_vc:{
+                    Instance<?> scope;
+                    slots.setObject(code[pc++], engine.createInstance((scope = getScope(code[pc++])).parentScope, scope.getAgoClass(),this ));
+                    break;
+                }
+                case New.new_scope_v:{
+                    Instance<?> scope = this;
+                    slots.setObject(code[pc++], engine.createInstance(scope.parentScope, scope.getAgoClass(),this ));
+                    break;
+                }
                 case New.new_method_voCm: {
                     // here the C was used in transform code, to locate method index
                     // and the class of scope will use to implement method overriding

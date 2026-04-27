@@ -59,5 +59,12 @@ public class FunctionTest {
         assertTrue(Trace.outputted("3", "5", "test spawn", "test fork"));
     }
 
+    @Test
+    public void recursive() throws CompilationError, IOException {
+        run("function/recursive.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("55"));
+    }
+
 
 }

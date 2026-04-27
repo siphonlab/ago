@@ -305,14 +305,20 @@ public class Invoke extends ExpressionInFunctionBody{
             code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
         } else if(maybeFunction instanceof ClassOf.ClassOfScope classOfScope){
             assert (classOfScope.metaLevel == 1); // if it's metaclass it won't be Function
-            Scope scope = (Scope) classOfScope.getScope();      // for recursive will cause this
-            var n = Creator.NewProps.resolve(fun, scope.getClassDef());
-            var parent = scope.getParentScope();
-            if(parent == null){
-                code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
-            } else {
-                code.new_scope_method(resultSlot, parent.getDepth(), false, fun.simpleNameOfFunction(resolvedFunctionDef),
-                        n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+            Scope scope = classOfScope.getScope();
+            if(resolvedFunctionDef != ownerFunction){  // an overload function of me
+                scope = (Scope) this.scope;       // here parent is already classOfScope.scope.parentScope, see org.siphonlab.ago.compiler.expression.ClassOf.ClassOfScope.getScopeOfFunction
+                if(scope == null){          // for top-level fun will cause this
+                    ClassDef classDef = classOfScope.getClassDef();
+                    var n = Creator.NewProps.resolve(fun, classDef);
+                    code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+                } else {
+                    var n = Creator.NewProps.resolve(fun, scope.getClassDef());
+                    code.new_scope_method(resultSlot, scope.getDepth(), false, fun.simpleNameOfFunction(resolvedFunctionDef),
+                            n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+                }
+            } else if(scope.getDepth() == 0){
+                code.new_scope(resultSlot, scope.getDepth());
             }
         } else if(maybeFunction instanceof ClassUnder.ClassUnderScope classUnderScope){
             Scope scope = (Scope) this.scope;

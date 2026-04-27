@@ -321,6 +321,17 @@ public class CodeBuffer {
         slot(scopeBoundClass);
     }
 
+    public void new_scope(SlotDef target, int depth){
+        if(depth == 0) {
+            ls.addInt(New.new_scope_v);
+            slot(target);
+        } else {
+            ls.addInt(New.new_scope_vc);
+            slot(target);
+            ls.addInt(depth);
+        }
+    }
+
     /**
      * auto find constructor to match the args to create instance
      * @param target

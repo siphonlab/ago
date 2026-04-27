@@ -157,7 +157,9 @@ public class Creator extends ExpressionInFunctionBody{
                 blockCompiler.releaseRegister(r);
             } else {
                 var n = NewProps.resolve(fun, classDef);
-                if (this.scope instanceof Scope scope) {
+                if(this.typeExpr instanceof ClassOf.ClassOfScope classOfScope){
+                    code.new_scope(objectSlot, classOfScope.getScope().getDepth());
+                } else if (this.scope instanceof Scope scope) {
                     code.new_scope_child(objectSlot, scope.getDepth(), n);
                 } else if (this.scope == null) {
                     code.new_(objectSlot, n);

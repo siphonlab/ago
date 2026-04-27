@@ -345,6 +345,10 @@ public class AgoClass extends Instance<MetaClass>{
         return false;
     }
 
+    public boolean isFunction() {
+        return this.type == TYPE_FUNCTION;
+    }
+
     public static class DefaultSlots implements Slots{
 
     }
