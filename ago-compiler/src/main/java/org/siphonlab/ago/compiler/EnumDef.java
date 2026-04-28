@@ -230,7 +230,7 @@ public class EnumDef extends ClassDef{
             }
             var defaultGroup = new SwitchCaseStmt.SwitchGroup();
             defaultGroup.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null));
-            defaultGroup.addStatement(valueOf.return_(getRoot().createNullLiteral()));  //TODO throw error by default
+            defaultGroup.addStatement(valueOf.return_(getRoot().nullLiteral()));  //TODO throw error by default
             var stmt = new SwitchCaseStmt(valueOf, p0Var, groups);
             blockCompiler.compileExpressions(List.of(initScopeVar.transform(), stmt.transform()));
         } catch (CompilationError e) {
@@ -257,7 +257,7 @@ public class EnumDef extends ClassDef{
             }
             var defaultGroup = new SwitchCaseStmt.SwitchGroup();
             defaultGroup.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null));
-            defaultGroup.addStatement(parse.return_(getRoot().createNullLiteral()));  //TODO throw error by default
+            defaultGroup.addStatement(parse.return_(getRoot().nullLiteral()));  //TODO throw error by default
             var stmt = new SwitchCaseStmt(parse, p0Var, groups);
             blockCompiler.compileExpressions(List.of(initScopeVar.transform(), stmt.transform()));
         } catch (CompilationError e) {

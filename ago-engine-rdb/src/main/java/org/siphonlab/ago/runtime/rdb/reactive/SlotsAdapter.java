@@ -23,6 +23,8 @@ import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.RdbType;
 import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonPGAdapter;
 
+import java.math.BigDecimal;
+
 /**
  * the persistent(save immediately) Slots don't store data in memory, it maps  getInt/setInt to SlotsAdapter.getInt/setInt,
  * and the adapter of this kind engine even support OP_CODE, see {@link ReactiveJsonPGAdapter#binaryOp(String, RdbType, ObjectRef, String, String, String)}
@@ -50,6 +52,10 @@ public interface SlotsAdapter<T extends Slots> {
 
     void setDouble(T slots, ObjectRef objectRef, int slot, double value);
 
+    BigDecimal getDecimal(T slots, ObjectRef objectRef, int slot);
+
+    void setDecimal(T slots, ObjectRef objectRef, int slot, BigDecimal value);
+
     byte getByte(T slots, ObjectRef objectRef, int slot);
 
     void setByte(T slots, ObjectRef objectRef, int slot, byte value);
@@ -73,6 +79,10 @@ public interface SlotsAdapter<T extends Slots> {
     Instance<?> getObject(T slots, ObjectRef objectRef, int slot);
 
     void setObject(T slots, ObjectRef objectRef, int slot, Instance<?> value);
+
+    Object getUnion(T slots, ObjectRef objectRef, int slot);
+
+    void setUnion(T slots, ObjectRef objectRef, int slot, Object value);
 
     void incInt(T slots, ObjectRef objectRef, int slot, int value);
 

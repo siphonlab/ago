@@ -54,6 +54,12 @@ public class Div {
     public static final int div_d_vvv   = 0x16_07_04_03;
     public static final int div_d_vcv   = 0x16_07_05_04;
 
+    public static final int div_D_vc    = 0x16_0d_01_06;
+    public static final int div_D_vvc   = 0x16_0d_02_07;
+    public static final int div_D_vv    = 0x16_0d_03_02;
+    public static final int div_D_vvv   = 0x16_0d_04_03;
+    public static final int div_D_vcv   = 0x16_0d_05_07;
+
     public static final int div_b_vc    = 0x16_08_01_02;
     public static final int div_b_vvc   = 0x16_08_02_03;
     public static final int div_b_vv    = 0x16_08_03_02;
@@ -92,6 +98,12 @@ public class Div {
             case 0x16_07_03_02 ->    "div_d_vv";
             case 0x16_07_04_03 ->    "div_d_vvv";
             case 0x16_07_05_04 ->  "div_d_vcv";
+
+            case div_D_vc -> "div_D_vc";
+            case div_D_vvc -> "div_D_vvc";
+            case div_D_vv -> "div_D_vv";
+            case div_D_vvv -> "div_D_vvv";
+            case div_D_vcv -> "div_D_vcv";
 
             case 0x16_08_01_02 ->  "div_b_vc";
             case 0x16_08_02_03 ->  "div_b_vvc";

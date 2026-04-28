@@ -51,5 +51,14 @@ public interface Expression {
     Expression setParent(Expression expression);
 
     Expression getParent();
+
+    default Expression usingTempVariable(PipeToTempVar tempVar){
+        throw new UnsupportedOperationException();
+    }
+
+    default Expression usingTempVariables(PipeToTempVar... pipeToTempVars){
+        throw new UnsupportedOperationException();
+    }
+
 }
 

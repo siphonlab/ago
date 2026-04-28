@@ -20,6 +20,8 @@ import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.Slots;
 
+import java.math.BigDecimal;
+
 public class CallFrameBoundSlotsImpl<T extends Slots> implements CallFrameBoundSlots<T> {
 
     private final CallFrame<?> callFrame;
@@ -155,6 +157,26 @@ public class CallFrameBoundSlotsImpl<T extends Slots> implements CallFrameBoundS
     }
 
     @Override
+    public Object getUnion(int slot) {
+        return inner.getUnion(slot);
+    }
+
+    @Override
+    public void setUnion(int slot, Object value) {
+        inner.setUnion(slot, value);
+    }
+
+    @Override
+    public BigDecimal getDecimal(int slot) {
+        return inner.getDecimal(slot);
+    }
+
+    @Override
+    public void setDecimal(int slot, BigDecimal value) {
+        inner.setDecimal(slot, value);
+    }
+
+    @Override
     public Instance<?> getObject(int slot) {
         return inner.getObject(slot);
     }
@@ -172,6 +194,11 @@ public class CallFrameBoundSlotsImpl<T extends Slots> implements CallFrameBoundS
     @Override
     public void incDouble(int slot, double value) {
         inner.incDouble(slot, value);
+    }
+
+    @Override
+    public void incDecimal(int slot, BigDecimal value) {
+        inner.incDecimal(slot, value);
     }
 
     @Override

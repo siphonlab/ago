@@ -34,7 +34,7 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     public static String composeArrayTypeName(ClassDef componentType) {
-        return "[" + componentType.getName();
+        return componentType.getName() + "[]";
     }
 
     private ClassDef elementType;
@@ -74,11 +74,6 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public Root getRoot() {
-        return root;
-    }
-
-    @Override
     public void inheritsChildClasses() throws CompilationError {
         super.inheritsChildClasses();
         this.setCompilingStage(CompilingStage.Compiled);
@@ -104,16 +99,6 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
             return this;
         }
         return cloneForInstantiate(arguments, (ClassContainer) this.parent, returnExisted);
-    }
-
-    @Override
-    public void setMetaClassDef(MetaClassDef metaClassDef) {
-        super.setMetaClassDef(metaClassDef);
-    }
-
-    @Override
-    void instantiateHierarchy() throws CompilationError {
-        super.instantiateHierarchy();
     }
 
     @Override

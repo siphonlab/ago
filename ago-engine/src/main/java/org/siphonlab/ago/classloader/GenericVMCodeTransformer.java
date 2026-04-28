@@ -28,6 +28,7 @@ import static org.siphonlab.ago.AgoClass.TYPE_INTERFACE;
 import static org.siphonlab.ago.AgoClass.TYPE_TRAIT;
 import static org.siphonlab.ago.TypeCode.GENERIC_TYPE_START;
 import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
+import static org.siphonlab.ago.opcode.Const.const_ng_v;
 
 public class GenericVMCodeTransformer {
 
@@ -55,11 +56,22 @@ public class GenericVMCodeTransformer {
 //                    case Load.loadcls_vC:
 //                    case Load.bindcls_vCo:
 //                    case Load.bindcls_scope_vCc:
+                case Const.OP:{
+                    if((instruction & const_ng_v) == const_ng_v || (instruction & Const.const_fld_nu_ov) == Const.const_fld_nu_ov){
+                        var type = OpCode.extractType(instruction);
+                        if(type >= GENERIC_TYPE_START){
+                            int instruction2 = instruction & OpCode.DTYPE_MASK_NEG;
+                            code.putInt(code.position() - 4, instruction2 | (instantiationArguments.mapTypeCode(type) << 16));
+                        }
+                    }
+                    break;
+                }
+
                 case Move.OP:
                 case Array.OP:
                 case Accept.OP:
                 case Return.OP: {
-                    var type = (instruction & OpCode.DTYPE_MASK) >> 16;
+                    var type = OpCode.extractType(instruction);
                     if (type >= GENERIC_TYPE_START) {
                         int instruction2 = instruction & OpCode.DTYPE_MASK_NEG;
                         switch (instruction2) {
@@ -184,13 +196,13 @@ public class GenericVMCodeTransformer {
                 case InstanceOf.OP: {
                     var type = (instruction & OpCode.DTYPE_MASK) >> 16;
                     if (type >= GENERIC_TYPE_START) {
-                        var typeDesc = instantiationArguments.mapType(type);
-                        int instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (typeDesc.getTypeCode().value << 16);
+                        var mappedType = instantiationArguments.mapType(type);
+                        int instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (mappedType.getTypeCode().value << 16);
                         replaceWithInstruction(code, instruction2);
-                        if(typeDesc.getTypeCode().isObject()){
+                        if(mappedType.getTypeCode().isObject() || mappedType.getTypeCode() == TypeCode.UNION){
                             instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                         }
-                    } else if(type == TypeCode.OBJECT_VALUE){
+                    } else if(type == TypeCode.OBJECT_VALUE || type == TypeCode.UNION_VALUE){
                         instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                     }
                     break;

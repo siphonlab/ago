@@ -54,6 +54,12 @@ public class Subtract {
     public static final int sub_d_vvv   = 0x13_07_04_03;
     public static final int sub_d_vcv   = 0x13_07_05_04;
 
+    public static final int sub_D_vc    = 0x13_0d_01_03;
+    public static final int sub_D_vvc   = 0x13_0d_02_04;
+    public static final int sub_D_vv    = 0x13_0d_03_02;
+    public static final int sub_D_vvv   = 0x13_0d_04_03;
+    public static final int sub_D_vcv   = 0x13_0d_05_04;
+
     public static final int sub_b_vc    = 0x13_08_01_02;
     public static final int sub_b_vvc   = 0x13_08_02_03;
     public static final int sub_b_vv    = 0x13_08_03_02;
@@ -92,6 +98,12 @@ public class Subtract {
             case 0x13_07_03_02 ->    "sub_d_vv";
             case 0x13_07_04_03 ->    "sub_d_vvv";
             case 0x13_07_05_04 ->  "sub_d_vcv";
+
+            case sub_D_vc -> "sub_D_vc";
+            case sub_D_vvc -> "sub_D_vvc";
+            case sub_D_vv -> "sub_D_vv";
+            case sub_D_vvv -> "sub_D_vvv";
+            case sub_D_vcv -> "sub_D_vcv";
 
             case 0x13_08_01_02 ->  "sub_b_vc";
             case 0x13_08_02_03 ->  "sub_b_vvc";

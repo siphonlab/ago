@@ -18,6 +18,8 @@ package org.siphonlab.ago.vertx;
 import io.vertx.core.impl.future.FutureImpl;
 import org.siphonlab.ago.*;
 
+import java.math.BigDecimal;
+
 import static org.siphonlab.ago.TypeCode.*;
 
 public class CallFrameAsFuture<T> extends FutureImpl<T> implements CallFrameStateHandler<T>{
@@ -43,6 +45,8 @@ public class CallFrameAsFuture<T> extends FutureImpl<T> implements CallFrameStat
                 return new CallFrameAsFuture<Float>();
             case DOUBLE_VALUE:
                 return new CallFrameAsFuture<Double>();
+            case DECIMAL_VALUE:
+                return new CallFrameAsFuture<BigDecimal>();
             case BOOLEAN_VALUE:
                 return new CallFrameAsFuture<Boolean>();
             case STRING_VALUE:
@@ -55,6 +59,8 @@ public class CallFrameAsFuture<T> extends FutureImpl<T> implements CallFrameStat
                 return new CallFrameAsFuture<Character>();
             case OBJECT_VALUE:
                 return new CallFrameAsFuture<Instance<?>>();
+            case UNION_VALUE:
+                return new CallFrameAsFuture<Object>();
             case NULL_VALUE:
                 throw new UnsupportedOperationException("null??");
             case CLASS_REF_VALUE:

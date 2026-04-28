@@ -46,11 +46,11 @@ public abstract class SelfOpExpr extends ExpressionInFunctionBody {
                 field.simplify(blockCompiler);
                 blockCompiler.lockRegister(field.getBaseVar());
                 var temp = localVar != null ? localVar : blockCompiler.acquireTempVar(this);
-                expr(field, value).outputToLocalVar(temp, blockCompiler);
+                expr(field, value).transform().outputToLocalVar(temp, blockCompiler);
                 ownerFunction.assign(field, temp).termVisit(blockCompiler);
                 blockCompiler.releaseRegister(field.getBaseVar());
             } else if (site instanceof Var.LocalVar var) {
-                expr(var, value).outputToLocalVar(var, blockCompiler);
+                expr(var, value).transform().outputToLocalVar(var, blockCompiler);
                 if (localVar != null && localVar != var) {
                     ownerFunction.assign(localVar, var).termVisit(blockCompiler);
                 }
@@ -61,7 +61,7 @@ public abstract class SelfOpExpr extends ExpressionInFunctionBody {
                 var index = collectionElement.getProcessedIndex();
                 blockCompiler.lockRegister(index);
                 var expr = expr(old, value);
-                var r = expr.setSourceLocation(this.sourceLocation).visit(blockCompiler);
+                var r = expr.setSourceLocation(this.sourceLocation).transform().visit(blockCompiler);
                 collectionElement.toPutElement(arr, index, r, ownerFunction).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                 blockCompiler.releaseRegister(arr);
                 blockCompiler.releaseRegister(index);
@@ -71,8 +71,8 @@ public abstract class SelfOpExpr extends ExpressionInFunctionBody {
             } else if (site instanceof Attribute attribute) {
                 var got = attribute.visit(blockCompiler);
                 blockCompiler.lockRegister(attribute.getProcessedScope());
-                var expr = expr(got, value).visit(blockCompiler);
-                var r = expr.setSourceLocation(this.sourceLocation).visit(blockCompiler);
+                var expr = expr(got, value);
+                var r = expr.setSourceLocation(this.sourceLocation).transform().visit(blockCompiler);
                 attribute.setValue(ownerFunction, r).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                 blockCompiler.releaseRegister(attribute.getProcessedScope());
                 if (localVar != null) {

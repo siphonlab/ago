@@ -249,11 +249,11 @@ class ArrayIterator<T> with Iterator<T>{
 
 abstract class Enum<T>{
     metaclass{
-        fun valueOf(t as T) as Enum<T>{     // metaclass cannot be abstract, even the instance class is abstract
+        fun valueOf(t as T) as Enum<T>? {     // metaclass cannot be abstract, even the instance class is abstract
             return null;
         }
 
-        fun parse(s as string) as Enum<T>{
+        fun parse(s as string) as Enum<T>? {
             return null;
         }
     }
@@ -285,31 +285,37 @@ interface Iterable<+T> {
 
 class Trace{
     metaclass{
-        final fun print#int(number as int) native "org.siphonlab.ago.lang.Trace.print_int";
+        final fun print#int(number as int?) native "org.siphonlab.ago.lang.Trace.print_int";
 
-        final fun print#str(text as string) native "org.siphonlab.ago.lang.Trace.print_str";
+        final fun print#str(text as string?) native "org.siphonlab.ago.lang.Trace.print_str";
 
-        final fun print#long(number as long) native "org.siphonlab.ago.lang.Trace.print_long";
+        final fun print#long(number as long?) native "org.siphonlab.ago.lang.Trace.print_long";
 
-        final fun print#double(number as double) native "org.siphonlab.ago.lang.Trace.print_double";
+        final fun print#double(number as double?) native "org.siphonlab.ago.lang.Trace.print_double";
 
-        final fun print#char(number as char) native "org.siphonlab.ago.lang.Trace.print_char";
+        final fun print#decimal(number as decimal?) native "org.siphonlab.ago.lang.Trace.print_decimal";
 
-        final fun print#short(number as short) native "org.siphonlab.ago.lang.Trace.print_short";
+        final fun print#char(number as char?) native "org.siphonlab.ago.lang.Trace.print_char";
 
-        final fun print#byte(number as byte) native "org.siphonlab.ago.lang.Trace.print_byte";
+        final fun print#short(number as short?) native "org.siphonlab.ago.lang.Trace.print_short";
 
-        final fun print#float(number as float) native "org.siphonlab.ago.lang.Trace.print_float";
+        final fun print#byte(number as byte?) native "org.siphonlab.ago.lang.Trace.print_byte";
 
-        final fun print#obj(obj as Object){
-            if(obj == null)
-                print#str("null")
-            else
+        final fun print#float(number as float?) native "org.siphonlab.ago.lang.Trace.print_float";
+
+        final fun print#obj(obj as Object?){
+            if(obj == null){
+                print#str("null");
+            } else {
                 print#str(obj.toString())
+            }
         }
 
-        final fun print#b(v as boolean){
-            print#str("true" if v else "false")
+        final fun print#b(v as boolean?){
+            if(v == null)
+                print#str("null");
+            else
+                print#str("true" if v else "false")
         }
     }
 }

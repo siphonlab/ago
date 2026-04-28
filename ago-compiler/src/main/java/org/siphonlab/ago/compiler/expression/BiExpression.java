@@ -27,8 +27,8 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
 
     protected BiExpression(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
         super(ownerFunction);
-        this.left = left.transform();
-        this.right = right.transform();
+        this.left = left;
+        this.right = right;
         this.left.setParent(this);
         this.right.setParent(this);
     }
@@ -38,6 +38,8 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
     public Expression transformInner() throws CompilationError {
         if(transformed) return this;
 
+        var left = this.left.transform();
+        var right = this.right.transform();
         CastStrategy.UnifyTypeResult unifyTypeResult = new CastStrategy(ownerFunction, getSourceLocation(), false).unifyTypes(left, right);
         var l = unifyTypeResult.left();
         var r = unifyTypeResult.right();
@@ -54,47 +56,6 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
         }
         transformed = true;
         return this;
-
-//        ClassDef t1 = left.inferType();
-//        ClassDef t2 = right.inferType();
-//        Expression l = left, r = right;
-//        if(t1.isPrimitiveOrBoxed() && t2.isPrimitiveOrBoxed()){
-//            boolean unboxed = false;
-//            if(!t1.isPrimitive()) {
-//                l = new Unbox(l);
-//                t1 = l.inferType();
-//                unboxed = true;
-//            }
-//            if(!t2.isPrimitive()) {
-//                r = new Unbox(r);
-//                t2 = r.inferType();
-//                unboxed = true;
-//            }
-//
-//            if(t1 == t2) {
-//                if(unboxed){
-//                    return transformUnboxed(l,r).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
-//                }
-//                return processLiterals();
-//            }
-//            if(t1 == PrimitiveClassDef.STRING && t2 == PrimitiveClassDef.INT){
-//                return this;
-//            }
-//
-//            // unify type
-//            var resultType = t2.getTypeCode().isHigherThan(t1.getTypeCode()) ? unifyPrimitiveType(t1, t2) : unifyPrimitiveType(t2, t1);
-//            if(resultType != t1) l = ownerFunction.cast(l, resultType);
-//            if(resultType != t2) r = ownerFunction.cast(r, resultType);
-//            this.left = l.transform();
-//            this.right = r.transform();
-//            return processLiterals();
-//        }
-//        if(t1.isGenericType() && t1.isPrimitiveFamily() && t2.isGenericType() && t2.isPrimitiveFamily()){
-//            if(t1.getTypeCode() != t2.getTypeCode()){
-//                throw new TypeMismatchError("generic type values must have same type",this.getSourceLocation());
-//            }
-//        }
-//        return this;
     }
 
     protected abstract Expression transformUnboxed(Expression left, Expression right) throws CompilationError;
@@ -104,9 +65,19 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
         try {
             blockCompiler.enter(this);
 
-            TermExpression left = this.left.visit(blockCompiler);
+            TermExpression left;
+            if(!(this.left instanceof NullableValue.NonNullPlaceHolder n)) {
+                left = this.left.visit(blockCompiler);
+            } else {
+                left = n.getNullableValue().visit(blockCompiler);
+            }
             blockCompiler.lockRegister(left);
-            TermExpression right = this.right.visit(blockCompiler);
+            TermExpression right;
+            if(!(this.right instanceof NullableValue.NonNullPlaceHolder n)){
+                right = this.right.visit(blockCompiler);
+            } else {
+                right = n.getNullableValue().visit(blockCompiler);
+            }
             blockCompiler.releaseRegister(left);
             if (left instanceof Literal<?> literal1 && right instanceof Literal<?> literal2) {
                 return processTwoLiteralsInner(literal1, literal2);
@@ -114,6 +85,7 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
 
             Var.LocalVar tempVar = blockCompiler.acquireTempVar(this);
             outputToLocalVar(tempVar, left, right, blockCompiler);
+
             return tempVar;
         } catch (CompilationError e) {
             throw e;
@@ -129,7 +101,7 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
         this.right.termVisit(blockCompiler);
     }
 
-    private void outputToLocalVar(Var.LocalVar localVar, TermExpression evaluatedLeft, TermExpression evaluatedRight, BlockCompiler blockCompiler) throws CompilationError {
+    protected void outputToLocalVar(Var.LocalVar localVar, TermExpression evaluatedLeft, TermExpression evaluatedRight, BlockCompiler blockCompiler) throws CompilationError {
         if(evaluatedLeft instanceof Literal<?> literal1){
             processLeftLiteral(localVar, literal1, (Var.LocalVar) evaluatedRight, blockCompiler);
         } else if(evaluatedRight instanceof Literal<?> literal){

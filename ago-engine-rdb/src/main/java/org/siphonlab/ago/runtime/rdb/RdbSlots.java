@@ -19,6 +19,7 @@ import org.agrona.collections.IntHashSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.*;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 public class RdbSlots implements Slots {
@@ -33,7 +34,7 @@ public class RdbSlots implements Slots {
     private Set<Instance<?>> detachedInstances = null;
 
     private long id;
-    private Pair<Instance<?>, Integer>[] objectSlots;
+    private ObjectSlot[] objectSlots;
 
     protected boolean restoring = false;    // when restoring, don't change state and don't collect change log
 
@@ -149,9 +150,47 @@ public class RdbSlots implements Slots {
         baseSlots.setString(slot, value);
     }
 
+    @Override
+    public void setDecimal(int slot, BigDecimal value) {
+        if (!Objects.equals(value, this.getString(slot))) {
+            collectChangedSlot(slot);
+        }
+        baseSlots.setDecimal(slot, value);
+    }
+
+    @Override
+    public BigDecimal getDecimal(int slot) {
+        return baseSlots.getDecimal(slot);
+    }
+
     public void allocateObjectSlots(int slotDefsLength){
         if(this.objectSlots == null || this.objectSlots.length < slotDefsLength)
-            this.objectSlots = new Pair[slotDefsLength];
+            this.objectSlots = new ObjectSlot[slotDefsLength];
+    }
+
+    @Override
+    public void setUnion(int slot, Object value) {
+        if(!restoring) {
+            Object prev = baseSlots.getUnion(slot);
+            if (!Objects.equals(prev, value)) {
+                collectChangedSlot(slot);
+                if (value instanceof Instance<?> instance) {
+                    if (this.usingInstances == null) {
+                        this.usingInstances = new HashSet<>();
+                    }
+                    usingInstances.add(instance);
+                }
+                if (prev instanceof Instance<?> instance) {
+                    if (this.detachedInstances == null) {
+                        this.detachedInstances = new HashSet<>();
+                    }
+                    detachedInstances.add(instance);
+                }
+            }
+        }
+        baseSlots.setUnion(slot, value);
+        if(value instanceof Instance<?> instance)
+            this.objectSlots[slot] = new ObjectSlot(slot, instance, true);
     }
 
     @Override
@@ -175,11 +214,15 @@ public class RdbSlots implements Slots {
             }
         }
         baseSlots.setObject(slot, value);
-        this.objectSlots[slot] = Pair.of(value, slot);
+        this.objectSlots[slot] = new ObjectSlot(slot, value, false);
     }
 
-    public Pair<Instance<?>, Integer>[] getObjectSlots() {
+    public ObjectSlot[] getObjectSlots() {
         return objectSlots;
+    }
+
+    public record ObjectSlot(int slot, Instance<?> value, boolean isUnion){
+
     }
 
     public void clearDetachedInstances(){
@@ -213,6 +256,12 @@ public class RdbSlots implements Slots {
     }
 
     @Override
+    public void incDecimal(int slot, BigDecimal value) {
+        if (!restoring) collectChangedSlot(slot);
+        baseSlots.incDecimal(slot, value);
+    }
+
+    @Override
     public void incByte(int slot, byte value) {
         if (!restoring) collectChangedSlot(slot);
         baseSlots.incByte(slot, value);
@@ -237,6 +286,9 @@ public class RdbSlots implements Slots {
         }
         if (clazz == double.class) {
             return getDouble(slotIndex);
+        }
+        if (clazz == BigDecimal.class) {
+            return getDecimal(slotIndex);
         }
         if (clazz == String.class) {
             return getString(slotIndex);

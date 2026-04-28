@@ -23,6 +23,7 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -172,6 +173,7 @@ public class AgoHashMap {
                 case LONG_VALUE:    callFrame.finishLong((Long) v);      break;
                 case FLOAT_VALUE:   callFrame.finishFloat((Float) v);    break;
                 case DOUBLE_VALUE:  callFrame.finishDouble((Double) v);  break;
+                case DECIMAL_VALUE: callFrame.finishDecimal((BigDecimal) v);  break;
                 case BOOLEAN_VALUE: callFrame.finishBoolean((Boolean) v);break;
                 case STRING_VALUE:  callFrame.finishString((String) v);  break;
                 case SHORT_VALUE:   callFrame.finishShort((Short) v);    break;
@@ -189,6 +191,10 @@ public class AgoHashMap {
 
                 case OBJECT_VALUE:
                     callFrame.finishObject((Instance<?>) v);
+                    break;
+
+                case UNION_VALUE:
+                    callFrame.finishUnion(v);
                     break;
             }
         }
@@ -572,7 +578,7 @@ public class AgoHashMap {
                 case BOOLEAN_VALUE:
                     ((BooleanArrayList)ls).add((Integer) v == 1);
                     break;
-                case STRING_VALUE, OBJECT_VALUE:
+                case STRING_VALUE, OBJECT_VALUE, DECIMAL_VALUE, UNION_VALUE:
                     ((java.util.ArrayList<Object>)ls).add(v);
                     break;
                 case SHORT_VALUE:
@@ -619,7 +625,7 @@ public class AgoHashMap {
                 case BOOLEAN_VALUE:
                     ((BooleanArrayList)ls).add((Integer) v == 1);
                     break;
-                case STRING_VALUE, OBJECT_VALUE:
+                case STRING_VALUE, OBJECT_VALUE, DECIMAL_VALUE, UNION_VALUE:
                     ((java.util.ArrayList<Object>)ls).add(v);
                     break;
                 case SHORT_VALUE:
@@ -759,7 +765,9 @@ public class AgoHashMap {
             }
 
             case STRING_VALUE:
-            case OBJECT_VALUE: {
+            case OBJECT_VALUE:
+            case UNION_VALUE:
+            case DECIMAL_VALUE:{
                 @SuppressWarnings("unchecked")
                 var entry = ((Iterator<Map.Entry<Object, Object>>)itObj).next();
                 Object keyObj = entry.getKey();
@@ -767,8 +775,14 @@ public class AgoHashMap {
                     case STRING_VALUE:
                         slots.setString(0, (String) keyObj);
                         break;
+                    case DECIMAL_VALUE:
+                        slots.setDecimal(0, (BigDecimal) keyObj);
+                        break;
                     case OBJECT_VALUE:
                         slots.setObject(0, (Instance<?>)keyObj);
+                        break;
+                    case UNION_VALUE:
+                        slots.setUnion(0, keyObj);
                         break;
                 }
                 writeValue(slots, 1, valueType, entry.getValue());
@@ -795,6 +809,9 @@ public class AgoHashMap {
             case DOUBLE_VALUE:
                 slots.setDouble(index, (Double) val);
                 break;
+            case DECIMAL_VALUE:
+                slots.setDecimal(index, (BigDecimal) val);
+                break;
             case BOOLEAN_VALUE:
                 slots.setBoolean(index, (Boolean) val);
                 break;
@@ -812,6 +829,9 @@ public class AgoHashMap {
                 break;
             case OBJECT_VALUE:
                 slots.setObject(index, (Instance<?>) val);
+                break;
+            case UNION_VALUE:
+                slots.setUnion(index, val);
                 break;
             case CLASS_REF_VALUE:
                 slots.setClassRef(index, (Integer) val);

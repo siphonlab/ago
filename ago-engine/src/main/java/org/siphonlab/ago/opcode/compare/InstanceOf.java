@@ -32,6 +32,7 @@ public class InstanceOf implements GenericOpCode {
     public static final int instanceof_c_vv = 0x31_05_01_03;
     public static final int instanceof_f_vv = 0x31_06_01_03;
     public static final int instanceof_d_vv = 0x31_07_01_03;
+    public static final int instanceof_D_vv = 0x31_0d_01_03;
     public static final int instanceof_b_vv = 0x31_08_01_03;
     public static final int instanceof_s_vv = 0x31_09_01_03;
     public static final int instanceof_l_vv = 0x31_0b_01_03;
@@ -58,6 +59,7 @@ public class InstanceOf implements GenericOpCode {
             case instanceof_o_vvC -> "instanceof_o_vvC";
             case instanceof_g_vvC -> "instanceof_g_vvC";
             case instanceof_p_vvC -> "instanceof_p_vvC";
+            case instanceof_D_vv -> "instanceof_D_vv";
 
             default -> {
                 throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));

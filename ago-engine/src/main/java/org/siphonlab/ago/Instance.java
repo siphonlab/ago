@@ -15,6 +15,9 @@
  */
 package org.siphonlab.ago;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
+
 /*
     Instance 是 AgoClass 的 ago 实例, 不是 AgoClass 的 Java 实例. AgoClass 的实例相当于 Class<T>
  */
@@ -59,11 +62,13 @@ public class Instance<C extends AgoClass>  {
         return "Instance" + "@" + this.agoClass;
     }
 
-    public Object invokeMethod(CallFrame<?> caller, AgoFunction method, Object... arguments) {
+    public CompletableFuture<Object> invokeMethod(CallFrame<?> caller, AgoFunction method, Object... arguments) {
         return invokeMethod(caller,caller.getRunSpace(),method, arguments);
     }
-    public Object invokeMethod(CallFrame<?> caller, RunSpace runSpace, AgoFunction method, Object... arguments){
+    public CompletableFuture<Object> invokeMethod(CallFrame<?> caller, RunSpace runSpace, AgoFunction method, Object... arguments){
         CallFrame<?> callFrame = runSpace.getAgoEngine().createFunctionInstance(this, method, caller, caller);
+        callFrame.setCaller(caller);
+        callFrame.setRunSpace(runSpace);
         for (int i = 0; i < arguments.length; i++) {
             Object argument = arguments[i];
             if(argument instanceof Integer integer) {
@@ -90,7 +95,22 @@ public class Instance<C extends AgoClass>  {
                 callFrame.getSlots().setObject(i, null);
             }
         }
-        return runSpace.awaitTillComplete(callFrame);
+        runSpace.setCurrCallFrame(callFrame);
+        var future = new CompletableFuture<Object>();
+        callFrame.stateHandler = new CallFrameStateHandler<Object>() {
+            @Override
+            public boolean complete(Object result) {
+                future.complete(result);
+                return false;
+            }
+
+            @Override
+            public boolean fail(Throwable cause) {
+                future.completeExceptionally(cause);
+                return false;
+            }
+        };
+        return future;
     }
 
 //    public void run(Instance<?> instance, String functionName, Object... arguments) throws ClassNotFoundException {

@@ -19,6 +19,8 @@ import org.siphonlab.ago.compiler.Root;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
+import java.math.BigDecimal;
+
 public class LiteralParser {
     /**
      * Parse a JavaScript string literal, handling escape sequences,
@@ -170,11 +172,16 @@ public class LiteralParser {
         // Detect and strip optional suffix (f/F/d/D)
         char last = text.charAt(text.length() - 1);
         boolean isFloat = false;
-        if (last == 'f' || last == 'F') {
+        boolean isDouble = true;
+        if (last == 'f') {
             isFloat = true;
             text = text.substring(0, text.length() - 1);
-        } else if (last == 'd' || last == 'D') {
+        } else if (last == 'd') {
             // explicit double suffix – no change needed
+            isDouble = true;
+            text = text.substring(0, text.length() - 1);
+        } else if(last == 'D'){
+            isDouble = false;
             text = text.substring(0, text.length() - 1);
         }
 
@@ -187,13 +194,17 @@ public class LiteralParser {
                 // Java's Double.parseDouble understands hex floats
                 if (isFloat)
                     return Float.parseFloat(text);
-                return Double.parseDouble(text);
+                if(isDouble)
+                    return Double.parseDouble(text);
+                return new BigDecimal(Double.parseDouble(text));
             } else {
                 // Decimal float
 //                double val = Double.parseDouble(text);
                 if (isFloat)
                     return Float.parseFloat(text);
-                return Double.parseDouble(text);
+                if(isDouble)
+                    return Double.parseDouble(text);
+                return new BigDecimal(text);
             }
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("invalid float literal: " + text, e);

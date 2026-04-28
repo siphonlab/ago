@@ -1,0 +1,40 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+fun main(){
+    testIfElse();
+}
+
+fun testIfElse(){
+    var b as boolean? = true;
+    var b2 as boolean? = false;
+    var b3 as boolean? = null;
+
+    Trace.print("yes" if b else "no");      // yes
+    Trace.print("yes" if b2 else "no");     // no
+    Trace.print("yes" if b3 else "no");     // no
+
+    Trace.print("no" if not b else "yes");      // yes
+    Trace.print("no" if not b2 else "yes");     // no
+    Trace.print("no" if not b3 else "yes");     // no
+
+    var i as int? = 2026;
+    var n as int? = null;
+
+    Trace.print("hello " + (i + 1) if i else "no");      // yes
+    Trace.print("hello " + (n + 1) if n else "no");      // no
+    Trace.print("no" if not i else "hello " + (i + 1));      // yes
+    Trace.print("no" if not n else "hello " + (n + 1));      // no
+}

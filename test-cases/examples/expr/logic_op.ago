@@ -4,12 +4,12 @@ class Animal{
     }
 }
 
-fun foo() as Animal{
+fun foo() as Animal?{
     Trace.print("foo got null")
     return null;
 }
 
-fun bar() as Animal{
+fun bar() as Animal?{
     Trace.print("bar got animal")
     return new Animal();
 }
@@ -17,14 +17,14 @@ fun bar() as Animal{
 
 fun testOrObject(){
     var r = foo() or bar();     // invoke foo and bar
-    r.bark()
+    r?.bark()
 
     var r2 = bar() or foo();        // only invoke bar
-    r2.bark()
+    r2?.bark()
 
     var r3 = foo()
     r3 or= bar()
-    r3.bark()
+    r3?.bark()
 }
 
 fun testAndObject(){
@@ -70,7 +70,7 @@ fun testOrLiteral(){
 fun andFun(){
     var b = f() and true    // invoke f
     Trace.print(b)
-    b = t() and false       // direct return false
+    b = t() and false       // t() must invoked even the result is known false
     Trace.print(b)
 
     b = f() and t()     // invoke f, skip t
@@ -100,12 +100,12 @@ class Staff{
 
 fun testComposite(){
     var s = new Staff()
-    s.b1 = t()
-    s.b1 and= f()
-    Trace.print(s.b1)
-    s.b1 or= t()
-    Trace.print(s.b1)
+    s.b1 = t()              // invoke t
+    s.b1 and= f()           // invoke f
+    Trace.print(s.b1)       // false
 
+    s.b1 or= t()            // invoke t
+    Trace.print(s.b1)       // true
 
     s.b2 = t()
     s.b2 and= f()

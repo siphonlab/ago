@@ -15,6 +15,10 @@
  */
 package org.siphonlab.ago;
 
+import org.siphonlab.ago.classloader.ClassRefValue;
+
+import java.math.BigDecimal;
+
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
 import static org.siphonlab.ago.TypeCode.CLASS_REF_VALUE;
@@ -38,6 +42,7 @@ public class Boxer {
     private final AgoClass BOOLEAN;
     private final AgoClass FLOAT;
     private final AgoClass DOUBLE;
+    private final AgoClass DECIMAL;
 
     private AgoEngine engine;
 
@@ -53,6 +58,7 @@ public class Boxer {
         this.BOOLEAN = langClasses.getBooleanClass();
         this.FLOAT = langClasses.getFloatClass();
         this.DOUBLE = langClasses.getDoubleClass();
+        this.DECIMAL = langClasses.getDecimalClass();
     }
 
     public boolean isNarrowBoxType(AgoClass agoClass){
@@ -109,6 +115,15 @@ public class Boxer {
         return instance;
     }
 
+    public Instance<?> boxClassRef(ClassRefValue classRef) {
+        var instance = new Instance<>(CLASS_REF.createSlots(), CLASS_REF);
+        AgoClass aClass = engine.getClass(classRef.className());
+        instance.slots.setClassRef(0, aClass.getClassId());
+        instance.slots.setObject(1, aClass);
+        return instance;
+    }
+
+
     public Instance<?> boxString(String s) {
         var instance = new Instance<>(STRING.createSlots(), STRING);
         instance.slots.setString(0, s);
@@ -133,6 +148,12 @@ public class Boxer {
         return instance;
     }
 
+    public Instance<?> boxDecimal(BigDecimal d) {
+        var instance = new Instance<>(DECIMAL.createSlots(), DECIMAL);
+        instance.slots.setDecimal(0, d);
+        return instance;
+    }
+
     public Instance<?> boxClassRef(int classRef, AgoClass classRefClass) {
         var instance = new Instance<>(classRefClass.createSlots(), classRefClass);
         instance.slots.setClassRef(0, classRef);
@@ -150,6 +171,8 @@ public class Boxer {
                 return boxFloat(slots.getFloat(slotIndex));
             case DOUBLE_VALUE:
                 return boxDouble(slots.getDouble(slotIndex));
+            case DECIMAL_VALUE:
+                return boxDecimal(slots.getDecimal(slotIndex));
             case BOOLEAN_VALUE:
                 return boxBoolean(slots.getBoolean(slotIndex));
             case STRING_VALUE:
@@ -162,13 +185,37 @@ public class Boxer {
                 return boxChar(slots.getChar(slotIndex));
             case OBJECT_VALUE:
                 return slots.getObject(slotIndex);
+            case UNION_VALUE:
+                Object union = slots.getUnion(slotIndex);
+                return unionToObject(union);
             case NULL_VALUE:
-                throw new UnsupportedOperationException("null??");
+                return null;
             case CLASS_REF_VALUE:
                 return boxClassRef(slots.getClassRef(slotIndex));
         }
 
         throw new UnsupportedOperationException("'%s' is not primitive type".formatted(slotDef));
+    }
+
+    public Instance<?> unionToObject(Object union) {
+        int unionType = Union.extractUnionType(union).value;
+        return switch (unionType) {
+            case INT_VALUE -> boxInt((Integer) union);
+            case LONG_VALUE -> boxLong((Long) union);
+            case FLOAT_VALUE -> boxFloat((Float) union);
+            case DOUBLE_VALUE -> boxDouble((Double) union);
+            case DECIMAL_VALUE -> boxDecimal((BigDecimal) union);
+            case BOOLEAN_VALUE -> boxBoolean((Boolean) union);
+            case STRING_VALUE -> boxString((String) union);
+            case SHORT_VALUE -> boxShort((Short) union);
+            case BYTE_VALUE -> boxByte((Byte) union);
+            case CHAR_VALUE -> boxChar((Character) union);
+            case OBJECT_VALUE -> (Instance<?>) union;
+            case UNION_VALUE -> throw new IllegalArgumentException("nested union type not supported");
+            case NULL_VALUE -> null;
+            case CLASS_REF_VALUE -> boxClassRef((ClassRefValue) union);
+            default -> throw new IllegalArgumentException("unsupported union type: " + union);
+        };
     }
 
 
@@ -186,6 +233,7 @@ public class Boxer {
             case LONG_VALUE -> agoClass.isThatOrDerivedFrom(this.LONG);
             case BOOLEAN_VALUE -> agoClass.isThatOrDerivedFrom(this.BOOLEAN);
             case DOUBLE_VALUE -> agoClass.isThatOrDerivedFrom(this.DOUBLE);
+            case DECIMAL_VALUE -> agoClass.isThatOrDerivedFrom(this.DECIMAL);
             case BYTE_VALUE -> agoClass.isThatOrDerivedFrom(this.BYTE);
             case FLOAT_VALUE -> agoClass.isThatOrDerivedFrom(this.FLOAT);
             case CHAR_VALUE -> agoClass.isThatOrDerivedFrom(this.CHAR);
@@ -220,6 +268,9 @@ public class Boxer {
             case DOUBLE_VALUE:
                 slots.setDouble(receiverIndex, object.slots.getDouble(0));
                 break;
+            case DECIMAL_VALUE:
+                slots.setDecimal(receiverIndex, object.slots.getDecimal(0));
+                break;
             case BYTE_VALUE:
                 slots.setByte(receiverIndex, object.slots.getByte(0));
                 break;
@@ -232,6 +283,8 @@ public class Boxer {
             case OBJECT_VALUE:
                 slots.setObject(receiverIndex, object.slots.getObject(0));
                 break;
+            case UNION_VALUE:
+                throw new UnsupportedOperationException("TODO");
             case NULL_VALUE:
                 slots.setObject(receiverIndex, null);
             case STRING_VALUE:
@@ -255,6 +308,8 @@ public class Boxer {
                 return boxBoolean(slots.getBoolean(slotIndex));
             case DOUBLE_VALUE:
                 return boxDouble(slots.getDouble(slotIndex));
+            case DECIMAL_VALUE:
+                return boxDecimal(slots.getDecimal(slotIndex));
             case BYTE_VALUE:
                 return boxByte(slots.getByte(slotIndex));
             case FLOAT_VALUE:
@@ -284,6 +339,12 @@ public class Boxer {
     public Instance<?> boxDouble(CallFrame<?> callFrame, AgoClass agoClass, double value) {
         Instance<?> instance = engine.createInstance(agoClass,callFrame);
         instance.slots.setDouble(0, value);
+        return instance;
+    }
+
+    public Instance<?> boxDecimal(CallFrame<?> callFrame, AgoClass agoClass, BigDecimal value) {
+        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        instance.slots.setDecimal(0, value);
         return instance;
     }
 

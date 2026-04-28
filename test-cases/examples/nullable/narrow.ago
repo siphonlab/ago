@@ -1,0 +1,57 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+fun main(){
+    var i as int? = 2026;
+    var j = 2025;
+
+    if(i != null){
+        i++;                // here i is int
+        Trace.print(i);
+    }
+
+    if(i != null and i > j){     // here i is int
+        i++;
+        Trace.print(i);     // 2007. i++ didn't involve the original nullable i
+    }
+
+    if(i == null){
+        //
+    } else {
+        i += 2;         // 2028
+        Trace.print(i);
+    }
+
+    var n as int? = 2027
+    if(i == null or n == null){
+        //
+    } else {
+        Trace.print(i + 1)  // 2027
+        Trace.print(n + 1)  // 2028
+    }
+
+
+    if((i != null) == false){
+
+    } else {
+        Trace.print(i);     // 2026
+    }
+// TODO return shortcut
+//    if(i == null) return;
+//
+//    i++;
+//    Trace.print(i);
+
+}

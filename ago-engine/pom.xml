@@ -34,12 +34,6 @@
     </parent>
 
     <dependencies>
-        <dependency>
-            <groupId>io.activej</groupId>
-            <artifactId>activej</artifactId>
-            <version>5.1.1</version>
-            <type>pom</type>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/org.cojen/cojen-maker -->
         <dependency>
             <groupId>org.cojen</groupId>

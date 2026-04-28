@@ -54,7 +54,7 @@ public class Attribute extends ExpressionInFunctionBody implements Assign.Assign
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         if(this.processedScope == null) this.processedScope = (Var.LocalVar) this.scope.visit(blockCompiler);
         blockCompiler.lockRegister(this.processedScope);
-        ownerFunction.invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(ownerFunction, this.processedScope, getter), new ArrayList<>(), this.sourceLocation).outputToLocalVar(localVar, blockCompiler);
+        ownerFunction.invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(ownerFunction, this.processedScope, getter), new ArrayList<>(), this.sourceLocation).transform().outputToLocalVar(localVar, blockCompiler);
         blockCompiler.releaseRegister(this.processedScope);
     }
 
@@ -100,7 +100,7 @@ public class Attribute extends ExpressionInFunctionBody implements Assign.Assign
                 blockCompiler.lockRegister(attribute.processedScope);
                 var r = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ClassUnder.create(ownerFunction, attribute.scope, attribute.setter),
                             Collections.singletonList(ownerFunction.cast(value, attribute.inferType()).setSourceLocation(value.getSourceLocation()).transform()),
-                            this.sourceLocation).visit(blockCompiler);
+                            this.sourceLocation).transform().visit(blockCompiler);
                 blockCompiler.releaseRegister(attribute.processedScope);
                 return r;
             } catch (CompilationError e) {

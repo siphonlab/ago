@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import java.math.BigDecimal;
+
 public class TypeCode {
     public static final int VOID_VALUE = 0;      // -1 in java
     public static final int OBJECT_VALUE = 1;  // -1 in java
@@ -29,6 +31,8 @@ public class TypeCode {
     public static final int INT_VALUE = 10;
     public static final int LONG_VALUE = 11;
     public static final int CLASS_REF_VALUE = 12;  // 0x0c
+    public static final int DECIMAL_VALUE = 13;  // 0x0d
+    public static final int UNION_VALUE = 14;  // 0x0e
 
     public static final int MAX_VALUE = 0x0f;   // 0 - 0x0f, from 0x10 it's generic type variable index (n-0x10)
     public static final int GENERIC_TYPE_START = 0x10;
@@ -46,6 +50,8 @@ public class TypeCode {
     public static final TypeCode NULL = new TypeCode(NULL_VALUE, "null");
     public static final TypeCode STRING = new TypeCode(STRING_VALUE, "string");
     public static final TypeCode CLASS_REF = new TypeCode(CLASS_REF_VALUE, "classref");
+    public static final TypeCode DECIMAL = new TypeCode(DECIMAL_VALUE, "decimal");
+    public static final TypeCode UNION = new TypeCode(UNION_VALUE, "union");
 
     private final String description;
     public final int value;
@@ -70,6 +76,8 @@ public class TypeCode {
             case 2 -> NULL;
             case 3 -> STRING;
             case 12 -> CLASS_REF;
+            case 13 -> DECIMAL;
+            case 14 -> UNION;
             default -> throw new IllegalArgumentException("Invalid type value: " + value);
         };
     }
@@ -101,6 +109,16 @@ public class TypeCode {
         return value;
     }
 
+
+    public boolean isPrimitive(){
+        return this != OBJECT && this != NULL && this != UNION;
+    }
+
+    public static boolean isPrimitive(int typeCode){
+        return typeCode != OBJECT_VALUE && typeCode != NULL_VALUE && typeCode != UNION_VALUE;
+    }
+
+
     public String toShortString(){
         if (this == VOID) {
             return "V";
@@ -128,6 +146,10 @@ public class TypeCode {
             return "S";
         } else if (this == CLASS_REF) {
             return "C";
+        } else if (this == DECIMAL) {
+            return "D";
+        } else if (this == UNION) {
+            return "u";
         } else if(this.value >= GENERIC_TYPE_START){
             return this.description;
         }
@@ -149,10 +171,12 @@ public class TypeCode {
         } else if (this == CHAR) {
             return TypeCode.BYTE == another;
         } else if (this == DOUBLE) {
+            return another == TypeCode.DECIMAL || another == TypeCode.FLOAT || another == TypeCode.LONG || another == TypeCode.INT || another == TypeCode.SHORT || another == TypeCode.BYTE || another == TypeCode.CHAR;
+        } else if (this == DECIMAL) {
             return another == TypeCode.FLOAT || another == TypeCode.LONG || another == TypeCode.INT || another == TypeCode.SHORT || another == TypeCode.BYTE || another == TypeCode.CHAR;
         } else if (this == FLOAT) {
             return another == TypeCode.INT || another == TypeCode.SHORT || another == TypeCode.BYTE || another == TypeCode.CHAR;
-        } else if (this == STRING) {
+        } else if (this == STRING || this == BOOLEAN) {
             return true;
         } else if (this == OBJECT) {
             return true;
@@ -176,7 +200,7 @@ public class TypeCode {
     }
 
     public boolean isNumber() {
-        return this == INT || this == LONG || this == FLOAT || this == DOUBLE || this == BYTE || this == SHORT;
+        return this == INT || this == LONG || this == FLOAT || this == DOUBLE || this == BYTE || this == SHORT || this == DECIMAL;
     }
 
     public boolean isObjectOrNull(){
@@ -205,6 +229,7 @@ public class TypeCode {
             case TypeCode.DOUBLE_VALUE -> 0.0;
             case TypeCode.STRING_VALUE -> "";
             case TypeCode.CLASS_REF_VALUE -> -1;
+            case TypeCode.DECIMAL_VALUE -> BigDecimal.ZERO;
             default -> null;
         };
     }
@@ -220,6 +245,7 @@ public class TypeCode {
             case TypeCode.DOUBLE_VALUE -> 0.0;
             case TypeCode.STRING_VALUE -> "";
             case TypeCode.CLASS_REF_VALUE -> null;
+            case TypeCode.DECIMAL_VALUE -> BigDecimal.ZERO;
             default -> null;
         };
     }

@@ -264,7 +264,7 @@ typeOfFunction:
  ;
 
 typeOfVariable:
-      AS variableType implementsPhrase?             # AsType
+      AS variableType implementsPhrase?             # AsType            //TODO implementsPhrase
     | AS typeRange                                  # AsTypeRange         // as [Animal to _], as [Function]
     | LIKE namePath                                 # LikeType            // like Animal, like function
     | AS classDeclaration                           # AsClassDecl
@@ -459,7 +459,7 @@ forInit
     ;
 
 enhancedForControl
-    : variableModifiers? identifier (AS declarationType)? IN expression
+    : variableModifiers? identifier (AS variableType)? IN expression
     ;
 
 // EXPRESSIONS
@@ -664,8 +664,9 @@ namePath
 declarationType:    namePath;       // type literal
 
 variableType:       // variable and fileds
-           declarationType (brace = '[' ']')+     #VarTypeArray
+           variableType (brace = '[' ']')+        #VarTypeArray
         |  declarationType                        #VarTypeNormal
+        |  variableType '?'                       #VarTypeNullable
 ;
 
 possibleName
@@ -675,7 +676,7 @@ possibleName
     | primitiveType             #NamePrimitive
 ;
 
-primitiveType: BOOLEAN    | CHAR    | BYTE    | SHORT    | INT    | LONG    | FLOAT    | DOUBLE    | STRING     | VOID  | CLASSREF;
+primitiveType: BOOLEAN    | CHAR    | BYTE    | SHORT    | INT    | LONG    | FLOAT    | DOUBLE    | STRING     | VOID  | CLASSREF | DECIMAL;
 
 pronoun:
     THIS                # ThisPrimary
@@ -692,7 +693,7 @@ parameterizedType: typeIdentifier typeArguments? classCreatorArguments?;
 
 typeRange:    '[' from=typeOrAny (TO to=typeOrAny)? ']';
 
-typeOrAny:  '_' | declarationType;      // _  not works, for it already ate in token IDENTIFIER
+typeOrAny:  '_' | variableType;      // _  not works, for it already ate in token IDENTIFIER
 
 typeArguments:
         '<' '>'                                         #EmptyTypeArgs

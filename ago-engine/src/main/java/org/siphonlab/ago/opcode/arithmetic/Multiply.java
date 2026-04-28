@@ -50,6 +50,11 @@ public class Multiply {
     public static final int mul_d_vv    = 0x15_07_03_02;
     public static final int mul_d_vvv   = 0x15_07_04_03;
 
+    public static final int mul_D_vc    = 0x15_0d_01_03;
+    public static final int mul_D_vvc   = 0x15_0d_02_04;
+    public static final int mul_D_vv    = 0x15_0d_03_02;
+    public static final int mul_D_vvv   = 0x15_0d_04_03;
+
     public static final int mul_b_vc    = 0x15_08_01_02;
     public static final int mul_b_vvc   = 0x15_08_02_03;
     public static final int mul_b_vv    = 0x15_08_03_02;
@@ -85,6 +90,11 @@ public class Multiply {
             case 0x15_07_03_02 ->    "mul_d_vv";
             case 0x15_07_04_03 ->    "mul_d_vvv";
             case 0x15_07_05_04 ->  "mul_d_vcv";
+
+            case mul_D_vc -> "mul_D_vc";
+            case mul_D_vvc -> "mul_D_vvc";
+            case mul_D_vv -> "mul_D_vv";
+            case mul_D_vvv -> "mul_D_vvv";
 
             case 0x15_08_01_02 ->  "mul_b_vc";
             case 0x15_08_02_03 ->  "mul_b_vvc";

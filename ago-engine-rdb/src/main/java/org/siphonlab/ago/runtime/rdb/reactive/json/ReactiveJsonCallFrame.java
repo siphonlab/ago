@@ -145,6 +145,7 @@ public class ReactiveJsonCallFrame extends AgoFrame {
                     case SHORT_VALUE -> (short) code[pc++];
                     case LONG_VALUE -> toLong(code[pc++], code[pc++]);
                     case DOUBLE_VALUE -> toDouble(code[pc++], code[pc++]);
+                    case DECIMAL_VALUE -> toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]);
                     default -> throw new IllegalArgumentException("illegal type " + typeCode);
                 };
                 adapter.selfOp(op, rdbType, slots.getObjectRef(), slots.getFieldName(field), c);
@@ -159,6 +160,7 @@ public class ReactiveJsonCallFrame extends AgoFrame {
                     case SHORT_VALUE -> (short) code[pc++];
                     case LONG_VALUE -> toLong(code[pc++], code[pc++]);
                     case DOUBLE_VALUE -> toDouble(code[pc++], code[pc++]);
+                    case DECIMAL_VALUE -> toDecimal(code[pc++], code[pc++], code[pc++], code[pc++], code[pc++]);
                     default -> throw new IllegalArgumentException("illegal type " + typeCode);
                 };
                 adapter.binaryOp(op, rdbType, slots.getObjectRef(), dest, src, c2);

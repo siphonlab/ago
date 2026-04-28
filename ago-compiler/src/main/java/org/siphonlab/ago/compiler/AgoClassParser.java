@@ -270,6 +270,11 @@ public class AgoClassParser {
             for (AgoClass child : agoClass.getChildren()) {
                 classes.put(child, r.getChild(child.getName()));
             }
+        } else if(concreteTypeInfo instanceof NullableTypeInfo nullableTypeInfo){
+            var baseClass = mapClass(nullableTypeInfo.getBaseClass());
+            if(baseClass == null) return null;
+            r = root.getOrCreateNullableType(baseClass, null);
+            classes.put(agoClass,r);
         } else if(concreteTypeInfo instanceof ParameterizedClassInfo pInfo){
             var base = mapClass(pInfo.getParameterizedBaseClass());
             if(base == null) return null;
@@ -356,13 +361,13 @@ public class AgoClassParser {
         } else if(argument instanceof Long l){
             return getRoot().createLongLiteral( l);
         } else if(argument == null){
-            return root.createNullLiteral();
+            return root.nullLiteral();
         }
         throw new RuntimeException("unexpected type " + argument);
     }
 
     private ClassDef mapClass(ClassDef ownerClass, AgoClass agoClass, TypeCode typeCode) throws CompilationError {
-        if(typeCode != TypeCode.OBJECT){
+        if(typeCode != TypeCode.OBJECT && typeCode != TypeCode.UNION){
             if(typeCode.isGeneric()){
                 ClassDef r = mapClass(agoClass);
                 if(r == null) throw new NullPointerException("class not found");
@@ -404,10 +409,9 @@ public class AgoClassParser {
             }
         }
         var slots = agoClass.getSlotDefs();
-        SlotsAllocator slotsAllocator = classDef.getSlotsAllocator();
         for (var slot : slots) {
             ClassDef slotClass = mapClass(classDef, slot.getAgoClass(), slot.getTypeCode());
-            if(slotClass == null) return false;
+            if (slotClass == null) return false;
         }
 
         if(agoClass.getFields() != null) {
@@ -502,6 +506,7 @@ public class AgoClassParser {
                 case TypeCode.INT_VALUE -> new PrimitiveClassDef(root, TypeCode.INT);
                 case TypeCode.LONG_VALUE -> new PrimitiveClassDef(root, TypeCode.LONG);
                 case TypeCode.DOUBLE_VALUE -> new PrimitiveClassDef(root, TypeCode.DOUBLE);
+                case TypeCode.DECIMAL_VALUE -> new PrimitiveClassDef(root, TypeCode.DECIMAL);
                 case TypeCode.FLOAT_VALUE -> new PrimitiveClassDef(root, TypeCode.FLOAT);
                 case TypeCode.STRING_VALUE -> new PrimitiveClassDef(root, TypeCode.STRING);
                 case TypeCode.BYTE_VALUE -> new PrimitiveClassDef(root, TypeCode.BYTE);

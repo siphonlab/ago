@@ -17,15 +17,14 @@ package org.siphonlab.ago.compiler.expression;
 
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.PrimitiveClassDef;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
+import org.siphonlab.ago.compiler.expression.logic.Not;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
+import org.siphonlab.ago.compiler.narrowtype.NarrowTyper;
 
 import java.util.Objects;
 
@@ -37,7 +36,8 @@ import static org.siphonlab.ago.opcode.compare.NotEquals.KIND_NOT_EQUALS;
  */
 public class Equals extends BiExpression{
 
-    private final Type type;
+    protected final Type type;
+    private final BlockCompiler blockCompiler;
 
     public enum Type{
         Equals(KIND_EQUALS),
@@ -52,19 +52,189 @@ public class Equals extends BiExpression{
         }
     }
 
-    public Equals(FunctionDef ownerFunction, Expression left, Expression right, Type type) throws CompilationError {
-        super(ownerFunction, left, right);
+    public Equals(BlockCompiler blockCompiler, Expression left, Expression right, Type type) throws CompilationError {
+        super(blockCompiler.getFunctionDef(), left, right);
         this.type = type;
+        this.blockCompiler = blockCompiler;
+    }
+
+    public Equals(FunctionDef functionDef, Expression left, Expression right, Type type) throws CompilationError {
+        super(functionDef, left, right);
+        this.type = type;
+        this.blockCompiler = null;
+    }
+
+    @Override
+    public Expression transform() throws CompilationError {
+        if(this.left.equals(this.right)){
+            return getRoot().createBooleanLiteral(true);
+        }
+
+        if(this.left instanceof BooleanLiteral b){
+            return transformBooleanLiteral(BooleanLiteral.isTrue(b), this.right).transform();
+        } else if(this.right instanceof BooleanLiteral b){
+            return transformBooleanLiteral(BooleanLiteral.isTrue(b), this.left).transform();
+        }
+
+        return super.transform();
+    }
+
+    @Override
+    protected Root getRoot() {
+        Root root;
+        if(this.ownerFunction != null) return super.getRoot();
+        try {
+            root = this.left.inferType().getRoot();
+            if(root == null) root = this.right.inferType().getRoot();
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+        return Objects.requireNonNull(root);
     }
 
     @Override
     public Expression transformInner() throws CompilationError {
-        var p = transformScopeBoundClass(left, right);
-        if(p.getLeft() != left || p.getRight() != right){
-            this.left = p.getLeft();
-            this.right = p.getRight();
+        boolean nullableFound = false;
+        if(left.inferType() instanceof NullableClassDef n){
+            if(!(right.inferType() instanceof NullableClassDef)) {
+                if(left instanceof Var.LocalVar localVar){
+                    left = narrowTyping(localVar, right);
+                }
+            }
+            if(!(left instanceof NullableValue)) {
+                left = new NullableValue(ownerFunction, left);
+            }
+            if(right.inferType() instanceof NullClassDef){
+                return new IsNull(ownerFunction, (NullableValue) left, type);
+            }
+            left = ((NullableValue) left).nonNullPlaceHolder();
+            nullableFound = true;
+        }
+        if(right.inferType() instanceof NullableClassDef n){
+            if(right instanceof Var.LocalVar localVar){
+                right = narrowTyping(localVar, left);
+            }
+            if(!(right instanceof NullableValue)) {
+                right = new NullableValue(ownerFunction, right);
+            }
+            if(left.inferType() instanceof NullClassDef){
+                return new IsNull(ownerFunction, (NullableValue) right, type);
+            }
+            right = ((NullableValue) right).nonNullPlaceHolder();
+            nullableFound = true;
+        }
+
+        if(!nullableFound){
+            if(this.left instanceof BooleanLiteral b){
+                Cast rightToBoolean = ownerFunction.cast(this.right, getRoot().BOOLEAN());
+                if((b.value && type == Type.Equals) || (!b.value && type == Type.NotEquals)){
+                    return rightToBoolean;
+                } else {
+                    return new Not(ownerFunction, rightToBoolean);
+                }
+            } else if(this.right instanceof BooleanLiteral b){
+                Cast leftToBoolean = ownerFunction.cast(this.left, getRoot().BOOLEAN());
+                if((b.value && type == Type.Equals) || (!b.value && type == Type.NotEquals)){
+                    return leftToBoolean;
+                } else {
+                    return new Not(ownerFunction, leftToBoolean);
+                }
+            }
+            var p = transformScopeBoundClass(left, right);
+            if(p.getLeft() != left || p.getRight() != right){
+                this.left = p.getLeft();
+                this.right = p.getRight();
+            }
         }
         return super.transformInner();
+    }
+
+    private Expression transformBooleanLiteral(boolean b, Expression expression) throws CompilationError {
+        if((b && type == Type.Equals) || (!b && type == Type.NotEquals)){
+            return expression;
+        } else {
+            return new Not(ownerFunction, expression);
+        }
+    }
+
+    private Expression narrowTyping(Var.LocalVar localVar, Expression value) throws CompilationError {
+        if(blockCompiler == null) return super.transformInner();
+
+        NarrowTyper narrowTyper = blockCompiler.getNarrowTyper();
+        var variable = localVar.variable;
+        var nullableClass = (NullableClassDef)variable.getType();
+        if(narrowTyper.isCollecting()) {
+            var nonNullVar = blockCompiler.acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
+            var nullVar = blockCompiler.acquireNarrowTypingVar(variable, getRoot().NULL());
+            if(type == Type.Equals && value.inferType() instanceof NullClassDef) {
+                narrowTyper.collectNarrowVar(nullVar, nonNullVar);
+            } else {
+                narrowTyper.collectNarrowVar(nonNullVar, nullVar);
+            }
+            return new NullableValue(ownerFunction, localVar, nonNullVar);
+        } else {
+            return localVar;
+        }
+    }
+
+    @Override
+    protected void outputToLocalVar(Var.LocalVar localVar, TermExpression evaluatedLeft, TermExpression evaluatedRight, BlockCompiler blockCompiler) throws CompilationError {
+
+        CodeBuffer code = blockCompiler.getCode();
+
+        try {
+            blockCompiler.enter(this);
+
+            if (this.left instanceof NullableValue.NonNullPlaceHolder leftPlaceHolder) {
+                NullableValue leftNullableValue = leftPlaceHolder.getNullableValue();
+                if (this.right instanceof NullableValue.NonNullPlaceHolder rightNonNull) {
+
+                    var lIsNull = leftNullableValue.isNull().visit(blockCompiler);
+                    NullableValue rightNullableValue = rightNonNull.getNullableValue();
+                    var rIsNull = rightNullableValue.isNull().visit(blockCompiler);
+                    code.and(lIsNull.getVariableSlot(), rIsNull.getVariableSlot());
+
+                    var n1 = leftNullableValue.nonNullValue().visit(blockCompiler);
+                    blockCompiler.lockRegister(n1);
+                    var n2 = rightNullableValue.nonNullValue().visit(blockCompiler);
+                    blockCompiler.releaseRegister(n1);
+
+                    new IfElseExpr(ownerFunction, getRoot().createBooleanLiteral(false), lIsNull, new Equals(ownerFunction, n1, n2, type).transform())
+                            .outputToLocalVar(localVar, blockCompiler);
+                } else {
+                    var isNull = leftNullableValue.isNull().visit(blockCompiler);
+                    var exitLabel = blockCompiler.createLabel();
+                    var trueLabel = blockCompiler.createLabel();
+
+                    code.jumpIfNot(isNull.getVariableSlot(), trueLabel);
+                    ownerFunction.assign(localVar, getRoot().createBooleanLiteral(false)).termVisit(blockCompiler);
+                    code.jump(exitLabel);
+
+                    trueLabel.here();
+                    super.outputToLocalVar(localVar, leftNullableValue.nonNullValue().visit(blockCompiler), evaluatedRight, blockCompiler);
+                    exitLabel.here();
+                }
+            } else if (this.right instanceof NullableValue.NonNullPlaceHolder rightPlaceHolder) {
+                NullableValue rightNullableValue = rightPlaceHolder.getNullableValue();
+                var isNull = rightNullableValue.isNull().visit(blockCompiler);
+                var exitLabel = blockCompiler.createLabel();
+                var trueLabel = blockCompiler.createLabel();
+
+                code.jumpIfNot(isNull.getVariableSlot(), trueLabel);
+                ownerFunction.assign(localVar, getRoot().createBooleanLiteral(false)).termVisit(blockCompiler);
+                code.jump(exitLabel);
+
+                trueLabel.here();
+                super.outputToLocalVar(localVar, evaluatedLeft, rightNullableValue.nonNullValue().visit(blockCompiler), blockCompiler);
+                exitLabel.here();
+            } else {
+                super.outputToLocalVar(localVar, evaluatedLeft, evaluatedRight, blockCompiler);
+            }
+        } catch (CompilationError e) {
+            throw e;
+        } finally {
+            blockCompiler.leave(this);
+        }
     }
 
     // according org.siphonlab.ago.compile.expression.Assign.processBoundClass
@@ -106,7 +276,7 @@ public class Equals extends BiExpression{
 
     @Override
     protected Expression transformUnboxed(Expression left, Expression right) throws CompilationError {
-        return new Equals(this.ownerFunction, left,right,this.type);
+        return new Equals(this.blockCompiler, left,right,this.type);
     }
 
     @Override
@@ -154,6 +324,8 @@ public class Equals extends BiExpression{
                 (((IntLiteral) this.left).value == ((IntLiteral) this.right).value);
             case DOUBLE_VALUE ->
                 (((DoubleLiteral) this.left).value == ((DoubleLiteral) this.right).value);
+            case DECIMAL_VALUE ->
+                (((DecimalLiteral) this.left).value.equals(((DecimalLiteral) this.right).value));
             case BYTE_VALUE->
                 (((ByteLiteral) this.left).value == ((ByteLiteral) this.right).value);
             case CHAR_VALUE ->
@@ -206,10 +378,23 @@ public class Equals extends BiExpression{
     }
 
     public static boolean isLiteralEquals(Expression expression1, Expression expression2) throws CompilationError {
-        var eq = new Equals(null, expression1,expression2,Type.Equals).transform();
+        var eq = new Equals((FunctionDef) null, expression1,expression2,Type.Equals).transform();
         if(eq instanceof BooleanLiteral booleanLiteral){
             return booleanLiteral.value;
         }
         return false;
     }
+
+    public Type getType() {
+        return type;
+    }
+
+    public Equals neg() throws CompilationError {
+        if(blockCompiler != null){
+            return new Equals(blockCompiler, left, right, type == Type.Equals ? Type.NotEquals : Type.Equals);
+        } else {
+            return new Equals(ownerFunction, left, right, type == Type.Equals ? Type.NotEquals : Type.Equals);
+        }
+    }
+
 }

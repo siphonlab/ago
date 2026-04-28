@@ -20,6 +20,7 @@ import org.siphonlab.ago.runtime.UnhandledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -334,12 +335,12 @@ public class RunSpace implements Runnable{
     }
 
     public void acceptNull(CallFrame<?> caller) {
-        resultSlots.setNullValue();
+        resultSlots.setUnionValue(null);
         this.setCurrCallFrame(caller);
     }
 
     public void acceptNullByAsync() {
-        resultSlots.setNullValue();
+        resultSlots.setUnionValue(null);
         resumeByAcceptResult();
     }
 
@@ -368,6 +369,11 @@ public class RunSpace implements Runnable{
         resumeByAcceptResult();
     }
 
+    public void acceptDecimalByAsync(BigDecimal result) {
+        resultSlots.setDecimalValue(result);
+        resumeByAcceptResult();
+    }
+
     public void acceptLongByAsync(long result) {
         resultSlots.setLongValue(result);
         resumeByAcceptResult();
@@ -390,6 +396,11 @@ public class RunSpace implements Runnable{
 
     public void acceptObjectByAsync(Instance<?> result) {
         resultSlots.setObjectValue(result);
+        resumeByAcceptResult();
+    }
+
+    public void acceptUnionByAsync(Object result) {
+        resultSlots.setUnionValue(result);
         resumeByAcceptResult();
     }
 
@@ -423,6 +434,11 @@ public class RunSpace implements Runnable{
         setCurrCallFrame(caller);
     }
 
+    public void acceptDecimal(BigDecimal result, CallFrame<?> caller) {
+        resultSlots.setDecimalValue(result);
+        setCurrCallFrame(caller);
+    }
+
     public void acceptLong(long result, CallFrame<?> caller) {
         resultSlots.setLongValue(result);
         setCurrCallFrame(caller);
@@ -445,6 +461,11 @@ public class RunSpace implements Runnable{
 
     public void acceptObject(Instance<?> result, CallFrame<?> caller) {
         resultSlots.setObjectValue(result);
+        setCurrCallFrame(caller);
+    }
+
+    public void acceptUnion(Object result, CallFrame<?> caller) {
+        resultSlots.setUnionValue(result);
         setCurrCallFrame(caller);
     }
 

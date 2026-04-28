@@ -31,7 +31,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -67,6 +69,10 @@ public class AgoEngine implements ClassManager{
 
     //TODO support multiple class loader, each class loader has its meta
     private MetaClass theMata;
+
+    public String toString(Instance<?> u) {
+        return null;
+    }
 
     public static class MetaClassCreatingTask{
         AgoClass target;
@@ -168,6 +174,7 @@ public class AgoEngine implements ClassManager{
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializer(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializer(this));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
@@ -223,6 +230,7 @@ public class AgoEngine implements ClassManager{
                     case LONG_VALUE:      frame.getSlots().setLong(i, (Long)argument); break;
                     case BOOLEAN_VALUE:   frame.getSlots().setBoolean(i, (Boolean)argument); break;
                     case DOUBLE_VALUE:    frame.getSlots().setDouble(i, (Double) argument); break;
+                    case DECIMAL_VALUE:    frame.getSlots().setDecimal(i, (BigDecimal) argument); break;
                     case BYTE_VALUE:      frame.getSlots().setByte(i, (Byte) argument); break;
                     case FLOAT_VALUE:     frame.getSlots().setFloat(i, (Float) argument); break;
                     case CHAR_VALUE:      frame.getSlots().setChar(i, (Character)argument); break;
@@ -275,8 +283,8 @@ public class AgoEngine implements ClassManager{
     }
 
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        if (agoClass instanceof AgoFunction fun)
-            return createFunctionInstance(parentScope, fun, creator, creator);
+        if (agoClass.isFunction())
+            return createFunctionInstance(parentScope, (AgoFunction) agoClass, creator, creator);
 
         var instance = new Instance<>(agoClass.createSlots(), agoClass);
         if(parentScope != null) instance.setParentScope(parentScope);
@@ -300,7 +308,7 @@ public class AgoEngine implements ClassManager{
     }
 
     public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        if (agoClass instanceof AgoNativeFunction agoNativeFunction) {
+        if (agoClass.isFunction() && agoClass instanceof AgoNativeFunction agoNativeFunction) {
             return createFunctionInstance(parentScope, agoNativeFunction, creator, creator);
         }
         var instance = new NativeInstance(agoClass.createSlots(), agoClass);
@@ -314,7 +322,11 @@ public class AgoEngine implements ClassManager{
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if(emptyArgsConstructor != null){
-            c.invokeMethod(caller, emptyArgsConstructor,emptyArgsConstructor);
+            try {
+                c.invokeMethod(caller, emptyArgsConstructor,emptyArgsConstructor).get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
         }
         return c;
     }
@@ -371,6 +383,13 @@ public class AgoEngine implements ClassManager{
     }
     public ObjectArrayInstance createObjectArray(AgoClass arrayType, int length) {
         return new ObjectArrayInstance(arrayType.createSlots(), arrayType, length);
+    }
+    public UnionArrayInstance createUnionArray(AgoClass arrayType, int length) {
+        return new UnionArrayInstance(arrayType.createSlots(), arrayType, length);
+    }
+
+    public DecimalArrayInstance createDecimalArray(AgoClass arrayType, int length) {
+        return new DecimalArrayInstance(arrayType.createSlots(), arrayType, length);
     }
     public ShortArrayInstance createShortArray(AgoClass arrayType, int length) {
         return new ShortArrayInstance(arrayType.createSlots(), arrayType, length);

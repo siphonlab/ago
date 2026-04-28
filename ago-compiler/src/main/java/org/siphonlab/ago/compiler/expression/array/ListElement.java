@@ -71,7 +71,7 @@ public class ListElement extends ExpressionInFunctionBody implements Assign.Assi
         blockCompiler.enter(this);
 
         var invoke = ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(list, accessor), List.of(indexExpr), this.getSourceLocation());
-        invoke.outputToLocalVar(localVar, blockCompiler);
+        invoke.transform().outputToLocalVar(localVar, blockCompiler);
 
         blockCompiler.leave(this);
 

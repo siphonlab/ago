@@ -31,11 +31,13 @@ import static org.siphonlab.ago.opcode.Concat.KIND_CONCAT;
 public class Concat extends BiExpression{
 
     public Concat(FunctionDef ownerFunction, Expression left, Expression right) throws CompilationError {
-        super(ownerFunction, left.transform(), right.transform());
+        super(ownerFunction, left, right);
     }
 
     @Override
     public Expression transformInner() throws CompilationError {
+        this.left = this.left.transform();
+        this.right = this.right.transform();
         var left = this.left;
         var right = this.right;
 

@@ -36,7 +36,7 @@ public class LiteralTests {
     public void list_op() throws CompilationError, IOException {
         run("literal/list_op.ago");
 //        Trace.printOutput();
-        Trace.outputted("[1,8,7,4]", "[ArrayList<int>|1,8,7,4,9,8,7,6]", "[1,8,7,4,9,8,7,6]", "[LinkedList<int>|1,8,7,4,9,8,7,6,1,8,7,4,9,8,7,6]", "[0,0,1,8,7,0,0,0,0,0]", "[0,0,1,8,7,1,8,7,4,9]", "[1,8,7,4,9,8,7,6,4,9]");
+        assertTrue(Trace.outputted("[1,8,7,4]", "[ArrayList<int>|1,8,7,4,9,8,7,6]", "[1,8,7,4,9,8,7,6]", "[LinkedList<int>|1,8,7,4,9,8,7,6,1,8,7,4,9,8,7,6]", "[0,0,1,8,7,0,0,0,0,0]", "[0,0,1,8,7,1,8,7,4,9]", "[1,8,7,4,9,8,7,6,4,9]"));
     }
 
     @Test
@@ -48,7 +48,8 @@ public class LiteralTests {
     @Test
     public void map() throws CompilationError, IOException {
         run("literal/map.ago");
-        assertTrue(Trace.outputted("HashMap<string,lang.Object>", "Tom", "Jenny", "42", "M", "51888222"));
+//        Trace.printOutput();
+        assertTrue(Trace.outputted("HashMap<string,lang.Object>", "Tom", "Jenny", "Jenny", "42", "M", "51888222"));
     }
 
     @Test

@@ -27,6 +27,8 @@ import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
+import org.siphonlab.ago.compiler.statement.ExpressionStmt;
+import org.siphonlab.ago.compiler.statement.Statement;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,11 +53,14 @@ public class Invoke extends ExpressionInFunctionBody{
         }
     }
 
-    protected final MaybeFunction maybeFunction;
-    protected final FunctionDef resolvedFunctionDef;
-    protected final Expression scope;
+    protected MaybeFunction maybeFunction;
+    protected FunctionDef resolvedFunctionDef;
+    protected Expression scope;
     protected List<Expression> arguments;
     private final InvokeMode invokeMode;
+
+    private Expression preparedVisitorForNullable;
+    private Statement preparedTermVisitorForNullable;
 
     public Invoke(FunctionDef ownerFunction, InvokeMode invokeMode, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
         super(ownerFunction);
@@ -65,28 +70,64 @@ public class Invoke extends ExpressionInFunctionBody{
         if(maybeFunction instanceof ConstClass constClass && !constClass.getClassDef().isTop()){
             throw new SyntaxError("'%s' is not allowed to create in current scope".formatted(constClass), sourceLocation);
         }
+        this.maybeFunction = maybeFunction;
+        this.arguments = arguments;
+    }
+
+    @Override
+    public Invoke transform() throws CompilationError {
+        return (Invoke) super.transform();
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
         List<Expression> transformedArguments = new ArrayList<>(arguments.size());
         if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
-            transformedArguments.add(bindExtensionMethod.setParent(this).getTarget().transform());
+            Expression firstArg = bindExtensionMethod.setParent(this).getTarget().transform();
+            if(firstArg instanceof NullableValue.NonNullPlaceHolder nc){
+                this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, nc.getNullableValue(), baseOfFirstArg -> {
+                        var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
+                        return new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform();
+                    }
+                );
+                this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, nc.getNullableValue(), baseOfFirstArg ->{
+                    var b = new BindExtensionMethod(ownerFunction, baseOfFirstArg, bindExtensionMethod.getFunction());
+                    return new ExpressionStmt(ownerFunction, new Invoke(ownerFunction, invokeMode, b, new ArrayList<>(arguments), getSourceLocation()).transform());
+                });
+                return this;
+            }
+            transformedArguments.add(firstArg);
         }
+
+        if(this.scope instanceof NullableValue.NonNullPlaceHolder nc){
+            this.preparedVisitorForNullable = BlockCompiler.nullableIfThenExpr(this.ownerFunction, nc.getNullableValue(), baseOfScope -> {
+                    var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
+                    r.setScope(baseOfScope);
+                    return r.transform();
+                }
+            );
+            this.preparedTermVisitorForNullable = BlockCompiler.nullableIfThenStmt(ownerFunction, nc.getNullableValue(), baseOfScope ->{
+                var r = new Invoke(ownerFunction, invokeMode, maybeFunction, this.arguments, getSourceLocation());
+                r.setScope(baseOfScope);
+                return new ExpressionStmt(ownerFunction, r.transform());
+            });
+            return this;
+        }
+
         for (Expression argument : arguments) {
             transformedArguments.add(argument.transform().setParent(this));
         }
-        this.arguments = transformedArguments;
         this.resolvedFunctionDef = findBestPolymorphismMethod(maybeFunction.getFunction(), maybeFunction.getCandidates(), transformedArguments, sourceLocation);
         if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
             maybeFunction = new ConstClass(bindExtensionMethod.getFunction()).setSourceLocation(bindExtensionMethod.getSourceLocation());
             maybeFunction.setCandidates(bindExtensionMethod.getCandidates());
         }
-        this.maybeFunction = maybeFunction;
         if(resolvedFunctionDef == null){
             findBestPolymorphismMethod(maybeFunction.getFunction(), maybeFunction.getCandidates(), transformedArguments, sourceLocation);
             throw new SyntaxError("no function found for '%s'".formatted(maybeFunction.getFunction()), sourceLocation);
         }
-    }
 
-    @Override
-    protected Expression transformInner() throws CompilationError {
+        this.arguments = transformedArguments;
         List<Expression> expressions = this.arguments;
         List<Parameter> parameters = resolvedFunctionDef.getParameters();
         for (int i = 0; i < expressions.size(); i++) {
@@ -110,13 +151,21 @@ public class Invoke extends ExpressionInFunctionBody{
         return this;
     }
 
+    private void setScope(Expression scope) {
+        this.scope = scope;
+    }
+
     public InvokeMode getInvokeMode() {
         return invokeMode;
     }
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        if(invokeMode.isAsync()){
+        this.transform();
+        if(this.preparedVisitorForNullable != null){
+            return this.preparedVisitorForNullable.inferType();
+        }
+        if (invokeMode.isAsync()) {
             return resolvedFunctionDef;
         } else {
             return resolvedFunctionDef.getResultType();
@@ -127,6 +176,11 @@ public class Invoke extends ExpressionInFunctionBody{
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         if(localVar.inferType().getTypeCode() == TypeCode.VOID){
             throw new SyntaxError("'void' variable not allowed", localVar.getSourceLocation());
+        }
+
+        if(preparedVisitorForNullable != null) {
+            preparedVisitorForNullable.outputToLocalVar(localVar, blockCompiler);       //TODO it will spend a register for temp result, not the best performance way
+            return;
         }
 
         blockCompiler.validateThrowException(this.resolvedFunctionDef.getThrowsExceptions(), this);
@@ -182,6 +236,11 @@ public class Invoke extends ExpressionInFunctionBody{
 
     @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
+        if(this.preparedTermVisitorForNullable !=null){
+            this.preparedTermVisitorForNullable.termVisit(blockCompiler);
+            return;
+        }
+
         blockCompiler.validateThrowException(this.resolvedFunctionDef.getThrowsExceptions(), this);
 
         try {
@@ -220,6 +279,10 @@ public class Invoke extends ExpressionInFunctionBody{
 
     @Override
     public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
+        if(this.preparedVisitorForNullable !=null){
+            return this.preparedVisitorForNullable.visit(blockCompiler);
+        }
+
         blockCompiler.validateThrowException(this.resolvedFunctionDef.getThrowsExceptions(), this);
 
         if(this.inferType().isVoid()){
@@ -242,12 +305,21 @@ public class Invoke extends ExpressionInFunctionBody{
             code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
         } else if(maybeFunction instanceof ClassOf.ClassOfScope classOfScope){
             assert (classOfScope.metaLevel == 1); // if it's metaclass it won't be Function
-            Scope scope = (Scope) this.scope;
-            //TODO why this happen?
-            //TODO handle resolvedFunctionDefGenericInstantiateRequired
-            var n = Creator.NewProps.resolve(fun, scope.getClassDef());
-            code.new_scope_method(resultSlot, scope.getDepth(),  false, fun.simpleNameOfFunction(resolvedFunctionDef),
-                    n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+            Scope scope = classOfScope.getScope();
+            if(resolvedFunctionDef != ownerFunction){  // an overload function of me
+                scope = (Scope) this.scope;       // here parent is already classOfScope.scope.parentScope, see org.siphonlab.ago.compiler.expression.ClassOf.ClassOfScope.getScopeOfFunction
+                if(scope == null){          // for top-level fun will cause this
+                    ClassDef classDef = classOfScope.getClassDef();
+                    var n = Creator.NewProps.resolve(fun, classDef);
+                    code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+                } else {
+                    var n = Creator.NewProps.resolve(fun, scope.getClassDef());
+                    code.new_scope_method(resultSlot, scope.getDepth(), false, fun.simpleNameOfFunction(resolvedFunctionDef),
+                            n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
+                }
+            } else if(scope.getDepth() == 0){
+                code.new_scope(resultSlot, scope.getDepth());
+            }
         } else if(maybeFunction instanceof ClassUnder.ClassUnderScope classUnderScope){
             Scope scope = (Scope) this.scope;
             boolean isSuper = false;

@@ -1,0 +1,44 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+fun main(){
+    var b as boolean? = true;
+    var b2 as boolean? = false;
+    var b3 as boolean? = null;
+
+    Trace.print(b == true)          // true
+    Trace.print(b2 == false)        // true
+    Trace.print(b3 == false)        // false
+    Trace.print(b3 == null)         // true
+
+    var i as int? = 200;
+    var n as int? = null;
+
+    Trace.print(i == 200)       // true
+    Trace.print(n == 200)       // false
+    Trace.print(200 == i)       // true
+    Trace.print(200 == n)       // false
+
+    Trace.print(n != 200)       // false
+    Trace.print(n == null)      // true
+
+    var j as int? = 200;
+    var k as int? = 100;
+
+    Trace.print(i == j);        // true
+    Trace.print(i != j);        // false
+    Trace.print(i == k);        // false
+    Trace.print(i != k);        // true
+}

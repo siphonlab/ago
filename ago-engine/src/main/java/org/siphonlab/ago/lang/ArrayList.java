@@ -24,6 +24,7 @@ import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.*;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -46,7 +47,8 @@ public class ArrayList {
             case SHORT_VALUE -> new ShortArrayList();
             case BYTE_VALUE -> new ByteArrayList();
             case CHAR_VALUE -> new CharArrayList();
-            case OBJECT_VALUE -> new java.util.ArrayList<Instance<?>>();
+            case OBJECT_VALUE, DECIMAL_VALUE -> new java.util.ArrayList<Instance<?>>();
+            case UNION_VALUE -> new java.util.ArrayList<Object>();
             case CLASS_REF_VALUE -> new IntArrayList();
             default -> throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
         };
@@ -68,7 +70,8 @@ public class ArrayList {
             case SHORT_VALUE -> new ShortArrayList(((ShortArrayInstance) array).value);
             case BYTE_VALUE -> new ByteArrayList(((ByteArrayInstance) array).value);
             case CHAR_VALUE -> new CharArrayList(((CharArrayInstance) array).value);
-            case OBJECT_VALUE -> new java.util.ArrayList<>(Arrays.asList(((ObjectArrayInstance) array).value));
+            case OBJECT_VALUE, DECIMAL_VALUE -> new java.util.ArrayList<>(Arrays.asList(((ObjectArrayInstance) array).value));
+            case UNION_VALUE -> new java.util.ArrayList<>(Arrays.asList(((UnionArrayInstance) array).value));
             case CLASS_REF_VALUE -> new IntArrayList(((IntArrayInstance) array).value);
             default -> throw new IllegalArgumentException("unknown type: %s".formatted(typeInfo.getTypeCode()));
         };
@@ -407,8 +410,14 @@ public class ArrayList {
             case CHAR_VALUE:
                 callFrame.finishChar(((CharArrayList) ls).get(index));
                 break;
+            case DECIMAL_VALUE:
+                callFrame.finishDecimal(((java.util.ArrayList<BigDecimal>) ls).get(index));
+                break;
             case OBJECT_VALUE:
                 callFrame.finishObject(((java.util.ArrayList<Instance<?>>) ls).get(index));
+                break;
+            case UNION_VALUE:
+                callFrame.finishUnion(((java.util.ArrayList<Object>) ls).get(index));
                 break;
             case CLASS_REF_VALUE:
                 callFrame.finishInt(((IntArrayList) ls).get(index));
@@ -626,6 +635,7 @@ public class ArrayList {
                 }
             }
             case OBJECT_VALUE -> callFrame.finishObject(((java.util.Iterator<Instance<?>>) it).next());
+            case UNION_VALUE -> callFrame.finishUnion(((java.util.Iterator<Object>) it).next());
             case CLASS_REF_VALUE -> {
                 if (it instanceof IntIterator ii) {
                     callFrame.finishClassRef(callFrame.getAgoEngine().getClass(ii.next()));
@@ -702,6 +712,9 @@ public class ArrayList {
                 break;
             case OBJECT_VALUE:
                 Collections.addAll(((java.util.ArrayList<Instance<?>>) payload), (Instance<?>[]) arr);
+                break;
+            case UNION_VALUE:
+                Collections.addAll(((java.util.ArrayList<Object>) payload), ((Object[]) arr));
                 break;
             case CLASS_REF_VALUE:
                 ((IntArrayList)payload).addAll((int[])arr);
@@ -784,13 +797,32 @@ public class ArrayList {
                 callFrame.finishObject(arrChar);
                 break;
 
-            case OBJECT_VALUE:
+            case DECIMAL_VALUE: {
+                @SuppressWarnings("unchecked")
+                java.util.ArrayList<BigDecimal> objList = (java.util.ArrayList<BigDecimal>) payload;
+                var arrObj = agoEngine.createDecimalArray(callFrame.getAgoClass().getResultClass(), objList.size());
+                objList.toArray(arrObj.value);
+                callFrame.finishObject(arrObj);
+                break;
+            }
+
+            case OBJECT_VALUE: {
                 @SuppressWarnings("unchecked")
                 java.util.ArrayList<Instance<?>> objList = (java.util.ArrayList<Instance<?>>) payload;
                 var arrObj = agoEngine.createObjectArray(callFrame.getAgoClass().getResultClass(), objList.size());
                 objList.toArray(arrObj.value);
                 callFrame.finishObject(arrObj);
                 break;
+            }
+
+            case UNION_VALUE: {
+                @SuppressWarnings("unchecked")
+                java.util.ArrayList<Object> objList = (java.util.ArrayList<Object>) payload;
+                var arrObj = agoEngine.createUnionArray(callFrame.getAgoClass().getResultClass(), objList.size());
+                objList.toArray(arrObj.value);
+                callFrame.finishObject(arrObj);
+                break;
+            }
 
             case CLASS_REF_VALUE:
                 IntArrayList classRefList = (IntArrayList) payload;

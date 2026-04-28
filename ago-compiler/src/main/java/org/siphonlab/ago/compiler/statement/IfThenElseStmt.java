@@ -16,15 +16,12 @@
 package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.CodeBuffer;
-import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.expression.Expression;
-import org.siphonlab.ago.compiler.expression.Literal;
-import org.siphonlab.ago.compiler.expression.LiteralResultExpression;
-import org.siphonlab.ago.compiler.expression.Var;
+import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.compiler.*;
+import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
+import org.siphonlab.ago.compiler.expression.logic.AndExpr;
 import org.siphonlab.ago.compiler.expression.logic.Not;
 
 public class IfThenElseStmt extends Statement {
@@ -45,11 +42,16 @@ public class IfThenElseStmt extends Statement {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.condition = condition.transform();
         while(condition instanceof Not not){
             conditionNeg = !conditionNeg;
             this.condition = not.getValue();
         }
+        this.condition = condition.transform();
+
+        if(this.condition.inferType() instanceof NullableClassDef && !(this.condition instanceof NullableValue)){
+            this.condition = new NullableValue(ownerFunction, this.condition);
+        }
+
         if(trueBranch instanceof EmptyStmt){
             if(falseBranch != null && !(falseBranch instanceof EmptyStmt)){
                 return new IfThenElseStmt(ownerFunction, new Not(ownerFunction, condition), falseBranch, null).setSourceLocation(this.getSourceLocation()).transform();
@@ -90,15 +92,39 @@ public class IfThenElseStmt extends Statement {
                 }
                 return;
             }
+
             Var.LocalVar condResult = (Var.LocalVar) condition.visit(blockCompiler);
             CodeBuffer code = blockCompiler.getCode();
             var exitLabel = blockCompiler.createLabel();
             Label elseLabel = blockCompiler.createLabel();
-            if(!conditionNeg) {
-                code.jumpIfNot(condResult.getVariableSlot(), elseLabel);
-            } else {
-                code.jumpIf(condResult.getVariableSlot(), elseLabel);
+            Label trueLabel = blockCompiler.createLabel();
+            boolean checkCondResult = true;
+            if(condition instanceof NullableValue nullableValue){
+                var isNull = nullableValue.isNull().visit(blockCompiler);
+                if(!conditionNeg) {
+                    code.jumpIf(isNull.getVariableSlot(), elseLabel);       // if is null, goto else
+                } else {
+                    code.jumpIf(isNull.getVariableSlot(), trueLabel);
+                }
+                NullableValue.NonNullValue nonNullValue = nullableValue.nonNullValue();
+                ClassDef nonNullType = nonNullValue.inferType();
+                if(nonNullType.isPrimitiveBoxed()){
+                    condResult = nonNullValue.visit(blockCompiler);
+                    condResult = (Var.LocalVar) ownerFunction.unbox(condResult).transform().visit(blockCompiler);
+                } else if(nonNullType.getTypeCode() == TypeCode.OBJECT){
+                    checkCondResult = false;
+                } else {
+                    condResult = nonNullValue.visit(blockCompiler);
+                }
             }
+            if(checkCondResult) {
+                if (!conditionNeg) {
+                    code.jumpIfNot(condResult.getVariableSlot(), elseLabel);
+                } else {
+                    code.jumpIf(condResult.getVariableSlot(), elseLabel);
+                }
+            }
+            trueLabel.here();
             this.trueBranch.termVisit(blockCompiler);
             if (this.falseBranch != null) {
                 code.jump(exitLabel);

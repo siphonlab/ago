@@ -20,6 +20,7 @@ import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.expression.array.CollectionElement;
 
 import java.util.Objects;
 
@@ -28,23 +29,60 @@ import java.util.Objects;
  */
 public class PipeToTempVar extends ExpressionInFunctionBody implements LocalVarResultExpression{
 
-    private final Expression baseExpression;
+    private Expression baseExpression;
+    private final boolean locked;
+
+    private boolean visited = false;
+    private Var.LocalVar tempVar;
 
     public PipeToTempVar(FunctionDef ownerFunction, Expression baseExpression){
+        this(ownerFunction, baseExpression, false);
+    }
+
+    public PipeToTempVar(FunctionDef ownerFunction, Expression baseExpression, boolean locked){
         super(ownerFunction);
         this.baseExpression = baseExpression;
+        this.locked = locked;
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        this.baseExpression = this.baseExpression.transform();
+        return this;
+    }
+
+    public Var.LocalVar getTempVar() {
+        return tempVar;
+    }
+
+    public boolean isLocked() {
+        return locked;
     }
 
     @Override
     public Var.LocalVar visit(BlockCompiler blockCompiler) throws CompilationError {
-        var tempVar = blockCompiler.acquireTempVar(this.baseExpression);
-        baseExpression.outputToLocalVar(tempVar, blockCompiler);
-        return tempVar;
+        if(visited){
+            return tempVar;
+        } else {
+            if(baseExpression instanceof Var.LocalVar){
+                this.tempVar = (Var.LocalVar)baseExpression;
+                if(locked){
+                    blockCompiler.lockRegister(this.tempVar);
+                }
+            } else {
+                this.tempVar = blockCompiler.acquireTempVar(this.baseExpression);
+                baseExpression.outputToLocalVar(tempVar, blockCompiler);
+                if(locked){
+                    blockCompiler.lockRegister(this.tempVar);
+                }
+            }
+            visited = true;
+            return tempVar;
+        }
     }
 
     @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
-        System.out.println("term visit " + this.getClass().getName());
         baseExpression.visit(blockCompiler);
     }
 
@@ -55,7 +93,9 @@ public class PipeToTempVar extends ExpressionInFunctionBody implements LocalVarR
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+        if(this.locked) blockCompiler.lockRegister(localVar);
         var t = this.visit(blockCompiler);
+        if(this.locked) blockCompiler.releaseRegister(localVar);
         t.outputToLocalVar(localVar, blockCompiler);
     }
 
@@ -80,4 +120,5 @@ public class PipeToTempVar extends ExpressionInFunctionBody implements LocalVarR
     public int hashCode() {
         return Objects.hashCode(baseExpression);
     }
+
 }

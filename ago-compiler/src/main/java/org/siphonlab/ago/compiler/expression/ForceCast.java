@@ -15,25 +15,26 @@
  */
 package org.siphonlab.ago.compiler.expression;
 
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.CodeBuffer;
-import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
+import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 
 import static org.siphonlab.ago.TypeCode.BOOLEAN;
 
 // the result of Cast.transform, and
-class ForceCast extends ExpressionInFunctionBody{
+public class ForceCast extends ExpressionInFunctionBody{
 
-    enum CastMode{
+    public enum CastMode{
         PrimitiveCast,   // assume the expression is primitive
         ObjectCast,      // assume the expression is an object
         CastToAny,       // try cast to any type, with cast_vvtCtC
         WearClassMask,   // don't generate code, just mask to another class, i.e. T as [int to _], the target is already int, use this mask to play as T
         CastToBoolean,   // o2B
+        ToUnion,        // from base class to its nullable class
+        FromUnion,      // from nullable to its base class
     }
 
     private final Expression expression;
@@ -88,12 +89,28 @@ class ForceCast extends ExpressionInFunctionBody{
             case CastToBoolean:
                 ownerFunction.assign(localVar, getRoot().createBooleanLiteral( BooleanLiteral.isTrue(literal)).setSourceLocation(expression.getSourceLocation()).transform()).termVisit(blockCompiler);
                 break;
-            case CastToAny:
+            case CastToAny: {
                 var tempVar = blockCompiler.acquireTempVar(this);
-                ownerFunction.assign(tempVar,literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
-                blockCompiler.getCode().cast_to_any(tempVar.getVariableSlot(), literal.getTypeCode(),-1, localVar.getVariableSlot(),
+                blockCompiler.lockRegister(tempVar);
+                ownerFunction.assign(tempVar, literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                blockCompiler.getCode().cast_to_any(tempVar.getVariableSlot(), literal.getTypeCode(), -1, localVar.getVariableSlot(),
                         toType.getTypeCode(), toType.isPrimitiveFamily() ? -1 : blockCompiler.getFunctionDef().idOfClass(toType));
+                blockCompiler.releaseRegister(tempVar);
                 break;
+            }
+            case ToUnion: {
+                if(literal instanceof NullLiteral){
+                    blockCompiler.getCode().assignLiteral(localVar.getVariableSlot(), literal);
+                } else {
+                    NullableClassDef nullableType = (NullableClassDef) toType;
+                    var tempVar = blockCompiler.acquireTempVar(nullableType.getBaseClass());
+                    blockCompiler.lockRegister(tempVar);
+                    ownerFunction.assign(tempVar, literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                    blockCompiler.getCode().cast(nullableType.getBaseClass().getTypeCode(), tempVar.getVariableSlot(), TypeCode.UNION, localVar.getVariableSlot());
+                    blockCompiler.releaseRegister(tempVar);
+                }
+                break;
+            }
             default:
                 throw new TypeMismatchError("'%s' can't cast to '%s'".formatted(literal, toType.getFullname()), this.getSourceLocation());
         }
@@ -122,6 +139,9 @@ class ForceCast extends ExpressionInFunctionBody{
             case CastToBoolean:
                 code.cast(fromTypeCode, src.getVariableSlot(), BOOLEAN, target.getVariableSlot());
                 break;
+            case ToUnion, FromUnion:
+                code.cast(fromTypeCode, src.getVariableSlot(), toType.getTypeCode(), target.getVariableSlot());
+                break;
         }
     }
 
@@ -136,6 +156,13 @@ class ForceCast extends ExpressionInFunctionBody{
 
             if (expression instanceof LiteralResultExpression literalResultExpression) {
                 var literal = literalResultExpression.visit(blockCompiler);
+                if(this.castMode == CastMode.ToUnion){
+                    if(literal instanceof NullLiteral) return literal;
+
+                    var temp = blockCompiler.acquireTempVar(toType);
+                    castLiteral(literal, temp, blockCompiler);
+                    return temp;
+                }
                 return new CastStrategy(ownerFunction, this.getSourceLocation(), false).castTo(literal,toType).visit(blockCompiler);
             }
             if (castMode == CastMode.WearClassMask) {

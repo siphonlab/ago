@@ -29,8 +29,6 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
-import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
-import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
 import org.siphonlab.ago.compiler.expression.math.ArithmeticExpr;
@@ -38,7 +36,9 @@ import org.siphonlab.ago.compiler.expression.math.Neg;
 import org.siphonlab.ago.compiler.expression.math.Pos;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
+import org.siphonlab.ago.compiler.narrowtype.NarrowTyper;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
+import org.siphonlab.ago.compiler.resolvepath.VariableScope;
 import org.siphonlab.ago.compiler.statement.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +67,8 @@ public class BlockCompiler {
     int nextLabelId = 0;
 
     private List<ClassDef> handledExceptions = new LinkedList<>();
+
+    private NarrowTyper narrowTyper = new NarrowTyper(this);
 
     public BlockCompiler(Unit unit, FunctionDef functionDef, List<BlockStatementContext> blockStatements) {
         this.unit = unit;
@@ -134,7 +136,7 @@ public class BlockCompiler {
             return statement(statement);
         } else if(blockStatement instanceof LocalVarDeclContext localVarDecl) {
             LocalVariableDeclarationContext localVariableDeclaration = localVarDecl.localVariableDeclaration();
-            return (visitLocalVariableDeclaration(localVariableDeclaration));
+            return visitLocalVariableDeclaration(localVariableDeclaration);
         } else if(blockStatement instanceof LocalTypeDeclContext localTypeDeclContext){
             // already handled
             return null;
@@ -143,6 +145,10 @@ public class BlockCompiler {
             throw new UnsupportedOperationException("TODO");
         }
     }
+
+//    private Statement statement(StatementContext statement) throws CompilationError {
+//        return statement(statement, null);
+//    }
 
     private Statement statement(StatementContext statement) throws CompilationError {
         if (statement instanceof ReturnStmtContext returnStmt) {
@@ -390,26 +396,11 @@ public class BlockCompiler {
             var methodCall = methodCallExpr.methodCall();
             return methodCall(null, methodCall);        // static instance or current instance
         } else if(expression instanceof MemberAccessExprContext memberAccessExpr){
-            var left = expression(memberAccessExpr.expression());
-            MethodCallContext methodCall = memberAccessExpr.methodCall();
-            if(methodCall != null){
-               return this.methodCall(left, methodCall);
-            } else {
-                var namePath = memberAccessExpr.namePath();
-                var right = new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, left, (FormalNamePathContext) namePath).resolve();
-                return right;
-            }
+            return memberAccessExpr(memberAccessExpr);
         } else if(expression instanceof QuotedExprContext quotedExpr){
             return expression(quotedExpr.expression());
         } else if(expression instanceof EqualsExprContext equalsExpr){
-            Equals.Type type = switch(equalsExpr.bop.getType()){
-                case EQUAL -> Equals.Type.Equals;
-                case NOTEQUAL -> Equals.Type.NotEquals;
-//                case IDENTITY_EQUAL -> ;
-//                case NOT_IDENTITY_EQUAL ->
-                default -> throw new UnsupportedOperationException("'%s' not supported".formatted(equalsExpr.bop));
-            };
-            return new Equals(functionDef, expression(equalsExpr.expression(0)), expression(equalsExpr.expression(1)), type).setSourceLocation(unit.sourceLocation(expression));
+            return this.equalsExpr(equalsExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CreatorExprContext creatorExpr) {
             return creator(creatorExpr);
         } else if(expression instanceof ChainCreatorExprContext chainCreatorExpr){
@@ -484,9 +475,9 @@ public class BlockCompiler {
         } else if(expression instanceof BitOrExprContext expr){
             return new BitOpExpr(functionDef,BitOpExpr.Type.BitOr,expression(expr.expression(0)), expression(expr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof AndExprContext andExpr){
-            return new AndExpr(functionDef,expression(andExpr.expression(0)), expression(andExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
+            return andExpr(andExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof OrExprContext orExpr) {
-            return new OrExpr(functionDef, expression(orExpr.expression(0)), expression(orExpr.expression(1))).setSourceLocation(unit.sourceLocation(expression));
+            return orExpr(orExpr).setSourceLocation(unit.sourceLocation(orExpr));
         } else if(expression instanceof ShiftExprContext shiftExprContext){
             return shiftExpr(shiftExprContext).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof PostWithExprContext postWithExpr){
@@ -499,6 +490,8 @@ public class BlockCompiler {
 
         } else if(expression instanceof AwaitFunctorContext invokeFunctorContext) {
             return invokeFunctor(invokeFunctorContext);
+        } else if(expression instanceof ValueFromNullableContext valueFromNullableContext){
+            return valueFromNullable(valueFromNullableContext);
         }
         throw new UnsupportedOperationException(expression.getText());
     }
@@ -608,21 +601,50 @@ public class BlockCompiler {
     }
 
     private Expression ifElseExpr(IfElseExprContext ifElseExpr) throws CompilationError {
-        var ifPart = expression(ifElseExpr.ifPart);
-        var elsePart = expression(ifElseExpr.elsePart);
-        var cond = expression(ifElseExpr.condition);
-        return new IfElseExpr(functionDef, ifPart, cond, elsePart);
+        this.narrowTyper.enter();
+        var cond = narrowType(ifElseExpr.condition);
+        var mapper = this.narrowTyper.exit();
+
+        Expression trueBranch;
+        Expression falseBranch;
+
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            trueBranch = expression(ifElseExpr.ifPart);
+            narrowTyper.exit();
+        } else {
+            trueBranch = expression(ifElseExpr.ifPart);
+        }
+
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, false);
+            falseBranch = expression(ifElseExpr.elsePart);
+            narrowTyper.exit();
+        } else {
+            falseBranch = expression(ifElseExpr.elsePart);
+        }
+        return new IfElseExpr(functionDef, trueBranch, cond, falseBranch);
     }
 
     private Expression prefixExpr(PrefixExprContext prefixExpr) throws CompilationError {
+        int type = prefixExpr.prefix.getType();
+        if(type == NOT) {
+            Expression expr;
+            if(narrowTyper.isCollecting()){
+                expr = narrowType(prefixExpr.expression());
+                NarrowTyper.NarrowNodePair mapper = narrowTyper.peek();
+                narrowTyper.updateCurrent(mapper.not(), true);
+            } else {
+                expr = expression(prefixExpr.expression());
+            }
+            return new Not(functionDef, expr);
+        }
         Expression expression = expression(prefixExpr.expression());
-        switch (prefixExpr.prefix.getType()) {
+        switch (type) {
             case ADD:
                 return new Pos(functionDef, expression);
             case SUB:
                 return new Neg(functionDef, expression);
-            case NOT:
-                return new Not(functionDef,expression);
             case INC:
                 return new SelfArithmetic(functionDef,expression, getRoot().createIntLiteral(1), SelfArithmetic.Type.Inc);
             case DEC:
@@ -713,7 +735,7 @@ public class BlockCompiler {
             case LE -> Compare.Type.LE;
             default -> throw new UnsupportedOperationException("'%s' not supported".formatted(compareExpr.bop));
         };
-        return new Compare(functionDef, expression( compareExpr.expression(0)),expression(compareExpr.expression(1)), type);
+        return new Compare(this, expression( compareExpr.expression(0)),expression(compareExpr.expression(1)), type);
     }
 
     private Expression shiftExpr(ShiftExprContext shiftExprContext) throws CompilationError {
@@ -942,10 +964,16 @@ public class BlockCompiler {
         Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
 
         ClassDef eleType;
-        if(listTypeExpr != null){
+        if(listTypeExpr != null) {
             var listType = root.getAnyListClass().asThatOrSuperOfThat(arrayType);
             eleType = listType.getGenericSource().typeArguments()[0].getClassDefValue();
             arrayType = null;
+        } else if(arrayType instanceof NullableClassDef n){
+            if(!root.getAnyArrayClass().isThatOrSuperOfThat(n.getBaseClass())){
+                throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
+            }
+            arrayType = n.getBaseClass();
+            eleType = ((ArrayClassDef)arrayType).getElementType();
         } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
             throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
         } else {
@@ -1052,6 +1080,19 @@ public class BlockCompiler {
         var objectLiteral = lObjectContext.objectLiteral();
         Expression objectTypeExpr = null;
         List<PropertyAssignmentContext> propertyAssignments = objectLiteral.propertyAssignment();
+
+        List<ObjectLiteralKVDef> objectLiteralKVDefs = new ArrayList<>();
+        List<PropertyAssignmentContext> propertyAssignment = objectLiteral.propertyAssignment();
+        for (PropertyAssignmentContext p : propertyAssignment) {
+            if (p instanceof PropertyShorthandContext px) {
+                var expr = this.expression(px.expression());
+                objectLiteralKVDefs.add(new KVCollectionExpandoDef(functionDef, expr, unit.sourceLocation(px)));
+            } else if (p instanceof PropertyExpressionAssignmentContext pea) {
+                var pname = this.propertyName(pea.propertyName());
+                objectLiteralKVDefs.add(new KVPairDef(functionDef, pname, this.expression(pea.expression()), unit.sourceLocation(pea)));
+            }
+        }
+
         if(objectLiteral.declarationType() != null){
             Expression typeExpr = unit.parseType(functionDef, objectLiteral.declarationType(), false, false);
             objectType = extractType(typeExpr);
@@ -1075,20 +1116,10 @@ public class BlockCompiler {
                 objectType = m;
                 objectTypeExpr = new ConstClass(objectType);
             } else {
-                var first = objectLiteral.propertyAssignment(0);
-                ClassDef keyType = getRoot().STRING();
-                ClassDef valueType = root.getObjectClass();
-                if(first instanceof PropertyShorthandContext ps){
-                    var expr = this.expression(ps.expression());
-                    var t = expr.inferType();
-                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        ClassRefLiteral[] typeArgumentsArray = t.getGenericSource().typeArguments();
-                        keyType = typeArgumentsArray[0].getClassDefValue();
-                        valueType = typeArgumentsArray[1].getClassDefValue();
-                    } else {
-                        valueType = root.getObjectClass();
-                    }
-                }
+                var first = objectLiteralKVDefs.getFirst();
+                ClassDef keyType = first.getKeyType();
+                ClassDef valueType =  first.getValueType();
+
                 var m = functionDef.getOrCreateGenericInstantiationClassDef(root.getHashMapClass(), new ClassRefLiteral[]{
                         keyType.toClassRefLiteral(),
                         valueType.toClassRefLiteral()
@@ -1105,124 +1136,37 @@ public class BlockCompiler {
         }
 
         if(root.getAnyMapClass().isThatOrSuperOfThat(objectType)){  // Map Literal
-            var mapInstance = new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
-            CurrWithExpression withMapInstance = new CurrWithExpression(functionDef, mapInstance);
-
-            var statements = new ArrayList<Statement>();
             var mapType = root.getAnyMapClass().asThatOrSuperOfThat(objectType);
             ClassRefLiteral[] arr = mapType.getGenericSource().typeArguments();
             ClassDef keyType = arr[0].getClassDefValue();
             ClassDef valueType = arr[1].getClassDefValue();
-            for (PropertyAssignmentContext pa : propertyAssignments) {
-                if (pa instanceof PropertyExpressionAssignmentContext pe) {
-                    var p = this.propertyName(pe.propertyName());
-                    MapValue mapValue = new MapValue(functionDef, withMapInstance, p);
-                    var v = this.assigner(pe.expression(), mapValue, valueType);
-                    statements.add(functionDef.expressionStmt(functionDef.assign(mapValue, v)));
-                } else if(pa instanceof PropertyShorthandContext ps){   // expando
-                    var expr = this.expression(ps.expression());
-                    var t = expr.inferType();
-                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        var readonlyMapType = root.getAnyReadonlyMap().asThatOrSuperOfThat(t);
-                        if(readonlyMapType != null && readonlyMapType.isThatOrSuperOfThat(mapType)){
-                            var withValue = new CurrWithExpression(functionDef, expr);
-                            var putAll = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(withMapInstance, objectType.findMethod("putAll#")), List.of(withValue), unit.sourceLocation(ps));
-                            var ifNotNull = new IfThenElseStmt(functionDef, new Equals(functionDef, withValue, new NullLiteral(t), Equals.Type.NotEquals), functionDef.expressionStmt(putAll), null);
-                            statements.add(new WithStmt(functionDef, withValue, ifNotNull));
-                        } else {
-                            ClassDef iteratorType = t.findMethod("iterator#").getResultType();
-                            var keyValuePairType = iteratorType.findMethod("next#").getResultType();
-                            Var.LocalVar iterVar = this.acquireTempVar(keyValuePairType);
-                            var keyOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("key"));
-                            var valueOfIter = functionDef.field(iterVar, keyValuePairType.getVariable("value"));
-                            var put = new MapPut(functionDef, withMapInstance, keyOfIter, valueOfIter).setSourceLocation(unit.sourceLocation(ps)).transform();
-                            var withValue = new CurrWithExpression(functionDef, expr);
-                            ForEachStmt forEachStmt = new ForEachStmt(functionDef, null, iterVar, withValue, functionDef.expressionStmt(put), ForEachStmt.Mode.Iterable, unit.sourceLocation(ps));
-                            var ifNotNull = new IfThenElseStmt(functionDef, new Equals(functionDef, withValue, new NullLiteral(t), Equals.Type.NotEquals), forEachStmt, null);
-                            statements.add(new WithStmt(functionDef, withValue, ifNotNull));
-                        }
-                    } else {
-                        if(!root.STRING().isThatOrSuperOfThat(keyType)){
-                            throw unit.typeError(pa, "to accept an object, Map<String,?> destination expected");
-                        }
-                        valueType = root.getObjectClass();
-                        var assignments = new ArrayList<Statement>();
-                        var withValue = new CurrWithExpression(functionDef, expr);
-                        Set<String> visited = new HashSet<>();
-                        if(t.getAttributes() != null) {
-                            for (var k : t.getAttributes().keySet()) {
-                                GetterSetterPair attribute = t.getAttribute(k);
-                                var attr = new Attribute(functionDef, withValue, attribute.getGetter(), attribute.getSetter());
-                                var put = new MapPut(functionDef, withMapInstance, getRoot().createStringLiteral(k), attr).setSourceLocation(unit.sourceLocation(ps)).transform();
-                                assignments.add(functionDef.expressionStmt(put));
-                                visited.add(k);
-                            }
-                        }
-                        Map<String, Field> fields = t.getFields();
-                        for(var k : fields.keySet()){
-                            var fld = fields.get(k);
-                            if(fld.isPublic() && !visited.contains(k)){
-                                var put = new MapPut(functionDef, withMapInstance, getRoot().createStringLiteral(k), functionDef.field(withValue, fld)).setSourceLocation(unit.sourceLocation(ps)).transform();
-                                assignments.add(functionDef.expressionStmt(put));
-                                visited.add(k);
-                            }
-                        }
-                        var ifNotNull = new IfThenElseStmt(functionDef, new Equals(functionDef, withValue, new NullLiteral(t), Equals.Type.NotEquals), new BlockStmt(functionDef, assignments), null);
-                        statements.add(new WithStmt(functionDef, withValue, ifNotNull));
-                    }
-                } else {
-                    //TODO assign map to Object attributes/fields
-                    throw new UnsupportedOperationException();
-                }
-            }
-            return new WithExpr(functionDef, withMapInstance, new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(objectLiteral)));
+            return new ComplexMapLiteral(functionDef, objectTypeExpr, keyType, valueType, objectLiteralKVDefs);
         } else {        // Object
-            var objectInstance = new Creator(functionDef, objectTypeExpr, new ArrayList<>(), unit.sourceLocation(lObjectContext));
-            CurrWithExpression currWithExpression = new CurrWithExpression(functionDef, objectInstance);
-
-            var statements = new ArrayList<Statement>();
-            for (PropertyAssignmentContext pa : propertyAssignments) {
+            for (int i = 0; i < propertyAssignments.size(); i++) {
+                PropertyAssignmentContext pa = propertyAssignments.get(i);
+                var kvDef = objectLiteralKVDefs.get(i);
                 if (pa instanceof PropertyExpressionAssignmentContext pe) {
                     var n = this.propertyName(pe.propertyName());
-                    if(n instanceof StringLiteral s){
+                    if (n instanceof StringLiteral s) {
                         String a = s.getString();
                         var attrPair = objectType.getAttribute(a);
-                        if(attrPair != null) {
-                            Attribute attr = new Attribute(functionDef, currWithExpression, attrPair.getGetter(), attrPair.getSetter()).setSourceLocation(unit.sourceLocation(pe));
-                            var assign = functionDef.assign(attr, this.assigner(pe.expression(), attr, attr.inferType()));
-                            statements.add(functionDef.expressionStmt(assign));
+                        if (attrPair != null) {
+                            ((KVPairDef)kvDef).setValue(this.assigner(pe.expression(), null, attrPair.getGetter().getResultType()));
                         } else {
                             Field field = objectType.getFields().get(a);
-                            if(field == null){
+                            if (field == null) {
                                 throw unit.resolveError(pe.propertyName(), "'%s' is not attribute or field".formatted(a));
-                            } else if(!field.isPublic()){
+                            } else if (!field.isPublic()) {
                                 throw unit.resolveError(pe.propertyName(), "'%s' is not public field".formatted(a));
                             }
-                            Var.Field fieldOfDest = functionDef.field(currWithExpression, field);
-                            var assign = functionDef.assign(fieldOfDest, this.assigner(pe.expression(), fieldOfDest, field.getType()));
-                            statements.add(functionDef.expressionStmt(assign));
+                            ((KVPairDef)kvDef).setValue(this.assigner(pe.expression(), null, field.getType()));
                         }
                     } else {    // for expression
                         throw unit.syntaxError(pe, "expression key can only apply to Map");
                     }
-                } else if(pa instanceof PropertyShorthandContext ps){
-                    var expr = this.expression(ps.expression());
-                    var t = expr.inferType();
-                    if(root.getAnyMapClass().isThatOrSuperOfThat(t)){
-                        throw unit.typeError(ps, "cannot copy a Map to an object");
-                    } else {
-                        if(objectType.isThatOrSuperOfThat(t) || t.isThatOrSuperOfThat(objectType)){
-                            var assign = new CopyAssign(functionDef, currWithExpression, expr, findCommonType(objectType, t));
-                            statements.add(functionDef.expressionStmt(assign));
-                        } else {
-                            throw unit.typeError(ps, "cannot assign '%s' to '%s'".formatted(t.getFullname(), objectType.getFullname()));
-                        }
-                    }
-                } else {
-                    throw new UnsupportedOperationException();
                 }
             }
-            return new WithExpr(functionDef, currWithExpression, new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(objectLiteral)));
+            return new ComplexObjectLiteral(functionDef, objectTypeExpr, objectLiteralKVDefs);
         }
     }
 
@@ -1238,6 +1182,68 @@ public class BlockCompiler {
             throw new IllegalArgumentException("unexpected property name");
         }
     }
+
+    private Expression memberAccessExpr(MemberAccessExprContext memberAccessExpr) throws CompilationError {
+        var left = expression(memberAccessExpr.expression());
+        MethodCallContext methodCall = memberAccessExpr.methodCall();
+        boolean nullConditional = memberAccessExpr.bop.getText().equals("?.");
+        if(methodCall != null){
+            if(nullConditional){
+                left = new NullableValue(functionDef, left).setSourceLocation(unit.sourceLocation(memberAccessExpr)).nonNullPlaceHolder();
+            }
+            return this.methodCall(left, methodCall);
+        } else {
+            var namePath = memberAccessExpr.namePath();
+            if(nullConditional){
+                return nullableIfThenExpr(functionDef, left, baseOfLeft ->
+                    new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, baseOfLeft, (FormalNamePathContext) namePath).resolve()
+                );
+            } else {
+                return new NamePathResolver(NamePathResolver.ResolveMode.ForValue, unit, this.functionDef, left, (FormalNamePathContext) namePath).resolve();
+            }
+        }
+    }
+
+    public interface ExpressionSupplierOnNullableBase{
+        Expression apply(Expression nonNullExpression) throws CompilationError;
+    }
+
+    public interface StatementSupplierOnNullableBase{
+        Statement apply(Expression nonNullExpr) throws CompilationError;
+    }
+
+    public static Expression nullableIfThenExpr(FunctionDef functionDef, Expression maybeNullExpr, ExpressionSupplierOnNullableBase resultExprSupplier) throws CompilationError {
+        var exprType = maybeNullExpr.inferType();
+        if(!(exprType instanceof NullableClassDef nullableClassDef)){
+            throw new TypeMismatchError("nullable class expected", maybeNullExpr.getSourceLocation());
+        }
+
+        NullableValue nullableResult = maybeNullExpr instanceof NullableValue n ? n : new NullableValue(functionDef, maybeNullExpr);
+
+        var notEqNull = nullableResult.isNotNull();
+
+        var right = resultExprSupplier.apply(nullableResult.nonNullValue());
+
+        var nullableResultType = functionDef.getOrCreateNullableType(right.inferType(), null);
+        right = functionDef.cast(right, nullableResultType).setSourceLocation(right.getSourceLocation()).transform();
+        var root = functionDef.getRoot();
+        return new IfElseExpr(functionDef, right, notEqNull, root.nullLiteral());
+    }
+
+    public static Statement nullableIfThenStmt(FunctionDef functionDef, Expression maybeNullExpr, StatementSupplierOnNullableBase resultExprSupplier) throws CompilationError {
+        var exprType = maybeNullExpr.inferType();
+        if(!(exprType instanceof NullableClassDef nullableClassDef)){
+            throw new TypeMismatchError("nullable class expected", maybeNullExpr.getSourceLocation());
+        }
+        NullableValue nullableResult = maybeNullExpr instanceof NullableValue n ? n : new NullableValue(functionDef, maybeNullExpr);
+
+        var notEqNull = nullableResult.isNotNull();
+
+        var right = resultExprSupplier.apply(nullableResult.nonNullValue());
+
+        return new IfThenElseStmt(functionDef, notEqNull, right,null);
+    }
+
 
     private Expression methodCall(Expression left, MethodCallContext methodCall) throws CompilationError {
         NamePathContext namePath;
@@ -1394,12 +1400,28 @@ public class BlockCompiler {
         if(type instanceof PhantomMetaClassDef) type = root.getObjectClass();
         var v = new Variable();
         v.setType(type);
+        if(type instanceof ConcreteType c){
+            functionDef.registerConcreteType(c);
+        }
         v.setOwnerClass(this.functionDef);
         v.setModifiers(AgoClass.PRIVATE);
         SlotDef slot = getSlotsAllocator().acquireRegister(type);
         v.setSlot(slot);
         v.setName(slot.getName());
         return new Var.LocalVar(functionDef, v, Var.LocalVar.VarMode.Temp);
+    }
+
+    public Var.NarrowTypingLocalVar acquireNarrowTypingVar(Variable variable, ClassDef narrowType) throws CompilationError {
+        var v = new Variable();
+        v.setType(narrowType);
+        if(narrowType instanceof ConcreteType c){
+            functionDef.registerConcreteType(c);
+        }
+        v.setOwnerClass(this.functionDef);
+        v.setName(variable.getName());
+        v.setSourceLocation(variable.getSourceLocation());
+        v.setModifiers(variable.getModifiers());        // slot not allocated, will allocate when invoked, and don't register variable in functionDef.variables
+        return new Var.NarrowTypingLocalVar(functionDef, v, variable);
     }
 
 
@@ -1444,19 +1466,135 @@ public class BlockCompiler {
      */
     private BlockStmt block(BlockContext block) throws CompilationError {
         List<Statement> statements = new ArrayList<>();
+        VariableScope variableScope = functionDef.enterVariableScope();
         for (BlockStatementContext blockStatementContext : block.blockStatement()) {
             var st = this.blockStatement(blockStatementContext);
             if(st != null) statements.add(st);
         }
+        functionDef.leaveVariableScope();
         return new BlockStmt(functionDef, statements).setSourceLocation(unit.sourceLocation(block));
 
     }
 
     private Statement ifStmt(IfStmtContext ifStmt) throws CompilationError {
-        var cond = parExpression(ifStmt.parExpression());
-        var trueBranch = statement(ifStmt.trueBranch);
-        Statement falseBranch = ifStmt.falseBranch == null ? null : statement(ifStmt.falseBranch);
+        this.narrowTyper.enter();
+        var cond = narrowType(ifStmt.parExpression());
+        var mapper = this.narrowTyper.exit();
+
+        Statement trueBranch;
+        Statement falseBranch;
+
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            trueBranch = statement(ifStmt.trueBranch);
+            narrowTyper.exit();
+        } else {
+            trueBranch = statement(ifStmt.trueBranch);
+        }
+
+        if (ifStmt.falseBranch == null) {
+            falseBranch = null;
+        } else {
+            if(mapper.isDirty()) {
+                this.narrowTyper.reenter(mapper, false);
+                falseBranch = statement(ifStmt.falseBranch);
+                narrowTyper.exit();
+            } else {
+                falseBranch = statement(ifStmt.falseBranch);
+            }
+        }
+
         return new IfThenElseStmt(functionDef, cond, trueBranch, falseBranch);
+    }
+
+    private Expression narrowType(ExpressionContext expression) throws CompilationError {
+        if(expression instanceof PrimaryExprContext primaryExprContext){
+            var expr = expression(primaryExprContext);
+            if(expr.inferType() instanceof NullableClassDef n) {
+                if (expr instanceof Var.LocalVar localVar) {
+                    Var.NarrowTypingLocalVar nonNullValueReceiver = acquireNarrowTypingVar(localVar.variable, n.getBaseClass());
+                    var nullValue = acquireNarrowTypingVar(localVar.variable, root.NULL());
+                    narrowTyper.collectNarrowVar(nonNullValueReceiver, nullValue);
+                    return new NullableValue(functionDef, localVar, nonNullValueReceiver);
+                }
+            }
+            return expr;
+        } else if(expression instanceof EqualsExprContext equalsExprContext){
+            return this.equalsExpr(equalsExprContext).transform();
+        }
+        return expression(expression);
+    }
+
+    private Expression narrowType(ParExpressionContext parExpression) throws CompilationError {
+        if(parExpression.expression() != null){
+            return narrowType(parExpression.expression());
+        } else {
+            return parExpression(parExpression);
+        }
+    }
+
+    public Expression narrowType(Var.LocalVar localVar, Expression value) throws CompilationError {
+        var variable = localVar.variable;
+        var nullableClass = (NullableClassDef)variable.getType();
+        if(narrowTyper.isCollecting()) {
+            var nonNullVar = acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
+            var nullVar = acquireNarrowTypingVar(variable, getRoot().NULL());
+            narrowTyper.collectNarrowVar(nonNullVar, nullVar);
+            return new NullableValue(functionDef, localVar, nonNullVar);
+        } else {
+            return localVar;
+        }
+    }
+
+    private AndExpr andExpr(AndExprContext andExpr) throws CompilationError {
+        this.narrowTyper.enter();
+        Expression left = narrowType(andExpr.expression(0));
+        var leftMapper = narrowTyper.peek();   // don't exit
+
+        this.narrowTyper.enter();
+        Expression right = narrowType(andExpr.expression(1));
+        var rightMapper = this.narrowTyper.exit();
+
+        this.narrowTyper.exit();       // exit left
+
+        if(this.narrowTyper.isCollecting()){   // still collecting
+            narrowTyper.updateCurrent(leftMapper.intersect(this, rightMapper), true);
+        }
+
+        return new AndExpr(functionDef, left, right);
+    }
+
+    private Expression orExpr(OrExprContext orExpr) throws CompilationError {
+        this.narrowTyper.enter();
+        Expression left = narrowType(orExpr.expression(0));
+        var leftMapper = narrowTyper.exit();
+
+        this.narrowTyper.enter();
+        Expression right = narrowType(orExpr.expression(1));
+        var rightMapper = this.narrowTyper.exit();
+
+        if(this.narrowTyper.isCollecting()){   // still collecting
+            narrowTyper.updateCurrent(leftMapper.union(this, rightMapper), true);
+        }
+
+        return new OrExpr(functionDef, left, right);
+    }
+
+    public NarrowTyper getNarrowTyper() {
+        return narrowTyper;
+    }
+
+    private Expression equalsExpr(EqualsExprContext equalsExpr) throws CompilationError {
+        Equals.Type type = switch(equalsExpr.bop.getType()){
+            case EQUAL -> Equals.Type.Equals;
+            case NOTEQUAL -> Equals.Type.NotEquals;
+//                case IDENTITY_EQUAL -> ;
+//                case NOT_IDENTITY_EQUAL ->
+            default -> throw new UnsupportedOperationException("'%s' not supported".formatted(equalsExpr.bop));
+        };
+        Expression left = expression(equalsExpr.expression(0));
+        Expression right = expression(equalsExpr.expression(1));
+        return new Equals(this, left, right, type).setSourceLocation(unit.sourceLocation(equalsExpr));
     }
 
     private Expression parExpression(ParExpressionContext parExpression) throws CompilationError {
@@ -1479,34 +1617,17 @@ public class BlockCompiler {
         var forControl = forStmt.forControl();
         EnhancedForControlContext enhancedForControl = forControl.enhancedForControl();
         if(enhancedForControl != null){
-            var expression = this.expression(enhancedForControl.expression()).transform();
+            narrowTyper.enter();
+            var expression = this.narrowType(enhancedForControl.expression()).transform();
+            var mapper = narrowTyper.exit();
             ClassDef expressionType = expression.inferType();
-            ForEachStmt.Mode mode = ForEachStmt.Mode.Iterable;
-            ClassDef concreteType = unit.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(expressionType);
-            if(concreteType == null){
-                mode = ForEachStmt.Mode.Iterator;
-                concreteType = unit.getRoot().getAnyIteratorInterface().asThatOrSuperOfThat(expressionType);
-                if(concreteType == null) {
-                    throw new TypeMismatchError("an iterable class required", unit.sourceLocation(forControl.expression()));
-                }
-            } else {
-                if(unit.getRoot().getAnyArrayClass().isThatOrSuperOfThat(expressionType)){
-                    mode = ForEachStmt.Mode.Array;      // array is Iterable too, however, the for-each stmt will iterate with indexed loop directly
-                }
+            if(expressionType instanceof NullableClassDef nullableClassDef){
+                expressionType = nullableClassDef.getBaseClass();
             }
-            // variableModifiers? identifier (AS declarationType)? IN expression
-            VariableModifiersContext variableModifiers = enhancedForControl.variableModifiers();
-            ClassDef type;
-            if(enhancedForControl.declarationType() != null){
-                type = unit.parseTypeName(functionDef, enhancedForControl.declarationType().namePath(),false);
-            } else {
-                var arg = concreteType.getGenericSource().typeArguments()[0];
-                type = arg.getClassDefValue();
-            }
-            Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);
-
-            var iterVar = defineLocalVar(enhancedForControl.identifier(),variableModifiers, type);
-            return new ForEachStmt(functionDef, label, iterVar, expression, statement(forStmt.statement()), mode, unit.sourceLocation(enhancedForControl));
+            this.narrowTyper.reenter(mapper, true);
+            var r = forEachStmt(forStmt, expression, expressionType, forControl, enhancedForControl, label);
+            this.narrowTyper.exit();
+            return r;
         } else {
             Statement init;
             ForInitContext forInit = forControl.forInit();
@@ -1528,6 +1649,35 @@ public class BlockCompiler {
         }
     }
 
+    private ForEachStmt forEachStmt(ForStmtContext forStmt, Expression expression, ClassDef expressionType, ForControlContext forControl, EnhancedForControlContext enhancedForControl, String label) throws CompilationError {
+        ForEachStmt.Mode mode = ForEachStmt.Mode.Iterable;
+        ClassDef concreteType = unit.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(expressionType);
+        if(concreteType == null){
+            mode = ForEachStmt.Mode.Iterator;
+            concreteType = unit.getRoot().getAnyIteratorInterface().asThatOrSuperOfThat(expressionType);
+            if(concreteType == null) {
+                throw new TypeMismatchError("an iterable class required", unit.sourceLocation(forControl.expression()));
+            }
+        } else {
+            if(unit.getRoot().getAnyArrayClass().isThatOrSuperOfThat(expressionType)){
+                mode = ForEachStmt.Mode.Array;      // array is Iterable too, however, the for-each stmt will iterate with indexed loop directly
+            }
+        }
+        // variableModifiers? identifier (AS declarationType)? IN expression
+        VariableModifiersContext variableModifiers = enhancedForControl.variableModifiers();
+        ClassDef type;
+        if(enhancedForControl.variableType() != null){
+            type = unit.extractType(unit.parseType(functionDef, enhancedForControl.variableType(), false,false));
+        } else {
+            var arg = concreteType.getGenericSource().typeArguments()[0];
+            type = arg.getClassDefValue();
+        }
+        Compiler.processClassTillStage(type, CompilingStage.AllocateSlots);
+
+        var iterVar = defineLocalVar(enhancedForControl.identifier(),variableModifiers, type);
+        return new ForEachStmt(functionDef, label, iterVar, expression, statement(forStmt.statement()), mode, unit.sourceLocation(enhancedForControl));
+    }
+
     private BlockStmt expressionList(ExpressionListContext expressionList) throws CompilationError {
         if(expressionList == null) return null;
         List<Statement> ls = new ArrayList<>();
@@ -1538,9 +1688,22 @@ public class BlockCompiler {
     }
 
     private Statement whileStmt(WhileStmtContext whileStmt) throws CompilationError {
-        var cond = parExpression(whileStmt.parExpression());
+        this.narrowTyper.enter();
+        var cond = narrowType(whileStmt.parExpression());
+        var mapper = this.narrowTyper.exit();
+
         String label = whileStmt.label() != null ? whileStmt.label().identifier().getText() : null;
-        return new WhileStmt(functionDef, label, cond, statement(whileStmt.statement()));
+
+        Statement body;
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            body = statement(whileStmt.statement());
+            narrowTyper.exit();
+        } else {
+            body = statement(whileStmt.statement());
+        }
+
+        return new WhileStmt(functionDef, label, cond, body);
     }
     DoWhileStmt doWhileStmt(DoWhileStmtContext doWhileStmt) throws CompilationError {
         var cond = parExpression(doWhileStmt.parExpression());
@@ -1677,8 +1840,33 @@ public class BlockCompiler {
     void yieldStmt(YieldStmtContext yieldStmt){
 
     }
-    WithStmt withStmt(WithStmtContext withStmt) throws CompilationError {
-        var expression = new CurrWithExpression(functionDef, parExpression(withStmt.parExpression()));
+
+    Statement withStmt(WithStmtContext withStmt) throws CompilationError {
+        narrowTyper.enter();
+        var withExpr = this.narrowType(withStmt.parExpression()).transform();
+        var mapper = narrowTyper.exit();
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            Statement r;
+            if(withExpr.inferType() instanceof NullableClassDef){
+                r =nullableIfThenStmt(functionDef, withExpr, nonNullExpression ->
+                        withStmt(withStmt, nonNullExpression));
+            } else {
+                r = withStmt(withStmt, withExpr);
+            }
+            this.narrowTyper.exit();
+            return r;
+        } else {
+            if(withExpr.inferType() instanceof NullableClassDef){
+                return nullableIfThenStmt(functionDef, withExpr, nonNullExpression ->
+                        withStmt(withStmt, nonNullExpression));
+            }
+            return withStmt(withStmt, withExpr);
+        }
+    }
+
+    private WithStmt withStmt(WithStmtContext withStmt, Expression withExpr) throws CompilationError {
+        var expression = new CurrWithExpression(functionDef, withExpr);
         withExpressionStack.push(expression);
         var stmt = statement(withStmt.statement());
         withExpressionStack.pop();
@@ -1686,15 +1874,62 @@ public class BlockCompiler {
     }
 
     private Expression withExpr(PostWithExprContext postWithExpr) throws CompilationError {
-        var expression = new CurrWithExpression(functionDef, this.expression(postWithExpr.expression()));
+        narrowTyper.enter();
+        var withExpr = this.narrowType(postWithExpr.expression()).transform();
+        var mapper = narrowTyper.exit();
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            Expression r;
+            if(withExpr.inferType() instanceof NullableClassDef){
+                r = nullableIfThenExpr(functionDef, withExpr, nonNullExpression ->
+                        withExpr(postWithExpr, nonNullExpression));
+            } else {
+                r = withExpr(postWithExpr, withExpr);
+            }
+            this.narrowTyper.exit();
+            return r;
+        } else {
+            if(withExpr.inferType() instanceof NullableClassDef){
+                return nullableIfThenExpr(functionDef, withExpr, nonNullExpression ->
+                        withExpr(postWithExpr, nonNullExpression));
+            }
+            return withExpr(postWithExpr, withExpr);
+        }
+    }
+
+    private WithExpr withExpr(PostWithExprContext postWithExpr, Expression withExpr) throws CompilationError {
+        var expression = new CurrWithExpression(functionDef, withExpr);
         withExpressionStack.push(expression);
         var stmt = this.statement(postWithExpr.postWith().statement());
         withExpressionStack.pop();
         return new WithExpr(functionDef, expression, stmt);
     }
 
-    ViaStmt viaStmt (ViaStmtContext viaStmt ) throws CompilationError {
-        Expression par = this.parExpression(viaStmt.parExpression());
+    Statement viaStmt(ViaStmtContext viaStmt ) throws CompilationError {
+        narrowTyper.enter();
+        var par = this.narrowType(viaStmt.parExpression()).transform();
+        var mapper = narrowTyper.exit();
+        if(mapper.isDirty()) {
+            this.narrowTyper.reenter(mapper, true);
+            Statement r;
+            if(par.inferType() instanceof NullableClassDef){
+                r = nullableIfThenStmt(functionDef, par, nonNullExpression ->
+                        viaStmt(viaStmt, nonNullExpression));
+            } else {
+                r = viaStmt(viaStmt, par);
+            }
+            this.narrowTyper.exit();
+            return r;
+        } else {
+            if(par.inferType() instanceof NullableClassDef){
+                return nullableIfThenStmt(functionDef, par, nonNullExpression ->
+                        viaStmt(viaStmt, nonNullExpression));
+            }
+            return viaStmt(viaStmt, par);
+        }
+    }
+
+    private ViaStmt viaStmt(ViaStmtContext viaStmt, Expression par) throws CompilationError {
         if(!par.inferType().isDeriveFrom(this.getFunctionDef().getRoot().getViaObjectInterface())){
             throw new TypeMismatchError("a ViaObject expected", par.getSourceLocation());
         }
@@ -1763,6 +1998,9 @@ public class BlockCompiler {
         code.setSourceLocation(expression.getSourceLocation());
     }
     public void leave(Expression expression){
+        if(expression instanceof ExpressionBase expressionBase){
+            expressionBase.releaseTempVariables(this);
+        }
         if (expression.getSourceLocation() == null) return;
         if (LOGGER.isDebugEnabled()) LOGGER.debug("leave " + expression);
 
@@ -1789,4 +2027,14 @@ public class BlockCompiler {
     Expression getCurrentWithExpr(){
         return withExpressionStack.peek();
     }
+
+    private Expression valueFromNullable(ValueFromNullableContext valueFromNullableContext) throws CompilationError {
+        var expr = expression(valueFromNullableContext.expression()).transform();
+        ClassDef classDef = expr.inferType();
+        if(!(classDef instanceof NullableClassDef)){
+            throw unit.typeError(valueFromNullableContext, "nullable expression expected");
+        }
+        return new Cast(functionDef, expr, ((NullableClassDef) classDef).getBaseClass());
+    }
+
 }

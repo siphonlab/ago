@@ -37,6 +37,9 @@ public class GreaterEquals implements GenericOpCode {
     public static final int ge_d_vvcc  = 0x11_07_02_04;
     public static final int ge_d_vvv   = 0x11_07_04_03;
 
+    public static final int ge_D_vvccccc = 0x11_0d_02_07;
+    public static final int ge_D_vvv   = 0x11_0d_04_03;
+
     public static final int ge_b_vvc   = 0x11_08_02_03;
     public static final int ge_b_vvv   = 0x11_08_04_03;
 
@@ -74,6 +77,9 @@ public class GreaterEquals implements GenericOpCode {
 
             case ge_d_vvcc -> "ge_d_vvcc";
             case ge_d_vvv -> "ge_d_vvv";
+
+            case ge_D_vvccccc -> "ge_D_vvcc";
+            case ge_D_vvv -> "ge_D_vvv";
 
             case ge_b_vvc -> "ge_b_vvc";
             case ge_b_vvv -> "ge_b_vvv";

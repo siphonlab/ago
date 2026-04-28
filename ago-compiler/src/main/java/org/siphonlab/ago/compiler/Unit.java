@@ -213,6 +213,7 @@ public class Unit {
                 case AgoLexer.INT -> new PrimitiveClassDef(root, TypeCode.INT);
                 case AgoLexer.LONG -> new PrimitiveClassDef(root, TypeCode.LONG);
                 case AgoLexer.DOUBLE -> new PrimitiveClassDef(root, TypeCode.DOUBLE);
+                case AgoLexer.DECIMAL -> new PrimitiveClassDef(root, TypeCode.DECIMAL);
                 case AgoLexer.FLOAT -> new PrimitiveClassDef(root, TypeCode.FLOAT);
                 case AgoLexer.STRING -> new PrimitiveClassDef(root, TypeCode.STRING);
                 case AgoLexer.BYTE -> new PrimitiveClassDef(root, TypeCode.BYTE);
@@ -731,8 +732,8 @@ public class Unit {
     }
 
     ClassDef[] parseTypeRange(AgoParser.TypeRangeContext typeRange, ClassDef scopeClass) throws CompilationError {
-        var from = parseTypeName(scopeClass, typeRange.from.declarationType().namePath(), false);
-        var to = typeRange.to == null ? root.getAnyClass() : parseTypeName(scopeClass, typeRange.to.declarationType().namePath(),false);
+        var from = isUnderScore(typeRange.from) ? root.getAnyClass() : extractType(parseType(scopeClass, typeRange.from.variableType(),false, false));
+        var to = typeRange.to == null || isUnderScore(typeRange.to) ? root.getAnyClass() : extractType(parseType(scopeClass, typeRange.to.variableType(), false,false));
         if(from instanceof FunctionDef){
             from = tryExtractFunctionInterfaceInstantiation(typeRange.from, from);
         }
@@ -740,6 +741,12 @@ public class Unit {
             to = tryExtractFunctionInterfaceInstantiation(typeRange.to, to);
         }
         return new ClassDef[]{from, to};
+    }
+
+    private boolean isUnderScore(AgoParser.TypeOrAnyContext typeOrAnyContext) {
+        return typeOrAnyContext.start == typeOrAnyContext.stop
+                && typeOrAnyContext.stop.getStopIndex() - typeOrAnyContext.start.getStartIndex() == 0
+                && typeOrAnyContext.getText().equals("_");
     }
 
     public static ClassDef extractType(Expression typeExpr) throws CompilationError {
@@ -769,13 +776,17 @@ public class Unit {
         if (variableType instanceof AgoParser.VarTypeNormalContext varTypeNormal) {
             return parseType(scopeClass, varTypeNormal.declarationType(), acceptTypeExpr, allowGenericPlaceHolder);
         } else if (variableType instanceof AgoParser.VarTypeArrayContext varTypeArray) {
-            var elementType = parseTypeName(scopeClass, varTypeArray.declarationType().namePath(), allowGenericPlaceHolder);
+            var elementType = extractType(parseType(scopeClass, varTypeArray.variableType(), acceptTypeExpr, allowGenericPlaceHolder));
             var dimension = varTypeArray.LBRACK().size();
             ArrayClassDef lastArrayType = null;
             for (var i = 0; i < dimension; i++) {
                 elementType = lastArrayType = scopeClass.getOrCreateArrayType(elementType, null);
             }
             return new ConstClass(lastArrayType).setSourceLocation(SourceLocation.UNKNOWN);
+        } else if(variableType instanceof AgoParser.VarTypeNullableContext varTypeNullable) {
+            var t = extractType(parseType(scopeClass, varTypeNullable.variableType(), acceptTypeExpr, allowGenericPlaceHolder));
+            var n = scopeClass.getOrCreateNullableType(t, null);
+            return new ConstClass(n);
         } else {
             throw new UnsupportedOperationException();
         }

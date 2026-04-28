@@ -66,6 +66,7 @@ CONST        : 'const';
 CONTINUE     : 'continue';
 DEFAULT      : 'default';
 DO           : 'do';
+DECIMAL      : 'decimal';
 DOUBLE       : 'double';
 ELSE         : 'else';
 ENUM         : 'enum';
@@ -164,8 +165,8 @@ OCT_LITERAL     : '0' '_'* [0-7] ([0-7_]* [0-7])? [lLbB]?;
 BINARY_LITERAL  : '0' [bB] [01] ([01_]* [01])? [lLbB]?;
 
 FLOAT_LITERAL:
-    (Digits '.' Digits? | '.' Digits) ExponentPart? [fFdD]?
-    | Digits (ExponentPart [fFdD]? | [fFdD])
+    (Digits '.' Digits? | '.' Digits) ExponentPart? [fdD]?
+    | Digits (ExponentPart [fdD]? | [fdD])
 ;
 
 HEX_FLOAT_LITERAL: '0' [xX] (HexDigits '.'? | HexDigits? '.' HexDigits) [pP] [+-]? Digits [fFdD]?;

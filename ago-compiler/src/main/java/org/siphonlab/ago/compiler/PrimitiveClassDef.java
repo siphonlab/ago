@@ -85,6 +85,7 @@ public class PrimitiveClassDef extends ClassDef {
                 case LONG_VALUE -> root.findByFullname("lang.Boxer<long>");
                 case FLOAT_VALUE -> root.findByFullname("lang.Boxer<float>");
                 case DOUBLE_VALUE -> root.findByFullname("lang.Boxer<double>");
+                case DECIMAL_VALUE -> root.findByFullname("lang.Boxer<decimal>");
                 case CHAR_VALUE -> root.findByFullname("lang.Boxer<char>");
                 case BOOLEAN_VALUE -> root.findByFullname("lang.Boxer<boolean>");
                 case STRING_VALUE -> root.findByFullname("lang.Boxer<string>");

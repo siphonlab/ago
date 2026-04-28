@@ -58,7 +58,7 @@ public class ToString extends ExpressionInFunctionBody{
         if(expression instanceof Literal<?> literal){
             return ownerFunction.cast(literal, getRoot().STRING()).transform();
         } else {
-            return ownerFunction.invoke(Invoke.InvokeMode.Invoke, new ClassUnder.ClassUnderInstance(ownerFunction, expression, exprClass.findMethod("toString#")), Collections.emptyList(), this.getSourceLocation());
+            return ownerFunction.invoke(Invoke.InvokeMode.Invoke, new ClassUnder.ClassUnderInstance(ownerFunction, expression, exprClass.findMethod("toString#")), Collections.emptyList(), this.getSourceLocation()).transform();
         }
     }
 

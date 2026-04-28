@@ -21,6 +21,8 @@ import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.runtime.rdb.reactive.CallFrameBoundSlots;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 
+import java.math.BigDecimal;
+
 public class ReactiveJsonRefSlotsWithCallFrame extends ReactiveJsonRefSlots implements CallFrameBoundSlots<ReactiveJsonRefSlots> {
 
     private final CallFrame<?> callFrame;
@@ -163,6 +165,12 @@ public class ReactiveJsonRefSlotsWithCallFrame extends ReactiveJsonRefSlots impl
     public void incDouble(int slot, double value) {
         double current = reactivePgJsonSlotsAdapter.getDouble(this, objectRef, slot);
         reactivePgJsonSlotsAdapter.setDouble(this, objectRef, slot, current + value);
+    }
+
+    @Override
+    public void incDecimal(int slot, BigDecimal value) {
+        var current = reactivePgJsonSlotsAdapter.getDecimal(this, objectRef, slot);
+        reactivePgJsonSlotsAdapter.setDecimal(this, objectRef, slot, current.add(value));
     }
 
     @Override

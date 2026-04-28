@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.concurrent.ExecutionException;
 
 import static org.apache.commons.dbcp2.Utils.closeQuietly;
 
@@ -64,6 +66,7 @@ public class RdbEngine extends AgoEngine {
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
 
         module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
@@ -80,6 +83,7 @@ public class RdbEngine extends AgoEngine {
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
+        module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
         module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
         module.addSerializer(RdbSlots.class, new RdbSlotsJsonSerializer(this));
 
@@ -183,7 +187,11 @@ public class RdbEngine extends AgoEngine {
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if (emptyArgsConstructor != null) {
-            c.invokeMethod(caller, emptyArgsConstructor, emptyArgsConstructor);
+            try {
+                c.invokeMethod(caller, emptyArgsConstructor, emptyArgsConstructor).get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
         }
         return c;
     }

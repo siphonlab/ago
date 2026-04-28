@@ -28,6 +28,8 @@ import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 
+import java.math.BigDecimal;
+
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.FLOAT_VALUE;
 import static org.siphonlab.ago.TypeCode.INT_VALUE;
@@ -48,6 +50,7 @@ public class CastStrategy {
         Any,                        // any, generic
         langObject,                 // lang.Object
         Object,                     // object type
+//        Union,                      // union, now only nullable
     }
 
     public CastStrategy(FunctionDef ownerFunction, SourceLocation sourceLocation, boolean forceCast){
@@ -81,8 +84,10 @@ public class CastStrategy {
             return TypeKind.PrimitiveBoxer;
         } else if(classDef == root.getAnyClass()){
             return TypeKind.Any;
-        } else if(classDef == root.getObjectClass()){
+        } else if(classDef == root.getObjectClass()) {
             return TypeKind.langObject;
+//        } else if(classDef.getTypeCode() == UNION){
+//            return TypeKind.Union;
         } else {
             return TypeKind.Object;
         }
@@ -176,10 +181,10 @@ public class CastStrategy {
 
                     case Object -> {
                         if(rightType.getTypeCode() == NULL) {
-                            right = new ForceCast(ownerFunction, right, leftType, ForceCast.CastMode.ObjectCast);
-                            yield new UnifyTypeResult(left, right, leftType, true);
-                        } else {
                             yield throwTypeMismatchError(originLeftType, originRightType);
+                        } else {
+                            left = new ForceCast(ownerFunction, left, rightType, ForceCast.CastMode.ObjectCast);
+                            yield new UnifyTypeResult(left,right,rightType, true);
                         }
                     }
 
@@ -192,7 +197,7 @@ public class CastStrategy {
                 switch (rightTypeKind){
                     case langObject ->
                         new UnifyTypeResult(new ForceCast(ownerFunction, left,rightType, ForceCast.CastMode.ObjectCast), right,rightType, true);
-                    case Object ->
+                    case Object, PrimitiveBoxer, Enum ->
                         unifyObjectTypes(left, right, leftType, rightType);
                     default -> throwTypeMismatchError(originLeftType, originRightType);
                 };
@@ -243,6 +248,10 @@ public class CastStrategy {
             return hiType;        // string -> int... number types
         if (t2 == STRING)
             return loType;
+
+        if(t2 == BOOLEAN){
+            return hiType;
+        }
 
         switch (t1.value) {
             case BYTE_VALUE, SHORT_VALUE, CHAR_VALUE:
@@ -298,13 +307,35 @@ public class CastStrategy {
             }
         }
 
+        if(toType instanceof UnionClassDef){
+            if(toType instanceof NullableClassDef toNullableClassDef){
+                if(fromType instanceof NullClassDef) {
+                    return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
+                } else if(fromType instanceof NullableClassDef fromNullableClassDef){
+                    // work as Object cast
+                } else {
+                    var expr = castTo(expression, toNullableClassDef.getBaseClass());
+                    return new ForceCast(ownerFunction, expr, toType, ForceCast.CastMode.ToUnion);
+                }
+            } else {
+                throw new UnsupportedOperationException("only nullable supported now");
+            }
+        } else if(fromType instanceof UnionClassDef){
+            if(fromType instanceof NullableClassDef nullableClassDef){
+                var expr = new ForceCast(ownerFunction, expression, nullableClassDef.getBaseClass(), ForceCast.CastMode.FromUnion);
+                return castTo(expr, toType);
+            } else {
+                throw new UnsupportedOperationException("only nullable supported now");
+            }
+        }
+
         if (expression instanceof Literal<?> literal) {
             if (toType instanceof PrimitiveClassDef) {
                 return new ForceCast(ownerFunction, castLiteral(literal, toType, this.sourceLocation), originToType, ForceCast.CastMode.WearClassMask).transform();
             }
             if (literal instanceof NullLiteral n) {
                 if (toTypeKind == TypeKind.langObject || toTypeKind == TypeKind.Object || toTypeKind == TypeKind.Any || toTypeKind == TypeKind.PrimitiveBoxer) {
-                    return new NullLiteral(originToType).setSourceLocation(sourceLocation);
+                    throw new TypeMismatchError("cannot cast null to object", this.sourceLocation);
                 }
             }
         }
@@ -595,6 +626,8 @@ public class CastStrategy {
                     return root.createFloatLiteral((float) c.value);
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral((double) c.value);
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(c.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral((byte) c.value.charValue());
                 case SHORT_VALUE:
@@ -610,6 +643,8 @@ public class CastStrategy {
                     return root.createCharLiteral((char) f.value.intValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral((double) f.value);
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(f.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral((byte) f.value.floatValue());
                 case SHORT_VALUE:
@@ -625,6 +660,25 @@ public class CastStrategy {
                     return root.createCharLiteral((char) d.value.intValue());
                 case FLOAT_VALUE:
                     return root.createFloatLiteral(d.value.floatValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(d.value));
+                case BYTE_VALUE:
+                    return root.createByteLiteral(d.value.byteValue());
+                case SHORT_VALUE:
+                    return root.createShortLiteral(d.value.shortValue());
+                case INT_VALUE:
+                    return root.createIntLiteral(d.value.intValue());
+                case LONG_VALUE:
+                    return root.createLongLiteral(d.value.longValue());
+            }
+        } else if (literal instanceof DecimalLiteral d) {
+            switch (toTypeCode.value) {
+                case CHAR_VALUE:
+                    return root.createCharLiteral((char) d.value.intValue());
+                case FLOAT_VALUE:
+                    return root.createFloatLiteral(d.value.floatValue());
+                case DOUBLE_VALUE:
+                    return root.createDoubleLiteral(d.value.doubleValue());
                 case BYTE_VALUE:
                     return root.createByteLiteral(d.value.byteValue());
                 case SHORT_VALUE:
@@ -642,6 +696,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(b.value.floatValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(b.value.doubleValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(b.value));
                 case SHORT_VALUE:
                     return root.createShortLiteral(b.value.shortValue());
                 case INT_VALUE:
@@ -657,6 +713,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(s.value.floatValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(s.value.doubleValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(s.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral(s.value.byteValue());
                 case INT_VALUE:
@@ -672,6 +730,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(i.value.floatValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(i.value.doubleValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(i.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral(i.value.byteValue());
                 case SHORT_VALUE:
@@ -687,6 +747,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(l.value.floatValue());
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(l.value.doubleValue());
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(l.value));
                 case BYTE_VALUE:
                     return root.createByteLiteral(l.value.byteValue());
                 case SHORT_VALUE:
@@ -707,6 +769,8 @@ public class CastStrategy {
                     return root.createFloatLiteral(Float.parseFloat(str));
                 case DOUBLE_VALUE:
                     return root.createDoubleLiteral(Double.parseDouble(str));
+                case DECIMAL_VALUE:
+                    return root.createDecimalLiteral(new BigDecimal(str));
                 case BYTE_VALUE:
                     return root.createByteLiteral(Byte.parseByte(str));
                 case SHORT_VALUE:
@@ -717,9 +781,7 @@ public class CastStrategy {
                     return root.createLongLiteral(Long.parseLong(str));
             }
         } else if(literal instanceof NullLiteral n){
-            if(toType.getTypeCode() == OBJECT){
-                return root.createNullLiteral(toType).setSourceLocation(sourceLocation);
-            }
+            throw new TypeMismatchError("cannot cast null to object", sourceLocation);
         }
         throw new TypeMismatchError(literal.inferType().getTypeCode() + " cannot cast to " + toTypeCode, sourceLocation);
     }

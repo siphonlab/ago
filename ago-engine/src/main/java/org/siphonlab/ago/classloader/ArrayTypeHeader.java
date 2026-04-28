@@ -55,19 +55,19 @@ public class ArrayTypeHeader extends ClassHeader {
         String fullname;
         if(elementClassHeader.getTypeCode().isObject()) {
             var el = headers.get(elementClassHeader.fullname());
-            name = '[' + el.getName();
+            name = el.getName() + "[]";
             fullname = el.extractPackagePrefix() + name;
         } else if(elementClassHeader instanceof GenericTypeCodeAvatarClassHeader g){
             if(g.fullname != null){
                 var el = headers.get(g.fullname);
-                name = '[' + g.getName();
+                name = g.getName() + "[]";
                 fullname = el.extractPackagePrefix() + name;
             } else {
-                name = '[' + g.getName();
+                name = g.getName() + "[]";
                 fullname = name;
             }
         } else {
-            name = '[' + elementClassHeader.getName();
+            name = elementClassHeader.getName() + "[]";
             fullname = name;
         }
         return Pair.of(name, fullname);
@@ -120,6 +120,9 @@ public class ArrayTypeHeader extends ClassHeader {
             arrayBase.resolveHierarchicalClasses();
         }
         var instantiation = arrayBase.instantiate(new InstantiationArguments(arrayBase, new ClassHeader[]{this.getElementType()}), null, null, null);
+        if(instantiation.getLoadingStage() == ResolveHierarchicalClasses){
+            instantiation.resolveHierarchicalClasses();
+        }
         this.setSuperClass(instantiation.fullname);
         this.setChildren(instantiation.getChildren());
         this.setMethods(instantiation.methods.stream().map(

@@ -31,7 +31,7 @@ public class ForEachStmt extends LoopStmt{
 
 
     private final Var.LocalVar iterVar;
-    private final Expression expression;
+    private Expression expression;
     private final Statement body;
     private final Mode mode;
     private final SourceLocation enhanceControlPartSourceLocation;
@@ -53,7 +53,17 @@ public class ForEachStmt extends LoopStmt{
     }
 
     @Override
+    public Statement transform() throws CompilationError {
+        if(this.expression.inferType() instanceof NullableClassDef && !(this.expression instanceof NullableValue)){
+            this.expression = new NullableValue(ownerFunction, this.expression);
+        }
+        return super.transform();
+    }
+
+    @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
+        CodeBuffer code = blockCompiler.getCode();
+
         if(mode == Mode.Array){
             iterateArray(blockCompiler);
             return;
@@ -61,39 +71,42 @@ public class ForEachStmt extends LoopStmt{
         try {
             blockCompiler.enter(this);
 
-            CodeBuffer code = blockCompiler.getCode();
             this.exitLabel = blockCompiler.createLabel();
             this.continueLabel = blockCompiler.createLabel();
 
-            FunctionDef functionDef = blockCompiler.getFunctionDef();
-
             Var.LocalVar iteratorValue;
+            if(this.expression instanceof NullableValue nullableValue) {
+                nullableValue.visit(blockCompiler);
+                var isNull = nullableValue.isNull().visit(blockCompiler);
+                code.jumpIf(isNull.getVariableSlot(), this.exitLabel);
+                iteratorValue = nullableValue.nonNullValue().visit(blockCompiler);
+            } else {
+                iteratorValue = (Var.LocalVar) expression.visit(blockCompiler);
+            }
+
             ClassDef iteratorType;
             if(mode == Mode.Iterable) {
                 // iterable
                 ClassDef iterableType = expression.inferType();
-                ClassUnder iteratorFun = (ClassUnder) ClassUnder.create(ownerFunction, expression, iterableType.getChild("iterator#")).setSourceLocation(expression.getSourceLocation()).setParent(this);
-                var invokeIteratorFun = ownerFunction.invoke(Invoke.InvokeMode.Invoke, iteratorFun, Collections.emptyList(), expression.getSourceLocation());
+                ClassUnder iteratorFun = (ClassUnder) ClassUnder.create(ownerFunction, iteratorValue, iterableType.getChild("iterator#")).setSourceLocation(expression.getSourceLocation()).setParent(this);
+                var invokeIteratorFun = ownerFunction.invoke(Invoke.InvokeMode.Invoke, iteratorFun, Collections.emptyList(), expression.getSourceLocation()).transform();
                 iteratorType = invokeIteratorFun.inferType();
 
                 iteratorValue = (Var.LocalVar) invokeIteratorFun.visit(blockCompiler);
-                blockCompiler.lockRegister(iteratorValue);
             } else {
-                iteratorValue = (Var.LocalVar) expression.visit(blockCompiler);
                 iteratorType = iteratorValue.inferType();
             }
-
-            code.jumpIfNot(iteratorValue.getVariableSlot(), exitLabel);
+            blockCompiler.lockRegister(iteratorValue);
 
             this.continueLabel.here();      // test hasNext() and fetch next();
 
             ClassUnder hasNextFun = (ClassUnder) ClassUnder.create(ownerFunction, iteratorValue, iteratorType.getChild("hasNext#")).setSourceLocation(expression.getSourceLocation()).setParent(this);
-            var invokeHasNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, hasNextFun, Collections.emptyList(), expression.getSourceLocation());
+            var invokeHasNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, hasNextFun, Collections.emptyList(), expression.getSourceLocation()).transform();
             Var.LocalVar hasNextValue = (Var.LocalVar) invokeHasNext.visit(blockCompiler);
             code.jumpIfNot(hasNextValue.getVariableSlot(), exitLabel);
 
             ClassUnder nextFun = (ClassUnder) ClassUnder.create(ownerFunction, iteratorValue, iteratorType.getChild("next#")).setSourceLocation(expression.getSourceLocation()).setParent(this);
-            var invokeNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, nextFun, Collections.emptyList(), expression.getSourceLocation());
+            var invokeNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, nextFun, Collections.emptyList(), expression.getSourceLocation()).transform();
             ownerFunction.assign(iterVar, invokeNext).setSourceLocation(enhanceControlPartSourceLocation).termVisit(blockCompiler);
 
             this.body.termVisit(blockCompiler);
@@ -116,18 +129,29 @@ public class ForEachStmt extends LoopStmt{
 
             CodeBuffer code = blockCompiler.getCode();
 
+            blockCompiler.lockRegister(iterVar);
+
             Var.LocalVar i = blockCompiler.acquireTempVar(getRoot().createIntLiteral(0));
             blockCompiler.lockRegister(i);
 
-            Var.LocalVar array = (Var.LocalVar) expression.visit(blockCompiler);
+            this.exitLabel = blockCompiler.createLabel();
+
+            Var.LocalVar array;
+            if(this.expression instanceof NullableValue nullableValue) {
+                nullableValue.visit(blockCompiler);
+                var isNull = nullableValue.isNull().visit(blockCompiler);
+                code.jumpIf(isNull.getVariableSlot(), this.exitLabel);
+                array = nullableValue.nonNullValue().visit(blockCompiler);
+            } else {
+                array = (Var.LocalVar) expression.visit(blockCompiler);
+            }
             blockCompiler.lockRegister(array);
 
             ownerFunction.assign(i, getRoot().createIntLiteral(0)).termVisit(blockCompiler);
             Var.LocalVar length = (Var.LocalVar) new ArrayLength(ownerFunction, array).visit(blockCompiler);
+            this.continueLabel = blockCompiler.createLabel().here();
             blockCompiler.lockRegister(length);
 
-            this.continueLabel = blockCompiler.createLabel().here();
-            this.exitLabel = blockCompiler.createLabel();
             Var.LocalVar r = (Var.LocalVar) new Compare(ownerFunction, i, length, Compare.Type.LT).visit(blockCompiler);
             code.jumpIfNot(r.getVariableSlot(), exitLabel);
             ownerFunction.assign(iterVar, new ArrayElement(ownerFunction, array, i)).setSourceLocation(enhanceControlPartSourceLocation).termVisit(blockCompiler);
@@ -139,6 +163,7 @@ public class ForEachStmt extends LoopStmt{
 
             exitLabel.here();
 
+            blockCompiler.releaseRegister(iterVar);
             blockCompiler.releaseRegister(length);
             blockCompiler.releaseRegister(array);
             blockCompiler.releaseRegister(i);

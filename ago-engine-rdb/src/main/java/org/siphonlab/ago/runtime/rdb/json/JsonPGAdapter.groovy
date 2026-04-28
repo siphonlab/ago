@@ -78,6 +78,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         typeMap.put(TypeCode.LONG_VALUE, new RdbType(TypeCode.LONG, Types.BIGINT, "bigint"));
         typeMap.put(TypeCode.FLOAT_VALUE, new RdbType(TypeCode.FLOAT, Types.FLOAT, "float"));
         typeMap.put(TypeCode.DOUBLE_VALUE, new RdbType(TypeCode.DOUBLE, Types.DOUBLE, "double"));
+        typeMap.put(TypeCode.DECIMAL_VALUE, new RdbType(TypeCode.DECIMAL, Types.DECIMAL, "decimal"));
         typeMap.put(TypeCode.BOOLEAN_VALUE, new RdbType(TypeCode.BOOLEAN, Types.BOOLEAN, "boolean"));
         typeMap.put(TypeCode.STRING_VALUE, new RdbType(TypeCode.STRING, Types.VARCHAR, "varchar"));
         typeMap.put(TypeCode.BYTE_VALUE, new RdbType(TypeCode.BYTE, Types.TINYINT, "smallint"));    // no byte type in PG
@@ -365,8 +366,10 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     static Map<String, Object> toMap(ConcreteTypeInfo concreteTypeInfo) {
         if(concreteTypeInfo == null) return null;
-        if(concreteTypeInfo instanceof ArrayInfo){
-            return ["type": "ArrayInfo", "elementType" : concreteTypeInfo.elementType.fullname as Object]
+        if(concreteTypeInfo instanceof ArrayInfo) {
+            return ["type": "ArrayInfo", "elementType": concreteTypeInfo.elementType.fullname as Object]
+        } else if(concreteTypeInfo instanceof NullableTypeInfo){
+            return ["type": "NullableInfo", "baseType" : concreteTypeInfo.baseClass.fullname as Object]
         } else if(concreteTypeInfo instanceof GenericArgumentsInfo){
             return ["type": "GenericArgumentsInfo" as Object, "templateClass": concreteTypeInfo.templateClass.fullname, "arguments": concreteTypeInfo.arguments.collect( { ((AgoClass)it).fullname }).toArray()]
         } else if(concreteTypeInfo instanceof GenericTypeParametersInfo){

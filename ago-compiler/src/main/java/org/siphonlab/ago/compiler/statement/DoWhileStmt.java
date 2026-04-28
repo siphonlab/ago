@@ -16,27 +16,39 @@
 package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.CodeBuffer;
-import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
+import org.siphonlab.ago.compiler.expression.logic.Not;
 
 public class DoWhileStmt extends LoopStmt {
 
     private Expression condition;
     private final Statement body;
 
+    private boolean conditionNeg = false;
+
     public DoWhileStmt(FunctionDef ownerFunction, String label, Expression condition, Statement body) throws CompilationError {
         super(ownerFunction, label);
-        this.condition = condition.setParent(this).transform();
+        this.condition = condition.setParent(this);
         this.body = body.setParent(this).transform();
     }
 
     @Override
     protected Expression transformInner() throws CompilationError {
+        while(condition instanceof Not not){
+            conditionNeg = !conditionNeg;
+            this.condition = not.getValue();
+        }
+        this.condition = condition.transform();
+
+        if(this.condition.inferType() instanceof NullableClassDef && !(this.condition instanceof NullableValue)){
+            this.condition = new NullableValue(ownerFunction, this.condition);
+        }
+
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isFalse(literal)){    // always false
                 return this.body;
@@ -62,13 +74,47 @@ public class DoWhileStmt extends LoopStmt {
 
             var bodyBegin = continueLabel = blockCompiler.createLabel().here();
             this.body.termVisit(blockCompiler);
+
             if (condition instanceof LiteralResultExpression literalResultExpression) {
                 var tempVar = blockCompiler.acquireTempVar(literalResultExpression);
                 ownerFunction.assign(tempVar, condition).setSourceLocation(condition.getSourceLocation()).visit(blockCompiler);
                 code.jumpIf(tempVar.getVariableSlot(), bodyBegin);
             } else {
-                Var.LocalVar r = (Var.LocalVar) condition.visit(blockCompiler);
-                code.jumpIf(r.getVariableSlot(), bodyBegin);
+                Var.LocalVar condResult = (Var.LocalVar) condition.visit(blockCompiler);
+                boolean checkCondResult = true;
+
+                if(condition instanceof NullableValue nullableValue){
+                    var isNull = nullableValue.isNull().visit(blockCompiler);
+                    blockCompiler.releaseRegister(condResult);
+                    if(!conditionNeg) {
+                        code.jumpIf(isNull.getVariableSlot(), exitLabel);       // if is null, exit
+                    } else {
+                        code.jumpIf(isNull.getVariableSlot(), bodyBegin);
+                    }
+                    NullableValue.NonNullValue nonNullValue = nullableValue.nonNullValue();
+                    ClassDef nonNullType = nonNullValue.inferType();
+                    if(nonNullType.isPrimitiveBoxed()){
+                        condResult = nonNullValue.visit(blockCompiler);
+                        condResult = (Var.LocalVar) ownerFunction.unbox(condResult).transform().visit(blockCompiler);
+                    } else if(nonNullType.getTypeCode() == TypeCode.OBJECT){
+                        checkCondResult = false;
+                    } else {
+                        condResult = nonNullValue.visit(blockCompiler);
+                    }
+                }
+                if(checkCondResult) {
+                    if (!conditionNeg) {
+                        code.jumpIf(condResult.getVariableSlot(), bodyBegin);
+                    } else {
+                        code.jumpIfNot(condResult.getVariableSlot(), bodyBegin);
+                    }
+                } else {
+                    if (!conditionNeg) {
+                        code.jump(bodyBegin);
+                    } else {
+                        code.jump(exitLabel);
+                    }
+                }
             }
             exitLabel.here();
         } catch (CompilationError e) {

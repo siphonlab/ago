@@ -45,6 +45,9 @@ public class Const {
     public static final int const_d_vc          = 0x01_07_01_03;
     public static final int const_fld_d_ovc     = 0x01_07_02_04;
 
+    public static final int const_D_vc          = 0x01_0d_01_06;
+    public static final int const_fld_D_ovc     = 0x01_0d_02_07;
+
     public static final int const_b_vc          = 0x01_08_01_02;
     public static final int const_fld_b_ovc     = 0x01_08_02_03;
 
@@ -54,8 +57,17 @@ public class Const {
     public static final int const_l_vc          = 0x01_0b_01_03;
     public static final int const_fld_l_ovc     = 0x01_0b_02_04;
 
-    public static final int const_n_vc          = 0x01_02_01_01;
-    public static final int const_fld_n_ovc     = 0x01_02_02_02;
+    // for union.
+    public static final int const_nu_v          = 0x01_0e_02_01;
+    public static final int const_fld_nu_ov     = 0x01_0e_02_02;
+
+    // object, object to release slot
+    public static final int const_no_v          = 0x01_01_02_01;
+    public static final int const_fld_no_ov     = 0x01_01_02_02;
+
+    // generic
+    public static final int const_ng_v          = 0x01_00_02_01;
+    public static final int const_fld_ng_ov     = 0x01_00_02_02;
 
     public static final int const_S_vc          = 0x01_03_01_02;
     public static final int const_fld_S_ovc     = 0x01_03_02_03;
@@ -73,6 +85,8 @@ public class Const {
             case 0x01_06_02_03 -> "const_fld_f_ovc";
             case 0x01_07_01_03 -> "const_d_vc";
             case 0x01_07_02_04 -> "const_fld_d_ovc";
+            case const_D_vc -> "const_D_vc";
+            case const_fld_D_ovc -> "const_fld_D_ovc";
             case 0x01_08_01_02 -> "const_b_vc";
             case 0x01_08_02_03 -> "const_fld_b_ovc";
             case 0x01_09_01_02 -> "const_s_vc";
@@ -83,51 +97,27 @@ public class Const {
             case 0x01_0b_02_04 -> "const_fld_l_ovc";
             case 0x01_01_01_02 -> "const_o_vc";
             case 0x01_01_02_03 -> "const_fld_o_ovc";
-            case 0x01_02_01_01 -> "const_n_vc";
             case 0x01_02_02_02 -> "const_fld_n_ovc";
             case 0x01_03_01_02 -> "const_S_vc";
             case 0x01_03_02_03 -> "const_fld_S_ovc";
             case 0x01_0c_01_02 -> "const_C_vC";
             case 0x01_0c_02_03 -> "const_fld_C_ovC";
-            default -> throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
+            case const_nu_v -> "const_nu_v";
+            case const_fld_nu_ov -> "const_fld_nu_ov";
+            case const_no_v -> "const_no_v";
+            case const_fld_no_ov -> "const_fld_no_ov";
+            default -> {
+                var t = OpCode.extractType(code);
+                if(t >= TypeCode.GENERIC_TYPE_START){
+                    t -= TypeCode.GENERIC_TYPE_START;
+                    switch ((code & OpCode.DTYPE_MASK_NEG)){
+                        case const_ng_v: yield "const_ng[%s]_vv".formatted(t);
+                        case const_fld_ng_ov: yield  "const_fld_G[%s]_ovv".formatted(t);
+                    };
+                }
+                throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
+            }
         };
     }
 
-    public static void main(String[] args) {
-        for (TypeCode typeCode : TypeCode.values()) {
-            String type = StringUtils.leftPad(Integer.toHexString(typeCode.getValue()), 2, '0');
-            var shorts = typeCode.toShortString();
-            String s = MessageFormat.format("""
-            	    public static final int const_{0}_vc      = 0x01_{1}_01_02;
-            	    public static final int const_{0}_ovc     = 0x01_{1}_02_03;
-            	""",
-            	    shorts, type
-            	);
-            System.out.println(s);
-        }
-
-        StringBuffer sb = new StringBuffer();
-        sb.append("""
-            public static String getName(int code){
-                return switch(code){
-            """);
-
-        for (TypeCode typeCode : TypeCode.values()) {
-            String type = StringUtils.leftPad(Integer.toHexString(typeCode.getValue()), 2, '0');
-            var shorts = typeCode.toShortString();
-            String s = MessageFormat.format("""
-            	    case 0x01_{1}_01_02 -> "const_{0}_vc";
-            	    case 0x01_{1}_02_03 -> "const_{0}_ovc";
-            	""",
-            	    shorts, type
-            	);
-            sb.append(s);
-        }
-        String defaultBranch = """
-                default -> throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
-            };
-        }""";
-        sb.append(defaultBranch).append("\n");
-        System.out.println(sb);
-    }
 }

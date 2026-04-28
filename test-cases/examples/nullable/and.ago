@@ -1,0 +1,43 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+fun main(){
+    testAnd();
+}
+
+fun testAnd(){
+    var b as boolean? = true;
+    var b2 as boolean? = false;
+    var b3 as boolean? = null;
+    Trace.print(b and b2)       // false
+    Trace.print(b3 and b)       // null
+    Trace.print(b2 and b)       // false
+    Trace.print(b3 and b3)      // null
+
+    Trace.print(b and true)     // true
+    Trace.print(true and b)     // true
+    Trace.print(b2 and true)    // false
+    Trace.print(true and b2)    // false
+    Trace.print(b3 and true)    // null
+    Trace.print(true and b3)    // null
+
+    var i as int? = 200;
+    var n as int? = null;
+
+    Trace.print(i and n)        // null
+    Trace.print(i and i)        // 200
+    Trace.print(true and i)     // true, any side is boolean got boolean
+    Trace.print(n and i)        // null
+}

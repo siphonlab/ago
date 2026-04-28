@@ -18,19 +18,26 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.CurrWithExpression;
+import org.siphonlab.ago.compiler.expression.Expression;
 
 public class WithStmt extends Statement{
 
 
-    private final CurrWithExpression expression;
+    private final CurrWithExpression withExpression;
     private final Statement statement;
 
-    public WithStmt(FunctionDef ownerFunction, CurrWithExpression expression, Statement statement) throws CompilationError {
+    public WithStmt(FunctionDef ownerFunction, CurrWithExpression withExpression, Statement statement) throws CompilationError {
         super(ownerFunction);
-        this.expression = expression.transform();
+        this.withExpression = withExpression.transform();
         this.statement = statement.transform();
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        return super.transformInner();
     }
 
     @Override
@@ -38,11 +45,11 @@ public class WithStmt extends Statement{
         try {
             blockCompiler.enter(this);
 
-            expression.visit(blockCompiler);
+            withExpression.visit(blockCompiler);
 
-            blockCompiler.enterWith(expression);
+            blockCompiler.enterWith(withExpression);
             statement.termVisit(blockCompiler);
-            blockCompiler.leaveWith(expression);
+            blockCompiler.leaveWith(withExpression);
             blockCompiler.leave(this);
         } catch (CompilationError e) {
             throw e;
@@ -58,6 +65,6 @@ public class WithStmt extends Statement{
 
     @Override
     public String toString() {
-        return "with(%s) %s".formatted(expression, statement);
+        return "with(%s) %s".formatted(withExpression, statement);
     }
 }

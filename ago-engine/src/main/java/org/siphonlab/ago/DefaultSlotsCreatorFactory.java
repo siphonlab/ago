@@ -24,6 +24,7 @@ import org.cojen.maker.Label;
 import org.cojen.maker.MethodMaker;
 
 import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -115,7 +116,11 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
                     var caseSlot = cases.get(i);
                     entrances[i].here();
                     var fld = inc.field(fieldName(caseSlot));
-                    fld.inc(inc.param(1));
+                    if(typeCode == DECIMAL){
+                        fld.set(fld.invoke("add", inc.param(1)));
+                    } else {
+                        fld.inc(inc.param(1));
+                    }
 //                        var exitLabel = inc.label();
 //                        fld.ifGe(zero(typeCode), exitLabel);
 //                        inc.new_(IllegalArgumentException.class, "ooooops").throw_();
@@ -174,6 +179,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
             case CHAR_VALUE -> (char) 0;
             case FLOAT_VALUE -> (float) 0;
             case DOUBLE_VALUE -> (double) 0;
+            case DECIMAL_VALUE -> BigDecimal.ZERO;
             case BYTE_VALUE -> (byte) 0;
             case SHORT_VALUE -> (short) 0;
             case INT_VALUE -> (int) 0;
@@ -187,6 +193,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
             case CHAR_VALUE -> (char) 1;
             case FLOAT_VALUE -> (float) 1;
             case DOUBLE_VALUE -> (double) 1;
+            case DECIMAL_VALUE -> BigDecimal.ONE;
             case BYTE_VALUE -> (byte) 1;
             case SHORT_VALUE -> (short) 1;
             case INT_VALUE -> (int) 1;
@@ -202,11 +209,13 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
             case CHAR_VALUE -> char.class;
             case FLOAT_VALUE -> float.class;
             case DOUBLE_VALUE -> double.class;
+            case DECIMAL_VALUE -> BigDecimal.class;
             case BYTE_VALUE -> byte.class;
             case SHORT_VALUE -> short.class;
             case INT_VALUE -> int.class;
             case LONG_VALUE -> long.class;
             case OBJECT_VALUE -> Instance.class;
+            case UNION_VALUE -> Object.class;
             case NULL_VALUE -> null;
             case STRING_VALUE -> String.class;
             case CLASS_REF_VALUE -> int.class;
@@ -221,6 +230,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
             case CHAR_VALUE -> "Char";
             case FLOAT_VALUE -> "Float";
             case DOUBLE_VALUE -> "Double";
+            case DECIMAL_VALUE -> "Decimal";
             case BYTE_VALUE -> "Byte";
             case SHORT_VALUE -> "Short";
             case INT_VALUE -> "Int";
@@ -229,6 +239,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
             case NULL_VALUE -> "Null";
             case STRING_VALUE -> "String";
             case CLASS_REF_VALUE -> "ClassRef";
+            case UNION_VALUE -> "Union";
             default -> {
                 if (typeCode.isGeneric())
                     yield "Object";

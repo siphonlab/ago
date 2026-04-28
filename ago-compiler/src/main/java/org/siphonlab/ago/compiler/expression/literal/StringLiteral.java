@@ -48,11 +48,6 @@ public class StringLiteral extends Literal<Integer> {
     }
 
     @Override
-    public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        super.outputToLocalVar(localVar, blockCompiler);
-    }
-
-    @Override
     public String toString() {
         return "\"%s\"".formatted(this.string);     //TODO quote string
     }

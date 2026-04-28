@@ -52,6 +52,10 @@ public class Accept {
 
     public static final int accept_C_v = 0x33_0c_01_01;
 
+    public static final int accept_D_v = 0x33_0d_01_01;
+
+    public static final int accept_u_v = 0x33_0e_01_01;
+
     public static final int accept_any_v = 0x33_00_02_01;     // accept any and cast to Object, the original data type was recorded in result slot, and the destination type must be Object
 
     public static String getName(int code) {
@@ -69,6 +73,8 @@ public class Accept {
             case accept_i_v -> "accept_i_v";
             case accept_l_v -> "accept_l_v";
             case accept_C_v -> "accept_C_v";
+            case accept_D_v -> "accept_D_v";
+            case accept_u_v -> "accept_u_v";
             case accept_any_v -> "accept_any_v";
             default -> {
                 var t = OpCode.extractType(code);

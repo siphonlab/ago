@@ -50,7 +50,7 @@ public class SlotsAllocator {
         slot.setIndex(this.slots.size());
         slot.setVariable(variable);
         classDef.idOfConstString(variable.name);
-        if(type.getTypeCode() == TypeCode.OBJECT){
+        if(type.getTypeCode() == TypeCode.OBJECT || type.getTypeCode() == TypeCode.UNION){
             classDef.idOfConstString(type.getFullname());
         }
         this.slots.add(slot);
@@ -65,7 +65,7 @@ public class SlotsAllocator {
         slot.setIndex(id);
         slot.setName("@v" + id);
         this.classDef.idOfConstString(slot.getName());
-        if(classDef.getTypeCode() == TypeCode.OBJECT){
+        if(classDef.getTypeCode() == TypeCode.OBJECT || classDef.getTypeCode() == TypeCode.UNION){
             this.classDef.idOfConstString(classDef.getFullname());
         }
         this.slots.add(slot);
@@ -82,7 +82,7 @@ public class SlotsAllocator {
 
         for (SlotDef slot : slots) {
             classDef.idOfConstString(slot.getName());
-            if(slot.getTypeCode() == TypeCode.OBJECT) {
+            if(slot.getTypeCode() == TypeCode.OBJECT || slot.getTypeCode() == TypeCode.UNION) {
                 classDef.idOfClass(slot.getClassDef());
             }
         }
@@ -102,7 +102,7 @@ public class SlotsAllocator {
         slot.setIndex(id);
         slot.setName(name);
         this.classDef.idOfConstString(slot.getName());
-        if(typeCode == TypeCode.OBJECT){
+        if(typeCode == TypeCode.OBJECT ||  typeCode == TypeCode.UNION) {
             this.classDef.idOfConstString(slotClass.getFullname());
         }
         this.slots.add(slot);
@@ -116,7 +116,7 @@ public class SlotsAllocator {
         for (SlotDef slotDef : allRegisters) {
             if(lockedRegisters.containsKey(slotDef)) continue;
             if(slotDef.getTypeCode() == typeCode){
-                if(typeCode == TypeCode.OBJECT){
+                if(typeCode == TypeCode.OBJECT || typeCode == TypeCode.UNION){
                     // must be same class type, for different class means different storage way in RDB and other persistent storage
                     if(slotDef.getClassDef() == classDef)
                         return slotDef;

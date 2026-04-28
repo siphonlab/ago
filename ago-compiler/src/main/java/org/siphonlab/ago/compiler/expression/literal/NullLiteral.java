@@ -15,9 +15,12 @@
  */
 package org.siphonlab.ago.compiler.expression.literal;
 
+import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
+import org.siphonlab.ago.compiler.expression.Var;
 
 public class NullLiteral extends Literal<Object> {
     public NullLiteral(ClassDef nullClass) {
@@ -45,4 +48,5 @@ public class NullLiteral extends Literal<Object> {
         r.setSourceLocation(sourceLocation);
         return r;
     }
+
 }

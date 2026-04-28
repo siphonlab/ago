@@ -27,6 +27,7 @@ import org.siphonlab.ago.opcode.compare.Equals;
 import org.siphonlab.ago.opcode.compare.GreaterEquals;
 import org.siphonlab.ago.opcode.compare.InstanceOf;
 import org.siphonlab.ago.opcode.compare.NotEquals;
+import org.siphonlab.ago.opcode.logic.And;
 import org.siphonlab.ago.opcode.logic.BitNot;
 import org.siphonlab.ago.opcode.logic.Not;
 import org.siphonlab.ago.opcode.*;
@@ -34,6 +35,8 @@ import org.siphonlab.ago.compiler.statement.Label;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -94,6 +97,8 @@ public class CodeBuffer {
         int additionSize = 0;
         if (typeCode == DOUBLE || typeCode == LONG) {
             additionSize = 1;
+        } else if(typeCode == DECIMAL){     // total 5 ints, scale + 4bytes
+            additionSize = 4;
         }
         return additionSize;
     }
@@ -172,6 +177,15 @@ public class CodeBuffer {
                 ls.addInt((int)(l >>> 32));
                 ls.addInt((int)(l));
                 break;
+            case DECIMAL_VALUE:
+                var dc  = ((DecimalLiteral) literal).value;
+                var arr = bigDecimalToIntArray(dc);
+                ls.addInt(arr[0]);
+                ls.addInt(arr[1]);
+                ls.addInt(arr[2]);
+                ls.addInt(arr[3]);
+                ls.addInt(arr[4]);
+                break;
             case BYTE_VALUE:
                 ls.addInt((int)((ByteLiteral)literal).value);
                 break;
@@ -195,6 +209,17 @@ public class CodeBuffer {
             default:
                 throw new IllegalArgumentException(typeCode + " not support");
         }
+    }
+
+    static int[] bigDecimalToIntArray(BigDecimal bd){
+        int[] result = new int[5];
+        result[0] = bd.scale();
+        // 依次取出低 32 位
+        BigInteger bi = bd.unscaledValue();
+        for (int i = 0; i < 4; i++) {
+            result[i + 1] = bi.shiftRight(i * 32).intValue();  // intValue() 取低 32 位
+        }
+        return result;
     }
 
     public void new_(SlotDef target, SlotDef parentScope, Creator.NewProps newProps) {
@@ -296,6 +321,17 @@ public class CodeBuffer {
         slot(scopeBoundClass);
     }
 
+    public void new_scope(SlotDef target, int depth){
+        if(depth == 0) {
+            ls.addInt(New.new_scope_v);
+            slot(target);
+        } else {
+            ls.addInt(New.new_scope_vc);
+            slot(target);
+            ls.addInt(depth);
+        }
+    }
+
     /**
      * auto find constructor to match the args to create instance
      * @param target
@@ -325,25 +361,41 @@ public class CodeBuffer {
     }
 
     public void assignLiteral(SlotDef targetSlot, Literal<?> value) {
+        TypeCode typeCode = targetSlot.getTypeCode();
         if(value instanceof NullLiteral){
-            ls.addInt(Const.const_n_vc);
+            if(typeCode.isGeneric()){
+                ls.addInt(Const.const_ng_v);
+            } else if(typeCode == UNION){
+                ls.addInt(Const.const_nu_v);
+            } else if(typeCode == OBJECT){
+                ls.addInt(Const.const_no_v);
+            } else {
+                throw new IllegalArgumentException("bad type code for null literal");
+            }
             slot(targetSlot);
             return;
         }
-        TypeCode typeCode = targetSlot.getTypeCode();
         ls.addInt(Const.KIND_CONST | (typeCode.getValue() << 16) | 0x01_02 + additionSizeOf(typeCode));      // const_i_vc
         slot(targetSlot);
         literal(value);
     }
 
     public void assignLiteral(SlotDef targetInstanceSlot, SlotDef targetSlot, Literal<?> value) {
+        TypeCode typeCode = targetSlot.getTypeCode();
         if (value instanceof NullLiteral) {
+            if(typeCode.isGeneric()){
+                ls.addInt(Const.const_fld_ng_ov);
+            } else if(typeCode == UNION){
+                ls.addInt(Const.const_fld_nu_ov);
+            } else if(typeCode == OBJECT){
+                ls.addInt(Const.const_fld_no_ov);
+            } else {
+                throw new IllegalArgumentException("bad type code for null literal");
+            }
             slot(targetInstanceSlot);
-            ls.addInt(Const.const_fld_n_ovc);
             slot(targetSlot);
             return;
         }
-        TypeCode typeCode = targetSlot.getTypeCode();
         ls.addInt(Const.KIND_CONST | (typeCode.getValue() << 16) | 0x02_03 + additionSizeOf(typeCode));    // const_fld_i_ovc
         slot(targetInstanceSlot);
         slot(targetSlot);
@@ -835,13 +887,13 @@ public class CodeBuffer {
     }
 
     public void equalsNull(SlotDef target, SlotDef variableSlot) {
-        ls.addInt(Equals.equals_o_vvn);
+        ls.addInt(Equals.equals_u_vvn);
         slot(target);
         slot(variableSlot);
     }
 
     public void notEqualsNull(SlotDef target, SlotDef variableSlot) {
-        ls.addInt(NotEquals.ne_o_vvn);
+        ls.addInt(NotEquals.ne_u_vvn);
         slot(target);
         slot(variableSlot);
     }
@@ -898,6 +950,18 @@ public class CodeBuffer {
         ls.addInt(Pause.pause);
     }
 
+    public void and(SlotDef target, SlotDef slot) {
+        ls.addInt(And.and_vv);
+        slot(target);
+        slot(slot);
+    }
+
+    public void and(SlotDef target, SlotDef left, SlotDef right) {
+        ls.addInt(And.and_vvv);
+        slot(target);
+        slot(left);
+        slot(right);
+    }
 
     private static class SizeVerifier{
         final CodeBuffer thisBuff;

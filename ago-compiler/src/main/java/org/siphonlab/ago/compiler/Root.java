@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.*;
@@ -23,6 +24,7 @@ import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -52,6 +54,7 @@ public class Root extends Namespace<Package> {
     private PrimitiveClassDef CHAR;
     private PrimitiveClassDef FLOAT;
     private PrimitiveClassDef DOUBLE;
+    private PrimitiveClassDef DECIMAL;
     private PrimitiveClassDef BYTE;
     private PrimitiveClassDef SHORT;
     private PrimitiveClassDef INT;
@@ -64,6 +67,7 @@ public class Root extends Namespace<Package> {
     private ClassDef INTEGER_CLASS;
     private ClassDef BYTE_CLASS;
     private ClassDef DOUBLE_CLASS;
+    private ClassDef DECIMAL_CLASS;
     private ClassDef SHORT_CLASS;
     private ClassDef FLOAT_CLASS;
     private ClassDef LONG_CLASS;
@@ -82,6 +86,7 @@ public class Root extends Namespace<Package> {
     private ClassDef NATIVE_FUNCTION_INTERFACE_BASE;
     private ClassDef ITERABLE_INTERFACE;
     private ClassDef ITERATOR_INTERFACE;
+    private ClassDef KEY_VALUE_PAIR_CLASS;
 
     private ClassDef VIA_OBJECT_INTERFACE;
     private ClassDef FORK_CONTEXT_INTERFACE;
@@ -113,6 +118,8 @@ public class Root extends Namespace<Package> {
 
     // all classes and functions, sorted from hierarchy base to descendants
     private LinkedHashSet<ClassDef> sortedClassesAndFunctions = new LinkedHashSet<>();
+
+    private final Map<Pair<ClassDef, ClassDef>, Boolean> dependencyResultCache = new HashMap<>();
 
     public Root() {
         super("");
@@ -406,6 +413,17 @@ public class Root extends Namespace<Package> {
         }
     }
 
+    public ClassDef getAnyKeyValuePairClass() {
+        if(KEY_VALUE_PAIR_CLASS != null) return  KEY_VALUE_PAIR_CLASS;
+        ClassDef keyValuePair = findByFullname("lang.KeyValuePair");
+        try {
+            return KEY_VALUE_PAIR_CLASS = keyValuePair.instantiate(new InstantiationArguments(
+                    keyValuePair.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral(), this.getAnyClass().toClassRefLiteral()}), null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public ClassDef getViaObjectInterface() {
         if (VIA_OBJECT_INTERFACE != null)
             return VIA_OBJECT_INTERFACE;
@@ -583,6 +601,7 @@ public class Root extends Namespace<Package> {
         if(this.FLOAT == null) this.FLOAT = findByFullname("float");
         if(this.BOOLEAN == null) this.BOOLEAN = findByFullname("boolean");
         if(this.DOUBLE == null) this.DOUBLE = findByFullname("double");
+        if(this.DECIMAL == null) this.DECIMAL = findByFullname("decimal");
         if(this.CLASREF == null) this.CLASREF = findByFullname("classref");
 
         if(this.CLASS_CLASS == null) this.CLASS_CLASS = findByFullname("lang.Class");
@@ -624,6 +643,7 @@ public class Root extends Namespace<Package> {
     public PrimitiveClassDef BYTE() {return BYTE;}
     public PrimitiveClassDef FLOAT() {return FLOAT;}
     public PrimitiveClassDef DOUBLE() {return DOUBLE;}
+    public PrimitiveClassDef DECIMAL() {return DECIMAL;}
     public PrimitiveClassDef BOOLEAN() {return BOOLEAN;}
     public PrimitiveClassDef STRING() {return STRING;}
     public PrimitiveClassDef CLASSREF() {return CLASREF;}
@@ -638,10 +658,11 @@ public class Root extends Namespace<Package> {
             case LONG_VALUE -> LONG;
             case FLOAT_VALUE -> FLOAT;
             case DOUBLE_VALUE -> DOUBLE;
+            case DECIMAL_VALUE -> DECIMAL;
             case CHAR_VALUE -> CHAR;
             case VOID_VALUE -> VOID;
             case BOOLEAN_VALUE -> BOOLEAN;
-            case OBJECT_VALUE -> throw new IllegalArgumentException("this class only handle primary type");
+            case OBJECT_VALUE, UNION_VALUE -> throw new IllegalArgumentException("this class only handle primary type");
             case STRING_VALUE -> STRING;
             case CLASS_REF_VALUE -> this.CLASREF;
 
@@ -677,6 +698,10 @@ public class Root extends Namespace<Package> {
         return new DoubleLiteral(this.DOUBLE, value);
     }
 
+    public DecimalLiteral createDecimalLiteral(BigDecimal value) {
+        return new DecimalLiteral(this.DECIMAL, value);
+    }
+
     public ByteLiteral createByteLiteral(Byte value) {
         return new ByteLiteral(this.BYTE, value);
     }
@@ -693,11 +718,7 @@ public class Root extends Namespace<Package> {
         return new ClassRefLiteral(this.CLASREF, classRef);
     }
 
-    public NullLiteral createNullLiteral(ClassDef classDef){
-        return new NullLiteral(classDef);
-    }
-
-    public NullLiteral createNullLiteral(){
+    public NullLiteral nullLiteral(){
         return new NullLiteral(this.NULL);
     }
 
@@ -711,5 +732,27 @@ public class Root extends Namespace<Package> {
 
     public NullClassDef NULL() {
         return NULL;
+    }
+
+    public NullableClassDef getOrCreateNullableType(ClassDef classDef, MutableBoolean returnExisted) throws CompilationError {
+        var name = NullableClassDef.composeName(classDef.getFullname());
+
+        var existed = this.findByFullname(name);
+        if(existed != null){
+            if(returnExisted != null) returnExisted.setTrue();
+            return (NullableClassDef) existed;
+        }
+        var n = new NullableClassDef(this, classDef);
+        classDef.getParent().addChild(n);
+        if (this.getCompilingStage().getValue() > n.getCompilingStage().getValue()) {
+            Compiler.processClassTillStage(n, this.getCompilingStage());
+            Compiler.processClassTillStage(n.getMetaClassDef(), this.getCompilingStage());
+        }
+        return n;
+
+    }
+
+    public Map<Pair<ClassDef, ClassDef>, Boolean> getDependencyResultCache() {
+        return dependencyResultCache;
     }
 }

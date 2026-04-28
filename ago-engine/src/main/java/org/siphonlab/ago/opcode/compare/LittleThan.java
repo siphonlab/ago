@@ -37,6 +37,9 @@ public class LittleThan implements GenericOpCode {
     public static final int lt_d_vvcc  = 0x10_07_02_04;
     public static final int lt_d_vvv   = 0x10_07_04_03;
 
+    public static final int lt_D_vvccccc  = 0x10_0d_02_07;
+    public static final int lt_D_vvv   = 0x10_0d_04_03;
+
     public static final int lt_b_vvc   = 0x10_08_02_03;
     public static final int lt_b_vvv   = 0x10_08_04_03;
 
@@ -74,6 +77,9 @@ public class LittleThan implements GenericOpCode {
 
             case lt_d_vvcc -> "lt_d_vvcc";
             case lt_d_vvv -> "lt_d_vvv";
+
+            case lt_D_vvccccc -> "lt_D_vvccccc";
+            case lt_D_vvv -> "lt_D_vvv";
 
             case lt_b_vvc -> "lt_b_vvc";
             case lt_b_vvv -> "lt_b_vvv";

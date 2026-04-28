@@ -61,7 +61,6 @@ public class AgoClass extends Instance<MetaClass>{
     public static final int GENERIC_TEMPLATE_NEG   = 0b1111_1111_1101_1111_1111_1111_1111_1111;
     public static final int GENERIC_INSTANTIATION  = 0x0040_0000;     // this class/function come from a template class/function
 
-    public static final int NULLABLE = 0x0080_0000;     // infer a type is Nullable, it equals Nullable<Type>()
     protected byte type;
 
     protected int classId;
@@ -228,6 +227,19 @@ public class AgoClass extends Instance<MetaClass>{
             return null;
         }
 
+        // org.siphonlab.ago.compiler.NullableClassDef.asThatOrSuperOfThat
+        if(this.concreteTypeInfo instanceof NullableTypeInfo nullableTypeInfo){
+            if(anotherClass.concreteTypeInfo instanceof NullableTypeInfo another){
+                if(nullableTypeInfo.getBaseClass().isThatOrSuperOfThat(another.getBaseClass())){
+                    return this;
+                }
+            }
+            if(nullableTypeInfo.getBaseClass().isThatOrSuperOfThat(anotherClass, visited) || anotherClass instanceof AgoNullClass){
+                return this;
+            }
+            return null;
+        }
+
         if(this.concreteTypeInfo instanceof ParameterizedClassInfo parameterizedClassInfo){
             // ClassInterval, ScopedClassInterval, GenericTypeParameter
             if(ClassBound.isClassBound( this)){     // see org.siphonlab.ago.compile.generic.ClassIntervalClassDef.asThatOrSuperOfThat
@@ -331,6 +343,10 @@ public class AgoClass extends Instance<MetaClass>{
             return parent.isGenericTemplate() || parent.isInGenericTemplate();
         }
         return false;
+    }
+
+    public boolean isFunction() {
+        return this.type == TYPE_FUNCTION;
     }
 
     public static class DefaultSlots implements Slots{
@@ -554,11 +570,15 @@ public class AgoClass extends Instance<MetaClass>{
     }
 
     public TypeCode getTypeCode() {
-        if(this.getParameterizedBaseClass() != null){
+        if(this.concreteTypeInfo == null){
+            return TypeCode.OBJECT;
+        } else if(this.concreteTypeInfo instanceof ParameterizedClassInfo){
             if(this.getParameterizedBaseClass() == classLoader.getLangClasses().getGenericTypeParameterClass()){
                 var info = GenericTypeCodeAvatarInfo.extract(this);
                 return new GenericTypeCode(info.genericTypeCode(), info.index(), info.name(), info.name() + "_" + info.index() + "_" + info.templateClass().getFullname());
             }
+        } else if(this.concreteTypeInfo instanceof NullableTypeInfo){
+            return TypeCode.UNION;
         }
 
         return TypeCode.OBJECT;

@@ -80,7 +80,7 @@ public abstract class Var extends ExpressionInFunctionBody implements Assign.Ass
 
         @Override
         public void outputToLocalVar(LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-            if(localVar == this || this.variable == localVar.variable) return;
+            if(localVar == this || this.variable == localVar.variable || localVar.variable.getSlot() == this.variable.getSlot()) return;
             blockCompiler.enter(this);
 
             blockCompiler.getCode().assign(localVar.variable.getSlot(), localVar.variable.getType().getTypeCode(), this.variable.getSlot());
@@ -137,6 +137,30 @@ public abstract class Var extends ExpressionInFunctionBody implements Assign.Ass
 
         public void setOutputted(boolean outputted) {
             this.outputted = outputted;
+        }
+    }
+
+    public static class NarrowTypingLocalVar extends LocalVar{
+
+        private final Variable originVariable;
+
+        public NarrowTypingLocalVar(FunctionDef ownerFunction, Variable narrowVariable, Variable originVariable) {
+            super(ownerFunction, narrowVariable, VarMode.Temp);
+            this.originVariable = originVariable;
+        }
+
+        public Variable getOriginVariable() {
+            return originVariable;
+        }
+
+        @Override
+        public SlotDef getVariableSlot() {
+            if(this.variable.getSlot() != null) {
+                return  this.variable.getSlot();
+            }
+            SlotDef slot = ownerFunction.getSlotsAllocator().acquireRegister(this.variable.getType());
+            this.variable.setSlot(slot);
+            return slot;
         }
     }
 

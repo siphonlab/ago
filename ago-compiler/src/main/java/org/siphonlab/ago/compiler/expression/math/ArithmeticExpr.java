@@ -31,7 +31,7 @@ import org.siphonlab.ago.opcode.arithmetic.Multiply;
 import org.siphonlab.ago.opcode.arithmetic.Subtract;
 
 
-
+import java.math.RoundingMode;
 import java.util.Objects;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -81,6 +81,8 @@ public class ArithmeticExpr extends BiExpression {
 
     @Override
     public Expression transformInner() throws CompilationError {
+        this.left = this.left.transform();
+        this.right = this.right.transform();
         if(this.type == Type.Add &&
                 (left.inferType().getUnboxedTypeCode() == TypeCode.STRING
                 || right.inferType().getUnboxedTypeCode() == TypeCode.STRING)){
@@ -144,6 +146,8 @@ public class ArithmeticExpr extends BiExpression {
                             getRoot().createIntLiteral(((IntLiteral) this.left).value + ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
                             getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value + ((DoubleLiteral) this.right).value);
+                    case DECIMAL_VALUE ->
+                            getRoot().createDecimalLiteral(((DecimalLiteral) this.left).value.add(((DecimalLiteral) this.right).value));
                     case BYTE_VALUE  ->
                             getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value + ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
@@ -163,6 +167,8 @@ public class ArithmeticExpr extends BiExpression {
                             getRoot().createIntLiteral(((IntLiteral) this.left).value - ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
                             getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value - ((DoubleLiteral) this.right).value);
+                    case DECIMAL_VALUE ->
+                            getRoot().createDecimalLiteral(((DecimalLiteral) this.left).value.subtract(((DecimalLiteral) this.right).value));
                     case BYTE_VALUE  ->
                             getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value - ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
@@ -182,6 +188,8 @@ public class ArithmeticExpr extends BiExpression {
                             getRoot().createIntLiteral(((IntLiteral) this.left).value * ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
                             getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value * ((DoubleLiteral) this.right).value);
+                    case DECIMAL_VALUE ->
+                            getRoot().createDecimalLiteral(((DecimalLiteral) this.left).value.multiply(((DecimalLiteral) this.right).value));
                     case BYTE_VALUE  ->
                             getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value * ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
@@ -201,6 +209,8 @@ public class ArithmeticExpr extends BiExpression {
                             getRoot().createIntLiteral(((IntLiteral) this.left).value / ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
                             getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value / ((DoubleLiteral) this.right).value);
+                    case DECIMAL_VALUE ->
+                            getRoot().createDecimalLiteral(((DecimalLiteral) this.left).value.divide(((DecimalLiteral) this.right).value, RoundingMode.HALF_UP));
                     case BYTE_VALUE  ->
                             getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value / ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->
@@ -220,6 +230,8 @@ public class ArithmeticExpr extends BiExpression {
                             getRoot().createIntLiteral(((IntLiteral) this.left).value % ((IntLiteral) this.right).value);
                     case DOUBLE_VALUE  ->
                             getRoot().createDoubleLiteral(((DoubleLiteral) this.left).value % ((DoubleLiteral) this.right).value);
+                    case DECIMAL_VALUE ->
+                            getRoot().createDecimalLiteral(((DecimalLiteral) this.left).value.remainder(((DecimalLiteral) this.right).value));
                     case BYTE_VALUE  ->
                             getRoot().createByteLiteral( (byte) (((ByteLiteral) this.left).value % ((ByteLiteral) this.right).value));
                     case CHAR_VALUE  ->

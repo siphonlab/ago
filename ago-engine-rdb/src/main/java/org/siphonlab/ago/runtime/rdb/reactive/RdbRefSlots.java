@@ -21,6 +21,8 @@ import org.siphonlab.ago.Slots;
 import org.siphonlab.ago.runtime.rdb.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 
+import java.math.BigDecimal;
+
 /**
  * this Slots transfer get/set functions to slotsAdapter.get/set, it needs an objectRef to identity who is it
  */
@@ -160,6 +162,26 @@ public class RdbRefSlots implements Slots, ObjectRefOwner {
     }
 
     @Override
+    public Object getUnion(int slot) {
+        return slotsAdapter.getUnion(this, objectRef, slot);
+    }
+
+    @Override
+    public void setUnion(int slot, Object value) {
+        slotsAdapter.setUnion(this, objectRef, slot, value);
+    }
+
+    @Override
+    public void setDecimal(int slot, BigDecimal value) {
+        slotsAdapter.setDecimal(this, objectRef, slot, value);
+    }
+
+    @Override
+    public BigDecimal getDecimal(int slot) {
+        return slotsAdapter.getDecimal(this, objectRef, slot);
+    }
+
+    @Override
     public Instance<?> getObject(int slot) {
         return slotsAdapter.getObject(this, objectRef, slot);
     }
@@ -180,6 +202,12 @@ public class RdbRefSlots implements Slots, ObjectRefOwner {
     public void incDouble(int slot, double value) {
         double current = slotsAdapter.getDouble(this, objectRef, slot);
         slotsAdapter.setDouble(this, objectRef, slot, current + value);
+    }
+
+    @Override
+    public void incDecimal(int slot, BigDecimal value) {
+        BigDecimal current = slotsAdapter.getDecimal(this, objectRef, slot);
+        slotsAdapter.setDecimal(this, objectRef, slot, current.add(value));
     }
 
     @Override

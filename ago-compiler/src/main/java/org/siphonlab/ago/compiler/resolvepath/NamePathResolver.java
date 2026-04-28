@@ -947,21 +947,25 @@ public class NamePathResolver {
                 && variableInitializerContext.getParent() instanceof AgoParser.LocalVariableDeclarationContext localVariableDeclarationContext) {
 
             AgoParser.TypeOfVariableContext typeOfVariableContext = localVariableDeclarationContext.typeOfVariable();
-            if (typeOfVariableContext instanceof AgoParser.AsTypeContext asTypeContext
-                    && asTypeContext.variableType() instanceof AgoParser.VarTypeNormalContext varTypeNormalContext) {
+            if (typeOfVariableContext instanceof AgoParser.AsTypeContext asTypeContext) {
 
-                var declNamePath = varTypeNormalContext.declarationType().namePath();
-                if (declNamePath instanceof AgoParser.FormalNamePathContext declFormalNamePathContext) {
-                    var possibleNames = declFormalNamePathContext.possibleName();
-                    if (possibleNames.size() == 1) {
-                        var possibleName = possibleNames.get(0);
-                        if (possibleName instanceof AgoParser.NameParameterizedClassTypeContext nameParameterizedClassTypeContext) {
-                            var args = nameParameterizedClassTypeContext.parameterizedType().typeArguments();
-                            if (args instanceof AgoParser.TypeArgsListContext declArgs) {
-                                return declArgs;
+                AgoParser.VariableTypeContext variableType = asTypeContext.variableType();
+                if(variableType instanceof AgoParser.VarTypeNormalContext varTypeNormalContext) {
+                    var declNamePath = varTypeNormalContext.declarationType().namePath();
+                    if (declNamePath instanceof AgoParser.FormalNamePathContext declFormalNamePathContext) {
+                        var possibleNames = declFormalNamePathContext.possibleName();
+                        if (possibleNames.size() == 1) {
+                            var possibleName = possibleNames.get(0);
+                            if (possibleName instanceof AgoParser.NameParameterizedClassTypeContext nameParameterizedClassTypeContext) {
+                                var args = nameParameterizedClassTypeContext.parameterizedType().typeArguments();
+                                if (args instanceof AgoParser.TypeArgsListContext declArgs) {
+                                    return declArgs;
+                                }
                             }
                         }
                     }
+                } else {
+                    throw new UnsupportedOperationException("TODO");
                 }
             }
         }

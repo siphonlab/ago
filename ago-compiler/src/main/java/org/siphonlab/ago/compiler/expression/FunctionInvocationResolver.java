@@ -228,40 +228,6 @@ public class FunctionInvocationResolver {
                     return ac;
                 }
             }
-
-//        } else if(root.getAnyArrayClass().isThatOrSuperOfThat(parameterType)){
-//            if(root.getAnyClass().isThatOrSuperOfThat(argType)){
-//                var el1 = parameterType.getGenericSource().instantiationArguments()[0].getClassDefValue();
-//                var el2 = argType.getGenericSource().instantiationArguments()[0].getClassDefValue();
-//                var el = indicateGenericType(el1,el2,resolveResult);
-//                if(el != el1){
-//                    return argType;
-//                }
-//            }
-//        } else if(parameterType.getGenericSource() != null){
-//            GenericSource gParam = parameterType.getGenericSource();
-//            var gArg = argType.getGenericSource();
-//            if(gArg == null) {
-//                argType = parameterType.asThatOrSuperOfThat(argType);
-//                gArg = argType.getGenericSource();
-//            }
-//            if(argType == null) return parameterType;
-//            if(gParam.originalTemplate().isThatOrSuperOfThat(gArg.originalTemplate())){     //TODO why not use asAssignable??
-//                var pArr = gParam.instantiationArguments().getTypeArgumentsArray();
-//                var aArr = gArg.instantiationArguments().getTypeArgumentsArray();
-//                if(pArr.length == aArr.length) {
-//                    for (int i = 0; i < pArr.length; i++) {
-//                        ClassRefLiteral p = pArr[i];
-//                        ClassRefLiteral a = aArr[i];
-//                        if(p.getClassDefValue() == root.getAnyClass()){
-//                           //
-//                        } else {
-//                            indicateGenericType(p.getClassDefValue(), a.getClassDefValue(), resolveResult);
-//                        }
-//                    }
-//                }
-//                return argType;  //TODO IList<T> got List<Dog>, should become IList<Dog>
-//            }
         } else {
             if(evaluateScoreOfOneArgument(parameterType, argType) == 0){
                 resolveResult.error = new ResolveError("argument type mismatch, '%s' expected, '%s' found".formatted(parameterType.getFullname(), argType.getFullname()), sourceLocation);
@@ -347,10 +313,9 @@ public class FunctionInvocationResolver {
                             return Math.pow(0.7, distance);
                         }
                     }
-                    // if(v.getTypeCode() == TypeCode.STRING)// maybe we need auto call obj.toString()??
                 } else {
                     // v as Primitive, can only box to Object/Primitive
-                    if(p == p.getRoot().getObjectClass() || p == p.getRoot().getPrimitiveType()){
+                    if(p == p.getRoot().getObjectClass() || p == p.getRoot().getPrimitiveType()) {
                         return 0.8;
                     } else {
                         // r += 0;
@@ -358,7 +323,7 @@ public class FunctionInvocationResolver {
                 }
             } else if (v.getTypeCode() == TypeCode.NULL) {
                 return 0.9;
-            } else if (v.getTypeCode() == TypeCode.OBJECT) {
+            } else if (v.getTypeCode() == TypeCode.OBJECT || v.getTypeCode() == TypeCode.UNION) {
                 if(p == p.getRoot().getObjectClass()){
                     return 0.75;
                 } else if(v.isDeriveFrom(p)) {
@@ -369,6 +334,9 @@ public class FunctionInvocationResolver {
             } else if(v.isGenericType() && v instanceof GenericTypeCodeAvatarClassDef a){
                 return evaluateScoreOfOneArgument(p, a.getLBoundClass()) * .72;
             }
+        }
+        if(p.isThatOrSuperOfThat(v)) {
+            return 0.75;    // other match case, i.e. nullable
         }
         return 0;
     }

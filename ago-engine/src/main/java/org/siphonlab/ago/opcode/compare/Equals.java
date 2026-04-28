@@ -37,6 +37,9 @@ public class Equals implements GenericOpCode {
     public static final int equals_d_vvcc  = 0x09_07_02_04;
     public static final int equals_d_vvv   = 0x09_07_04_03;
 
+    public static final int equals_D_vvccccc = 0x09_0d_02_07;
+    public static final int equals_D_vvv   = 0x09_0d_04_03;
+
     public static final int equals_b_vvc   = 0x09_08_02_03;
     public static final int equals_b_vvv   = 0x09_08_04_03;
 
@@ -54,15 +57,17 @@ public class Equals implements GenericOpCode {
     public static final int equals_S_vvc = 0x09_03_02_03;
     public static final int equals_S_vvv = 0x09_03_04_03;
 
+    public static final int equals_B_vc  = 0x09_04_01_02;
     public static final int equals_B_vvc = 0x09_04_02_03;
     public static final int equals_B_vvv = 0x09_04_04_03;
 
-    public static final int equals_o_vvn = 0x09_01_02_02;
     public static final int equals_o_vvv = 0x09_01_04_03;
 
     public static final int equals_C_vvc = 0x09_0c_02_03;
     public static final int equals_C_vvv = 0x09_0c_04_03;
 
+    public static final int equals_u_vvn = 0x09_0e_02_02;
+    public static final int equals_u_vvv = 0x09_0e_04_03;
 
     public static String getName(int code){
         return switch(code){
@@ -74,6 +79,9 @@ public class Equals implements GenericOpCode {
 
             case equals_d_vvcc -> "equals_d_vvcc";
             case equals_d_vvv -> "equals_d_vvv";
+
+            case equals_D_vvccccc -> "equals_D_vvcc";
+            case equals_D_vvv -> "equals_D_vvv";
 
             case equals_b_vvc -> "equals_b_vvc";
             case equals_b_vvv -> "equals_b_vvv";
@@ -92,12 +100,15 @@ public class Equals implements GenericOpCode {
 
             case equals_B_vvc -> "equals_B_vvc";
             case equals_B_vvv -> "equals_B_vvv";
+            case equals_B_vc -> "equals_B_vc";
 
-            case equals_o_vvn -> "equals_o_vvn";
             case equals_o_vvv -> "equals_o_vvv";
 
             case equals_C_vvc -> "equals_C_vvc";
             case equals_C_vvv -> "equals_C_vvv";
+
+            case equals_u_vvn -> "equals_u_vvn";
+            case equals_u_vvv -> "equals_u_vvv";
 
             default -> {
                 var t = OpCode.extractType(code);

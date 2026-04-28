@@ -28,6 +28,7 @@ import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -269,8 +270,10 @@ public class JsonAgoClassLoader extends AgoClassLoader {
 
     private ConcreteTypeInfo loadConcreteTypeInfo(Map<String, Object> json) {
         var type = (String)json.get("type");
-        if("ArrayInfo".equals(type)){
+        if("ArrayInfo".equals(type)) {
             return new ArrayInfo(getClass((String) json.get("elementType")));
+        } else if("NullableInfo".equals(type)){
+            return new NullableTypeInfo(getClass((String) json.get("baseType")), (AgoNullClass) getClass("null"));
         } else if("GenericArgumentsInfo".equals(type)){
             var args = ((List<String>)json.get("arguments"));
             return new GenericArgumentsInfo(getClass((String)json.get("templateClass")), args.stream().map(this::getClass).toArray(AgoClass[]::new));
@@ -313,6 +316,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
             case TypeCode.BOOLEAN_VALUE -> (Boolean)constLiteralValue;
             case TypeCode.FLOAT_VALUE -> ((Number) constLiteralValue).floatValue();
             case TypeCode.DOUBLE_VALUE -> ((Number) constLiteralValue).doubleValue();
+            case TypeCode.DECIMAL_VALUE -> ((BigDecimal) constLiteralValue);
             case TypeCode.STRING_VALUE -> (String)constLiteralValue;
             case TypeCode.CLASS_REF_VALUE -> classes.get(((Number)constLiteralValue).intValue());
             default -> throw new IllegalStateException("Unexpected value: " + typeCode.value);

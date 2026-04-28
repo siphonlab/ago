@@ -47,6 +47,8 @@ public class Neg extends UnaryArithmetic {
 
     @Override
     protected Expression transformInner() throws CompilationError {
+        this.value = this.value.transform();
+
         ClassDef type = this.value.inferType();
 
         if(type.getTypeCode() == STRING){   // auto cast to double like js does
@@ -72,6 +74,8 @@ public class Neg extends UnaryArithmetic {
         return switch (literal.getTypeCode().value) {
             case INT_VALUE -> getRoot().createIntLiteral(-((IntLiteral) literal).value);
             case DOUBLE_VALUE -> getRoot().createDoubleLiteral(-((DoubleLiteral) literal).value);
+            case DECIMAL_VALUE ->
+                    getRoot().createDecimalLiteral(((DecimalLiteral) literal).value.negate());
             case BYTE_VALUE -> getRoot().createByteLiteral( (byte) -((ByteLiteral) literal).value);
             case SHORT_VALUE -> getRoot().createShortLiteral((short) -((ShortLiteral) literal).value);
             case FLOAT_VALUE -> getRoot().createFloatLiteral(-((FloatLiteral) literal).value);

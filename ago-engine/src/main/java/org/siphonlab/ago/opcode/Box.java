@@ -53,6 +53,10 @@ public class Box implements GenericOpCode{
     public static final int box_d_vv   = 0x0d_07_02_02;
     public static final int unbox_d_vo    = 0x0d_07_03_02;
 
+    public static final int box_D_vc    = 0x0d_0d_01_03;
+    public static final int box_D_vv   = 0x0d_0d_02_02;
+    public static final int unbox_D_vo    = 0x0d_0d_03_02;
+
     public static final int box_b_vc    = 0x0d_08_01_02;
     public static final int box_b_vv   = 0x0d_08_02_02;
     public static final int unbox_b_vo    = 0x0d_08_03_02;
@@ -121,6 +125,10 @@ public class Box implements GenericOpCode{
 
             case 0x0d_0c_04_03 -> "box_C_vCC";
             case 0x0d_0c_05_03 -> "box_C_vvC";
+
+            case box_D_vc -> "box_D_vc";
+            case box_D_vv -> "box_D_vv";
+            case unbox_D_vo -> "unbox_D_vo";
 
             case unbox_force_vot -> "unbox_force_vot";
 

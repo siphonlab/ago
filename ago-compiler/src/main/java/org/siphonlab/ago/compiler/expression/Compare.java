@@ -17,14 +17,15 @@ package org.siphonlab.ago.compiler.expression;
 
 
 import org.apache.commons.lang3.ObjectUtils;
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.PrimitiveClassDef;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
+import org.siphonlab.ago.compiler.expression.logic.AndExpr;
+import org.siphonlab.ago.compiler.expression.logic.Not;
+import org.siphonlab.ago.compiler.expression.logic.OrExpr;
+import org.siphonlab.ago.compiler.statement.Label;
 import org.siphonlab.ago.opcode.compare.GreaterEquals;
 import org.siphonlab.ago.opcode.compare.GreaterThan;
 import org.siphonlab.ago.opcode.compare.LittleEquals;
@@ -39,6 +40,7 @@ import static org.siphonlab.ago.TypeCode.*;
  */
 public class Compare extends BiExpression{
 
+    private BlockCompiler blockCompiler;
     private final Type type;
 
     public enum Type{
@@ -61,9 +63,93 @@ public class Compare extends BiExpression{
         this.type = type;
     }
 
+    public Compare(BlockCompiler blockCompiler, Expression left, Expression right, Compare.Type type) throws CompilationError {
+        super(blockCompiler.getFunctionDef(), left, right);
+        this.blockCompiler = blockCompiler;
+        this.type = type;
+    }
+
+    @Override
+    public Expression transformInner() throws CompilationError {
+        this.left = this.left.transform();
+        this.right = this.right.transform();
+
+        if(this.left.equals(this.right)){
+            return getRoot().createBooleanLiteral(false);
+        }
+
+        if(left.inferType() instanceof NullableClassDef n){
+            if(!(right.inferType() instanceof NullableClassDef)) {
+                if(left instanceof Var.LocalVar localVar && blockCompiler != null){
+                    left = blockCompiler.narrowType(localVar, right);
+                }
+            }
+            if(!(left instanceof NullableValue)) {
+                left = new NullableValue(ownerFunction, left);
+            }
+            left = ((NullableValue) left).nonNullPlaceHolder();
+        }
+        if(right.inferType() instanceof NullableClassDef n){
+            if(right instanceof Var.LocalVar localVar && blockCompiler != null){
+                right = blockCompiler.narrowType(localVar, left);
+            }
+            if(!(right instanceof NullableValue)) {
+                right = new NullableValue(ownerFunction, right);
+            }
+            right = ((NullableValue) right).nonNullPlaceHolder();
+        }
+
+        return super.transformInner();
+    }
+
     @Override
     protected Expression transformUnboxed(Expression left, Expression right) throws CompilationError {
         return new Compare(ownerFunction, left, right, this.type).setSourceLocation(this.getSourceLocation()).setParent(this.getParent()).transform();
+    }
+
+    protected void outputToLocalVar(Var.LocalVar localVar, TermExpression evaluatedLeft, TermExpression evaluatedRight, BlockCompiler blockCompiler) throws CompilationError {
+        CodeBuffer code = blockCompiler.getCode();
+
+        try {
+            blockCompiler.enter(this);
+
+            Label returnFalse = blockCompiler.createLabel();
+            Label exit = blockCompiler.createLabel();
+            boolean hasNullValue = false;
+            boolean lockedLeft = false;
+            if (this.left instanceof NullableValue.NonNullPlaceHolder leftPlaceHolder) {
+                NullableValue nullableValue = leftPlaceHolder.getNullableValue();
+                var isNull = nullableValue.isNull().visit(blockCompiler);
+                code.jumpIf(isNull.getVariableSlot(), returnFalse);
+
+                evaluatedLeft = nullableValue.nonNullValue().visit(blockCompiler);
+                blockCompiler.lockRegister(evaluatedLeft);
+                lockedLeft = true;
+                hasNullValue = true;
+            }
+            if (this.right instanceof NullableValue.NonNullPlaceHolder rightPlaceHolder) {
+                NullableValue nullableValue = rightPlaceHolder.getNullableValue();
+                var isNull = nullableValue.isNull().visit(blockCompiler);
+                code.jumpIf(isNull.getVariableSlot(), returnFalse);
+
+                evaluatedRight = nullableValue.nonNullValue().visit(blockCompiler);
+                hasNullValue = true;
+            }
+            if(lockedLeft) blockCompiler.releaseRegister(evaluatedLeft);
+
+            super.outputToLocalVar(localVar, evaluatedLeft, evaluatedRight, blockCompiler);
+
+            if(hasNullValue){
+                code.jump(exit);
+                returnFalse.here();
+                code.assignLiteral(localVar.getVariableSlot(), getRoot().createBooleanLiteral(false));
+            }
+            exit.here();
+        } catch (CompilationError e) {
+            throw e;
+        } finally {
+            blockCompiler.leave(this);
+        }
     }
 
     @Override
@@ -110,6 +196,8 @@ public class Compare extends BiExpression{
                     ObjectUtils.compare(((IntLiteral) this.left).value , ((IntLiteral) this.right).value);
             case DOUBLE_VALUE ->
                     ObjectUtils.compare(((DoubleLiteral) this.left).value, ((DoubleLiteral) this.right).value);
+            case DECIMAL_VALUE ->
+                    ObjectUtils.compare(((DecimalLiteral) this.left).value, ((DecimalLiteral) this.right).value);
             case BYTE_VALUE->
                     ObjectUtils.compare(((ByteLiteral) this.left).value, ((ByteLiteral) this.right).value);
             case CHAR_VALUE ->

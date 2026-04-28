@@ -23,6 +23,7 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.native_.NativeFrame;
 
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -32,57 +33,71 @@ public class Trace {
 
     private static List<String> lines = new LinkedList<>();
 
-    public static void print_str(NativeFrame frame, String text){
-        lines.addAll(IOUtils.readLines(new StringReader(text)));
-
-        System.err.println(text);
+    public static void print_str(NativeFrame frame, Object text){
+        if(text == null){
+            lines.add("null");
+            System.err.println("null");
+        } else {
+            lines.addAll(IOUtils.readLines(new StringReader((String)text)));
+            System.err.println(text);
+        }
         frame.finishVoid();
     }
 
-    public static void print_int(NativeFrame frame, int number){
+    public static void print_int(NativeFrame frame, Object number){
         lines.add(String.valueOf(number));
         System.err.println(number);
         frame.finishVoid();
     }
 
-    public static void print_long(NativeFrame frame, long number){
+    public static void print_long(NativeFrame frame, Object number){
         lines.add(String.valueOf(number));
         System.err.println(number);
         frame.finishVoid();
     }
 
-    public static void print_double(NativeFrame frame, double number){
+    public static void print_double(NativeFrame frame, Object number){
         lines.add(String.valueOf(number));
         System.err.println(number);
         frame.finishVoid();
     }
 
-    public static void print_float(NativeFrame frame, float number){
+    public static void print_decimal(NativeFrame frame, Object number){
         lines.add(String.valueOf(number));
         System.err.println(number);
         frame.finishVoid();
     }
 
-    public static void print_byte(NativeFrame frame, byte number){
+    public static void print_float(NativeFrame frame, Object number){
         lines.add(String.valueOf(number));
         System.err.println(number);
         frame.finishVoid();
     }
 
-    public static void print_short(NativeFrame frame, short number){
+    public static void print_byte(NativeFrame frame, Object number){
         lines.add(String.valueOf(number));
         System.err.println(number);
         frame.finishVoid();
     }
 
-    public static void print_char(NativeFrame frame, char c){
+    public static void print_short(NativeFrame frame, Object number){
+        lines.add(String.valueOf(number));
+        System.err.println(number);
+        frame.finishVoid();
+    }
+
+    public static void print_char(NativeFrame frame, Object c){
         lines.add(String.valueOf(c));
         System.err.println(c);
         frame.finishVoid();
     }
 
-    public static void print_classref(NativeFrame frame, int classRef){
-        AgoClass agoClass = frame.getAgoEngine().getClass(classRef);
+    public static void print_classref(NativeFrame frame, Object classRef){
+        if(classRef == null) {
+            print_str(frame, "null");
+            return;
+        }
+        AgoClass agoClass = frame.getAgoEngine().getClass((Integer) classRef);
         lines.add(String.valueOf( agoClass));
         System.err.println(agoClass);
         frame.finishVoid();

@@ -47,11 +47,17 @@ public class Add {
     public static final int add_f_vv    = 0x03_06_03_02;
     public static final int add_f_vvv   = 0x03_06_04_03;
 
-    // double need 8 bytes
+    // double need 8 bytes, 2 ints
     public static final int add_d_vc    = 0x03_07_01_03;
     public static final int add_d_vvc   = 0x03_07_02_04;
     public static final int add_d_vv    = 0x03_07_03_02;
     public static final int add_d_vvv   = 0x03_07_04_03;
+
+    // decimal need 20bytes, 5 ints
+    public static final int add_D_vc    = 0x03_0d_01_06;
+    public static final int add_D_vvc   = 0x03_0d_02_07;
+    public static final int add_D_vv    = 0x03_0d_03_02;
+    public static final int add_D_vvv   = 0x03_0d_04_03;
 
     public static final int add_b_vc    = 0x03_08_01_02;
     public static final int add_b_vvc   = 0x03_08_02_03;
@@ -80,6 +86,11 @@ public class Add {
             case add_d_vvc ->  "add_d_vvc";
             case add_d_vv ->    "add_d_vv";
             case add_d_vvv ->    "add_d_vvv";
+
+            case add_D_vc -> "add_D_vc";
+            case add_D_vvc -> "add_D_vvc";
+            case add_D_vv -> "add_D_vv";
+            case add_D_vvv -> "add_D_vvv";
 
             case add_b_vc ->  "add_b_vc";
             case add_b_vvc ->  "add_b_vvc";

@@ -25,7 +25,7 @@ public class UnhandledException extends RuntimeException {
     private final Instance<?> exception;
 
     public UnhandledException(AgoEngine agoEngine, Instance<?> exception) {
-        super(exception.getSlots().getString(1));
+        super(exception.getAgoClass().getFullname() + ":" + exception.getSlots().getString(1));
         this.exception = exception;
 
         AgoClass StackTraceElementClass = agoEngine.getClass("lang.StackTraceElement");
