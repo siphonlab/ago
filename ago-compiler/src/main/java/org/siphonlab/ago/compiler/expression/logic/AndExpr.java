@@ -152,7 +152,7 @@ public class AndExpr extends ExpressionInFunctionBody {
                 }
                 if (this.right instanceof Var var) {
                     if (this.left.inferType().isBoolean()) {
-                        var v1 = localVar;
+                        var v1 = (Var.LocalVar)this.left.visit(blockCompiler);
                         Var.LocalVar v2 = (Var.LocalVar) var.visit(blockCompiler);
                         blockCompiler.getCode().biOperate(KIND_AND, left.inferType().getTypeCode(), v1.getVariableSlot(), v2.getVariableSlot(), localVar.getVariableSlot());
                         return;
@@ -179,8 +179,16 @@ public class AndExpr extends ExpressionInFunctionBody {
             if(this.left.inferType() instanceof NullableClassDef) {
                 NullableValue n = this.left instanceof NullableValue ? (NullableValue) this.left : new NullableValue(ownerFunction, this.left);
                 this.left.outputToLocalVar(localVar, blockCompiler);
-                code.jumpIf(n.isNull().visit(blockCompiler).getVariableSlot(), exit);       // already is null
-                code.jumpIfNot(n.nonNullValue().visit(blockCompiler).getVariableSlot(), exit);
+                var code1 = blockCompiler.getCode();
+                var nonNullValue = n.nonNullValue();
+                if(nonNullValue.inferType().isPrimitive()) {
+                    code1.jumpIf(n.isNull().visit(blockCompiler).getVariableSlot(), exit);       // already is null
+                    code1.jumpIfNot(nonNullValue.visit(blockCompiler).getVariableSlot(), exit);
+                } else if(nonNullValue.inferType().isPrimitiveBoxed()){
+                    throw new IllegalStateException("box type should already cast to primitive");
+                } else {
+                    code1.jumpIf(n.isNull().visit(blockCompiler).getVariableSlot(), exit);
+                }
             } else {
                 var leftResult = this.left.visit(blockCompiler);
                 if(leftResult instanceof Literal<?> literal){
@@ -189,7 +197,12 @@ public class AndExpr extends ExpressionInFunctionBody {
                         code.jump(exit);
                     } // otherwise decide by the right value
                 } else {
-                    code.jumpIf(((Var.LocalVar)leftResult).getVariableSlot(), setRight);        // setRight
+                    var t = leftResult.inferType();
+                    if(t.isPrimitive()){
+                        code.jumpIf(((Var.LocalVar)leftResult).getVariableSlot(), setRight);        // setRight
+                    } else if(t.isPrimitiveBoxed()){
+                        throw new IllegalStateException("box type should already cast to primitive");
+                    }
                     ownerFunction.cast(leftResult, resultType).transform().termVisit(blockCompiler);
                     code.jump(exit);
                 }

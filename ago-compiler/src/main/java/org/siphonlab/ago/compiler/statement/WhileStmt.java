@@ -16,10 +16,8 @@
 package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.CodeBuffer;
-import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.NullableClassDef;
+import org.siphonlab.ago.TypeCode;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
@@ -84,6 +82,7 @@ public class WhileStmt extends LoopStmt {
                 }
             } else {
                 Var.LocalVar condResult = (Var.LocalVar) condition.visit(blockCompiler);
+                boolean checkCondResult = true;
                 if(condition instanceof NullableValue nullableValue){
                     var isNull = nullableValue.isNull().visit(blockCompiler);
                     if(!conditionNeg) {
@@ -91,12 +90,23 @@ public class WhileStmt extends LoopStmt {
                     } else {
                         code.jumpIf(isNull.getVariableSlot(), loopBodyLabel);
                     }
-                    condResult = nullableValue.nonNullValue().visit(blockCompiler);
+                    NullableValue.NonNullValue nonNullValue = nullableValue.nonNullValue();
+                    ClassDef nonNullType = nonNullValue.inferType();
+                    if(nonNullType.isPrimitiveBoxed()){
+                        condResult = nonNullValue.visit(blockCompiler);
+                        condResult = (Var.LocalVar) ownerFunction.unbox(condResult).transform().visit(blockCompiler);
+                    } else if(nonNullType.getTypeCode() == TypeCode.OBJECT){
+                        checkCondResult = false;
+                    } else {
+                        condResult = nonNullValue.visit(blockCompiler);
+                    }
                 }
-                if(!conditionNeg) {
-                    code.jumpIfNot(condResult.getVariableSlot(), exitLabel);
-                } else {
-                    code.jumpIf(condResult.getVariableSlot(), exitLabel);
+                if(checkCondResult) {
+                    if (!conditionNeg) {
+                        code.jumpIfNot(condResult.getVariableSlot(), exitLabel);
+                    } else {
+                        code.jumpIf(condResult.getVariableSlot(), exitLabel);
+                    }
                 }
             }
             loopBodyLabel.here();

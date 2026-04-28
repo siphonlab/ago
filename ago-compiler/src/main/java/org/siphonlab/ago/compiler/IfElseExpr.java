@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler;
 
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 
@@ -89,6 +90,7 @@ public class IfElseExpr extends ExpressionInFunctionBody {
                 Label elseLabel = blockCompiler.createLabel();
                 Label trueLabel = blockCompiler.createLabel();
                 Label exit = blockCompiler.createLabel();
+                boolean checkCondResult = true;
                 if(condition instanceof NullableValue nullableValue){
                     var isNull = nullableValue.isNull().visit(blockCompiler);
                     if(!conditionNeg) {
@@ -96,12 +98,23 @@ public class IfElseExpr extends ExpressionInFunctionBody {
                     } else {
                         code.jumpIf(isNull.getVariableSlot(), trueLabel);
                     }
-                    condResult = nullableValue.nonNullValue().visit(blockCompiler);
+                    NullableValue.NonNullValue nonNullValue = nullableValue.nonNullValue();
+                    ClassDef nonNullType = nonNullValue.inferType();
+                    if(nonNullType.isPrimitiveBoxed()){
+                        condResult = nonNullValue.visit(blockCompiler);
+                        condResult = (Var.LocalVar) ownerFunction.unbox(condResult).transform().visit(blockCompiler);
+                    } else if(nonNullType.getTypeCode() == TypeCode.OBJECT){
+                        checkCondResult = false;
+                    } else {
+                        condResult = nonNullValue.visit(blockCompiler);
+                    }
                 }
-                if(!conditionNeg) {
-                    code.jumpIfNot(condResult.getVariableSlot(), elseLabel);
-                } else {
-                    code.jumpIf(condResult.getVariableSlot(), elseLabel);
+                if(checkCondResult) {
+                    if (!conditionNeg) {
+                        code.jumpIfNot(condResult.getVariableSlot(), elseLabel);
+                    } else {
+                        code.jumpIf(condResult.getVariableSlot(), elseLabel);
+                    }
                 }
                 trueLabel.here();
                 ownerFunction.assign(localVar, ifPart).setSourceLocation(ifPart.getSourceLocation()).termVisit(blockCompiler);

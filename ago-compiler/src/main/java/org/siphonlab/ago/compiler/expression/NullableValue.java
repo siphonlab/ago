@@ -129,6 +129,7 @@ public class NullableValue extends ExpressionInFunctionBody{
         return nonNullValueReceiver;
     }
 
+
     public class IsNotNull extends ExpressionInFunctionBody{
 
         public IsNotNull(FunctionDef ownerFunction) {
@@ -240,6 +241,7 @@ public class NullableValue extends ExpressionInFunctionBody{
         public String toString() {
             return "(NonNullValue %s)".formatted(nullableExpression);
         }
+
     }
 
     public class NonNullPlaceHolder extends ExpressionInFunctionBody{

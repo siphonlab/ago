@@ -27,7 +27,6 @@ import org.siphonlab.ago.compiler.statement.Label;
 
 import java.util.Objects;
 
-import static org.siphonlab.ago.opcode.logic.And.KIND_AND;
 import static org.siphonlab.ago.opcode.logic.Or.KIND_OR;
 
 public class OrExpr extends ExpressionInFunctionBody {
@@ -146,9 +145,9 @@ public class OrExpr extends ExpressionInFunctionBody {
                 } else {
                     this.left.outputToLocalVar(localVar, blockCompiler);
                 }
-                if (this.right instanceof Var var) {
+                if (this.right instanceof Var var) {    // the value is known
                     if (this.left.inferType().isBoolean()) {
-                        var v1 = localVar;
+                        Var.LocalVar v1 = (Var.LocalVar) this.left.visit(blockCompiler);
                         Var.LocalVar v2 = (Var.LocalVar) var.visit(blockCompiler);
                         blockCompiler.getCode().biOperate(KIND_OR, left.inferType().getTypeCode(), v1.getVariableSlot(), v2.getVariableSlot(), localVar.getVariableSlot());
                         return;
@@ -157,7 +156,7 @@ public class OrExpr extends ExpressionInFunctionBody {
 
                 // make shortcut
                 Label skip = blockCompiler.createLabel();
-                blockCompiler.getCode().jumpIfNot(localVar.getVariableSlot(), skip);
+                blockCompiler.getCode().jumpIf(localVar.getVariableSlot(), skip);
                 right.outputToLocalVar(localVar, blockCompiler);
                 skip.here();
 
@@ -175,8 +174,16 @@ public class OrExpr extends ExpressionInFunctionBody {
             if(this.left.inferType() instanceof NullableClassDef) {
                 NullableValue n = this.left instanceof NullableValue ? (NullableValue) this.left : new NullableValue(ownerFunction, this.left);
                 this.left.outputToLocalVar(localVar, blockCompiler);
-                code.jumpIf(n.isNull().visit(blockCompiler).getVariableSlot(), setRight);       // already is null
-                code.jumpIf(n.nonNullValue().visit(blockCompiler).getVariableSlot(), exit);
+                var code1 = blockCompiler.getCode();
+                var nonNullValue = n.nonNullValue();
+                if(nonNullValue.inferType().isPrimitive()) {
+                    code1.jumpIf(n.isNull().visit(blockCompiler).getVariableSlot(), setRight);       // already is null
+                    code1.jumpIf(nonNullValue.visit(blockCompiler).getVariableSlot(), exit);
+                } else if(nonNullValue.inferType().isPrimitiveBoxed()){
+                    throw new IllegalStateException("box type should already cast to primitive");
+                } else {
+                    code1.jumpIf(n.isNotNull().visit(blockCompiler).getVariableSlot(), exit);
+                }
             } else {
                 var leftResult = this.left.visit(blockCompiler);
                 if(leftResult instanceof Literal<?> literal){
@@ -185,7 +192,12 @@ public class OrExpr extends ExpressionInFunctionBody {
                         code.jump(exit);
                     } // otherwise decide by the right value
                 } else {
-                    code.jumpIfNot(((Var.LocalVar)leftResult).getVariableSlot(), setRight);        // setRight
+                    var t = leftResult.inferType();
+                    if(t.isPrimitive()){
+                        code.jumpIfNot(((Var.LocalVar)leftResult).getVariableSlot(), setRight);        // setRight
+                    } else if(t.isPrimitiveBoxed()){
+                        throw new IllegalStateException("box type should already cast to primitive");
+                    }
                     ownerFunction.cast(leftResult, resultType).transform().termVisit(blockCompiler);
                     code.jump(exit);
                 }
