@@ -66,13 +66,15 @@ public class Equals extends BiExpression{
 
     @Override
     public Expression transform() throws CompilationError {
+        if(this.transformed) return this;
+
         if(this.left.equals(this.right)){
             return getRoot().createBooleanLiteral(true);
         }
 
-        if(this.left instanceof BooleanLiteral b){
+        if(this.left instanceof BooleanLiteral b && this.right.inferType().isBooleanOrBoxed()){
             return transformBooleanLiteral(BooleanLiteral.isTrue(b), this.right).transform();
-        } else if(this.right instanceof BooleanLiteral b){
+        } else if(this.right instanceof BooleanLiteral b && this.left.inferType().isBooleanOrBoxed()){
             return transformBooleanLiteral(BooleanLiteral.isTrue(b), this.left).transform();
         }
 
