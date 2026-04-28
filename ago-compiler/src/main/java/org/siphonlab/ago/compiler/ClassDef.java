@@ -693,6 +693,14 @@ public class ClassDef extends ClassContainer {
         return this instanceof PrimitiveClassDef || this.isThatOrDerivedFromThat(getRoot().getPrimitiveType());
     }
 
+    public boolean isBooleanOrBoxed(){
+        if(this.getTypeCode() == TypeCode.BOOLEAN) return true;
+        if(this.getTypeCode() == TypeCode.OBJECT && this.isThatOrDerivedFromThat(getRoot().BOOLEAN().getBoxedType()) || this.isDeriveFrom(getRoot().BOOLEAN().getBoxerInterface())){
+            return true;
+        }
+        return false;
+    }
+
     public boolean isPrimitive() {
         return this instanceof PrimitiveClassDef;
     }
@@ -731,6 +739,7 @@ public class ClassDef extends ClassContainer {
                 (this.isThatOrDerivedFromThat(getRoot().FLOAT().getBoxedType()) || this.isDeriveFrom(getRoot().FLOAT().getBoxerInterface())) ||
                 (this.isThatOrDerivedFromThat(getRoot().LONG().getBoxedType()) || this.isDeriveFrom(getRoot().LONG().getBoxerInterface())) ||
                 (this.isThatOrDerivedFromThat(getRoot().DOUBLE().getBoxedType()) || this.isDeriveFrom(getRoot().DOUBLE().getBoxerInterface())) ||
+                (this.isThatOrDerivedFromThat(getRoot().DECIMAL().getBoxedType()) || this.isDeriveFrom(getRoot().DECIMAL().getBoxerInterface())) ||
                 (this.isThatOrDerivedFromThat(getRoot().STRING().getBoxedType()) || this.isDeriveFrom(getRoot().STRING().getBoxerInterface())) ||
                 (this.isThatOrDerivedFromThat(getRoot().BOOLEAN().getBoxedType()) || this.isDeriveFrom(getRoot().BOOLEAN().getBoxerInterface())) ||
                 (this.isThatOrDerivedFromThat(getRoot().CLASSREF().getBoxedType())

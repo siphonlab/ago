@@ -60,7 +60,7 @@ public abstract class ExpressionBase implements Expression{
         // nothing to do
     }
 
-    private boolean transformed = false;
+    protected boolean transformed = false;
     public Expression transform() throws CompilationError {
         if(transformed) return this;
         var expr = this.transformInner();

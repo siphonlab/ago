@@ -33,11 +33,8 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
         this.right.setParent(this);
     }
 
-    protected boolean transformed = false;
     @Override
     public Expression transformInner() throws CompilationError {
-        if(transformed) return this;
-
         var left = this.left.transform();
         var right = this.right.transform();
         CastStrategy.UnifyTypeResult unifyTypeResult = new CastStrategy(ownerFunction, getSourceLocation(), false).unifyTypes(left, right);
@@ -54,7 +51,6 @@ public abstract class BiExpression extends ExpressionInFunctionBody {
                 return processLiterals();
             }
         }
-        transformed = true;
         return this;
     }
 

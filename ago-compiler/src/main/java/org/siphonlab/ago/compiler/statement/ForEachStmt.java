@@ -54,6 +54,7 @@ public class ForEachStmt extends LoopStmt{
 
     @Override
     public Statement transform() throws CompilationError {
+        if(this.transformed) return this;
         if(this.expression.inferType() instanceof NullableClassDef && !(this.expression instanceof NullableValue)){
             this.expression = new NullableValue(ownerFunction, this.expression);
         }
