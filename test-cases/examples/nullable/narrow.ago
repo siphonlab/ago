@@ -30,7 +30,7 @@ fun main(){
     if(i == null){
         //
     } else {
-        i += 2;
+        i += 2;         // 2028
         Trace.print(i);
     }
 
@@ -38,15 +38,15 @@ fun main(){
     if(i == null or n == null){
         //
     } else {
-        Trace.print(i + 1)
-        Trace.print(n + 1)
+        Trace.print(i + 1)  // 2027
+        Trace.print(n + 1)  // 2028
     }
 
 
     if((i != null) == false){
 
     } else {
-        Trace.print(i);
+        Trace.print(i);     // 2026
     }
 // TODO return shortcut
 //    if(i == null) return;

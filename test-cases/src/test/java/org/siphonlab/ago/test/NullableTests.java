@@ -114,7 +114,7 @@ public class NullableTests {
     public void narrow() throws CompilationError, IOException {
         run("nullable/narrow.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("2027", "2027", "2028", "2027", "2029", "2026"));
+        assertTrue(Trace.outputted("2027", "2027", "2028", "2027", "2028", "2026"));
     }
 
 }

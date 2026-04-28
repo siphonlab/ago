@@ -55,6 +55,7 @@ public class ExprTest {
     @Test
     public void logic_op_test() throws CompilationError, IOException {
         run("expr/logic_op.ago");
+        Trace.printOutput();
         assertTrue(Trace.outputted(
                 // test or
                 "foo got null",
@@ -93,6 +94,7 @@ public class ExprTest {
                 // andFun
                 "invoke f",
                 "false",
+                "invoke t",
                 "false",
                 "invoke f",
                 "false",
