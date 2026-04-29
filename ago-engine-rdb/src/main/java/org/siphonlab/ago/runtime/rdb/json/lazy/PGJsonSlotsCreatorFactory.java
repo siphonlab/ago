@@ -81,7 +81,6 @@ public class PGJsonSlotsCreatorFactory implements SlotsCreatorFactory {
             var r = new LazyJsonRefSlots(baseSlots, objectRef, new JsonSlotMapper(agoClass.getSlotDefs()) {
                 @Override
                 public String mapType(TypeCode typeCode, AgoClass agoClass) {
-                    System.out.println(adapter);
                     return adapter.mapType(typeCode, agoClass).getTypeName();
                 }
             });
