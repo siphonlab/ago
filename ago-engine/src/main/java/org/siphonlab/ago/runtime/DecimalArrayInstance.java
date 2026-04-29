@@ -17,10 +17,11 @@ package org.siphonlab.ago.runtime;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.AgoClass;
+import org.siphonlab.ago.AgoEngine;
+import org.siphonlab.ago.AgoFrame;
 import org.siphonlab.ago.Slots;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
 
 public class DecimalArrayInstance extends AgoArrayInstance{
@@ -32,13 +33,11 @@ public class DecimalArrayInstance extends AgoArrayInstance{
         this.value = new BigDecimal[length];
     }
 
-    public void fillBytes(int count, byte[] blob) {
-        IoBuffer buffer = IoBuffer.wrap(blob);
+    public void fillBytes(int count, byte[] blob, AgoEngine engine) {
+        var buffer = IoBuffer.wrap(blob);
         for (int i = 0; i < count; i++) {
-            int scale = buffer.getInt();
-            byte[] data = new byte[16];
-            buffer.get(data);
-            value[i] = new BigDecimal(new BigInteger(data), scale);
+            int blobIndex = buffer.getInt();
+            value[i] = engine.toDecimal(blobIndex);
         }
     }
 

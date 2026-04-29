@@ -94,11 +94,15 @@ public class CodeBuffer {
     }
 
     private static int additionSizeOf(TypeCode typeCode) {
-        int additionSize = 0;
+        int additionSize;
         if (typeCode == DOUBLE || typeCode == LONG) {
             additionSize = 1;
-        } else if(typeCode == DECIMAL){     // total 5 ints, scale + 4bytes
-            additionSize = 4;
+        } else if(typeCode == DECIMAL) {
+            additionSize = 0;       // blob index, an integer
+        } else if (typeCode == TypeCode.VOID || typeCode == TypeCode.NULL) {
+            additionSize = -1;
+        } else {
+            additionSize = 0;
         }
         return additionSize;
     }
@@ -107,10 +111,7 @@ public class CodeBuffer {
     public void biOperateVariableLiteral(int opCode, TypeCode typeCode, SlotDef left, Literal<?> right, SlotDef target) {
         SizeVerifier sizeVerifier = this.sizeVerifier();
         boolean isSameSlot = (target.getIndex() == left.getIndex());
-        int additionSize = 0;
-        if(typeCode == DOUBLE || typeCode == LONG){
-            additionSize = 1;
-        }
+        int additionSize = additionSizeOf(typeCode);
         if(isSameSlot){
             ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0102 + additionSize));        // add_vc
             slot(target);
@@ -126,10 +127,7 @@ public class CodeBuffer {
     public void biOperateLiteralVariable(int opCode, TypeCode typeCode, Literal<?> left, SlotDef right, SlotDef target) {
         SizeVerifier sizeVerifier = this.sizeVerifier();
         boolean isSameSlot = (target.getIndex() == right.getIndex());
-        int additionSize = 0;
-        if(typeCode == DOUBLE || typeCode == LONG){
-            additionSize = 1;
-        }
+        int additionSize = additionSizeOf(typeCode);
         ls.addInt(opCode | (typeCode.getValue() << 16) | (0x0503 + additionSize));        // add_vcv
         slot(target);
         literal(left);
@@ -178,13 +176,7 @@ public class CodeBuffer {
                 ls.addInt((int)(l));
                 break;
             case DECIMAL_VALUE:
-                var dc  = ((DecimalLiteral) literal).value;
-                var arr = bigDecimalToIntArray(dc);
-                ls.addInt(arr[0]);
-                ls.addInt(arr[1]);
-                ls.addInt(arr[2]);
-                ls.addInt(arr[3]);
-                ls.addInt(arr[4]);
+                ls.addInt(((DecimalLiteral) literal).getBlobIndex());
                 break;
             case BYTE_VALUE:
                 ls.addInt((int)((ByteLiteral)literal).value);
@@ -209,17 +201,6 @@ public class CodeBuffer {
             default:
                 throw new IllegalArgumentException(typeCode + " not support");
         }
-    }
-
-    static int[] bigDecimalToIntArray(BigDecimal bd){
-        int[] result = new int[5];
-        result[0] = bd.scale();
-        // 依次取出低 32 位
-        BigInteger bi = bd.unscaledValue();
-        for (int i = 0; i < 4; i++) {
-            result[i + 1] = bi.shiftRight(i * 32).intValue();  // intValue() 取低 32 位
-        }
-        return result;
     }
 
     public void new_(SlotDef target, SlotDef parentScope, Creator.NewProps newProps) {
@@ -482,13 +463,8 @@ public class CodeBuffer {
 
     public void return_c(Literal literalExpressionResult) {
         SizeVerifier sizeVerifier = this.sizeVerifier();
-        int additionSize = 0;
         var typeCode = literalExpressionResult.inferType().getTypeCode();
-        if (typeCode == TypeCode.DOUBLE || typeCode == TypeCode.LONG) {
-            additionSize = 1;
-        } else if (typeCode == TypeCode.VOID || typeCode == TypeCode.NULL) {
-            additionSize = -1;
-        }
+        int additionSize = additionSizeOf(typeCode);
         if (literalExpressionResult instanceof NullLiteral) {
             ls.addInt(Return.return_n);
         } else {

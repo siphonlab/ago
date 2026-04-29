@@ -1,0 +1,17 @@
+  fun main(){
+     var d1 as decimal = 1.000001
+     var d2 as double = 1.000001
+
+     var d3 as decimal = 1.000001d
+     var d4 as double = 1.000001D
+
+     Trace.print(d1)
+     Trace.print(d2)
+     Trace.print(d3)
+     Trace.print(d4)
+
+     var arr = [decimal[] | 1.000001, 1.000002, 1.000003d, 1.000001f]
+     for(var d in arr){
+        Trace.print(d)
+     }
+ }

@@ -50,8 +50,8 @@ public class Multiply {
     public static final int mul_d_vv    = 0x15_07_03_02;
     public static final int mul_d_vvv   = 0x15_07_04_03;
 
-    public static final int mul_D_vc    = 0x15_0d_01_03;
-    public static final int mul_D_vvc   = 0x15_0d_02_04;
+    public static final int mul_D_vc    = 0x15_0d_01_02;
+    public static final int mul_D_vvc   = 0x15_0d_02_03;
     public static final int mul_D_vv    = 0x15_0d_03_02;
     public static final int mul_D_vvv   = 0x15_0d_04_03;
 

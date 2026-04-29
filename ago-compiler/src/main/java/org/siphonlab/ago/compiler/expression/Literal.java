@@ -176,5 +176,17 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
     }
 
     public abstract  Literal<?> withSourceLocation(SourceLocation sourceLocation);
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Literal<?> literal = (Literal<?>) o;
+        return Objects.equals(value, literal.value) && Objects.equals(classDef, literal.classDef) && Objects.equals(sourceLocation, literal.sourceLocation);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value, classDef, sourceLocation);
+    }
 }
 

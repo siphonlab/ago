@@ -54,8 +54,8 @@ public class Add {
     public static final int add_d_vvv   = 0x03_07_04_03;
 
     // decimal need 20bytes, 5 ints
-    public static final int add_D_vc    = 0x03_0d_01_06;
-    public static final int add_D_vvc   = 0x03_0d_02_07;
+    public static final int add_D_vc    = 0x03_0d_01_02;
+    public static final int add_D_vvc   = 0x03_0d_02_03;
     public static final int add_D_vv    = 0x03_0d_03_02;
     public static final int add_D_vvv   = 0x03_0d_04_03;
 

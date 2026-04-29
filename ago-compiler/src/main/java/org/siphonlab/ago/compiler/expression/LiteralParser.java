@@ -197,14 +197,14 @@ public class LiteralParser {
                 return switch (type.value){
                     case TypeCode.DOUBLE_VALUE -> Double.parseDouble(text);
                     case TypeCode.FLOAT_VALUE -> Float.parseFloat(text);
-                    case TypeCode.DECIMAL_VALUE -> new BigDecimal(Double.parseDouble(text), MathContext.DECIMAL128);
+                    case TypeCode.DECIMAL_VALUE -> BigDecimal.valueOf(Double.parseDouble(text));
                     default -> Double.parseDouble(text);
                 };
             } else {
                 return switch (type.value){
                     case TypeCode.DOUBLE_VALUE -> Double.parseDouble(text);
                     case TypeCode.FLOAT_VALUE -> Float.parseFloat(text);
-                    case TypeCode.DECIMAL_VALUE -> new BigDecimal(text, MathContext.DECIMAL128);
+                    case TypeCode.DECIMAL_VALUE -> new BigDecimal(text);
                     default -> Double.parseDouble(text);
                 };
             }
