@@ -859,8 +859,12 @@ public class NamePathResolver {
         }
 
         var c = scopeClass.getVariable(id.text());
-        if(c != null)
+        if(c != null) {
+            if(c.getConstLiteralValue() != null){
+                return new ConstValue(scopeClass.getRoot(), c).setSourceLocation(id.sourceLocation);
+            }
             return new Var.LocalVar(ownerFunction, c, Var.LocalVar.VarMode.Existed).setSourceLocation(id.sourceLocation);
+        }
 
         if(scopeClass.getMetaClassDef() != null){
             var r = resolveVariable(new ConstClass(scopeClass), id, true);

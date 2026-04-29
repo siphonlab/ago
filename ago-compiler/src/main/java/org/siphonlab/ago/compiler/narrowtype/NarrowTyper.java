@@ -195,12 +195,6 @@ public class NarrowTyper {
         return narrowTypingDepth > 0 && installationState != DISABLED;
     }
 
-    public void disable(){
-        if(this.installationState == DISABLED) return;
-        this.uninstallCurrentScope();
-        installationState = DISABLED;
-    }
-
     public void collectNarrowVar(Var.NarrowTypingLocalVar nonNullVar, Var.NarrowTypingLocalVar nullVar) {
         this.currNarrowNodePair.pos.addMapper(nonNullVar);
         this.currNarrowNodePair.neg.addMapper(nullVar);

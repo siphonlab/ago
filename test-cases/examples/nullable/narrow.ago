@@ -48,6 +48,14 @@ fun main(){
     } else {
         Trace.print(i);     // 2026
     }
+
+    var k as int? = 2026
+    i = null
+    if(i == null){
+        k = i       // const_no_v
+    }
+    Trace.print(k)
+
 // TODO return shortcut
 //    if(i == null) return;
 //
