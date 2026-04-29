@@ -841,6 +841,9 @@ public class Unit {
         if (namePath instanceof AgoParser.PrimitiveContext primitive) {
             return new ConstClass(Compiler.fromPrimitiveTypeAst(root, primitive.primitiveType()));
         } else if (namePath instanceof AgoParser.FormalNamePathContext formalNamePath) {
+            if(formalNamePath.getChildCount() == 1 && formalNamePath.getText().equals("_")){
+                return new ConstClass(root.getAnyClass()).setSourceLocation(sourceLocation(namePath));
+            }
             var resolver = new NamePathResolver(resolveMode, this, ownerFunction, scopeClass, formalNamePath);
             return resolver.resolve();
         } else {

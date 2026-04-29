@@ -1421,6 +1421,10 @@ public class BlockCompiler {
         v.setName(variable.getName());
         v.setSourceLocation(variable.getSourceLocation());
         v.setModifiers(variable.getModifiers());        // slot not allocated, will allocate when invoked, and don't register variable in functionDef.variables
+        if(narrowType.getTypeCode() == TypeCode.NULL){
+            v.setModifiers(v.getModifiers() | AgoClass.FINAL);
+            v.setConstLiteralValue(getRoot().nullLiteral());
+        }
         return new Var.NarrowTypingLocalVar(functionDef, v, variable);
     }
 
