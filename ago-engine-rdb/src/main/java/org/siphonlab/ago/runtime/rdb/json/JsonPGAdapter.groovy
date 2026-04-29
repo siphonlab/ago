@@ -86,7 +86,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         typeMap.put(TypeCode.SHORT_VALUE, new RdbType(TypeCode.SHORT, Types.SMALLINT, "smallint"));
         typeMap.put(TypeCode.CHAR_VALUE, new RdbType(TypeCode.CHAR, Types.CHAR, "char"));
         typeMap.put(TypeCode.CLASS_REF_VALUE, new RdbType(TypeCode.CLASS_REF, Types.VARCHAR, "varchar(1024)"));
-
+        typeMap.put(TypeCode.UNION_VALUE, new RdbType(TypeCode.UNION, Types.JAVA_OBJECT, "jsonb"));
         typeMap.put(TypeCode.OBJECT_VALUE, new RdbType(TypeCode.OBJECT, Types.JAVA_OBJECT, "jsonb"));
 
         AgoClass agoClass = classManager.getClass("VarChar");

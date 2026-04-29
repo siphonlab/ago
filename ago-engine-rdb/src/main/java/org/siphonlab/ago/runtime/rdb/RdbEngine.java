@@ -34,8 +34,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.concurrent.ExecutionException;
 
-import static org.apache.commons.dbcp2.Utils.closeQuietly;
-
 public class RdbEngine extends AgoEngine {
 
     public final static Logger logger = LoggerFactory.getLogger(RdbEngine.class);
@@ -62,7 +60,6 @@ public class RdbEngine extends AgoEngine {
         var r = new ObjectMapper();
 
         SimpleModule module = new SimpleModule();
-        BoxTypes boxTypes = getBoxTypes();
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());

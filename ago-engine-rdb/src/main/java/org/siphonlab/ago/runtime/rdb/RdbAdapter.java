@@ -81,13 +81,14 @@ public abstract class RdbAdapter {
 
     // return at least one typename for one type, allow multi types, for maybe need multi columns for one object field
     public RdbType mapType(TypeCode typeCode, AgoClass agoClass){
-        if(typeCode == OBJECT){
+        if(typeCode == OBJECT || typeCode == UNION) {
             RdbType types = cache.get(agoClass);
             if(types != null) return types;
             var r =  mapObjectType(agoClass);
             cache.put(agoClass, r);
             return r;
-        } else {
+        }
+        else {
             return typeMap.get(typeCode.value);
         }
     }
@@ -108,7 +109,8 @@ public abstract class RdbAdapter {
         if(boxTypes.isBoxType(agoClass)){
             TypeCode unboxType = boxTypes.getUnboxType(agoClass);
             return mapType(unboxType,null);
-        } else {
+        }
+        else {
             var idType = idType().clone();
             var classNameType = mapType(STRING,null).clone();
             return idType.chain(classNameType);

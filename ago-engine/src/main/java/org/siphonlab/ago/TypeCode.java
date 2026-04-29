@@ -97,6 +97,8 @@ public class TypeCode {
             case "null" -> NULL;
             case "string" -> STRING;
             case "classref" -> CLASS_REF;
+            case "decimal" -> DECIMAL;
+            case "union" -> UNION;
             default -> throw new IllegalArgumentException("Invalid type value: " + value);
         };
     }
