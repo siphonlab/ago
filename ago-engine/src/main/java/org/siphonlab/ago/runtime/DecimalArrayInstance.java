@@ -21,6 +21,7 @@ import org.siphonlab.ago.Slots;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.List;
 
 public class DecimalArrayInstance extends AgoArrayInstance{
@@ -38,7 +39,7 @@ public class DecimalArrayInstance extends AgoArrayInstance{
             int scale = buffer.getInt();
             byte[] data = new byte[16];
             buffer.get(data);
-            value[i] = new BigDecimal(new BigInteger(data), scale);
+            value[i] = new BigDecimal(new BigInteger(data), scale, MathContext.DECIMAL128);
         }
     }
 

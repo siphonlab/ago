@@ -215,7 +215,7 @@ public class CodeBuffer {
         int[] result = new int[5];
         result[0] = bd.scale();
         // 依次取出低 32 位
-        BigInteger bi = bd.unscaledValue();
+        BigInteger bi = bd.unscaledValue().remainder(BigInteger.ONE.shiftLeft(128));
         for (int i = 0; i < 4; i++) {
             result[i + 1] = bi.shiftRight(i * 32).intValue();  // intValue() 取低 32 位
         }

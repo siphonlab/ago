@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -726,7 +727,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     protected static BigDecimal toDecimal(int scale, int i1, int i2, int i3, int i4){
         var bi = toBigInteger(new int[]{i1, i2, i3, i4});
-        return new BigDecimal(bi, scale);
+        return new BigDecimal(bi, scale, MathContext.DECIMAL128);
     }
 
     public static BigInteger toBigInteger(int[] arr) {
@@ -1656,7 +1657,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Cast.S2i : slots.setInt(code[pc++], Integer.parseInt(slots.getString(code[pc++]))); break;
             case Cast.S2l : slots.setLong(code[pc++], Long.parseLong(slots.getString(code[pc++]))); break;
             case Cast.S2d : slots.setDouble(code[pc++], Double.parseDouble(slots.getString(code[pc++]))); break;
-            case Cast.S2D : slots.setDecimal(code[pc++], new BigDecimal(slots.getString(code[pc++]))); break;
+            case Cast.S2D : slots.setDecimal(code[pc++], new BigDecimal(slots.getString(code[pc++]), MathContext.DECIMAL128)); break;
             case Cast.S2b : slots.setByte(code[pc++], Byte.parseByte(slots.getString(code[pc++]))); break;
             case Cast.S2s : slots.setShort(code[pc++], Short.parseShort(slots.getString(code[pc++]))); break;
 
@@ -2057,34 +2058,34 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case DECIMAL_VALUE:
                 switch(srcTypeCode){
                     case INT_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getInt(srcIndex)));
+                        slots.setDecimal(targetIndex, new BigDecimal(slots.getInt(srcIndex), MathContext.DECIMAL128));
                         return;
                     case STRING_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getString(srcIndex)));
+                        slots.setDecimal(targetIndex, new BigDecimal(slots.getString(srcIndex), MathContext.DECIMAL128));
                         return;
                     case LONG_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getLong(srcIndex)));
+                        slots.setDecimal(targetIndex, new BigDecimal(slots.getLong(srcIndex), MathContext.DECIMAL128));
                         return;
                     case BOOLEAN_VALUE:
                         slots.setDecimal(targetIndex, slots.getBoolean(srcIndex)? BigDecimal.ONE : BigDecimal.ZERO);
                         return;
                     case DOUBLE_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getDouble(srcIndex)));
+                        slots.setDecimal(targetIndex, new BigDecimal(slots.getDouble(srcIndex), MathContext.DECIMAL128));
                         return;
                     case DECIMAL_VALUE:
                         slots.setDecimal(targetIndex, slots.getDecimal(srcIndex));
                         return;
                     case BYTE_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getByte(srcIndex)));
+                        slots.setDecimal(targetIndex, new BigDecimal(slots.getByte(srcIndex), MathContext.DECIMAL128));
                         return;
                     case FLOAT_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getFloat(srcIndex)));
+                        slots.setDecimal(targetIndex, new BigDecimal(slots.getFloat(srcIndex), MathContext.DECIMAL128));
                         return;
                     case CHAR_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal((int)slots.getChar(srcIndex)));
+                        slots.setDecimal(targetIndex, new BigDecimal((int)slots.getChar(srcIndex), MathContext.DECIMAL128));
                         return;
                     case SHORT_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getShort(srcIndex)));
+                        slots.setDecimal(targetIndex, new BigDecimal(slots.getShort(srcIndex), MathContext.DECIMAL128));
                         return;
                 }
                 break;

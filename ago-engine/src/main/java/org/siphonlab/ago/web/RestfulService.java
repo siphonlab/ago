@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
@@ -103,7 +104,7 @@ public class RestfulService {
                                         case INT_VALUE:     slots.setInt(field.getSlotIndex(), Integer.parseInt(value)); break;
                                         case LONG_VALUE:    slots.setLong(field.getSlotIndex(), Long.parseLong(value)); break;
                                         case DOUBLE_VALUE:  slots.setDouble(field.getSlotIndex(), Double.parseDouble(value));
-                                        case DECIMAL_VALUE:   slots.setDecimal(field.getSlotIndex(), new BigDecimal(value));
+                                        case DECIMAL_VALUE:   slots.setDecimal(field.getSlotIndex(), new BigDecimal(value, MathContext.DECIMAL128));
                                         case BOOLEAN_VALUE: slots.setBoolean(field.getSlotIndex(), Boolean.parseBoolean(value)); break;
                                         case STRING_VALUE:  slots.setString(field.getSlotIndex(), value); break;
                                         case CHAR_VALUE:    slots.setChar(field.getSlotIndex(), value.charAt(0)); break;

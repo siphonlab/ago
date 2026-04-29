@@ -3,6 +3,7 @@ package org.siphonlab.ago;
 import org.siphonlab.ago.classloader.ClassRefValue;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 
 public interface Union {
     static TypeCode extractUnionType(Object union){
@@ -275,7 +276,7 @@ public interface Union {
         return switch (union) {
             case BigDecimal number -> number;
             case null -> throw new ClassCastException("cannot cast null to decimal");
-            case String s -> new BigDecimal(s);
+            case String s -> new BigDecimal(s, MathContext.DECIMAL128);
             case ClassRefValue v -> throw new ClassCastException("%s is a class, cannot cast to decimal".formatted(v.className()));
             case Instance<?> u -> {
                 var v = engine.getBoxer().unbox(u);

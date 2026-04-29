@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
@@ -700,7 +701,7 @@ public class AgoClassLoader implements ClassManager{
                         int scale = buffer.getInt();
                         byte[] data = new byte[16];
                         buffer.get(data);
-                        yield new BigDecimal(new BigInteger(data), scale);
+                        yield new BigDecimal(new BigInteger(data), scale, MathContext.DECIMAL128);
                     }
                     case BYTE_VALUE -> buffer.get();
                     case SHORT_VALUE -> buffer.getShort();
