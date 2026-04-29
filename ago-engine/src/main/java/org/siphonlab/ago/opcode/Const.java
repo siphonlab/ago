@@ -45,8 +45,8 @@ public class Const {
     public static final int const_d_vc          = 0x01_07_01_03;
     public static final int const_fld_d_ovc     = 0x01_07_02_04;
 
-    public static final int const_D_vc          = 0x01_0d_01_06;
-    public static final int const_fld_D_ovc     = 0x01_0d_02_07;
+    public static final int const_D_vc          = 0x01_0d_01_02;
+    public static final int const_fld_D_ovc     = 0x01_0d_02_03;
 
     public static final int const_b_vc          = 0x01_08_01_02;
     public static final int const_fld_b_ovc     = 0x01_08_02_03;

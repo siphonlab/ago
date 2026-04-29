@@ -15,21 +15,28 @@
  */
 package org.siphonlab.ago.compiler.expression.literal;
 
+import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
+import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.Literal;
 
 import java.math.BigDecimal;
 import java.util.Objects;
 
 public class DecimalLiteral extends Literal<BigDecimal> {
+    private int blobIndex = -1;
+
     public DecimalLiteral(PrimitiveClassDef DECIMAL, BigDecimal value) {
         super(DECIMAL, value);
     }
 
     @Override
     public String getId() {
-        return "d%08x".formatted(value.unscaledValue().toByteArray());
+        return "D%s".formatted(value);
     }
 
     @Override
@@ -44,4 +51,32 @@ public class DecimalLiteral extends Literal<BigDecimal> {
         return r;
     }
 
+    public byte[] toArray(){
+        var bi = this.value.unscaledValue();
+        byte[] arr = bi.toByteArray();
+        int size = 4 + arr.length;
+        return IoBuffer.allocate(4 + size).putInt(size).putInt(value.scale()).put(arr).flip().array();
+    }
+
+    @Override
+    public Literal<BigDecimal> visit(BlockCompiler blockCompiler) throws CompilationError {
+        if(this.blobIndex == -1) {
+            this.blobIndex = blockCompiler.getFunctionDef().getOrCreateBLOB(this);
+        }
+        return this;
+    }
+
+    public int getBlobIndex() {
+        if(blobIndex == -1){
+            throw new IllegalStateException("blob index is -1, decimal not visited");
+        }
+        return blobIndex;
+    }
+
+    public DecimalLiteral ensureBlobCreated(ClassDef ownerClass) throws TypeMismatchError {
+        if(this.blobIndex == -1) {
+            this.blobIndex = ownerClass.getOrCreateBLOB(this);
+        }
+        return this;
+    }
 }

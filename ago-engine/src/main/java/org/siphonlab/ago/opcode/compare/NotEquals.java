@@ -35,7 +35,7 @@ public class NotEquals implements GenericOpCode {
     public static final int ne_d_vvcc  = 0x0a_07_02_04;
     public static final int ne_d_vvv   = 0x0a_07_04_03;
 
-    public static final int ne_D_vvccccc  = 0x0a_0d_02_07;
+    public static final int ne_D_vvc   = 0x0a_0d_02_03;
     public static final int ne_D_vvv   = 0x0a_0d_04_03;
 
     public static final int ne_b_vvc   = 0x0a_08_02_03;
@@ -81,7 +81,7 @@ public class NotEquals implements GenericOpCode {
             case ne_b_vvc -> "ne_b_vvc";
             case ne_b_vvv -> "ne_b_vvv";
 
-            case ne_D_vvccccc -> "ne_D_vvccccc";
+            case ne_D_vvc -> "ne_D_vvc";
             case ne_D_vvv -> "ne_D_vvv";
 
             case ne_c_vvc -> "ne_c_vvc";

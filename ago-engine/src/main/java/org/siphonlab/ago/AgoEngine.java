@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -396,6 +397,16 @@ public class AgoEngine implements ClassManager{
     }
     public StringArrayInstance createStringArray(AgoClass arrayType, int length) {
         return new StringArrayInstance(arrayType.createSlots(), arrayType, length);
+    }
+
+    public BigDecimal toDecimal(int blobIndex){
+        var arr = getBlob(blobIndex);
+        return toDecimal(arr);
+    }
+
+    public static BigDecimal toDecimal(byte[] arr) {
+        int scale = (arr[0] & 0xff << 24) | (arr[1] & 0xff << 16) | (arr[2] & 0xff << 8) | arr[3] & 0xff;
+        return new BigDecimal(new BigInteger(arr, 4, arr.length - 4), scale);
     }
 
     public byte[] getBlob(int index) {

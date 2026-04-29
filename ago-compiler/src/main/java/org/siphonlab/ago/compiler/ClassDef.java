@@ -32,6 +32,7 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.expression.literal.DecimalLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -1098,6 +1099,7 @@ public class ClassDef extends ClassContainer {
 
         if(dependency.isDependingOn(this, 0)) return false;
         this.dependencies.add(dependency);
+        getRoot().getDependencyResultCache().put(Pair.of(this, dependency), true);
         if(dependency instanceof ConcreteType cd) {     // GenericTypeAvatarClassDef included
             registerConcreteType(cd);
         } else {
@@ -1289,11 +1291,11 @@ public class ClassDef extends ClassContainer {
     }
 
 
-    private Map<ArrayLiteral, Integer> arrayBLOBsIndex = new HashMap<>();
-    private List<byte[]> arrayBLOBs = new ArrayList<>();
+    private Map<Object, Integer> blobsIndex = new HashMap<>();
+    private List<byte[]> blobs = new ArrayList<>();
     public int getOrCreateBLOB(List<? extends Literal<?>> literals, ArrayLiteral arrayLiteral) throws TypeMismatchError {
         if(!this.isTop()) return this.getParentClass().getOrCreateBLOB(literals, arrayLiteral);
-        var existed = arrayBLOBsIndex.get(arrayLiteral);
+        var existed = blobsIndex.get(arrayLiteral);
         if(existed != null) return existed;
 
         var buff = IoBuffer.allocate(512).setAutoExpand(true);
@@ -1319,14 +1321,26 @@ public class ClassDef extends ClassContainer {
         buff.putInt(0, buff.limit() - 4);
         byte[] data = new byte[buff.limit()];
         buff.get(data);
-        int index = arrayBLOBs.size();
-        arrayBLOBsIndex.put(arrayLiteral, index);
-        arrayBLOBs.add(data);
+        int index = blobs.size();
+        blobsIndex.put(arrayLiteral, index);
+        blobs.add(data);
         return index;
     }
 
-    public List<byte[]> getArrayBLOBs() {
-        return arrayBLOBs;
+    public int getOrCreateBLOB(DecimalLiteral literal) throws TypeMismatchError {
+        if(!this.isTop()) return this.getParentClass().getOrCreateBLOB(literal);
+        var existed = blobsIndex.get(literal);
+        if(existed != null) return existed;
+
+        var arr = literal.toArray();
+        int index = blobs.size();
+        blobsIndex.put(literal, index);
+        blobs.add(arr);
+        return index;
+    }
+
+    public List<byte[]> getBlobs() {
+        return blobs;
     }
 
     @Override

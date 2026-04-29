@@ -40,6 +40,9 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
     }
 
     public static Literal<?> parse(AgoParser.LiteralContext literal, Root root, SourceLocation sourceLocation) throws TypeMismatchError {
+        return parse(literal, null, root, sourceLocation);
+    }
+    public static Literal<?> parse(AgoParser.LiteralContext literal, ClassDef suggestionType, Root root, SourceLocation sourceLocation) throws TypeMismatchError {
         if(literal instanceof AgoParser.LTemplateStringContext lTemplateString){
             for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
                 AgoParser.ExpressionContext atomExpr = atom.expression();
@@ -48,12 +51,12 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
                 }
             }
         }
-        var r = parse(literal, root);
+        var r = parse(literal, suggestionType, root);
         r.setSourceLocation(sourceLocation);
         return r;
     }
 
-    private static Literal<?> parse(AgoParser.LiteralContext literal, Root root){
+    private static Literal<?> parse(AgoParser.LiteralContext literal, ClassDef suggestionType, Root root){
         if(literal instanceof AgoParser.LIntegerContext lInteger){
             AgoParser.IntegerLiteralContext integerLiteral = lInteger.integerLiteral();
             return parseIntegerLiteral(root, integerLiteral);
@@ -70,7 +73,7 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
         } else if(literal instanceof AgoParser.LBoolContext lBoolContext){
             return root.createBooleanLiteral(Boolean.parseBoolean(lBoolContext.getText()));
         } else if(literal instanceof AgoParser.LFloatContext floatContext){
-            return parseFloatLiteral(root, floatContext.floatLiteral());
+            return parseFloatLiteral(root, floatContext.floatLiteral(), suggestionType);
         }
         throw new UnsupportedOperationException();
     }
@@ -86,8 +89,8 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
         }
     }
 
-    public static Literal<?> parseFloatLiteral(Root root, AgoParser.FloatLiteralContext floatLiteral) {
-        var n = LiteralParser.parseFloatLiteral(floatLiteral.getText());
+    public static Literal<?> parseFloatLiteral(Root root, AgoParser.FloatLiteralContext floatLiteral, ClassDef suggestionType) {
+        var n = LiteralParser.parseFloatLiteral(floatLiteral.getText(), suggestionType == null ? null : suggestionType.getTypeCode());
         if(n instanceof Double d) {
             return root.createDoubleLiteral(d);
         } else if(n instanceof Float f){
@@ -173,5 +176,17 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
     }
 
     public abstract  Literal<?> withSourceLocation(SourceLocation sourceLocation);
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Literal<?> literal = (Literal<?>) o;
+        return Objects.equals(value, literal.value) && Objects.equals(classDef, literal.classDef) && Objects.equals(sourceLocation, literal.sourceLocation);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value, classDef, sourceLocation);
+    }
 }
 

@@ -28,42 +28,42 @@ public class IncDec {
     public static final int inc_i_ovc = 0x18_0a_01_03;
     public static final int inc_i_ovv = 0x18_0a_02_03;
 
-    public static final int inc_f_ov   = 0x18_06_01_03;
-    public static final int inc_f_ovc  = 0x18_06_02_03;
+    public static final int inc_f_ovc  = 0x18_06_01_03;
+    public static final int inc_f_ovv   = 0x18_06_02_03;
 
-    public static final int inc_d_ov   = 0x18_07_01_03;
-    public static final int inc_d_ovcc = 0x18_07_02_04;
+    public static final int inc_d_ovcc  = 0x18_07_01_04;
+    public static final int inc_d_ovv   = 0x18_07_02_03;
 
-    public static final int inc_D_ov   = 0x18_0d_01_03;
-    public static final int inc_D_ovcc = 0x18_0d_02_07;
+    public static final int inc_D_ovc   = 0x18_0d_01_03;
+    public static final int inc_D_ovv   = 0x18_0d_02_03;
 
-    public static final int inc_b_ov   = 0x18_08_01_03;
-    public static final int inc_b_ovcc = 0x18_08_02_03;
+    public static final int inc_b_ovc  = 0x18_08_01_03;
+    public static final int inc_b_ovv   = 0x18_08_02_03;
 
-    public static final int inc_s_ov   = 0x18_09_01_03;
-    public static final int inc_s_ovcc = 0x18_09_02_03;
+    public static final int inc_s_ovv   = 0x18_09_01_03;
+    public static final int inc_s_ovc   = 0x18_09_02_03;
 
-    public static final int inc_l_ov   = 0x18_0b_01_03;
-    public static final int inc_l_ovcc = 0x18_0b_02_04;
+    public static final int inc_l_ovcc  = 0x18_0b_01_04;
+    public static final int inc_l_ovv   = 0x18_0b_02_03;
 
 
     public static String getName(int code){
         return switch(code){
             case inc_i_ovc -> "inc_i_ov";
             case inc_i_ovv -> "inc_i_ovc";
-            case inc_f_ov -> "inc_f_ov";
+            case inc_f_ovv -> "inc_f_ovv";
             case inc_f_ovc -> "inc_f_ovc";
-            case inc_d_ov -> "inc_d_ov";
+            case inc_d_ovv -> "inc_d_ovv";
             case inc_d_ovcc -> "inc_d_ovcc";
-            case inc_b_ov -> "inc_b_ov";
-            case inc_b_ovcc -> "inc_b_ovcc";
-            case inc_s_ov -> "inc_s_ov";
-            case inc_s_ovcc -> "inc_s_ovcc";
-            case inc_l_ov -> "inc_l_ov";
+            case inc_b_ovv -> "inc_b_ovv";
+            case inc_b_ovc -> "inc_b_ovc";
+            case inc_s_ovv -> "inc_s_ovv";
+            case inc_s_ovc -> "inc_s_ovc";
+            case inc_l_ovv -> "inc_l_ovv";
             case inc_l_ovcc -> "inc_l_ovcc";
 
-            case inc_D_ov -> "inc_D_ov";
-            case inc_D_ovcc -> "inc_D_ovcc";
+            case inc_D_ovv -> "inc_D_ovv";
+            case inc_D_ovc -> "inc_D_ovc";
 
 
             default -> {

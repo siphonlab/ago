@@ -15,11 +15,12 @@
  */
 package org.siphonlab.ago.compiler.expression;
 
+import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.Root;
-import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 
 public class LiteralParser {
     /**
@@ -165,24 +166,27 @@ public class LiteralParser {
      * (f/F → Float, d/D or no suffix → Double).  Underscores are not allowed in
      * the literals as per the given rules.
      */
-    public static Number parseFloatLiteral(String text) {
+    public static Number parseFloatLiteral(String text, TypeCode suggestionType) {
         if (text == null || text.isEmpty())
             throw new IllegalArgumentException("empty input");
 
         // Detect and strip optional suffix (f/F/d/D)
         char last = text.charAt(text.length() - 1);
-        boolean isFloat = false;
-        boolean isDouble = true;
+        TypeCode type;
         if (last == 'f') {
-            isFloat = true;
+            type = TypeCode.FLOAT;
             text = text.substring(0, text.length() - 1);
         } else if (last == 'd') {
             // explicit double suffix – no change needed
-            isDouble = true;
+            type = TypeCode.DOUBLE;
             text = text.substring(0, text.length() - 1);
         } else if(last == 'D'){
-            isDouble = false;
+            type = TypeCode.DECIMAL;
             text = text.substring(0, text.length() - 1);
+        } else if(suggestionType != null){
+            type = suggestionType;
+        } else {
+            type = TypeCode.DOUBLE;
         }
 
         // Hexadecimal floating point starts with 0x/0X and contains a p/P exponent
@@ -192,19 +196,19 @@ public class LiteralParser {
         try {
             if (isHexFloat) {
                 // Java's Double.parseDouble understands hex floats
-                if (isFloat)
-                    return Float.parseFloat(text);
-                if(isDouble)
-                    return Double.parseDouble(text);
-                return new BigDecimal(Double.parseDouble(text));
+                return switch (type.value){
+                    case TypeCode.DOUBLE_VALUE -> Double.parseDouble(text);
+                    case TypeCode.FLOAT_VALUE -> Float.parseFloat(text);
+                    case TypeCode.DECIMAL_VALUE -> BigDecimal.valueOf(Double.parseDouble(text));
+                    default -> Double.parseDouble(text);
+                };
             } else {
-                // Decimal float
-//                double val = Double.parseDouble(text);
-                if (isFloat)
-                    return Float.parseFloat(text);
-                if(isDouble)
-                    return Double.parseDouble(text);
-                return new BigDecimal(text);
+                return switch (type.value){
+                    case TypeCode.DOUBLE_VALUE -> Double.parseDouble(text);
+                    case TypeCode.FLOAT_VALUE -> Float.parseFloat(text);
+                    case TypeCode.DECIMAL_VALUE -> new BigDecimal(text);
+                    default -> Double.parseDouble(text);
+                };
             }
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("invalid float literal: " + text, e);

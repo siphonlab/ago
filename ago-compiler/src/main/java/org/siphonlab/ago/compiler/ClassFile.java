@@ -30,15 +30,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.channels.Channels;
 import java.nio.charset.*;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import static org.siphonlab.ago.compiler.CodeBuffer.bigDecimalToIntArray;
 
 public class ClassFile {
 
@@ -92,7 +89,7 @@ public class ClassFile {
 
         // array blobs
         if(LOGGER.isDebugEnabled()) LOGGER.debug("    array blobs :" + buff.position());
-        List<byte[]> arrayBLOBs = classDef.getArrayBLOBs();
+        List<byte[]> arrayBLOBs = classDef.getBlobs();
         buff.putInt(arrayBLOBs.size());
         for (byte[] arrayBLOB : arrayBLOBs) {
             buff.put(arrayBLOB);
@@ -502,8 +499,7 @@ public class ClassFile {
         } else if (literal instanceof DoubleLiteral doubleLiteral) {
             buff.putDouble(doubleLiteral.value);
         } else if (literal instanceof DecimalLiteral decimalLiteral) {
-            var arr = bigDecimalToIntArray(decimalLiteral.value);
-            buff.asIntBuffer().put(arr);
+            buff.putInt(decimalLiteral.ensureBlobCreated(ownerClass).getBlobIndex());
         } else if (literal instanceof CharLiteral charLiteral) {
             buff.putChar(charLiteral.value);
         } else if(literal instanceof StringLiteral stringLiteral) {

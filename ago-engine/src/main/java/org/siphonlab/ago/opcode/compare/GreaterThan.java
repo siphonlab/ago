@@ -37,7 +37,7 @@ public class GreaterThan implements GenericOpCode {
     public static final int gt_d_vvcc  = 0x0f_07_02_04;
     public static final int gt_d_vvv   = 0x0f_07_04_03;
 
-    public static final int gt_D_vvccccc = 0x0f_0d_02_07;
+    public static final int gt_D_vvc   = 0x0f_0d_02_03;
     public static final int gt_D_vvv   = 0x0f_0d_04_03;
 
     public static final int gt_b_vvc   = 0x0f_08_02_03;
@@ -78,7 +78,7 @@ public class GreaterThan implements GenericOpCode {
             case gt_d_vvcc -> "gt_d_vvcc";
             case gt_d_vvv -> "gt_d_vvv";
 
-            case gt_D_vvccccc -> "gt_D_vvcc";
+            case gt_D_vvc -> "gt_D_vvc";
             case gt_D_vvv -> "gt_D_vvv";
 
             case gt_b_vvc -> "gt_b_vvc";

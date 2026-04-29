@@ -697,10 +697,9 @@ public class AgoClassLoader implements ClassManager{
                     case FLOAT_VALUE -> buffer.getFloat();
                     case DOUBLE_VALUE -> buffer.getDouble();
                     case DECIMAL_VALUE -> {
-                        int scale = buffer.getInt();
-                        byte[] data = new byte[16];
-                        buffer.get(data);
-                        yield new BigDecimal(new BigInteger(data), scale);
+                        int blobIndex = buffer.getInt();
+                        var blob = blobs.get(blobIndex);
+                        yield AgoEngine.toDecimal(blob);
                     }
                     case BYTE_VALUE -> buffer.get();
                     case SHORT_VALUE -> buffer.getShort();

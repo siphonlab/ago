@@ -17,8 +17,8 @@ package org.siphonlab.ago.classloader;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.opcode.*;
-import org.siphonlab.ago.opcode.compare.Equals;
-import org.siphonlab.ago.opcode.compare.InstanceOf;
+import org.siphonlab.ago.opcode.arithmetic.*;
+import org.siphonlab.ago.opcode.compare.*;
 
 import java.util.Map;
 import java.util.Objects;
@@ -152,9 +152,15 @@ public class CodeTransformer {
                     break;
                 }
 
-                case Concat.concat_S_vc:        updateStringId(instruction, 1); break;
+                case Concat.concat_S_vc:
+                    updateStringId(instruction, 1); break;
                 case Concat.concat_S_vvc:
                 case Equals.equals_S_vvc:
+                case GreaterEquals.ge_S_vvc:
+                case GreaterThan.gt_S_vvc:
+                case LittleThan.lt_S_vvc:
+                case LittleEquals.le_S_vvc:
+                case NotEquals.ne_S_vvc:
                     updateStringId(instruction, 2);
                     break;
                 case Concat.concat_S_vcv:       updateStringId(instruction, 1); break;
@@ -192,6 +198,8 @@ public class CodeTransformer {
                 case Array.array_create_S_vCv:
                 case Array.array_create_d_vCc:
                 case Array.array_create_d_vCv:
+                case Array.array_create_D_vCc:
+                case Array.array_create_D_vCv:
                 case Array.array_create_f_vCc:
                 case Array.array_create_f_vCv:
                 case Array.array_create_l_vCc:
@@ -199,7 +207,42 @@ public class CodeTransformer {
                     updateClassId(instruction, 1); break;
 
                 case Array.array_fill_i_acL:
+                case Array.array_fill_B_acL:
+                case Array.array_fill_c_acL:
+                case Array.array_fill_f_acL:
+                case Array.array_fill_d_acL:
+                case Array.array_fill_D_acL:
+                case Array.array_fill_b_acL:
+                case Array.array_fill_s_acL:
+                case Array.array_fill_l_acL:
                     updateBlobId(instruction, 2, header.getBlobOffset()); break;
+
+                case IncDec.inc_D_ovc:
+                case Mod.mod_D_vvc:
+                case Div.div_D_vvc:
+                case Multiply.mul_D_vvc:
+                case Subtract.sub_D_vvc:
+                case Add.add_D_vvc:
+                case LittleEquals.le_D_vvc:
+                case LittleThan.lt_D_vvc:
+                case GreaterEquals.ge_D_vvc:
+                case GreaterThan.gt_D_vvc:
+                case NotEquals.ne_D_vvc:
+                case Equals.equals_D_vvc:
+                case Const.const_fld_D_ovc:
+                    updateBlobId(instruction, 2, header.getBlobOffset()); break;
+
+                case Mod.mod_D_vc:
+                case Mod.mod_D_vcv:
+                case Div.div_D_vc:
+                case Div.div_D_vcv:
+                case Multiply.mul_D_vc:
+                case Subtract.sub_D_vc:
+                case Subtract.sub_D_vcv:
+                case Add.add_D_vc:
+                case Box.box_D_vc:
+                case Const.const_D_vc:
+                    updateBlobId(instruction, 1, header.getBlobOffset()); break;
 
                 case Box.box_C_vC:              updateClassId(instruction, 1); break;
                 case Box.box_C_vvC:             updateClassId(instruction, 2); break;
