@@ -117,17 +117,46 @@ public class Compare extends BiExpression{
             Label exit = blockCompiler.createLabel();
             boolean hasNullValue = false;
             boolean lockedLeft = false;
+            boolean rightChecked = false;
             if (this.left instanceof NullableValue.NonNullPlaceHolder leftPlaceHolder) {
-                NullableValue nullableValue = leftPlaceHolder.getNullableValue();
-                var isNull = nullableValue.isNull().visit(blockCompiler);
-                code.jumpIf(isNull.getVariableSlot(), returnFalse);
+                NullableValue leftNullableValue = leftPlaceHolder.getNullableValue();
+                if ((this.type == Type.GE || this.type == Type.LE) && this.right instanceof NullableValue.NonNullPlaceHolder rightNonNull) {
+                    blockCompiler.lockRegister(localVar);
+                    var lIsNull = leftNullableValue.isNull().visit(blockCompiler);
+                    NullableValue rightNullableValue = rightNonNull.getNullableValue();
+                    blockCompiler.lockRegister(lIsNull);
+                    var rIsNull = rightNullableValue.isNull().visit(blockCompiler);
+                    blockCompiler.lockRegister(rIsNull);
 
-                evaluatedLeft = nullableValue.nonNullValue().visit(blockCompiler);
-                blockCompiler.lockRegister(evaluatedLeft);
-                lockedLeft = true;
-                hasNullValue = true;
+                    // test both null
+                    code.and(localVar.getVariableSlot(), lIsNull.getVariableSlot(), rIsNull.getVariableSlot());
+                    code.jumpIf(localVar.getVariableSlot(), exit);      // both null, result is true
+                    // test both nonnull
+                    new Equals(ownerFunction, lIsNull, rIsNull, Equals.Type.Equals).outputToLocalVar(localVar, blockCompiler);
+                    code.jumpIfNot(localVar.getVariableSlot(), returnFalse);    // test both are nonnull, if failed return false, otherwise they are both nonnull, go ahead
+
+                    blockCompiler.releaseRegister(localVar);
+                    blockCompiler.releaseRegister(lIsNull);
+                    blockCompiler.releaseRegister(rIsNull);
+
+                    evaluatedLeft = leftNullableValue.nonNullValue().visit(blockCompiler);
+                    blockCompiler.lockRegister(evaluatedLeft);
+                    lockedLeft = true;
+                    evaluatedRight = rightNullableValue.nonNullValue().visit(blockCompiler);
+                    rightChecked = true;
+                    hasNullValue = true;
+                } else {
+                    NullableValue nullableValue = leftPlaceHolder.getNullableValue();
+                    var isNull = nullableValue.isNull().visit(blockCompiler);
+                    code.jumpIf(isNull.getVariableSlot(), returnFalse);
+
+                    evaluatedLeft = nullableValue.nonNullValue().visit(blockCompiler);
+                    blockCompiler.lockRegister(evaluatedLeft);
+                    lockedLeft = true;
+                    hasNullValue = true;
+                }
             }
-            if (this.right instanceof NullableValue.NonNullPlaceHolder rightPlaceHolder) {
+            if (!rightChecked && this.right instanceof NullableValue.NonNullPlaceHolder rightPlaceHolder) {
                 NullableValue nullableValue = rightPlaceHolder.getNullableValue();
                 var isNull = nullableValue.isNull().visit(blockCompiler);
                 code.jumpIf(isNull.getVariableSlot(), returnFalse);

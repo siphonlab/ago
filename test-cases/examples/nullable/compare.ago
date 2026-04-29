@@ -20,4 +20,33 @@ fun main(){
     Trace.print(i > 100)       // true
     Trace.print(n > 100)       // false
     Trace.print(n < 100)       // false
+
+    var m as int? = null;
+    var j as int? = 300;
+
+    Trace.print(i >= j)     // false
+    Trace.print(i <= j)     // true
+    Trace.print(i > j)      // false
+    Trace.print(i < j)      // true
+
+    Trace.print(n >= m)     // true
+    Trace.print(n <= m)     // true
+    Trace.print(n > m)      // false
+    Trace.print(n < m)      // false
+
+    Trace.print(i >= n)     // false
+    Trace.print(i <= n)     // false
+    Trace.print(i > n)      // false
+    Trace.print(i < n)      // false
+
+    Trace.print(n >= i)     // false
+    Trace.print(n <= i)     // false
+    Trace.print(n > i)      // false
+    Trace.print(n < i)      // false
+
+    j = i
+    Trace.print(i >= j)     // true
+    Trace.print(i <= j)     // true
+    Trace.print(i > j)      // false
+    Trace.print(i < j)      // false
 }

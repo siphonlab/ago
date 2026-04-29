@@ -186,26 +186,51 @@ public class Equals extends BiExpression{
 
         try {
             blockCompiler.enter(this);
-
+            var exitLabel = blockCompiler.createLabel();
+            var returnFalse = blockCompiler.createLabel();
             if (this.left instanceof NullableValue.NonNullPlaceHolder leftPlaceHolder) {
                 NullableValue leftNullableValue = leftPlaceHolder.getNullableValue();
                 if (this.right instanceof NullableValue.NonNullPlaceHolder rightNonNull) {
 
+                    blockCompiler.lockRegister(localVar);
                     var lIsNull = leftNullableValue.isNull().visit(blockCompiler);
                     NullableValue rightNullableValue = rightNonNull.getNullableValue();
+                    blockCompiler.lockRegister(lIsNull);
                     var rIsNull = rightNullableValue.isNull().visit(blockCompiler);
-                    code.and(lIsNull.getVariableSlot(), rIsNull.getVariableSlot());
+                    blockCompiler.lockRegister(rIsNull);
 
-                    var n1 = leftNullableValue.nonNullValue().visit(blockCompiler);
-                    blockCompiler.lockRegister(n1);
-                    var n2 = rightNullableValue.nonNullValue().visit(blockCompiler);
-                    blockCompiler.releaseRegister(n1);
+                    // test both null
+                    code.and(localVar.getVariableSlot(), lIsNull.getVariableSlot(), rIsNull.getVariableSlot());
+                    if(type == Type.Equals)
+                        code.jumpIf(localVar.getVariableSlot(), exitLabel);      // both null, result is true
+                    else
+                        code.jumpIf(localVar.getVariableSlot(), returnFalse);
 
-                    new IfElseExpr(ownerFunction, getRoot().createBooleanLiteral(false), lIsNull, new Equals(ownerFunction, n1, n2, type).transform())
-                            .outputToLocalVar(localVar, blockCompiler);
+                    // test both nonnull
+                    new Equals(ownerFunction, lIsNull, rIsNull, Equals.Type.Equals).outputToLocalVar(localVar, blockCompiler);      // localVar = (!lIsNull && !rIsNull)
+                    if(type == Type.Equals)
+                        code.jumpIfNot(localVar.getVariableSlot(), returnFalse);    // if failed return false, otherwise they are both nonnull, go ahead
+                    else
+                        code.jumpIfNot(localVar.getVariableSlot(), exitLabel);
+
+                    blockCompiler.releaseRegister(localVar);
+                    blockCompiler.releaseRegister(lIsNull);
+                    blockCompiler.releaseRegister(rIsNull);
+
+                    evaluatedLeft = leftNullableValue.nonNullValue().visit(blockCompiler);
+                    blockCompiler.lockRegister(evaluatedLeft);
+                    evaluatedRight = rightNullableValue.nonNullValue().visit(blockCompiler);
+
+                    super.outputToLocalVar(localVar, evaluatedLeft, evaluatedRight, blockCompiler);
+
+                    code.jump(exitLabel);
+                    returnFalse.here();
+                    ownerFunction.assign(localVar, getRoot().createBooleanLiteral(false)).termVisit(blockCompiler);
+
+                    blockCompiler.releaseRegister(evaluatedLeft);
+                    exitLabel.here();
                 } else {
                     var isNull = leftNullableValue.isNull().visit(blockCompiler);
-                    var exitLabel = blockCompiler.createLabel();
                     var trueLabel = blockCompiler.createLabel();
 
                     code.jumpIfNot(isNull.getVariableSlot(), trueLabel);
@@ -219,7 +244,6 @@ public class Equals extends BiExpression{
             } else if (this.right instanceof NullableValue.NonNullPlaceHolder rightPlaceHolder) {
                 NullableValue rightNullableValue = rightPlaceHolder.getNullableValue();
                 var isNull = rightNullableValue.isNull().visit(blockCompiler);
-                var exitLabel = blockCompiler.createLabel();
                 var trueLabel = blockCompiler.createLabel();
 
                 code.jumpIfNot(isNull.getVariableSlot(), trueLabel);

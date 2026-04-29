@@ -30,7 +30,7 @@ public class NullableTests {
     public void equals() throws CompilationError, IOException {
         run("nullable/equals.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("true", "true", "false", "true", "true", "false", "true", "false", "false", "true", "true", "false", "false", "true"));
+        assertTrue(Trace.outputted("true", "true", "false", "true", "true", "false", "true", "false", "false", "true", "true", "false", "false", "true", "true", "false"));
     }
 
     @Test
@@ -65,7 +65,7 @@ public class NullableTests {
     public void compare() throws CompilationError, IOException {
         run("nullable/compare.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("true", "false", "false"));
+        assertTrue(Trace.outputted("true", "false", "false", "false", "true", "false", "true", "true", "true", "false", "false", "false", "false", "false", "false", "false", "false", "false", "false", "true", "true", "false", "false"));
     }
 
     @Test
