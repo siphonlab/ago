@@ -898,6 +898,8 @@ public class BlockCompiler {
                     return arrayLiteral(lArrayContext, assignee, assigneeType);
                 } else if(literal instanceof LObjectContext objectLiteral){
                     return objectLiteral(objectLiteral, assignee, assigneeType);
+                } else if(literal instanceof LFloatContext floatLiteral){
+                    return floatLiteral(floatLiteral, assignee, assigneeType);
                 }
             }
         }
@@ -1073,6 +1075,10 @@ public class BlockCompiler {
             r = new CollectionElementDef(el, false, el.inferType());
         }
         return r;
+    }
+
+    private Literal<?> floatLiteral(LFloatContext floatLiteral, Expression assignee, ClassDef assigneeType) throws TypeMismatchError {
+        return Literal.parse(floatLiteral, assigneeType, unit.getRoot(), unit.sourceLocation(floatLiteral));
     }
 
     private Expression objectLiteral(LObjectContext lObjectContext, Expression assignee, ClassDef assigneeType) throws CompilationError{
