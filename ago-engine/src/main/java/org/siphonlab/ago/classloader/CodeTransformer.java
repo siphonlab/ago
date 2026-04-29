@@ -17,8 +17,7 @@ package org.siphonlab.ago.classloader;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.opcode.*;
-import org.siphonlab.ago.opcode.compare.Equals;
-import org.siphonlab.ago.opcode.compare.InstanceOf;
+import org.siphonlab.ago.opcode.compare.*;
 
 import java.util.Map;
 import java.util.Objects;
@@ -152,9 +151,15 @@ public class CodeTransformer {
                     break;
                 }
 
-                case Concat.concat_S_vc:        updateStringId(instruction, 1); break;
+                case Concat.concat_S_vc:
+                    updateStringId(instruction, 1); break;
                 case Concat.concat_S_vvc:
                 case Equals.equals_S_vvc:
+                case GreaterEquals.ge_S_vvc:
+                case GreaterThan.gt_S_vvc:
+                case LittleThan.lt_S_vvc:
+                case LittleEquals.le_S_vvc:
+                case NotEquals.ne_S_vvc:
                     updateStringId(instruction, 2);
                     break;
                 case Concat.concat_S_vcv:       updateStringId(instruction, 1); break;
