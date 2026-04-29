@@ -268,76 +268,40 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             case UNION_VALUE:
                 if(slotDef.getAgoClass().getConcreteTypeInfo() instanceof NullableTypeInfo n){
                     var v = slots.getUnion(slotDef.getIndex());
+                    if (v == null) {
+                        gen.writeNullField(slotDefName);
+                        break;
+                    }
                     switch (n.getBaseClass().getTypeCode().value){
                         case INT_VALUE:
-                            if (v == null) {
-                                gen.writeNullField(slotDefName);
-                            }
-                            else {
-                                gen.writeNumberField(slotDefName, (Integer) v);
-                            }
+                            gen.writeNumberField(slotDefName, (Integer) v);
                             break;
                         case LONG_VALUE:
-                            if (v == null) {
-                                gen.writeNullField(slotDefName);
-                            }
-                            else {
-                                gen.writeNumberField(slotDefName, (Long) v);
-                            }
+                            gen.writeNumberField(slotDefName, (Long) v);
                             break;
                         case FLOAT_VALUE:
-                            if (v == null) {
-                                gen.writeNullField(slotDefName);
-                            }
-                            else {
-                                gen.writeNumberField(slotDefName, (Float) v);
-                            }
+                            gen.writeNumberField(slotDefName, (Float) v);
                             break;
                         case DOUBLE_VALUE:
-                            if (v == null) {
-                                gen.writeNullField(slotDefName);
-                            }
-                            else {
-                                gen.writeNumberField(slotDefName, (Double) v);
-                            }
+                            gen.writeNumberField(slotDefName, (Double) v);
                             break;
                         case DECIMAL_VALUE:
                             gen.writeNumberField(slotDefName, (BigDecimal)v);
                             break;
                         case BOOLEAN_VALUE:
-                            if (v == null) {
-                                gen.writeNullField(slotDefName);
-                            }
-                            else {
-                                gen.writeBooleanField(slotDefName, (Boolean) v);
-                            }
+                            gen.writeBooleanField(slotDefName, (Boolean) v);
                             break;
                         case STRING_VALUE:
                             gen.writeStringField(slotDefName, (String)v);
                             break;
                         case SHORT_VALUE:
-                            if (v == null) {
-                                gen.writeNullField(slotDefName);
-                            }
-                            else {
-                                gen.writeNumberField(slotDefName, (Short) v);
-                            }
+                            gen.writeNumberField(slotDefName, (Short) v);
                             break;
                         case BYTE_VALUE:
-                            if (v == null) {
-                                gen.writeNullField(slotDefName);
-                            }
-                            else {
-                                gen.writeNumberField(slotDefName, (Byte) v);
-                            }
+                            gen.writeNumberField(slotDefName, (Byte) v);
                             break;
                         case CHAR_VALUE:
-                            if (v == null) {
-                                gen.writeNullField(slotDefName);
-                            }
-                            else {
-                                gen.writeStringField(slotDefName, String.valueOf((Character) v));
-                            }
+                            gen.writeStringField(slotDefName, String.valueOf((Character) v));
                             break;
                         case OBJECT_VALUE:
                             writeObjectSlot(gen, config, n.getBaseClass(), slotDefName, (Instance<?>) v);
