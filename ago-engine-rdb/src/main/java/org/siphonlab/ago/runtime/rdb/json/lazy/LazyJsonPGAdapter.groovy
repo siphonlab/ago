@@ -32,6 +32,7 @@ import org.siphonlab.ago.runtime.rdb.RdbRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter
 import org.siphonlab.ago.runtime.rdb.RowState
+import org.siphonlab.ago.runtime.rdb.SavableRunSpace
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
 import org.siphonlab.ago.runtime.rdb.lazy.DereferenceAdapter
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableObject
@@ -192,7 +193,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
         String sql
         if(instance instanceof CallFrame){
-            arguments["runspace"] = (instance.runSpace as RdbRunSpace)?.id
+            arguments["runspace"] = (instance.runSpace as SavableRunSpace)?.id
             if(instance instanceof AgoFrame) {
                 sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, ${hasPayload ? 'payload = :payload,' : ''} runspace = :runspace, suspended = :suspended, pc = :pc WHERE id = :id"
                 arguments["pc"] = instance.pc

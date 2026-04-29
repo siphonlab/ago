@@ -154,7 +154,7 @@ public class ExpandableSlots implements Slots {
 
     @Override
     public Object getUnion(int slot) {
-        return innerSlots.getUnion(slot);
+        return this.innerSlots.getUnion(slot);
     }
 
     @Override

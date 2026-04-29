@@ -153,7 +153,10 @@ public class CodeTransformer {
                 }
 
                 case Concat.concat_S_vc:        updateStringId(instruction, 1); break;
-                case Concat.concat_S_vvc:       updateStringId(instruction, 2); break;
+                case Concat.concat_S_vvc:
+                case Equals.equals_S_vvc:
+                    updateStringId(instruction, 2);
+                    break;
                 case Concat.concat_S_vcv:       updateStringId(instruction, 1); break;
                 case Box.box_S_vc:              updateStringId(instruction, 1); break;
 

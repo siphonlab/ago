@@ -194,6 +194,11 @@ public class RdbSlots implements Slots {
     }
 
     @Override
+    public Object getUnion(int slot) {
+        return this.baseSlots.getUnion(slot);
+    }
+
+    @Override
     public void setObject(int slot, Instance<?> value) {
         if(!restoring) {
             Instance<?> prev = baseSlots.getObject(slot);

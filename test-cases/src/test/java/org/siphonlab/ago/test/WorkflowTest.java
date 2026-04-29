@@ -52,6 +52,24 @@ public class WorkflowTest {
         }
     }
 
-
-
+    @Test
+    public void taskTesting() throws Exception {
+        // this testcase need run twice,
+        // but the first use System.exit() to shutdown the whole server to simulate unexpected shutdown
+        // it will make junit terminate, so need run it manually now
+        var flag = new File("output/workflow/task_flag");
+        if(!flag.exists()) {
+            if (Util.parseEngine() == Util.RunEngine.TaskEngine) {
+                Util.applicationId = RandomUtils.insecure().randomInt();
+                if(!flag.getParentFile().exists()) flag.getParentFile().mkdirs();
+                FileUtils.write(flag, String.valueOf(Util.applicationId), StandardCharsets.UTF_8);
+                Util.run("workflow/task.ago");
+            }
+        }  else {
+            Util.applicationId = Integer.parseInt(FileUtils.readFileToString(flag, StandardCharsets.UTF_8));
+            flag.delete();
+            Util.resumeWithTask();
+            Thread.sleep(2000);
+        }
+    }
 }

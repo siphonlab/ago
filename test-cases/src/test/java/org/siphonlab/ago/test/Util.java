@@ -22,6 +22,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tools.ant.Task;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.ClassDef;
@@ -34,6 +35,8 @@ import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
 import org.siphonlab.ago.runtime.rdb.json.lazy.PGJsonSlotsCreatorFactory;
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
+import org.siphonlab.ago.runtime.rdb.task.TaskAdapter;
+import org.siphonlab.ago.runtime.rdb.task.TaskEngine;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 
 import java.io.File;
@@ -111,6 +114,7 @@ public class Util {
         VertxEngine,
         PGJsonReactiveEngine,
         PGJsonLazyEngine,
+        TaskEngine,
     }
 
     public static RunEngine parseEngine(){
@@ -123,6 +127,9 @@ public class Util {
             return RunEngine.PGJsonReactiveEngine;
         } else if("netty".equalsIgnoreCase(s) || StringUtils.isEmpty(s)){
             return RunEngine.NettyEngine;
+        }
+        else if ("task".equalsIgnoreCase(s)) {
+            return RunEngine.TaskEngine;
         }
         throw new IllegalArgumentException("unknown engine '%s'".formatted(s));
     }
@@ -164,8 +171,10 @@ public class Util {
             case PGJsonLazyEngine:
                 runWithPGJsonLazy(filename, entrance);
                 break;
+            case TaskEngine:
+                runWithTask(filename, entrance);
+                break;
         }
-
     }
 
     private static void runInNettySpace(String filename, String entrance) throws IOException, CompilationError {
@@ -254,5 +263,60 @@ public class Util {
 
     }
 
+    public static void runWithTask(String filename, String entrance) throws IOException, CompilationError {
+        compile(filename);
 
+        if (applicationId == 0) applicationId = RandomUtils.insecure().randomInt();
+
+        PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
+        var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
+        if(new File("../ago-sdk/compiled/lang/").exists()) {
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
+        } else {
+            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadClasses("output/%s".formatted(filename));
+        }
+
+        var ds = connectDataSource();
+        ds.setDefaultAutoCommit(true);
+        ds.setMaxTotal(20);
+
+        var rdbAdapter = new TaskAdapter(
+                agoClassLoader.getBoxTypes(),
+                agoClassLoader,
+                ds,
+                applicationId,
+                new SnowflakeIdGenerator(1));
+        slotsCreatorFactory.setAdapter(rdbAdapter);
+        rdbAdapter.setDataSource(ds);
+
+        var rdbEngine = new TaskEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        slotsCreatorFactory.setEngine(rdbEngine);
+        rdbEngine.load(agoClassLoader);
+        rdbEngine.run(entrance);
+    }
+
+    public static void resumeWithTask() throws IOException, CompilationError, SQLException {
+        var ds = connectDataSource();
+        ds.setDefaultAutoCommit(true);
+
+        PGJsonSlotsCreatorFactory slotsCreatorFactory = new PGJsonSlotsCreatorFactory();
+        var agoClassLoader = new JsonAgoClassLoader(slotsCreatorFactory);
+        agoClassLoader.loadClasses(ds, applicationId);      // load classes from db
+
+        var rdbAdapter = new TaskAdapter(
+                agoClassLoader.getBoxTypes(),
+                agoClassLoader,
+                ds,
+                applicationId,
+                new SnowflakeIdGenerator(1));
+
+        slotsCreatorFactory.setAdapter(rdbAdapter);
+        rdbAdapter.setDataSource(ds);
+
+        var rdbEngine = new TaskEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        slotsCreatorFactory.setEngine(rdbEngine);
+        rdbEngine.load(agoClassLoader);
+        rdbEngine.resume();
+    }
 }

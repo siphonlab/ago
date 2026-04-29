@@ -34,8 +34,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.concurrent.ExecutionException;
 
-import static org.apache.commons.dbcp2.Utils.closeQuietly;
-
 public class RdbEngine extends AgoEngine {
 
     public final static Logger logger = LoggerFactory.getLogger(RdbEngine.class);
@@ -62,7 +60,6 @@ public class RdbEngine extends AgoEngine {
         var r = new ObjectMapper();
 
         SimpleModule module = new SimpleModule();
-        BoxTypes boxTypes = getBoxTypes();
         InstanceJsonSerializer jsonSerializer = new InstanceJsonSerializerWithObjectId(this);
         module.addSerializer(Instance.class, jsonSerializer);
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
@@ -173,7 +170,7 @@ public class RdbEngine extends AgoEngine {
     }
 
     @Override
-    protected RdbRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
+    protected SavableRunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
         return new RdbRunSpace(this, rdbAdapter, runSpaceHost);
     }
 
@@ -183,7 +180,7 @@ public class RdbEngine extends AgoEngine {
         if (parentScope == null) return c;
 
         ((RdbSlots)c.getSlots()).setId(rdbAdapter.nextId());
-        this.rdbAdapter.saveInstance(c);
+        // this.rdbAdapter.saveInstance(c);
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if (emptyArgsConstructor != null) {

@@ -19,8 +19,10 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.opcode.Load;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceCallFrame;
+import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
+import org.siphonlab.ago.runtime.rdb.task.TaskRunSpace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,5 +196,17 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
     @Override
     public DeferenceFrameState getDeferenceFrameState() {
         return state;
+    }
+
+
+    @Override
+    protected boolean evaluateInvoke(CallFrame<?> self, int instruction) {
+        var runspace = (TaskRunSpace) this.runSpace;
+        var nextFrame = this.getCallFrameAt(this.code[this.pc]);
+
+        nextFrame.setRunSpace(self.getRunSpace());
+        runspace.saveTask(self, nextFrame, this.pc - 1);
+
+        return super.evaluateInvoke(self, instruction);
     }
 }
