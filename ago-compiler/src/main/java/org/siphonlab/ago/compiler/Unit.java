@@ -772,7 +772,7 @@ public class Unit {
         }
     }
 
-    protected Expression parseType(ClassDef scopeClass, AgoParser.VariableTypeContext variableType, boolean acceptTypeExpr, boolean allowGenericPlaceHolder) throws CompilationError {
+    public Expression parseType(ClassDef scopeClass, AgoParser.VariableTypeContext variableType, boolean acceptTypeExpr, boolean allowGenericPlaceHolder) throws CompilationError {
         if (variableType instanceof AgoParser.VarTypeNormalContext varTypeNormal) {
             return parseType(scopeClass, varTypeNormal.declarationType(), acceptTypeExpr, allowGenericPlaceHolder);
         } else if (variableType instanceof AgoParser.VarTypeArrayContext varTypeArray) {

@@ -920,8 +920,8 @@ public class NamePathResolver {
             List<AgoParser.TypeArgumentContext> argument = typeArgs.typeArgument();
             for (int i = 0; i < argument.size(); i++) {
                 AgoParser.TypeArgumentContext typeArgument = argument.get(i);
-                var cls = unit.parseTypeName(scopeClass, typeArgument.declarationType().namePath(), false);
-                args[i] = cls.toClassRefLiteral();
+                var cls = unit.parseType(scopeClass, typeArgument.variableType(), false, true);
+                args[i] = Unit.extractType(cls).toClassRefLiteral();
             }
             //TODO validation arguments
 //            if(templateClass.getGenericTypeParams().size() != args.length){
