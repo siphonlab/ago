@@ -286,7 +286,7 @@ variableInitializer:
 ;
 
 typeArgument
-    : declarationType
+    : variableType
     //| '?' ((FROM | SUPER) typeType)?      // TODO not sure
     ;
 
@@ -296,6 +296,7 @@ formalParameter:
         THIS typeOfVariable           #ReceiverParameter
     |   variableModifier* identifier typeOfVariable fieldGetterSetter?  ('=' literal)?      #DefaultParameter
     |   variableModifier* identifier typeOfVariable '...'   #VarArgsParameter
+//    |   NULL_LITERAL                                        #NullParameter
 ;
 
 // local variable type inference
