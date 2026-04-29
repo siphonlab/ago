@@ -195,7 +195,7 @@ public class RdbSlots implements Slots {
 
     @Override
     public Object getUnion(int slot) {
-        return this.objectSlots[slot];
+        return this.baseSlots.getUnion(slot);
     }
 
     @Override
