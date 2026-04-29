@@ -90,7 +90,7 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
     }
 
     public static Literal<?> parseFloatLiteral(Root root, AgoParser.FloatLiteralContext floatLiteral, ClassDef suggestionType) {
-        var n = LiteralParser.parseFloatLiteral(floatLiteral.getText(), suggestionType.getTypeCode());
+        var n = LiteralParser.parseFloatLiteral(floatLiteral.getText(), suggestionType == null ? null : suggestionType.getTypeCode());
         if(n instanceof Double d) {
             return root.createDoubleLiteral(d);
         } else if(n instanceof Float f){

@@ -1099,6 +1099,7 @@ public class ClassDef extends ClassContainer {
 
         if(dependency.isDependingOn(this, 0)) return false;
         this.dependencies.add(dependency);
+        getRoot().getDependencyResultCache().put(Pair.of(this, dependency), true);
         if(dependency instanceof ConcreteType cd) {     // GenericTypeAvatarClassDef included
             registerConcreteType(cd);
         } else {
