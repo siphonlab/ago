@@ -61,8 +61,10 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
                 ClassDef expandoType = el.getExpression().inferType();
                 if (!(expandoType instanceof ArrayClassDef)
                         && !root.getAnyIterableInterface().isThatOrSuperOfThat(expandoType)
-                        && !root.getAnyIteratorInterface().isThatOrSuperOfThat(expandoType)) {
-                    throw new TypeMismatchError("lang.Iterable, lang.Iterator or array expected", el.getExpression().getSourceLocation());
+                        && !root.getAnyIteratorInterface().isThatOrSuperOfThat(expandoType)
+                        && !root.getGeneratorOfAnyClass().isThatOrSuperOfThat(expandoType)
+                ) {
+                    throw new TypeMismatchError("array, lang.Iterable, lang.Iterator, or generator expected", el.getExpression().getSourceLocation());
                 }
             } else {
                 el.setExpression(ownerFunction.cast(el.getExpression(), elementType).setParent(this).transform());
@@ -139,28 +141,26 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
             if(classDef instanceof ArrayClassDef arrayClassDef && arrayClassDef.getElementType() == this.elementType) {
                 new Creator(ownerFunction, listTypeExpr, Collections.singletonList(part), part.getSourceLocation(), "new#array")
                             .outputToLocalVar(listInstance, blockCompiler);
-                blockCompiler.releaseRegister(part);
-                return;
             } else {
                 new Creator(ownerFunction, listTypeExpr, Collections.emptyList(), part.getSourceLocation(), "new#")
                         .outputToLocalVar(listInstance, blockCompiler);
             }
             listCreated.setTrue();
+            blockCompiler.releaseRegister(part);
+            return;
         }
         var t = blockCompiler.extractCollectionElementType(classDef);
-        if((classDef instanceof ArrayClassDef && t.elementType() == this.elementType) || t.collectionType().isThatOrSuperOfThat(listType)){
-            var method = switch (t.type()){
-                case Iterable -> "addAll#iterable";
-                case Iterator -> "addAll#iterator";
-                case Array -> "addAll#array";
-                case Collection, List -> "addAll#collection";
-            };
-            ownerFunction.invoke(Invoke.InvokeMode.Invoke,
-                    ownerFunction.classUnder(listInstance, this.inferType().findMethod(method)), List.of(part),
-                    part.getSourceLocation()).transform().termVisit(blockCompiler);
-        } else {
-            iterateCopy(listInstance, blockCompiler, part, t, part.getSourceLocation());
-        }
+        var method = switch (t.type()){
+            case Iterable -> "addAll#iterable";
+            case Iterator -> "addAll#iterator";
+            case Array -> "addAll#array";
+            case Collection, List -> "addAll#collection";
+            case Generator -> "addAll#generator";
+        };
+        ownerFunction.invoke(Invoke.InvokeMode.Invoke,
+                ownerFunction.classUnder(listInstance, this.inferType().findMethod(method)), List.of(part),
+                part.getSourceLocation()).transform().termVisit(blockCompiler);
+//            iterateCopy(listInstance, blockCompiler, part, t, part.getSourceLocation());
         blockCompiler.releaseRegister(part);
     }
 
@@ -169,6 +169,7 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
             case Array -> ForEachStmt.Mode.Array;
             case Iterator -> ForEachStmt.Mode.Iterator;
             case Iterable, Collection, List -> ForEachStmt.Mode.Iterable;
+            case Generator -> ForEachStmt.Mode.Generator;
         };
         var it = blockCompiler.acquireTempVar(collectionElementType.elementType());
         blockCompiler.lockRegister(it);

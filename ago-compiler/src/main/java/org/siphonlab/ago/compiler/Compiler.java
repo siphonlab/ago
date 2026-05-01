@@ -493,10 +493,13 @@ public class Compiler {
     static int methodModifier(Unit unit, AgoParser.MethodStarterContext methodStarter) throws SyntaxError {
         int result = 0;
         boolean visibilityFound = false;
-        if(methodStarter.OVERRIDE() != null){
+        if(methodStarter.OVERRIDE() != null) {
             result = fieldModifiers(unit, methodStarter.fieldModifier(), ModifierTarget.Method);
             result |= AgoClass.OVERRIDE;
         } else {
+            if(methodStarter.GENERATOR() != null) {
+                result |= AgoClass.GENERATOR;
+            }
             for (AgoParser.MethodModifierContext modifier : methodStarter.methodModifier()) {
                 if(modifier.FINAL() != null){
                     if((result & AgoClass.FINAL) == AgoClass.FINAL) throw unit.syntaxError( modifier,"'final' duplicated");

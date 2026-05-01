@@ -67,4 +67,12 @@ public class LiteralTests {
                 "1.000001", "1.000002", "1.000003", "1.0000009536743164"));
     }
 
+    @Test
+    public void list_expando_generator() throws CompilationError, IOException {
+        run("literal/list_expando_generator.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("done", "[ArrayList<int>|1,2,3,0,2,4,6]"));
+    }
+
+
 }

@@ -27,11 +27,12 @@ import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
 public class Trace {
 
-    private static List<String> lines = new LinkedList<>();
+    private static List<String> lines = new CopyOnWriteArrayList<>();
 
     public static void print_str(NativeFrame frame, Object text){
         if(text == null){

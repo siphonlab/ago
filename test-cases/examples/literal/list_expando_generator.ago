@@ -1,0 +1,13 @@
+generator fun foo(n as int) as int{
+    for(var i=0; i<n; i++){
+        yield i * 2;
+    }
+    Trace.print('done');
+}
+
+fun main(){
+    var arr = [1,2,3]
+
+    var ls2 = [ArrayList<int>| ...arr, ...foo(4)]
+    Trace.print(ls2)
+}

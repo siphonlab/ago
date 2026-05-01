@@ -232,6 +232,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
             case Array -> ForEachStmt.Mode.Array;
             case Iterator -> ForEachStmt.Mode.Iterator;
             case Iterable, Collection, List -> ForEachStmt.Mode.Iterable;
+            case Generator -> ForEachStmt.Mode.Generator;
         };
         assert t != null;
         var it = blockCompiler.acquireTempVar(t);

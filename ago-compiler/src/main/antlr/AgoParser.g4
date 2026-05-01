@@ -105,7 +105,8 @@ variableModifiers:
 ;
 
 methodStarter:
-      fieldModifier* OVERRIDE (FUN | GETTER | SETTER | GENERATOR)?
+      fieldModifier* OVERRIDE (FUN | GETTER | SETTER)?
+    | methodModifier* GENERATOR FUN?
     | methodModifier*  (FUN | GETTER | SETTER)
 ;
 

@@ -67,10 +67,10 @@ public class FunctionTest {
     }
 
     @Test
-    public void generator() throws CompilationError, IOException {
+    public void generator() throws CompilationError, IOException, InterruptedException {
         run("function/generator.ago");
-        Trace.printOutput();
-//        assertTrue(Trace.outputted("55"));
+        Thread.sleep(100);      // wait all runspace over
+        assertTrue(Trace.outputted("0", "1", "2", "done", "0", "1", "2", "3", "done", "0", "1", "2", "done", "1", "3", "5", "7", "done", "0", "1", "2", "1", "3", "5", "done", "7"));
     }
 
 
