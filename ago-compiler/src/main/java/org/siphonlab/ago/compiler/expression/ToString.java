@@ -18,9 +18,9 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -58,7 +58,8 @@ public class ToString extends ExpressionInFunctionBody{
         if(expression instanceof Literal<?> literal){
             return ownerFunction.cast(literal, getRoot().STRING()).transform();
         } else {
-            return ownerFunction.invoke(Invoke.InvokeMode.Invoke, new ClassUnder.ClassUnderInstance(ownerFunction, expression, exprClass.findMethod("toString#")), Collections.emptyList(), this.getSourceLocation()).transform();
+            return ownerFunction.invoke(Invoke.InvokeMode.Invoke, new ClassUnder.ClassUnderInstance(ownerFunction, expression, exprClass.findMethod("toString#")), Collections.emptyList(), this.getSourceLocation())
+                    .transform();
         }
     }
 

@@ -16,14 +16,14 @@
 package org.siphonlab.ago.compiler.statement;
 
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.BlockCompiler;
+import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.CodeBuffer;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.expression.Expression;
-import org.siphonlab.ago.compiler.expression.Literal;
-import org.siphonlab.ago.compiler.expression.TermExpression;
-import org.siphonlab.ago.compiler.expression.Var;
+import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.VoidLiteral;
 
 public class Return extends Statement {
@@ -40,40 +40,19 @@ public class Return extends Statement {
         this.value = ownerFunction.getRoot().createVoidLiteral();
     }
 
-
     @Override
-    public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
-        try {
-            blockCompiler.enter(this);
-
-            CodeBuffer code = blockCompiler.getCode();
-
-            // each outer finally should execute before `return`
-            for(var tryCatchFinallyStmt = findClosestTryCatchFinal(this); tryCatchFinallyStmt != null; tryCatchFinallyStmt = findClosestTryCatchFinal(tryCatchFinallyStmt)) {
-                Label finalExitLabel = blockCompiler.createLabel();
-                code.setFinalExit(tryCatchFinallyStmt.getFinalExit().getVariableSlot(), finalExitLabel);
-                code.jump(tryCatchFinallyStmt.getFinalEntrance());
-                finalExitLabel.here();      // after final executed, jump to here(return)
+    protected Expression transformInner() throws CompilationError {
+        if(!this.ownerFunction.isGenerator()) {
+            this.value = ownerFunction.cast(this.value, ownerFunction.getResultType()).transform();
+        } else {
+            if(this.value != null){
+                throw new TypeMismatchError("the `return` statement of generator function shouldn't carry result.", this.getSourceLocation());
             }
-
-            var term = value.visit(blockCompiler);
-            if (term instanceof Literal<?> literal) {
-                code.return_c(literal);
-            } else if (term instanceof Var.LocalVar localVar) {
-                code.return_v(localVar.getVariableSlot());
-            } else {
-                throw new UnsupportedOperationException();
-            }
-            return term;
-        } catch (CompilationError e) {
-            throw e;
-        } finally {
-            blockCompiler.leave(this);
         }
-
+        return this;
     }
 
-    private static TryCatchFinallyStmt findClosestTryCatchFinal(Expression from) {
+    protected static TryCatchFinallyStmt findClosestTryCatchFinal(Expression from) {
         for (Expression p = from.getParent(); p != null; p = p.getParent()) {
             if (p instanceof TryCatchFinallyStmt tryCatchFinallyStmt && tryCatchFinallyStmt.getFinalExit() != null) {
                 return tryCatchFinallyStmt;
@@ -84,7 +63,50 @@ public class Return extends Statement {
 
     @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
-        this.visit(blockCompiler);
+        try {
+            blockCompiler.enter(this);
+
+            CodeBuffer code = blockCompiler.getCode();
+
+            ClassDef genClass;
+            if(ownerFunction.isGenerator()) {
+                genClass = getRoot().getGeneratorOfAnyClass().asThatOrSuperOfThat(ownerFunction);
+            } else {
+                genClass = null;
+            }
+
+            // each outer finally should execute before `return`
+            for(var tryCatchFinallyStmt = findClosestTryCatchFinal(this); tryCatchFinallyStmt != null; tryCatchFinallyStmt = findClosestTryCatchFinal(tryCatchFinallyStmt)) {
+                Label finalExitLabel = blockCompiler.createLabel();
+                code.setFinalExit(tryCatchFinallyStmt.getFinalExit().getVariableSlot(), finalExitLabel);
+                if(ownerFunction.isGenerator()) {
+                    ownerFunction.assign(ownerFunction.field(new Scope.Local(ownerFunction), genClass.getVariable("done")), getRoot().createBooleanLiteral(true)).termVisit(blockCompiler);
+                }
+                code.jump(tryCatchFinallyStmt.getFinalEntrance());
+                finalExitLabel.here();      // after final executed, jump to here(return)
+            }
+
+            if(ownerFunction.isGenerator()) {
+                ownerFunction.assign(ownerFunction.field(new Scope.Local(ownerFunction), genClass.getVariable("done")), getRoot().createBooleanLiteral(true)).termVisit(blockCompiler);
+            }
+            if(value != null) {     // for there is a VoidLiteral, the `else` branch won't enter
+                var term = value.visit(blockCompiler);
+                if (term instanceof Literal<?> literal) {
+                    code.return_c(literal);
+                } else if (term instanceof Var.LocalVar localVar) {
+                    code.return_v(localVar.getVariableSlot());
+                } else {
+                    throw new UnsupportedOperationException();
+                }
+            } else {
+                code.return_void();
+            }
+        } catch (CompilationError e) {
+            throw e;
+        } finally {
+            blockCompiler.leave(this);
+        }
+
     }
 
     @Override

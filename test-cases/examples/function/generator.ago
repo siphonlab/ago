@@ -1,0 +1,59 @@
+generator fun foo(n as int) as int{
+    for(var i=0; i<n; i++){
+        yield i;
+    }
+    Trace.print('done');
+}
+
+fun main(){
+    for(var i in foo(3)){
+        Trace.print(i);
+    }
+
+    for(var i in fork foo(4)){
+        Trace.print(i);
+    }
+
+    for(var i in testBreak(100)){
+        Trace.print(i);
+    }
+
+    for(var i in testContinue(8)){
+        Trace.print(i);
+    }
+
+    for(var i in testReturn(8)){
+        Trace.print(i);
+    }
+
+    var it = new GeneratorIterator<>(testContinue(8));
+    if(it.hasNext()) Trace.print(it.next());
+    if(it.hasNext()) Trace.print(it.next());
+    if(it.hasNext()) Trace.print(it.next());
+    if(it.hasNext()) Trace.print(it.next());
+}
+
+// `fun` is optional
+generator testBreak(n as int) as int{
+    for(var i=0; i<n; i++){
+        if(i > 2) break;
+        yield i;
+    }
+    Trace.print('done');
+}
+
+generator fun testContinue(n as int) as int{
+    for(var i=0; i<n; i++){
+        if(i % 2 == 0) continue;
+        yield i;
+    }
+    Trace.print('done');
+}
+
+generator fun testReturn(n as int) as int{
+    for(var i=0; i<n; i++){
+        if(i > 2) return;
+        yield i;
+    }
+    Trace.print("won't enter here");
+}

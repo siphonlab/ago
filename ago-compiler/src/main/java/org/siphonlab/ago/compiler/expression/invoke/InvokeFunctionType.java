@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.compiler.expression;
+package org.siphonlab.ago.compiler.expression.invoke;
 
 
 import org.siphonlab.ago.SourceLocation;
@@ -22,9 +22,9 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
+import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
-import org.siphonlab.ago.compiler.expression.literal.VoidLiteral;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 
@@ -33,10 +33,10 @@ import java.util.List;
 
 import static org.apache.commons.lang3.StringUtils.join;
 
-public class InvokeExpression extends ExpressionInFunctionBody{
+// for `var v as [SomeFunction] = f; f()`, the expression is scopedFunctionExpr
+public class InvokeFunctionType extends ExpressionInFunctionBody {
 
     private final List<Expression> arguments;
-    private final ClassDef scopeClass;
     private final Invoke.InvokeMode invokeMode;
     private final Expression forkContext;
     private final Expression scopedFunctionExpr;
@@ -45,9 +45,8 @@ public class InvokeExpression extends ExpressionInFunctionBody{
     private final ClassDef accordingFunction;
     private List<ClassDef> parameterTypes;
 
-    public InvokeExpression(FunctionDef ownerFunction, Invoke.InvokeMode invokeMode, Expression scopedFunctionExpr, List<Expression> arguments, Expression forkContext, SourceLocation sourceLocation) throws CompilationError {
+    public InvokeFunctionType(FunctionDef ownerFunction, Invoke.InvokeMode invokeMode, Expression scopedFunctionExpr, List<Expression> arguments, Expression forkContext, SourceLocation sourceLocation) throws CompilationError {
         super(ownerFunction);
-        this.scopeClass = ownerFunction;
         this.invokeMode = invokeMode;
         this.forkContext = forkContext;
         this.sourceLocation = sourceLocation;
@@ -239,7 +238,7 @@ public class InvokeExpression extends ExpressionInFunctionBody{
     }
 
     @Override
-    public InvokeExpression setSourceLocation(SourceLocation sourceLocation) {
+    public InvokeFunctionType setSourceLocation(SourceLocation sourceLocation) {
         super.setSourceLocation(sourceLocation);
         return this;
     }

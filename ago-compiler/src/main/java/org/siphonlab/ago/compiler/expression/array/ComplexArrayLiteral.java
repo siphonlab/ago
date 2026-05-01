@@ -22,6 +22,7 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
+ import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.statement.ForEachStmt;
 
@@ -231,6 +232,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
             case Array -> ForEachStmt.Mode.Array;
             case Iterator -> ForEachStmt.Mode.Iterator;
             case Iterable, Collection, List -> ForEachStmt.Mode.Iterable;
+            case Generator -> ForEachStmt.Mode.Generator;
         };
         assert t != null;
         var it = blockCompiler.acquireTempVar(t);

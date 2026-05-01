@@ -26,6 +26,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.logic.Not;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
@@ -110,11 +111,11 @@ public class FunctionDef extends ClassDef {
     public AgoParser.MethodDeclarationContext getMethodDecl() {
         return methodDecl;
     }
-    
+
     public ParserRuleContext getMethodBodyContext() {
-    	return methodDecl != null ? methodDecl.methodBody() : null;
+        return methodDecl != null ? methodDecl.methodBody() : null;
     }
-    
+
 
     @Override
     public AgoParser.GenericTypeParametersContext getGenericTypeParametersContextAST() {
@@ -130,17 +131,24 @@ public class FunctionDef extends ClassDef {
             return true;
         }
 
+        if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: parse function fields".formatted(this));
+        if(this.resultType == null) {
+            var methodDecl = getMethodDecl();
+            if (methodDecl.typeOfFunction() != null) {
+                AgoParser.TypeOfFunctionContext typeOfFunction = methodDecl.typeOfFunction();
+                ClassDef r = unit.parseType(this, typeOfFunction);
+                this.setResultType(r);
+            } else {
+                this.setResultType(root.VOID());
+            }
+            if (this.resultType.getTypeCode() == TypeCode.VOID && this.isGenerator()) {
+                throw unit.typeError(methodDecl, "generator function cannot be void");
+            }
+            resolveSuperClass();
+        }
+
         if(!executeParseFieldsOfHierarchyClasses()) return false;
 
-        if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: parse function fields".formatted(this));
-        var methodDecl = getMethodDecl();
-        if (methodDecl.typeOfFunction() != null) {
-            AgoParser.TypeOfFunctionContext typeOfFunction = methodDecl.typeOfFunction();
-            ClassDef r = unit.parseType(this, typeOfFunction);
-            this.setResultType(r);
-        } else {
-            this.setResultType(root.VOID());
-        }
         var formalParameters = methodDecl.formalParameters();
         unit.parseFormalParameters(this, formalParameters);
         this.processFieldParameters();
@@ -178,11 +186,6 @@ public class FunctionDef extends ClassDef {
             }
             this.throwsExceptions = exceptionTypes;
         }
-    }
-
-    @Override
-    public void setSuperClass(ClassDef superClass) {
-        super.setSuperClass(superClass);
     }
 
     protected void processFieldParameters() throws SyntaxError, ResolveError {
@@ -418,7 +421,7 @@ public class FunctionDef extends ClassDef {
             Parameter myParam = this.parameters.get(i);
             if (anotherParam.getType() != myParam.getType() && !(
                     myParam.getType() instanceof GenericTypeCodeAvatarClassDef &&
-                    anotherParam.getType() instanceof GenericTypeCodeAvatarClassDef)){
+                            anotherParam.getType() instanceof GenericTypeCodeAvatarClassDef)){
                 return false;
             }
         }
@@ -446,6 +449,9 @@ public class FunctionDef extends ClassDef {
 
         var instantiationArguments = this.getGenericSource().instantiationArguments();
 
+        this.setResultType(templ.getResultType().instantiateAsReferenceClass(instantiationArguments, null));
+        this.resolveSuperClass();
+
         Map<Parameter, Parameter> ps = new HashMap<>();
         for (Map.Entry<String, Field> fieldEntry : templ.getFields().entrySet()) {
             Field field = fieldEntry.getValue();
@@ -463,8 +469,6 @@ public class FunctionDef extends ClassDef {
             Variable variable = entry.getValue();
             this.addLocalVariable(variable.applyTemplate(instantiationArguments, this));
         }
-        this.setResultType(templ.getResultType().instantiateAsReferenceClass(instantiationArguments, null));
-
         this.instantiateFieldsForInterfacesAndTraits();
         this.createFunctionInterface();
 
@@ -474,16 +478,6 @@ public class FunctionDef extends ClassDef {
 
     // auto create function interface from `Function0<+R>` `Function1<+R, -P>`
     public void createFunctionInterface() throws CompilationError {
-        ClassDef functionBaseClass = getRoot().getFunctionBaseClass();
-        ClassDef instantiatedFunctionBase = functionBaseClass.instantiateAsReferenceClass(new InstantiationArguments(functionBaseClass.getTypeParamsContext(), new ClassRefLiteral[]{this.getResultType().toClassRefLiteral()}), null);
-        if(instantiatedFunctionBase.getCompilingStage().lt(functionBaseClass.getCompilingStage())) {
-            Compiler.processClassTillStage(instantiatedFunctionBase, functionBaseClass.getCompilingStage());
-        }
-        if(instantiatedFunctionBase instanceof ConcreteType c){
-            this.registerConcreteType(c);
-        }
-        this.setSuperClass(instantiatedFunctionBase);
-
         var interface_ = getRoot().getFunctionInterface(this.parameters.size());
         if(interface_ == null) return;
 
@@ -503,6 +497,23 @@ public class FunctionDef extends ClassDef {
         if(this.isNative()){
             this.implementedInterfaces.add(getRoot().getNativeFunctionInterfaceBase());
         }
+    }
+
+    protected void resolveSuperClass() throws CompilationError {
+        ClassDef functionBaseClass;
+        if(this.isGenerator()){
+            functionBaseClass = getRoot().getGeneratorClass();
+        } else {
+            functionBaseClass = getRoot().getFunctionBaseClass();
+        }
+        ClassDef instantiatedFunctionBase = functionBaseClass.instantiateAsReferenceClass(new InstantiationArguments(functionBaseClass.getTypeParamsContext(), new ClassRefLiteral[]{this.getResultType().toClassRefLiteral()}), null);
+        if(instantiatedFunctionBase.getCompilingStage().lt(functionBaseClass.getCompilingStage())) {
+            Compiler.processClassTillStage(instantiatedFunctionBase, functionBaseClass.getCompilingStage());
+        }
+        if(instantiatedFunctionBase instanceof ConcreteType c){
+            this.registerConcreteType(c);
+        }
+        this.setSuperClass(instantiatedFunctionBase);
     }
 
     public ClassDef getFunctionInterfaceInstantiation() {
@@ -562,11 +573,13 @@ public class FunctionDef extends ClassDef {
     public boolean isGetter() {
         return (this.modifiers & AgoClass.GETTER) != 0;
     }
-
     public boolean isSetter() {
         return (this.modifiers & AgoClass.SETTER) != 0;
     }
 
+    public boolean isGenerator(){
+        return (this.modifiers & AgoClass.GENERATOR) != 0;
+    }
 
     public DenseSwitchTable createDenseSwitchTable() {
         if(switchTables == null) switchTables = new ArrayList<>();
@@ -647,7 +660,7 @@ public class FunctionDef extends ClassDef {
     }
 
     public Invoke invoke(Invoke.InvokeMode invokeMode, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
-        return new Invoke(this, invokeMode, maybeFunction, arguments, sourceLocation).transform();
+        return new Invoke(this, invokeMode, maybeFunction, arguments, sourceLocation);
     }
 
     public Box box(Expression expression, ClassDef expectedType, Box.BoxMode boxMode) throws CompilationError {

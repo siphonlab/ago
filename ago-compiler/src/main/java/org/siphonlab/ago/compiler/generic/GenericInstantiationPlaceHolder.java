@@ -19,7 +19,7 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.expression.Expression;
-import org.siphonlab.ago.compiler.expression.FunctionInvocationResolver;
+import org.siphonlab.ago.compiler.expression.invoke.FunctionInvocationResolver;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 import java.util.*;

@@ -132,4 +132,79 @@ public class AsyncEntranceCallFrame<T extends AgoFunction> extends EntranceCallF
             getCaller().getRunSpace().acceptExceptionByAsync(exception);
         }
     }
+
+    public void yieldVoid() {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptVoidByAsync();
+    }
+
+    public void yieldBoolean(boolean value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptBooleanByAsync(value);
+    }
+
+    public void yieldByte(byte value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptByteByAsync(value);
+    }
+
+    public void yieldShort(short value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptShortByAsync(value);
+    }
+
+    public void yieldInt(int value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptIntByAsync(value);
+    }
+
+    public void yieldLong(long value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptLongByAsync(value);
+    }
+
+    public void yieldFloat(float value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptFloatByAsync(value);
+    }
+
+    public void yieldDouble(double value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptDoubleByAsync(value);
+    }
+
+    public void yieldDecimal(BigDecimal value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptDecimalByAsync(value);
+    }
+
+    public void yieldChar(char value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptCharByAsync(value);
+    }
+
+    public void yieldObject(Instance<?> value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptObjectByAsync(value);
+    }
+
+    public void yieldUnion(Object value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptUnionByAsync(value);
+    }
+
+    public void yieldString(String value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptStringByAsync(value);
+    }
+
+    public void yieldNull() {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptNullByAsync();
+    }
+
+    public void yieldClassRef(AgoClass value) {
+        this.setSuspended(true);
+        getCaller().getRunSpace().acceptClassRefByAsync(value);
+    }
 }

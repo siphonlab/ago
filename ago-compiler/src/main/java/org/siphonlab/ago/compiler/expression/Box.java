@@ -21,11 +21,11 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 // Box only created by cast, don't create it by yourself, use Cast(int, obj) instead

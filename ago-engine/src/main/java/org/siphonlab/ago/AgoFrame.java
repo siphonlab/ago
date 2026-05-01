@@ -17,7 +17,7 @@ package org.siphonlab.ago;
 
 import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.classloader.ClassRefValue;
-import org.siphonlab.ago.native_.NativeInstance;import org.siphonlab.ago.opcode.*;
+import org.siphonlab.ago.opcode.*;
 import org.siphonlab.ago.opcode.compare.*;
 import org.siphonlab.ago.opcode.logic.*;
 import org.siphonlab.ago.opcode.arithmetic.*;
@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -101,13 +100,17 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     }
                 }
                 case Pause.OP: {
-                    evaluatePause();
+                    pc = evaluatePause(self, instruction, slots, pc);
                     if(this.debugger != null) this.debugger.leaveFrame(this);
                     return;
                 }
                 case Jump.OP: pc = evaluateJump(slots, pc, instruction); break;
                 case Concat.OP: pc = evaluateConcat(slots, pc, instruction); break;
                 case Return.OP: pc = evaluateReturn(self, slots, pc, instruction); break;
+                case Yield.OP: {
+                    pc = evaluateYield(self, slots, pc, instruction);
+                    return;
+                }
                 case Cast.OP: {
                     var p = evaluateCast(slots,pc, instruction);
                     if(p != -1) pc = p; else return;
@@ -148,9 +151,19 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         if(this.debugger != null) this.debugger.leaveFrame(this);
     }
 
-    protected void evaluatePause() {
-        setSuspended(true);
-        this.getRunSpace().waitResult();
+    protected int evaluatePause(CallFrame<?> self, int instruction, Slots slots, int pc) {
+        switch (instruction){
+            case Pause.pause:
+                setSuspended(true);
+            case Pause.await:
+                this.getRunSpace().waitResult();
+                break;
+            case Pause.resume_v:
+                var cf = (CallFrame<?>)slots.getObject(code[this.pc++]);
+                cf.resume();
+                break;
+        }
+        return this.pc;
     }
 
     protected void nextPC() {
@@ -213,7 +226,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     }
 
     private ForkContext extractForkContext(Instance<?> forkContext) {
-        return (ForkContext)((NativeInstance) forkContext).getNativePayload();
+        return (ForkContext) forkContext.getNativePayload();
     }
 
     /**
@@ -1186,6 +1199,42 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Return.return_C_v:     {self.finishClassRef(engine.getClass(slots.getClassRef(code[pc++]))); break;}
         }
         return code.length;
+    }
+
+    // yield. now it's exactly a copy of return, however, it don't return `code.length` to break running
+    // and, for async frame, it marks frame state to suspend, won't stop current runspace
+    protected int evaluateYield(CallFrame<?> self, Slots slots, int pc, int instruction) {
+        switch (instruction){
+            case Yield.yield_i_c:     {self.yieldInt(code[pc++]); break;}
+            case Yield.yield_i_v:     {self.yieldInt(slots.getInt(code[pc++])); break;}
+
+            case Yield.yield_B_c:     {self.yieldBoolean(code[pc++] != 0); break;}
+            case Yield.yield_B_v:     {self.yieldBoolean(slots.getBoolean(code[pc++])); break;}
+            case Yield.yield_c_c:     {self.yieldChar((char)code[pc++]); break;}
+            case Yield.yield_c_v:     {self.yieldChar(slots.getChar(code[pc++])); break;}
+
+            case Yield.yield_f_c:     {self.yieldFloat(Float.intBitsToFloat(code[pc++])); break;}
+            case Yield.yield_f_v:     {self.yieldFloat(slots.getFloat(code[pc++])); break;}
+            case Yield.yield_d_c:     {self.yieldDouble(toDouble(code[pc++], code[pc++])); break;}
+            case Yield.yield_d_v:     {self.yieldDouble(slots.getDouble(code[pc++])); break;}
+            case Yield.yield_D_c:     {self.yieldDecimal(engine.toDecimal(code[pc++])); break;}
+            case Yield.yield_D_v:     {self.yieldDecimal(slots.getDecimal(code[pc++])); break;}
+            case Yield.yield_b_c:     {self.yieldByte((byte) code[pc++]); break;}
+            case Yield.yield_b_v:     {self.yieldByte(slots.getByte(code[pc++])); break;}
+            case Yield.yield_s_c:     {self.yieldShort((short) code[pc++]); break;}
+            case Yield.yield_s_v:     {self.yieldShort(slots.getShort(code[pc++])); break;}
+            case Yield.yield_l_c:     {self.yieldLong(toLong(code[pc++], code[pc++])); break;}
+            case Yield.yield_l_v:     {self.yieldLong(slots.getLong(code[pc++])); break;}
+            case Yield.yield_o_v:     {self.yieldObject(slots.getObject(code[pc++])); break;}
+            case Yield.yield_n:       {self.yieldNull(); break;}
+            case Yield.yield_S_c:     {self.yieldString(engine.toString(code[pc++])); break;}
+            case Yield.yield_S_v:     {self.yieldString(slots.getString(code[pc++])); break;}
+
+            case Yield.yield_u_v:     {self.yieldUnion(slots.getUnion(code[pc++])); break;}
+
+            case Yield.yield_C_v:     {self.yieldClassRef(engine.getClass(slots.getClassRef(code[pc++]))); break;}
+        }
+        return pc;
     }
 
     protected int evaluateConcat(Slots slots, int pc, int instruction) {

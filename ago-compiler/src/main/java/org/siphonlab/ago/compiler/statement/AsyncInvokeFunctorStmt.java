@@ -19,7 +19,7 @@ import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
-import org.siphonlab.ago.compiler.expression.Invoke;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.expression.Var;
 
 public class AsyncInvokeFunctorStmt extends Statement{

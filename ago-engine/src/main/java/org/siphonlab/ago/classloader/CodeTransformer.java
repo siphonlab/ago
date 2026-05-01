@@ -154,6 +154,7 @@ public class CodeTransformer {
 
                 case Concat.concat_S_vc:
                     updateStringId(instruction, 1); break;
+
                 case Concat.concat_S_vvc:
                 case Equals.equals_S_vvc:
                 case GreaterEquals.ge_S_vvc:
@@ -169,7 +170,8 @@ public class CodeTransformer {
                 case Const.const_S_vc:          updateStringId(instruction, 1); break;
                 case Const.const_fld_S_ovc:     updateStringId(instruction, 2); break;
 
-                case Return.return_S_c:         updateStringId(instruction, 0); break;
+                case Return.return_S_c, Yield.yield_S_c:
+                    updateStringId(instruction, 0); break;
 
                 case Load.loadcls_vC:           updateClassId(instruction, 1); break;
                 //TODO not sure it should support Generic

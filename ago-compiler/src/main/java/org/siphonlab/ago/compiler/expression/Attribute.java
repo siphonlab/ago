@@ -20,6 +20,7 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 
 import java.util.ArrayList;
 import java.util.Collections;

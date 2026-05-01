@@ -22,6 +22,7 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.statement.*;
 
 import java.util.*;
@@ -95,7 +96,7 @@ public class ComplexMapLiteral extends ExpressionInFunctionBody {
         switch (kind){
         case ReadOnlyMap:
             var putAll = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(mapInstance, objectType.findMethod("putAll#")), List.of(expando), sourceLocation);
-            putAll.termVisit(blockCompiler);
+            putAll.transform().termVisit(blockCompiler);
             break;
         case KeyValuePairIterable, KeyValuePairIterator: {
             ClassDef iteratorType;

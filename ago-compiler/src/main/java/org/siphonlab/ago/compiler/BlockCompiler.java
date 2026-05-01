@@ -28,6 +28,9 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
+import org.siphonlab.ago.compiler.expression.invoke.InvokeFunctionType;
+import org.siphonlab.ago.compiler.expression.invoke.InvokeCallFrame;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.expression.logic.*;
@@ -121,7 +124,7 @@ public class BlockCompiler {
             if (LOGGER.isDebugEnabled()) LOGGER.debug("\t" + stmt);
         }
         // default return statement for `void`
-        if(functionDef.getResultType() == null || functionDef.getResultType().getTypeCode() == TypeCode.VOID){
+        if(functionDef.getResultType() == null || functionDef.getResultType().getTypeCode() == TypeCode.VOID || functionDef.isGenerator()){
             if(compiledStatements.isEmpty() || !(compiledStatements.getLast() instanceof Return)){
                 compiledStatements.add(functionDef.return_());
             }
@@ -179,7 +182,7 @@ public class BlockCompiler {
         } else if(statement instanceof ContinueStmtContext continueStmt){
             return this.continueStmt(continueStmt).setSourceLocation(unit.sourceLocation(statement));
         } else if(statement instanceof YieldStmtContext yieldStmt){
-
+            return yieldStmt(yieldStmt).setSourceLocation(unit.sourceLocation(statement));
         } else if(statement instanceof WithStmtContext withStmt){
             return this.withStmt(withStmt).setSourceLocation(unit.sourceLocation(statement));
         } else if(statement instanceof ViaStmtContext viaStmt) {
@@ -199,12 +202,9 @@ public class BlockCompiler {
 
     private Return returnStmt(ReturnStmtContext returnStmt) throws CompilationError {
         if(returnStmt.expression() == null){
-            if(!functionDef.getResultType().isVoid()){
-                throw unit.typeError(returnStmt, "'%s' result expected".formatted(functionDef.getResultType()));
-            }
             return functionDef.return_();
         } else {
-            return functionDef.return_(functionDef.cast(expression(returnStmt.expression()), functionDef.getResultType()));
+            return functionDef.return_(expression(returnStmt.expression()));
         }
     }
 
@@ -985,12 +985,12 @@ public class BlockCompiler {
         boolean hasExpando = false;
         for (ArrayElementContext arrayElementContext : arrayLiteral.elementList().arrayElement()) {
             // indicate inside array literal, doubt not required
-            if(arrayType == null){
-                MutableBoolean returnExisted = new MutableBoolean();
-                arrayType = functionDef.getOrCreateArrayType(eleType, returnExisted);
-                if(returnExisted.isFalse()) Compiler.processClassTillStage(arrayType, CompilingStage.AllocateSlots);
+            CollectionElementDef element;
+            if(arrayType != null) {
+                element = arrayElement(arrayElementContext, (ArrayClassDef) arrayType, eleType);
+            } else {
+                element = listElement(arrayElementContext, Creator.extractScopeAndClass(listTypeExpr, listTypeExpr.getSourceLocation()).getValue(), eleType);
             }
-            var element = arrayElement(arrayElementContext, (ArrayClassDef) arrayType, ((ArrayClassDef)arrayType).getElementType());
             elements.add(element);
             if(!hasExpando && element.isExpando()) hasExpando = true;
         }
@@ -1030,7 +1030,7 @@ public class BlockCompiler {
         Iterator,
         Iterable,
         Collection,
-        List
+        Generator, List
     }
     public record CollectionElementType(ClassDef collectionType, ClassDef elementType, CollectionType type){}
 
@@ -1051,8 +1051,16 @@ public class BlockCompiler {
                 return new CollectionElementType(t,t.getGenericSource().typeArguments()[0].getClassDefValue(), CollectionType.Iterable);
             } else {
                 t = root.getAnyIteratorInterface().asThatOrSuperOfThat(groupType);
-                return new CollectionElementType(t,t.getGenericSource().typeArguments()[0].getClassDefValue(), CollectionType.Iterator);
             }
+            if(t != null){
+                return new CollectionElementType(t,t.getGenericSource().typeArguments()[0].getClassDefValue(), CollectionType.Iterator);
+            } else {
+                t = root.getGeneratorOfAnyClass().asThatOrSuperOfThat(groupType);
+            }
+            if(t != null){
+                return new CollectionElementType(t,t.getGenericSource().typeArguments()[0].getClassDefValue(), CollectionType.Generator);
+            }
+            return null;
         }
     }
 
@@ -1066,7 +1074,34 @@ public class BlockCompiler {
             if(expandoType instanceof ArrayClassDef arrayClassDef){
                 r = new CollectionElementDef(el, true, arrayClassDef.getElementType());
             } else {
-                ClassDef it = root.getAnyIterableInterface().asThatOrSuperOfThat(expandoType);
+                ClassDef it = root.getAnyArrayClass().asThatOrSuperOfThat(expandoType);
+                if(it == null) it = root.getAnyCollectionClass().asThatOrSuperOfThat(expandoType);
+                if(it == null) throw new TypeMismatchError("illegal expando element type :'%s', expando element must be array, collection".formatted(expandoType.getFullname()), unit.sourceLocation(elementContext));
+                var t = it.getGenericSource().typeArguments()[0];
+                r = new CollectionElementDef(el, true, t.getClassDefValue());
+            }
+        } else {
+            var el = this.assigner(elementContext.expression(), null, elementType).setSourceLocation(unit.sourceLocation(elementContext));
+            r = new CollectionElementDef(el, false, el.inferType());
+        }
+        return r;
+    }
+
+    private CollectionElementDef listElement(ArrayElementContext elementContext, ClassDef listType, ClassDef elementType) throws CompilationError {
+        boolean isExpando = elementContext.expando != null;
+        CollectionElementDef r;
+        if (isExpando) {
+            var el = this.assigner(elementContext.expression(), null, listType, false).setSourceLocation(unit.sourceLocation(elementContext));
+            ClassDef expandoType = el.inferType();
+            if(expandoType instanceof ArrayClassDef arrayClassDef){
+                r = new CollectionElementDef(el, true, arrayClassDef.getElementType());
+            } else {
+                ClassDef it = root.getAnyArrayClass().asThatOrSuperOfThat(expandoType);
+                if(it == null) it = root.getAnyCollectionClass().asThatOrSuperOfThat(expandoType);
+                if(it == null) it = root.getAnyIteratorInterface().asThatOrSuperOfThat(expandoType);
+                if(it == null) it = root.getAnyIterableInterface().asThatOrSuperOfThat(expandoType);
+                if(it == null) it = root.getGeneratorOfAnyClass().asThatOrSuperOfThat(expandoType);
+                if(it == null) throw new TypeMismatchError("illegal expando element type :'%s', expando element must be array, iterator, iterable or collection".formatted(expandoType.getFullname()), unit.sourceLocation(elementContext));
                 var t = it.getGenericSource().typeArguments()[0];
                 r = new CollectionElementDef(el, true, t.getClassDefValue());
             }
@@ -1279,14 +1314,13 @@ public class BlockCompiler {
             return invoke(maybeFunction, methodCall, arguments);
         } else {
             ClassDef inferType = invocation.inferType();
-            if(inferType instanceof FunctionDef) {   // a function instance
-                return new FunctionApply(functionDef, extractInvokeMode(methodCall), invocation, forkContext);
-            } else if(root.getFunctionBaseOfAnyClass().isThatOrSuperOfThat(inferType)){  // Function<R>
-                return new InvokeFunctor(functionDef, Invoke.InvokeMode.Invoke, invocation, forkContext);
+            if(inferType instanceof FunctionDef || root.getFunctionBaseOfAnyClass().isThatOrSuperOfThat(inferType)) {
+                // a function instance, type is FunctionDef or Function<R>
+                return new InvokeCallFrame(functionDef, extractInvokeMode(methodCall), invocation, forkContext);
             } else if(inferType instanceof ClassIntervalClassDef classIntervalClassDef) {   // `var v as [SomeFunction] = f; f()`, that means
                 var lBound = classIntervalClassDef.getLBoundClass();
                 if (lBound.isThatOrDerivedFromThat(lBound.getRoot().getFunctionBaseOfAnyClass())) {
-                    return new InvokeExpression(this.functionDef, extractInvokeMode(methodCall), invocation, valueExpressions(arguments), forkContext, unit.sourceLocation(methodCall));
+                    return new InvokeFunctionType(this.functionDef, extractInvokeMode(methodCall), invocation, valueExpressions(arguments), forkContext, unit.sourceLocation(methodCall));
                 }
             }
         }
@@ -1660,18 +1694,30 @@ public class BlockCompiler {
     }
 
     private ForEachStmt forEachStmt(ForStmtContext forStmt, Expression expression, ClassDef expressionType, ForControlContext forControl, EnhancedForControlContext enhancedForControl, String label) throws CompilationError {
-        ForEachStmt.Mode mode = ForEachStmt.Mode.Iterable;
-        ClassDef concreteType = unit.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(expressionType);
+        ForEachStmt.Mode mode = null;
+        ClassDef concreteType = unit.getRoot().getGeneratorOfAnyClass().asThatOrSuperOfThat(expressionType);
+        if(concreteType != null) {
+            mode = ForEachStmt.Mode.Generator;
+        }
         if(concreteType == null){
-            mode = ForEachStmt.Mode.Iterator;
+            concreteType = unit.getRoot().getAnyArrayClass().asThatOrSuperOfThat(expressionType);
+            if(concreteType != null)
+                mode = ForEachStmt.Mode.Array;
+        }
+        if(concreteType == null) {
+            concreteType = unit.getRoot().getAnyIterableInterface().asThatOrSuperOfThat(expressionType);
+            if(concreteType != null) {
+                mode = ForEachStmt.Mode.Iterable;
+            }
+        }
+        if (concreteType == null) {
             concreteType = unit.getRoot().getAnyIteratorInterface().asThatOrSuperOfThat(expressionType);
-            if(concreteType == null) {
-                throw new TypeMismatchError("an iterable class required", unit.sourceLocation(forControl.expression()));
+            if(concreteType != null) {
+                mode = ForEachStmt.Mode.Iterator;
             }
-        } else {
-            if(unit.getRoot().getAnyArrayClass().isThatOrSuperOfThat(expressionType)){
-                mode = ForEachStmt.Mode.Array;      // array is Iterable too, however, the for-each stmt will iterate with indexed loop directly
-            }
+        }
+        if (concreteType == null) {
+            throw new TypeMismatchError("an iterable class required", unit.sourceLocation(forControl.expression()));
         }
         // variableModifiers? identifier (AS declarationType)? IN expression
         VariableModifiersContext variableModifiers = enhancedForControl.variableModifiers();
@@ -1847,8 +1893,11 @@ public class BlockCompiler {
         return new ContinueStmt(functionDef, id == null ? null : id.getText());
     }
 
-    void yieldStmt(YieldStmtContext yieldStmt){
-
+    Statement yieldStmt(YieldStmtContext yieldStmt) throws CompilationError {
+        if(!functionDef.isGenerator()){
+            throw new TypeMismatchError("yield can only works in generator function", functionDef.getUnit().sourceLocation(yieldStmt));
+        }
+        return new Yield(functionDef, expression(yieldStmt.expression()));
     }
 
     Statement withStmt(WithStmtContext withStmt) throws CompilationError {
@@ -1974,7 +2023,7 @@ public class BlockCompiler {
         if (!root.getFunctionBaseOfAnyClass().isThatOrSuperOfThat(f.inferType())) {
             throw new TypeMismatchError("functor expected", f.getSourceLocation());
         }
-        return new InvokeFunctor(functionDef, Invoke.InvokeMode.Await, f, forkContextExpr);
+        return new InvokeCallFrame(functionDef, Invoke.InvokeMode.Await, f, forkContextExpr);
     }
 
     public List<ClassDef> getHandledExceptions() {

@@ -24,11 +24,19 @@ public class Pause {
     public static final int KIND_PAUSE = 0x32_000000;
     public static final int OP                  = 0x32;
 
+    // enter await state, mark this callframe suspend, invoke callframe.resume to restore
     public static final int pause = 0x32_000000;
+    // enter await state, don't suspend
+    public static final int await = 0x32_000100;
+
+    // resume a callframe(with its runspace)
+    public static final int resume_v = 0x32_000201;
 
     public static String getName(int code) {
         return switch(code){
             case 0x32_000000 -> "pause";
+            case 0x32_000100 -> "await";
+            case 0x32_000201 -> "resume_v";
             default -> throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
         };
     }

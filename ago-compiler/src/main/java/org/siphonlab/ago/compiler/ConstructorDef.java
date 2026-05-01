@@ -82,6 +82,7 @@ public class ConstructorDef extends FunctionDef{
 
         this.parseThrows(this.constructorDeclaration.throwsPhrase());
 
+        this.resolveSuperClass();
         this.createFunctionInterface();
         this.createFieldsOfTrait();
 

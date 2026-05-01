@@ -181,6 +181,35 @@ class Function<+R>{
 interface NativeFunction for Function<_>{
 }
 
+
+class Generator<+R> from Function<R>{
+    private done as boolean {public get;}
+}
+
+class GeneratorIterator<+R> with Iterator<R> {
+    prevValue as R;
+    hasValue as boolean = false;
+    public fun new(field gen as Generator<R>){
+        advance();
+    }
+    private fun advance(){
+        for(var r in gen){
+            prevValue = r;
+            hasValue = true;
+            return;
+        }
+        hasValue = false;
+    }
+    override hasNext() as boolean{
+        return hasValue;
+    }
+    override next() as R{
+        var v = prevValue;
+        advance();
+        return v;
+    }
+}
+
 interface Function0<+R> for Function<R>{}
 interface Function1<+R, -P1> for Function<R>{}
 interface Function2<+R, -P1, -P2> for Function<R>{}
@@ -235,7 +264,7 @@ class Array<T> with Iterable<T>{
     }
 }
 
-class ArrayIterator<T> with Iterator<T>{
+class ArrayIterator<+T> with Iterator<T>{
     i as int
     fun new(field array as Array<T>){}
 

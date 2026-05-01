@@ -284,7 +284,7 @@ public class RunSpace implements Runnable{
     public void fork(CallFrame<?> frame, ForkContext forkContext) {
         var space = createChildRunSpace(forkContext);
         frame.setRunSpace(space);
-        space.start(new EntranceCallFrame<>(frame));
+        space.start(new AsyncEntranceCallFrame<>(frame));
         if(forkContext != null){
             logger.info(this + " fork " + space + " via " + forkContext + ", got " + forkedSpaces.size());
         } else {

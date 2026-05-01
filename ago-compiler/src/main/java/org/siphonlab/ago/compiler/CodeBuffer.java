@@ -20,11 +20,10 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.expression.Creator;
-import org.siphonlab.ago.compiler.expression.Invoke.InvokeMode;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke.InvokeMode;
 import org.siphonlab.ago.opcode.arithmetic.IncDec;
 import org.siphonlab.ago.opcode.arithmetic.Neg;
 import org.siphonlab.ago.opcode.compare.Equals;
-import org.siphonlab.ago.opcode.compare.GreaterEquals;
 import org.siphonlab.ago.opcode.compare.InstanceOf;
 import org.siphonlab.ago.opcode.compare.NotEquals;
 import org.siphonlab.ago.opcode.logic.And;
@@ -35,8 +34,6 @@ import org.siphonlab.ago.compiler.statement.Label;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -474,6 +471,11 @@ public class CodeBuffer {
         sizeVerifier.verify();
     }
 
+    public void return_void() {
+        ls.addInt(Return.return_V);
+    }
+
+
     public void accept(SlotDef slot) {
         ls.addInt(Accept.accept_v | (slot.getTypeCode().getValue() << 16));
         slot(slot);
@@ -482,6 +484,24 @@ public class CodeBuffer {
     public void acceptAny(SlotDef slot) {
         ls.addInt(Accept.accept_any_v);
         slot(slot);
+    }
+
+    public void yield_v(SlotDef slot) {
+        ls.addInt(Yield.yield_v | (slot.getTypeCode().getValue() << 16));
+        slot(slot);
+    }
+
+    public void yield_c(Literal literalExpressionResult) {
+        SizeVerifier sizeVerifier = this.sizeVerifier();
+        var typeCode = literalExpressionResult.inferType().getTypeCode();
+        int additionSize = additionSizeOf(typeCode);
+        if (literalExpressionResult instanceof NullLiteral) {
+            ls.addInt(Yield.yield_n);
+        } else {
+            ls.addInt(Yield.KIND_YIELD | (literalExpressionResult.inferType().getTypeCode().getValue() << 16) | (0x0101 + additionSize));
+            literal(literalExpressionResult);
+        }
+        sizeVerifier.verify();
     }
 
     public void cast(TypeCode srcType, SlotDef srcSlot, TypeCode toType, SlotDef targetSlot) {
@@ -925,6 +945,17 @@ public class CodeBuffer {
     public void pause() {
         ls.addInt(Pause.pause);
     }
+
+    public void await() {
+        ls.addInt(Pause.await);
+    }
+
+    public void resume(SlotDef callFrameInstance) {
+        ls.addInt(Pause.resume_v);
+        slot(callFrameInstance);
+    }
+
+
 
     public void and(SlotDef target, SlotDef slot) {
         ls.addInt(And.and_vv);

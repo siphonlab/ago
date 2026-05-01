@@ -70,7 +70,8 @@ public class GenericVMCodeTransformer {
                 case Move.OP:
                 case Array.OP:
                 case Accept.OP:
-                case Return.OP: {
+                case Return.OP:
+                case Yield.OP: {
                     var type = OpCode.extractType(instruction);
                     if (type >= GENERIC_TYPE_START) {
                         int instruction2 = instruction & OpCode.DTYPE_MASK_NEG;
@@ -87,9 +88,7 @@ public class GenericVMCodeTransformer {
                             case Array.array_get_vav:
 
                             case Return.return_v:
-                                code.putInt(code.position() - 4, instruction2 | (instantiationArguments.mapTypeCode(type) << 16));
-                                break;
-                            case Accept.accept_v:
+                            case Yield.yield_v, Accept.accept_v:
                                 code.putInt(code.position() - 4, instruction2 | (instantiationArguments.mapTypeCode(type) << 16));
                                 break;
 

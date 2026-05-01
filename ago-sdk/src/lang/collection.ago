@@ -70,6 +70,12 @@ abstract class List<T> with ReadWriteList<T>, ReadOnlyList<T>{
         }
     }
 
+    fun addAll#generator(it as Generator<T>){
+        for(var el in it){
+            this.add(el);
+        }
+    }
+
     abstract fun addAll#collection(it as Collection<T>);
 
     override toString() as string{

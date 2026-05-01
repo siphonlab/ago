@@ -58,6 +58,8 @@ public class GetterFunction extends FunctionDef{
         }
 
         this.setResultType(field.getType());
+        this.resolveSuperClass();
+
         this.createFunctionInterface();
         this.createFieldsOfTrait();
 

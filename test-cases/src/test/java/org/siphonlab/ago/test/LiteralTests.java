@@ -55,7 +55,7 @@ public class LiteralTests {
     @Test
     public void list_expando() throws CompilationError, IOException {
         run("literal/list_expando.ago");
-//        Trace.printOutput();
+        Trace.printOutput();
         assertTrue(Trace.outputted("[1,2,3]", "[4,5,6]", "[4,5,6,10,11,12,4,5,6,3,2,5,6,7,1,2,3]", "[ArrayList<int>|1,2,3]", "[ArrayList<int>|1,2,3]", "[ArrayList<int>|3,2,5,1,2,3,4,5,6,2]"));
     }
 
@@ -66,5 +66,13 @@ public class LiteralTests {
         assertTrue(Trace.outputted("1.000001", "1.000001", "1.000001", "1.000001",
                 "1.000001", "1.000002", "1.000003", "1.0000009536743164"));
     }
+
+    @Test
+    public void list_expando_generator() throws CompilationError, IOException {
+        run("literal/list_expando_generator.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("done", "[ArrayList<int>|1,2,3,0,2,4,6]"));
+    }
+
 
 }

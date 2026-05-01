@@ -437,7 +437,11 @@ public class Unit {
                     var interfaceDef = interfaces.get(i);
                     if (!classDef.isThatOrDerivedFromThat(interfaceDef.getPermitClass())) {    // TODO isAssignableFrom?
                         var interfaceDecls = classDef.getInterfaceDecls();
-                        throw syntaxError(interfaceDecls.get(i), "interface '%s' not capable to '%s'".formatted(interfaceDef.getFullname(), classDef.getFullname()));
+                        if(interfaceDecls == null){
+                            throw syntaxError(classDef.classDeclaration, "interface '%s' not capable to '%s'".formatted(interfaceDef.getFullname(), classDef.getFullname()));
+                        } else {
+                            throw syntaxError(interfaceDecls.get(i), "interface '%s' not capable to '%s'".formatted(interfaceDef.getFullname(), classDef.getFullname()));
+                        }
                     }
                 }
             }
