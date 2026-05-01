@@ -96,7 +96,7 @@ public class ComplexMapLiteral extends ExpressionInFunctionBody {
         switch (kind){
         case ReadOnlyMap:
             var putAll = functionDef.invoke(Invoke.InvokeMode.Invoke, functionDef.classUnder(mapInstance, objectType.findMethod("putAll#")), List.of(expando), sourceLocation);
-            putAll.termVisit(blockCompiler);
+            putAll.transform().termVisit(blockCompiler);
             break;
         case KeyValuePairIterable, KeyValuePairIterator: {
             ClassDef iteratorType;

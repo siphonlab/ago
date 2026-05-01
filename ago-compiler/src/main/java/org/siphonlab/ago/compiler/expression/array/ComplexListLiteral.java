@@ -138,29 +138,32 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
         blockCompiler.lockRegister(part);
         ClassDef classDef = part.inferType();
         if (listCreated.isFalse()) {
+            listCreated.setTrue();
             if(classDef instanceof ArrayClassDef arrayClassDef && arrayClassDef.getElementType() == this.elementType) {
                 new Creator(ownerFunction, listTypeExpr, Collections.singletonList(part), part.getSourceLocation(), "new#array")
                             .outputToLocalVar(listInstance, blockCompiler);
+                blockCompiler.releaseRegister(part);
+                return;
             } else {
                 new Creator(ownerFunction, listTypeExpr, Collections.emptyList(), part.getSourceLocation(), "new#")
                         .outputToLocalVar(listInstance, blockCompiler);
             }
-            listCreated.setTrue();
-            blockCompiler.releaseRegister(part);
-            return;
         }
         var t = blockCompiler.extractCollectionElementType(classDef);
-        var method = switch (t.type()){
-            case Iterable -> "addAll#iterable";
-            case Iterator -> "addAll#iterator";
-            case Array -> "addAll#array";
-            case Collection, List -> "addAll#collection";
-            case Generator -> "addAll#generator";
-        };
-        ownerFunction.invoke(Invoke.InvokeMode.Invoke,
-                ownerFunction.classUnder(listInstance, this.inferType().findMethod(method)), List.of(part),
-                part.getSourceLocation()).transform().termVisit(blockCompiler);
-//            iterateCopy(listInstance, blockCompiler, part, t, part.getSourceLocation());
+        if(t.elementType() == this.elementType){
+            var method = switch (t.type()){
+                case Iterable -> "addAll#iterable";
+                case Iterator -> "addAll#iterator";
+                case Array -> "addAll#array";
+                case Collection, List -> "addAll#collection";
+                case Generator -> "addAll#generator";
+            };
+            ownerFunction.invoke(Invoke.InvokeMode.Invoke,
+                    ownerFunction.classUnder(listInstance, this.inferType().findMethod(method)), List.of(part),
+                    part.getSourceLocation()).transform().termVisit(blockCompiler);
+        } else {
+            iterateCopy(listInstance, blockCompiler, part, t, part.getSourceLocation());
+        }
         blockCompiler.releaseRegister(part);
     }
 
