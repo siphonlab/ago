@@ -1,0 +1,15 @@
+generator fun foo(n as int) as int{
+    for(var i=0; i<n; i++){
+        yield i;
+    }
+}
+
+fun main(){
+    for(var i in foo(3)){
+        Trace.print(i);
+    }
+
+    for(var i in fork foo(4)){
+        Trace.print(i);
+    }
+}

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.compiler.expression;
+package org.siphonlab.ago.compiler.expression.invoke;
 
 import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.compiler.BlockCompiler;
@@ -21,14 +21,14 @@ import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.expression.Expression;
+import org.siphonlab.ago.compiler.expression.MaybeFunction;
+import org.siphonlab.ago.compiler.expression.TermExpression;
+import org.siphonlab.ago.compiler.expression.Var;
 
 import java.util.List;
 
 public class FunctionCreator extends Invoke{
-
-    public FunctionCreator(FunctionDef ownerFunction, ClassDef scopeClass, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
-        super(ownerFunction, InvokeMode.Invoke, maybeFunction, arguments, sourceLocation);
-    }
 
     public FunctionCreator(FunctionDef ownerFunction, MaybeFunction maybeFunction, List<Expression> arguments, SourceLocation sourceLocation) throws CompilationError {
         super(ownerFunction, InvokeMode.Invoke, maybeFunction, arguments, sourceLocation);

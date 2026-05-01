@@ -116,6 +116,7 @@ CHAN         : 'chan';      // channel
 IN           : 'in';
 GETTER       : 'get';
 SETTER       : 'set';
+GENERATOR    : 'generator';
 
 WITH       : 'with';
 VIA        : 'via';

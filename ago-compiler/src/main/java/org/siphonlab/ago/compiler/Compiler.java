@@ -516,6 +516,9 @@ public class Compiler {
                 } else if(modifier.OVERRIDE() != null){
                     if ((result & AgoClass.OVERRIDE) == AgoClass.OVERRIDE) throw unit.syntaxError(modifier, "'override' duplicated");
                     result |= AgoClass.OVERRIDE;
+                } else if(modifier.GENERATOR() != null){
+                    if ((result & AgoClass.GENERATOR) == AgoClass.GENERATOR) throw unit.syntaxError(modifier, "'generator' duplicated");
+                    result |= AgoClass.GENERATOR;
                 } else {
                     throw unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText()));
                 }

@@ -56,6 +56,7 @@ public class SetterFunction extends FunctionDef{
             this.setCompilingStage(CompilingStage.InheritsFields);
             return true;
         }
+        this.resolveSuperClass();
 
         var parameter = new Parameter( "value", null);
         parameter.setType(field.getType());

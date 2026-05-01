@@ -24,6 +24,8 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.expression.invoke.FunctionCreator;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
@@ -234,7 +236,7 @@ public class Creator extends ExpressionInFunctionBody{
             this.isNative = isNative;
         }
 
-        static NewProps resolve(ClassDef scopeFun, ClassDef classToNew) {
+        public static NewProps resolve(ClassDef scopeFun, ClassDef classToNew) {
             boolean isGenericCode;
             int className;
             boolean forGenericInstantiation = false;

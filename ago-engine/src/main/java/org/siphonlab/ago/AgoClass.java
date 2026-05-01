@@ -61,6 +61,8 @@ public class AgoClass extends Instance<MetaClass>{
     public static final int GENERIC_TEMPLATE_NEG   = 0b1111_1111_1101_1111_1111_1111_1111_1111;
     public static final int GENERIC_INSTANTIATION  = 0x0040_0000;     // this class/function come from a template class/function
 
+    public static final int GENERATOR       = 0x0080_0000;
+
     protected byte type;
 
     protected int classId;

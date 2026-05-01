@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.compiler.expression;
+package org.siphonlab.ago.compiler.expression.invoke;
 
 
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +23,7 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
+import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
@@ -34,7 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class Invoke extends ExpressionInFunctionBody{
+public class Invoke extends ExpressionInFunctionBody {
 
     private Expression forkContext;
 
@@ -165,7 +166,7 @@ public class Invoke extends ExpressionInFunctionBody{
         if(this.preparedVisitorForNullable != null){
             return this.preparedVisitorForNullable.inferType();
         }
-        if (invokeMode.isAsync()) {
+        if (invokeMode.isAsync() || resolvedFunctionDef.isGenerator()) {
             return resolvedFunctionDef;
         } else {
             return resolvedFunctionDef.getResultType();
@@ -184,47 +185,22 @@ public class Invoke extends ExpressionInFunctionBody{
         }
 
         blockCompiler.validateThrowException(this.resolvedFunctionDef.getThrowsExceptions(), this);
-
         try {
-            blockCompiler.lockRegister(localVar);
-
             blockCompiler.enter(this);
 
+            // for generator function, the instance is its result
+            if(resolvedFunctionDef.isGenerator()){
+                prepareInvocation(blockCompiler, localVar);
+                return;
+            }
             var instance = prepareInvocation(blockCompiler);
 
-            if (instance == null)
-                return;
+            if (instance == null) {
+                throw new IllegalStateException("create function instance for '%s' failed".formatted(this));
+            }
 
-            blockCompiler.lockRegister(instance);
-            Var.LocalVar forkContextVar = null;
-            if(forkContext != null){
-                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
-            }
-            if (invokeMode.isAsync()) {
-                if(forkContext != null){
-                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot(), forkContextVar.getVariableSlot());
-                } else {
-                    blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot());
-                }
-            } else {
-                if(invokeMode == InvokeMode.Await && forkContext != null){
-                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
-                } else {
-                    blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
-                }
-
-                if (localVar.getVariableSlot().getTypeCode() == TypeCode.OBJECT
-                        && localVar.getVariableSlot().getClassDef() == resolvedFunctionDef.getRoot().getAnyClass()) {
-                    blockCompiler.getCode().acceptAny(localVar.getVariableSlot());
-                } else {
-                    blockCompiler.getCode().accept(localVar.getVariableSlot());
-                }
-            }
-            if(instance.varMode == Var.LocalVar.VarMode.Temp){
-                // release the register after invoke if it's a temp var
-                ownerFunction.assign(instance,new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
-            }
-            blockCompiler.releaseRegister(instance);
+            blockCompiler.lockRegister(localVar);
+            invokeCallFrame(blockCompiler, invokeMode, instance, localVar, forkContext);
             blockCompiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
@@ -232,6 +208,77 @@ public class Invoke extends ExpressionInFunctionBody{
             blockCompiler.leave(this);
         }
 
+    }
+
+    public static void invokeCallFrame(BlockCompiler blockCompiler, InvokeMode invokeMode, Var.LocalVar callFrameInstance, Var.LocalVar result, Expression forkContext) throws CompilationError {
+        blockCompiler.lockRegister(callFrameInstance);
+
+        CodeBuffer code = blockCompiler.getCode();
+        Var.LocalVar forkContextVar = null;
+        if(forkContext != null){
+            forkContextVar = (Var.LocalVar) forkContext.visit(blockCompiler);
+        }
+
+        Root root = result.inferType().getRoot();
+        if (invokeMode.isAsync()) {
+            if(forkContext != null){
+                code.invokeAsyncViaContext(invokeMode, callFrameInstance.getVariableSlot(), result.getVariableSlot(), forkContextVar.getVariableSlot());
+            } else {
+                code.invokeAsync(invokeMode, callFrameInstance.getVariableSlot(), result.getVariableSlot());
+            }
+        } else {
+            if(invokeMode == InvokeMode.Await && forkContext != null){
+                code.invokeAsyncViaContext(invokeMode, callFrameInstance.getVariableSlot(), forkContextVar.getVariableSlot());
+            } else {
+                code.invoke(invokeMode, callFrameInstance.getVariableSlot());
+            }
+
+            if (result.getVariableSlot().getTypeCode() == TypeCode.OBJECT
+                    && result.getVariableSlot().getClassDef() == root.getAnyClass()) {
+                code.acceptAny(result.getVariableSlot());
+            } else {
+                code.accept(result.getVariableSlot());
+            }
+        }
+        blockCompiler.releaseRegister(callFrameInstance);
+        if (callFrameInstance.varMode == Var.LocalVar.VarMode.Temp) {
+            // release the register after invoke if it's a temp var
+            blockCompiler.getFunctionDef().assign(callFrameInstance, root.nullLiteral()).termVisit(blockCompiler);
+        }
+    }
+
+    public static void invokeCallFrame(BlockCompiler blockCompiler, InvokeMode invokeMode, Var.LocalVar callFrameInstance, Expression forkContext) throws CompilationError {
+        blockCompiler.lockRegister(callFrameInstance);
+
+        CodeBuffer code = blockCompiler.getCode();
+        Var.LocalVar forkContextVar = null;
+        if(forkContext != null){
+            forkContextVar = (Var.LocalVar) forkContext.visit(blockCompiler);
+        }
+
+        FunctionDef ownerFunction = blockCompiler.getFunctionDef();
+        Root root = ownerFunction.getRoot();
+        if (invokeMode.isAsync()) {
+            if(forkContext != null){
+                code.invokeAsyncViaContext(invokeMode, callFrameInstance.getVariableSlot(), forkContextVar.getVariableSlot());
+            } else {
+                code.invoke(invokeMode, callFrameInstance.getVariableSlot());
+            }
+        } else {
+            if(invokeMode == InvokeMode.Await && forkContext != null){
+                code.invokeAsyncViaContext(invokeMode, callFrameInstance.getVariableSlot(), forkContextVar.getVariableSlot());
+            } else {
+                code.invoke(invokeMode, callFrameInstance.getVariableSlot());
+            }
+        }
+        blockCompiler.releaseRegister(callFrameInstance);
+
+        if(!root.getGeneratorOfAnyClass().isThatOrSuperOfThat(callFrameInstance.inferType())){      // generator release temp var by itself
+            if (callFrameInstance.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                ownerFunction.assign(callFrameInstance, root.nullLiteral()).termVisit(blockCompiler);
+            }
+        }
     }
 
     @Override
@@ -247,27 +294,15 @@ public class Invoke extends ExpressionInFunctionBody{
             blockCompiler.enter(this);
 
             var instance = prepareInvocation(blockCompiler);
-            if (instance == null)
+            if (instance == null) {
+                throw new IllegalStateException("create function instance for '%s' failed".formatted(this));
+            }
+
+            if(this.resolvedFunctionDef.isGenerator()){
                 return;
-
-            blockCompiler.lockRegister(instance);
-
-            Var.LocalVar forkContextVar = null;
-            if(forkContext != null){
-                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
             }
 
-            if(forkContext != null){
-                blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
-            } else {
-                blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
-            }
-            blockCompiler.releaseRegister(instance);
-
-            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
-                // release the register after invoke if it's a temp var
-                ownerFunction.assign(instance, new NullLiteral(resolvedFunctionDef)).termVisit(blockCompiler);
-            }
+            invokeCallFrame(blockCompiler, invokeMode, instance, forkContext);
 
         } catch (CompilationError e) {
             throw e;
@@ -304,7 +339,7 @@ public class Invoke extends ExpressionInFunctionBody{
             var n = Creator.NewProps.resolve(fun, resolvedFunctionDef);
             code.new_(resultSlot, n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
         } else if(maybeFunction instanceof ClassOf.ClassOfScope classOfScope){
-            assert (classOfScope.metaLevel == 1); // if it's metaclass it won't be Function
+            assert (classOfScope.getMetaLevel() == 1); // if it's metaclass it won't be Function
             Scope scope = classOfScope.getScope();
             if(resolvedFunctionDef != ownerFunction){  // an overload function of me
                 scope = (Scope) this.scope;       // here parent is already classOfScope.scope.parentScope, see org.siphonlab.ago.compiler.expression.ClassOf.ClassOfScope.getScopeOfFunction

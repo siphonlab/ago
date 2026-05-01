@@ -88,7 +88,7 @@ fieldModifier:
     commonVisiblility | FINAL;     // TRANSIENT | VOLATILE
 
 methodModifier:
-    commonVisiblility | ABSTRACT | FINAL  | OVERRIDE //|  STATIC | SYNCHRONIZED
+    commonVisiblility | ABSTRACT | FINAL  | OVERRIDE | GENERATOR //|  STATIC | SYNCHRONIZED
     ;
 
 interfaceModifier:
@@ -105,7 +105,7 @@ variableModifiers:
 ;
 
 methodStarter:
-      fieldModifier* OVERRIDE (FUN | GETTER | SETTER)?
+      fieldModifier* OVERRIDE (FUN | GETTER | SETTER | GENERATOR)?
     | methodModifier*  (FUN | GETTER | SETTER)
 ;
 

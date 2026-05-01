@@ -82,7 +82,10 @@ public class Root extends Namespace<Package> {
     private ClassDef GENERIC_TYPE_PARAMETER_CLASS;
     private ClassDef GENERIC_TYPE_CODE_AVATAR_CLASS;
     private ClassDef FUNCTION_CLASS;
-    private ClassDef FUNCTION_INTERFACE_BASE_OF_ANY;
+    private ClassDef FUNCTION_BASE_OF_ANY;
+    private ClassDef GENERATOR_CLASS;
+    private ClassDef GENERATOR_OF_ANY;
+
     private ClassDef NATIVE_FUNCTION_INTERFACE_BASE;
     private ClassDef ITERABLE_INTERFACE;
     private ClassDef ITERATOR_INTERFACE;
@@ -263,21 +266,35 @@ public class Root extends Namespace<Package> {
     }
 
     public ClassDef getFunctionBaseOfAnyClass() {
-        if (FUNCTION_INTERFACE_BASE_OF_ANY != null) return FUNCTION_INTERFACE_BASE_OF_ANY;
+        if (FUNCTION_BASE_OF_ANY != null) return FUNCTION_BASE_OF_ANY;
         ClassDef functionBaseClass = getFunctionBaseClass();
         try {
-            return FUNCTION_INTERFACE_BASE_OF_ANY = functionBaseClass.instantiate(new InstantiationArguments(functionBaseClass.typeParamsContext,
+            return FUNCTION_BASE_OF_ANY = functionBaseClass.instantiate(new InstantiationArguments(functionBaseClass.typeParamsContext,
                     new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
     }
 
-
     public synchronized ClassDef getNativeFunctionInterfaceBase() {
         if (NATIVE_FUNCTION_INTERFACE_BASE != null)
             return NATIVE_FUNCTION_INTERFACE_BASE;
         return NATIVE_FUNCTION_INTERFACE_BASE = findByFullname("lang.NativeFunction");
+    }
+    public synchronized ClassDef getGeneratorClass() {
+        if(GENERATOR_CLASS != null) return GENERATOR_CLASS;
+        return GENERATOR_CLASS = findByFullname("lang.Generator");
+    }
+
+    public ClassDef getGeneratorOfAnyClass() {
+        if (GENERATOR_OF_ANY != null) return GENERATOR_OF_ANY;
+        ClassDef generatorClass = getGeneratorClass();
+        try {
+            return GENERATOR_OF_ANY = generatorClass.instantiate(new InstantiationArguments(generatorClass.typeParamsContext,
+                    new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public CompilingStage getCompilingStage() {

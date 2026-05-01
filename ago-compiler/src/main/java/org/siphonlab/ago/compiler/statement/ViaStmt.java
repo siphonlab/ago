@@ -18,10 +18,10 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.FunctionDef;
-import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.Root;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.*;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 
 import java.util.Arrays;

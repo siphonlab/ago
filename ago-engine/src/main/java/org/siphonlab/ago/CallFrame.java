@@ -344,4 +344,64 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         return debugger;
     }
 
+    public void yieldVoid() {
+        finishVoid();
+    }
+
+    public void yieldBoolean(boolean value) {
+        finishBoolean(value);
+    }
+
+    public void yieldByte(byte value) {
+        finishByte(value);
+    }
+
+    public void yieldShort(short value) {
+        finishShort(value);
+    }
+
+    public void yieldInt(int value) {
+        finishInt(value);
+    }
+
+    public void yieldLong(long value) {
+        finishLong(value);
+    }
+
+    public void yieldFloat(float value) {
+        finishFloat(value);
+    }
+
+    public void yieldDouble(double value) {
+        finishDouble(value);
+    }
+
+    public void yieldDecimal(BigDecimal value) {
+        finishDecimal(value);
+    }
+
+    public void yieldChar(char value) {
+        finishChar(value);
+    }
+
+    public void yieldObject(Instance<?> value) {
+        finishObject(value);
+    }
+
+    public void yieldUnion(Object value) {
+        finishUnion(value);
+    }
+
+    public void yieldString(String value) {
+        finishString(value);
+    }
+
+    public void yieldNull() {
+        finishNull();
+    }
+
+    public void yieldClassRef(AgoClass value) {
+        finishClassRef(value);
+    }
+
 }

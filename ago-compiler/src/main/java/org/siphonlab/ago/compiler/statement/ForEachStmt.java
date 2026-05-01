@@ -19,13 +19,18 @@ package org.siphonlab.ago.compiler.statement;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.SyntaxError;
+import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.ArrayElement;
 import org.siphonlab.ago.compiler.expression.array.ArrayLength;
-import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
+import org.siphonlab.ago.compiler.expression.invoke.InvokeCallFrame;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 
 import java.util.Collections;
+
+import static org.siphonlab.ago.compiler.expression.invoke.Invoke.invokeCallFrame;
 
 public class ForEachStmt extends LoopStmt{
 
@@ -39,7 +44,8 @@ public class ForEachStmt extends LoopStmt{
     public enum Mode{
         Iterable,
         Iterator,
-        Array
+        Array,
+        Generator
     }
 
     public ForEachStmt(FunctionDef ownerFunction, String label, Var.LocalVar iterVar, Expression expression, Statement body,
@@ -67,6 +73,10 @@ public class ForEachStmt extends LoopStmt{
 
         if(mode == Mode.Array){
             iterateArray(blockCompiler);
+            return;
+        }
+        if(mode == Mode.Generator){
+            iterateGenerator(blockCompiler);
             return;
         }
         try {
@@ -173,7 +183,100 @@ public class ForEachStmt extends LoopStmt{
         } finally {
             blockCompiler.leave(this);
         }
+    }
 
+    private void iterateGenerator(BlockCompiler blockCompiler) throws CompilationError {
+        try {
+            blockCompiler.enter(this);
+
+            CodeBuffer code = blockCompiler.getCode();
+
+            this.exitLabel = blockCompiler.createLabel();
+
+            Var.LocalVar generator;
+            if(this.expression instanceof NullableValue nullableValue) {
+                nullableValue.visit(blockCompiler);
+                var isNull = nullableValue.isNull().visit(blockCompiler);
+                code.jumpIf(isNull.getVariableSlot(), this.exitLabel);
+                generator = nullableValue.nonNullValue().visit(blockCompiler);
+            } else {
+                generator = (Var.LocalVar) expression.visit(blockCompiler);
+            }
+            blockCompiler.lockRegister(generator);
+
+            var genClass = getRoot().getGeneratorOfAnyClass().asThatOrSuperOfThat(generator.inferType());
+            if(genClass == null){
+                throw new TypeMismatchError("generator function expected", this.expression.getSourceLocation());
+            }
+
+            this.continueLabel = blockCompiler.createLabel();
+
+            Invoke.InvokeMode invokeMode;
+            Expression forkContext;
+            if(expression instanceof Invoke invoke){
+                invokeMode = invoke.getInvokeMode();
+                if(invokeMode == Invoke.InvokeMode.Await){
+                    invokeMode = Invoke.InvokeMode.Fork;
+                }
+                forkContext = invoke.getForkContext();
+            } else if(expression instanceof InvokeCallFrame invoke){
+                invokeMode = invoke.getInvokeMode();
+                if(invokeMode == Invoke.InvokeMode.Await){
+                    invokeMode = Invoke.InvokeMode.Fork;
+                }
+                forkContext = invoke.getForkContext();
+            } else {
+                forkContext = null;
+                invokeMode = Invoke.InvokeMode.Invoke;
+            }
+
+            if(invokeMode.isAsync()) {
+                invokeCallFrame(blockCompiler, invokeMode, generator, forkContext);     // spawn for first time
+
+                code.await();       // wait result
+
+                Label test = blockCompiler.createLabel().here();
+                var done = (Var.LocalVar)ownerFunction.field(generator, genClass.getVariable("done")).visit(blockCompiler);
+                code.jumpIf(done.getVariableSlot(), exitLabel);
+
+                code.accept(iterVar.getVariableSlot());
+
+                this.body.termVisit(blockCompiler);
+
+                continueLabel.here();
+                code.resume(generator.getVariableSlot());       // resume after the second time
+                code.await();
+                code.jump(test);
+
+                exitLabel.here();
+            } else {
+                continueLabel.here();
+                invokeCallFrame(blockCompiler, invokeMode, generator, forkContext);
+
+                var done = (Var.LocalVar)ownerFunction.field(generator, genClass.getVariable("done")).visit(blockCompiler);
+                code.jumpIf(done.getVariableSlot(), exitLabel);
+
+                code.accept(iterVar.getVariableSlot());
+
+                this.body.termVisit(blockCompiler);
+
+                code.jump(continueLabel);
+
+                exitLabel.here();
+            }
+
+
+            if (generator.varMode == Var.LocalVar.VarMode.Temp) {
+                // release the register after invoke if it's a temp var
+                ownerFunction.assign(generator, getRoot().nullLiteral()).termVisit(blockCompiler);
+            }
+
+            blockCompiler.releaseRegister(generator);
+        } catch (CompilationError e) {
+            throw e;
+        } finally {
+            blockCompiler.leave(this);
+        }
     }
 
     @Override

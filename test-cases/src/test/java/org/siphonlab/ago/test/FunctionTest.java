@@ -66,5 +66,12 @@ public class FunctionTest {
         assertTrue(Trace.outputted("55"));
     }
 
+    @Test
+    public void generator() throws CompilationError, IOException {
+        run("function/generator.ago");
+        Trace.printOutput();
+//        assertTrue(Trace.outputted("55"));
+    }
+
 
 }

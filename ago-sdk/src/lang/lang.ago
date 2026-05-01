@@ -181,6 +181,12 @@ class Function<+R>{
 interface NativeFunction for Function<_>{
 }
 
+
+class Generator<+R> from Function<R>{
+    private done as boolean {public get;}
+}
+
+
 interface Function0<+R> for Function<R>{}
 interface Function1<+R, -P1> for Function<R>{}
 interface Function2<+R, -P1, -P2> for Function<R>{}
