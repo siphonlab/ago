@@ -2104,7 +2104,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                         slots.setDecimal(targetIndex, slots.getBoolean(srcIndex)? BigDecimal.ONE : BigDecimal.ZERO);
                         return;
                     case DOUBLE_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getDouble(srcIndex)));
+                        slots.setDecimal(targetIndex, BigDecimal.valueOf(slots.getDouble(srcIndex)));
                         return;
                     case DECIMAL_VALUE:
                         slots.setDecimal(targetIndex, slots.getDecimal(srcIndex));
@@ -2113,7 +2113,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                         slots.setDecimal(targetIndex, new BigDecimal(slots.getByte(srcIndex)));
                         return;
                     case FLOAT_VALUE:
-                        slots.setDecimal(targetIndex, new BigDecimal(slots.getFloat(srcIndex)));
+                        slots.setDecimal(targetIndex, BigDecimal.valueOf(slots.getFloat(srcIndex)));
                         return;
                     case CHAR_VALUE:
                         slots.setDecimal(targetIndex, new BigDecimal((int)slots.getChar(srcIndex)));
