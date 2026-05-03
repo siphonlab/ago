@@ -118,7 +118,10 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 } break;
                 case Load.OP: pc = evaluateLoad(slots, pc, instruction); break;
                 case Array.OP: pc = evaluateArray(slots, pc, instruction); break;
-                case Box.OP: pc = evaluateBox(slots, pc, instruction); break;
+                case Box.OP: {
+                    var p = evaluateBox(self, slots, pc, instruction);
+                    if(p != -1) pc = p; else return;
+                } break;
                 case Equals.OP: pc = evaluateEquals(slots, pc, instruction); break;
                 case NotEquals.OP: pc = evaluateNotEquals(slots, pc, instruction); break;
                 case LittleThan.OP: pc = evaluateLittleThan(slots, pc, instruction); break;
@@ -925,7 +928,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         }
         return pc;
     }
-    protected int evaluateBox(final Slots slots, int pc, final int instruction){
+    protected int evaluateBox(CallFrame<?> self, final Slots slots, int pc, final int instruction){
         switch (instruction){
             case Box.box_i_vv:              slots.setObject(code[pc++], engine.getBoxer().boxInt(slots.getInt(code[pc++])));break;
             case Box.box_i_vc:              slots.setObject(code[pc++], engine.getBoxer().boxInt(code[pc++]));break;
@@ -985,8 +988,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             break;
 
             case Box.unbox_force_vot:{
-                var r = engine.getBoxer().forceUnbox(this, code[pc++], slots.getObject(code[pc++]), slots.getInt(code[pc++]));
-                if(!r) return code.length;
+                var r = engine.getBoxer().forceUnbox(this, self, code[pc++], slots.getObject(code[pc++]), slots.getInt(code[pc++]));
+                if(!r) return -1;
             }
             break;
 
@@ -1704,21 +1707,28 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
             case Cast.cast_object_vvtC:
                 if(!castObject(slots, code[pc++], slots.getObject(code[pc++]), code[pc++], getClass(code[pc++]))){
-                    return code.length;
+                    return -1;
                 }
                 break;
             case Cast.cast_to_any_vtCvtC:
-                if(!castToAny(slots, code[pc++], code[pc++], getClass(code[pc++]), code[pc++], code[pc++], getClass(code[pc++]))){
-                    return code.length;
+                if(!castToAny(self, slots, code[pc++], code[pc++], getClass(code[pc++]), code[pc++], code[pc++], getClass(code[pc++]))){
+                    return -1;
                 }
                 break;
 
             case Cast.C2sbr_oCC:
                 slots.setObject(code[pc++], engine.createScopedClassRef(this, engine.getClass(code[pc++]), (AgoClass)slots.getObject(code[pc++])));
                 break;
-            case Cast.sbr2C_Cov:
-                slots.setObject(code[pc++], extractScopedClass(slots.getObject(code[pc++]), code[pc++]));
-                break;
+            case Cast.sbr2C_Cov: {
+                int dest = code[pc++];
+                var scopedClassIntervalInstance = slots.getObject(code[pc++]);
+                if(scopedClassIntervalInstance == null){
+                    raiseException(this, "lang.NullPointerException", "scoped class interval instance is null");
+                    return -1;
+                }
+                slots.setObject(dest, scopedClassIntervalInstance.getSlots().getObject(code[pc++]));
+            }
+            break;
 
             case Cast.o2u: slots.setUnion(code[pc++], slots.getObject(code[pc++])); break;
             case Cast.n2u: slots.setUnion(code[pc++], null); pc ++; break;
@@ -1734,21 +1744,132 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Cast.C2u: slots.setUnion(code[pc++], new ClassRefValue(engine.getClass(slots.getClassRef(code[pc++])).getFullname())); break;
             case Cast.D2u: slots.setUnion(code[pc++], slots.getDecimal(code[pc++])); break;
 
+            case Cast.u2o: {
+                var dest = code[pc++];
+                var union = validateNullForUnion(self, slots.getUnion(code[pc++]), OBJECT);
+                if(union == null) return -1;        // leave frame, will raise exception, and reenter me via handleException set new pc
+                try {
+                    slots.setObject(dest, engine.getBoxer().unionToObject(union));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+            }
+            break;
+            case Cast.u2S:
+                try{
+                    slots.setString(code[pc++], Union.unionToString(slots.getUnion(code[pc++]), engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                } break;
+            case Cast.u2B:
+                try{
+                    slots.setBoolean(code[pc++], Union.unionToBoolean(slots.getUnion(code[pc++]), engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+                break;
+            case Cast.u2c:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), CHAR);
+                    if(union == null) return -1;
+                    slots.setChar(dest, Union.unionToChar(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+                break;
+            case Cast.u2f:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), FLOAT);
+                    if(union == null) return -1;
+                    slots.setFloat(dest, Union.unionToFloat(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+                break;
+            case Cast.u2d:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), DOUBLE);
+                    if(union == null) return -1;
+                    slots.setDouble(dest, Union.unionToDouble(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+                break;
+            case Cast.u2b:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), BYTE);
+                    if(union == null) return -1;
+                    slots.setByte(dest, Union.unionToByte(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+                break;
+            case Cast.u2s:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), SHORT);
+                    if(union == null) return -1;
+                    slots.setShort(dest, Union.unionToShort(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                } break;
+            case Cast.u2i:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), INT);
+                    if(union == null) return -1;
+                    slots.setInt(dest, Union.unionToInt(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }break;
+            case Cast.u2l:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), LONG);
+                    if(union == null) return -1;
+                    slots.setLong(dest, Union.unionToLong(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+                break;
+            case Cast.u2C:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), CLASS_REF);
+                    if(union == null) return -1;
+                    slots.setClassRef(dest, Union.unionToClassRef(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+                break;
+            case Cast.u2D:
+                try{
+                    var dest = code[pc++];
+                    var union = validateNullForUnion(self, slots.getUnion(code[pc++]), DECIMAL);
+                    if(union == null) return -1;
+                    slots.setDecimal(dest, Union.unionToDecimal(union, engine));
+                } catch (ClassCastException|IllegalArgumentException ex){
+                    raiseException(self, "lang.ClassCastException", ex.getMessage());
+                    return -1;
+                }
+                break;
 
-            case Cast.u2S: slots.setString(code[pc++], Union.unionToString(slots.getUnion(code[pc++]), engine)); break;
-            case Cast.u2B: slots.setBoolean(code[pc++], Union.unionToBoolean(slots.getUnion(code[pc++]), engine)); break;
             case Cast.u2u: slots.setUnion(code[pc++], slots.getUnion(code[pc++])); break;
-
-            case Cast.u2o: return validateNullForUnion(self, slots.getUnion(code[pc+1]), OBJECT, instruction);
-            case Cast.u2c: return validateNullForUnion(self, slots.getUnion(code[pc+1]), CHAR, instruction);
-            case Cast.u2f: return validateNullForUnion(self, slots.getUnion(code[pc+1]), FLOAT, instruction);
-            case Cast.u2d: return validateNullForUnion(self, slots.getUnion(code[pc+1]), DOUBLE, instruction);
-            case Cast.u2b: return validateNullForUnion(self, slots.getUnion(code[pc+1]), BYTE, instruction);
-            case Cast.u2s: return validateNullForUnion(self, slots.getUnion(code[pc+1]), SHORT, instruction);
-            case Cast.u2i: return validateNullForUnion(self, slots.getUnion(code[pc+1]), INT, instruction);
-            case Cast.u2l: return validateNullForUnion(self, slots.getUnion(code[pc+1]), LONG, instruction);
-            case Cast.u2C: return validateNullForUnion(self, slots.getUnion(code[pc+1]), CLASS_REF, instruction);
-            case Cast.u2D: return validateNullForUnion(self, slots.getUnion(code[pc+1]), DECIMAL, instruction);
 
             default:
                 throw new UnsupportedOperationException("unsupported cast " + OpCode.getName(instruction));
@@ -1756,27 +1877,18 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         return pc;
     }
 
-    private int validateNullForUnion(CallFrame<?> self, Object union, TypeCode typeCode, int reenterState) {
+    private Object validateNullForUnion(CallFrame<?> self, Object union, TypeCode typeCode) {
         if(union == null) {
             raiseException(self, "lang.ClassCastException", "can't cast null to '%s'".formatted(typeCode));
-            return -1;
+            return null;
         } else {
-            reenter(null, reenterState);
-            return pc;
+            return union;
         }
     }
 
     private AgoClass getClass(int classId) {
         if(classId == -1) return null;
         return engine.getClass(classId);
-    }
-
-    private Instance<?> extractScopedClass(Instance<?> scopedClassIntervalInstance, int slot){
-        if(scopedClassIntervalInstance == null){
-            raiseException(this, "lang.NullPointerException", "scoped class interval instance is null");
-            return null;
-        }
-        return scopedClassIntervalInstance.getSlots().getObject(slot);
     }
 
     public boolean validateClassInheritance(AgoClass sampleClass, AgoClass expectedClass) {
@@ -1798,7 +1910,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         return true;
     }
 
-    private boolean castToAny(Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass,
+    private boolean castToAny(CallFrame<?> self, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass,
                                        int srcSlotIndex, int srcTypeCode, AgoClass srcClass) {
         if(srcTypeCode == UNION_VALUE || targetTypeCode == UNION_VALUE){
             throw new UnsupportedOperationException("TODO");
@@ -1818,15 +1930,17 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     slots.setObject(targetIndex, instance);
                 } else {
                     var instance = engine.getBoxer().boxAny(slots, srcSlotIndex, srcTypeCode);
-                    validateClassInheritance(instance.getAgoClass(), targetClass);
+                    if(!validateClassInheritance(instance.getAgoClass(), targetClass)){
+                        return false;
+                    }
                     slots.setObject(targetIndex, instance);
                 }
             }
         } else {
             if(TypeCode.isPrimitive(targetTypeCode)){       //TODO for union, take primitive value
-                engine.getBoxer().forceUnbox(this,targetIndex,slots.getObject(srcSlotIndex),targetTypeCode);
+                return engine.getBoxer().forceUnbox(this,self, targetIndex,slots.getObject(srcSlotIndex),targetTypeCode);
             } else {
-                castObject(slots, targetIndex,slots.getObject(srcSlotIndex),targetTypeCode,targetClass);
+                return castObject(slots, targetIndex,slots.getObject(srcSlotIndex),targetTypeCode,targetClass);
             }
         }
         return true;
@@ -2284,46 +2398,6 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case REENTER_RAISE_EXCEPTION:
                 var exception = waitingReentrantFrame.getParentScope();
                 waitingReentrantFrame.finishException(exception);       // waitingReentrantFrame will throw error back to its caller, that's me
-                break;
-
-            case Cast.u2o:
-                slots.setObject(code[pc++], (Instance<?>) slots.getUnion(code[pc++]));
-                break;
-
-            case Cast.u2c:
-                slots.setChar(code[pc++], Union.unionToChar(slots.getUnion(code[pc++]), engine));
-                break;
-
-            case Cast.u2f:
-                slots.setFloat(code[pc++], Union.unionToFloat(slots.getUnion(code[pc++]), engine));
-                break;
-
-            case Cast.u2d:
-                slots.setDouble(code[pc++], Union.unionToDouble(slots.getUnion(code[pc++]), engine));
-                break;
-
-            case Cast.u2b:
-                slots.setByte(code[pc++], Union.unionToByte(slots.getUnion(code[pc++]), engine));
-                break;
-
-            case Cast.u2s:
-                slots.setShort(code[pc++], Union.unionToShort(slots.getUnion(code[pc++]), engine));
-                break;
-
-            case Cast.u2i:
-                slots.setInt(code[pc++], Union.unionToInt(slots.getUnion(code[pc++]), engine));
-                break;
-
-            case Cast.u2l:
-                slots.setLong(code[pc++], Union.unionToLong(slots.getUnion(code[pc++]), engine));
-                break;
-
-            case Cast.u2C:
-                slots.setClassRef(code[pc++], Union.unionToClassRef(slots.getUnion(code[pc++]), engine));
-                break;
-
-            case Cast.u2D:
-                slots.setDecimal(code[pc++], Union.unionToDecimal(slots.getUnion(code[pc++]), engine));
                 break;
         }
     }
