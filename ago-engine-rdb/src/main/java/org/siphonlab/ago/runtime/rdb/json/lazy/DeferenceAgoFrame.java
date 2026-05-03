@@ -19,7 +19,6 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.opcode.Load;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.lazy.DeferenceCallFrame;
-import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefObject;
 import org.siphonlab.ago.runtime.rdb.task.TaskRunSpace;
@@ -69,7 +68,7 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
         this.state.setSaveRequired();
     }
 
-    protected int evaluateLoad(Slots slots, int pc, int instruction) {
+    protected int evaluateLoad(CallFrame<?> self, Slots slots, int pc, int instruction) {
         switch (instruction) {
             case Load.loadscope_v:
                 slots.setObject(code[pc++], getScope(1));
@@ -114,12 +113,22 @@ public class DeferenceAgoFrame extends AgoFrame implements DeferenceCallFrame, O
                 slots.setObject(code[pc++], slots.getObject(code[pc++]).getAgoClass().getAgoClass());
                 break;
 
-            case Load.bindcls_vCo:
-                slots.setObject(code[pc++], engine.createScopedClass(this, code[pc++], slots.getObject(code[pc++])));
-                break;
-            case Load.bindcls_scope_vCc:
-                slots.setObject(code[pc++], engine.createScopedClass(this, code[pc++], getScope(code[pc++])));
-                break;
+            case Load.bindcls_vCo:          {
+                int dest = code[pc++];
+                AgoClass scopedClass = createScopedClass(self, code[pc++], slots.getObject(code[pc++]), pc);
+                slots.setObject(dest, scopedClass);
+                if(scopedClass.getAgoClass().getEmptyArgsConstructor() != null){        // will invoke constructor soon
+                    return -1;
+                }
+            } break;
+            case Load.bindcls_scope_vCc:    {
+                int dest = code[pc++];
+                AgoClass scopedClass = createScopedClass(self, code[pc++], getScope(code[pc++]), pc);
+                slots.setObject(dest, scopedClass);
+                if(scopedClass.getAgoClass().getEmptyArgsConstructor() != null){
+                    return -1;
+                }
+            } break;
 
         }
         return pc;

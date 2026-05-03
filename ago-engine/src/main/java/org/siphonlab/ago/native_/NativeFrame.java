@@ -25,6 +25,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     protected final AgoEngine engine;
     private CallFrame<?> entrance;
     private Object payload;
+    private int reenterState = 0;
 
     public NativeFrame(AgoEngine engine, Slots slots, AgoNativeFunction agoClass) {
         super(slots, agoClass);
@@ -190,5 +191,18 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     @Override
     public void interrupt() {
         // native frame not support yet
+    }
+
+    @Override
+    protected boolean reenter(ReentrantProxyFrame<?> reentrantProxyFrame, int state, int additionalState) {
+        if(!super.reenter(reentrantProxyFrame, state, additionalState)){
+            this.reenterState = state;
+            this.run(reentrantProxyFrame.getCaller());
+        }
+        return true;
+    }
+
+    public int getReenterState() {
+        return reenterState;
     }
 }

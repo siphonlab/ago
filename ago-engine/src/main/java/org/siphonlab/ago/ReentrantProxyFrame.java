@@ -19,22 +19,24 @@ import java.math.BigDecimal;
 
 /**
  * an intermediate frame for a frame to invoke another.
- * the caller frame install WaitingReentrantFrame to wait result, and when the result come, it invokes CallFrame.reenter
+ * the caller frame install ReentrantProxyFrame to wait result, and when the result come, it invokes CallFrame.reenter
  * callee must work in same runspace with caller. therefore it must be not an EntranceFrame.
  */
-public class WaitingReentrantFrame<T extends AgoFunction> extends CallFrame<T>{
+public class ReentrantProxyFrame<T extends AgoFunction> extends CallFrame<T>{
 
     private final CallFrame<T> callee;
     private final int state;
+    private final int additionalState;
     private TypeCode resultType;
 
-    public WaitingReentrantFrame(CallFrame<?> caller, CallFrame<T> callee, int state){
+    public ReentrantProxyFrame(CallFrame<?> caller, CallFrame<T> callee, int state, int additionalState){
         super(callee.getSlots(), callee.getAgoClass());
         this.setCaller(caller);
         callee.setCaller(this);
         callee.setRunSpace(caller.getRunSpace());
         this.callee = callee;
         this.state = state;
+        this.additionalState = additionalState;
     }
 
     @Override
@@ -70,85 +72,85 @@ public class WaitingReentrantFrame<T extends AgoFunction> extends CallFrame<T>{
     public void finishVoid() {
         getRunSpace().acceptVoid(null);
         this.resultType = TypeCode.VOID;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishBoolean(boolean result) {
         getRunSpace().acceptBoolean(result, null);
         this.resultType = TypeCode.BOOLEAN;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishByte(byte result) {
         getRunSpace().acceptByte(result, null);
         this.resultType = TypeCode.BYTE;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishShort(short result) {
         getRunSpace().acceptShort(result, null);
         this.resultType = TypeCode.SHORT;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishInt(int result) {
         getRunSpace().acceptInt(result, null);
         this.resultType = TypeCode.INT;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishLong(long result) {
         getRunSpace().acceptLong(result, null);
         this.resultType = TypeCode.LONG;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishFloat(float result) {
         getRunSpace().acceptFloat(result, null);
         this.resultType = TypeCode.FLOAT;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishDouble(double result) {
         getRunSpace().acceptDouble(result, null);
         this.resultType = TypeCode.DOUBLE;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishDecimal(BigDecimal result) {
         getRunSpace().acceptDecimal(result, null);
         this.resultType = TypeCode.DECIMAL;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishChar(char result) {
         getRunSpace().acceptChar(result, null);
         this.resultType = TypeCode.CHAR;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishObject(Instance<?> result) {
         getRunSpace().acceptObject(result, null);
         this.resultType = TypeCode.OBJECT;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishString(String result) {
         getRunSpace().acceptString(result, null);
         this.resultType = TypeCode.STRING;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishNull() {
         getRunSpace().acceptNull(null);
         this.resultType = TypeCode.NULL;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     public void finishClassRef(AgoClass result) {
         getRunSpace().acceptClassRef(result, null);
         this.resultType = TypeCode.CLASS_REF;
-        caller.reenter(this, state);
+        caller.reenter(this, state, additionalState);
     }
 
     @Override
@@ -185,4 +187,7 @@ public class WaitingReentrantFrame<T extends AgoFunction> extends CallFrame<T>{
         return callee;
     }
 
+    public TypeCode getResultType() {
+        return resultType;
+    }
 }

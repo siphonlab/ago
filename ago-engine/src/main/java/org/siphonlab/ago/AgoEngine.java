@@ -221,32 +221,8 @@ public class AgoEngine implements ClassManager{
             if(LOGGER.isDebugEnabled()) LOGGER.debug("apply meta class %s".formatted(item));
             var constructor = item.constructor;
             CallFrame<?> frame = createFunctionInstance(item.target, constructor, null, null);
-            Object[] arguments = item.arguments;
-            for (int i = 0; i < arguments.length; i++) {
-                Object argument = arguments[i];
-                var p = constructor.getParameters()[i];
-                switch (p.getTypeCode().value){
-                    case INT_VALUE:       frame.getSlots().setInt(i, (Integer) argument); break;
-                    case STRING_VALUE:    frame.getSlots().setString(i, (String) argument); break;
-                    case LONG_VALUE:      frame.getSlots().setLong(i, (Long)argument); break;
-                    case BOOLEAN_VALUE:   frame.getSlots().setBoolean(i, (Boolean)argument); break;
-                    case DOUBLE_VALUE:    frame.getSlots().setDouble(i, (Double) argument); break;
-                    case DECIMAL_VALUE:    frame.getSlots().setDecimal(i, (BigDecimal) argument); break;
-                    case BYTE_VALUE:      frame.getSlots().setByte(i, (Byte) argument); break;
-                    case FLOAT_VALUE:     frame.getSlots().setFloat(i, (Float) argument); break;
-                    case CHAR_VALUE:      frame.getSlots().setChar(i, (Character)argument); break;
-                    case SHORT_VALUE:     frame.getSlots().setShort(i, (Short) argument); break;
-                    case CLASS_REF_VALUE: frame.getSlots().setClassRef(i, classByName.get(((ClassRefValue) argument).className()).getClassId()); break;
-                    default:
-                        if(p.getAgoClass() instanceof AgoEnum agoEnum){
-                            var enumValue = agoEnum.findMember(argument);
-                            assert enumValue != null;
-                            frame.getSlots().setObject(i,enumValue);
-                            break;
-                        }
-                        throw new RuntimeException("unexpected type for meta class constructor");
-                }
-            }
+            frame.setRunSpace(this.runSpace);
+            frame.assignArguments(item.arguments);
             this.runSpace.awaitTillComplete(frame);
         }
     }
@@ -323,14 +299,20 @@ public class AgoEngine implements ClassManager{
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if(emptyArgsConstructor != null){
-            throw new UnsupportedOperationException("TODO");        //TODO
-//            try {
-//                c.invokeMethod(caller, emptyArgsConstructor,emptyArgsConstructor).get();
-//            } catch (InterruptedException | ExecutionException e) {
-//                throw new RuntimeException(e);
-//            }
+            invokeMethod(caller, parentScope, emptyArgsConstructor,emptyArgsConstructor);
         }
         return c;
+    }
+
+    public void invokeMethod(CallFrame<?> caller, Instance<?> instance, AgoFunction method, Object... arguments){
+        var runSpace = this.runSpace;
+        if(runSpace.getCurrentCallFrame() != null){
+            runSpace = createRunSpace(this.runSpaceHost);
+        }
+        CallFrame<?> frame = createFunctionInstance(instance, method, caller, caller);
+        frame.assignArguments(arguments);
+        runSpace.setCurrCallFrame(frame);
+        runSpace.awaitTillComplete(frame);
     }
 
     // create ScopedClassInterval instance from scopedClass

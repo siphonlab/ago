@@ -165,7 +165,8 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     }
 
     @Override
-    protected void reenter(WaitingReentrantFrame<?> waitingReentrantFrame, int state) {
-        inner.reenter(waitingReentrantFrame, state);
+    protected boolean reenter(ReentrantProxyFrame<?> reentrantProxyFrame, int state, int additionalState) {
+        inner.reenter(reentrantProxyFrame, state, additionalState);
+        return false;
     }
 }

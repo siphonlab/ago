@@ -50,7 +50,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     protected final AgoEngine engine;
 
-    private final static int REENTER_RAISE_EXCEPTION = 1;
+    private final static int REENTER_CREATE_SCOPED_CLASS = 2;
 
     public AgoFrame(Slots slots, AgoFunction agoFunction, AgoEngine engine) {
         super(slots, agoFunction );
@@ -116,7 +116,10 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     var p = evaluateCast(self, slots,pc, instruction);
                     if(p != -1) pc = p; else return;
                 } break;
-                case Load.OP: pc = evaluateLoad(slots, pc, instruction); break;
+                case Load.OP: {
+                    var p = evaluateLoad(self, slots, pc, instruction);
+                    if(p != -1) pc = p; else return;
+                } break;
                 case Array.OP: pc = evaluateArray(slots, pc, instruction); break;
                 case Box.OP: {
                     var p = evaluateBox(self, slots, pc, instruction);
@@ -1120,7 +1123,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         return pc;
     }
 
-    protected int evaluateLoad(Slots slots, int pc, int instruction) {
+    protected int evaluateLoad(CallFrame<?> self, Slots slots, int pc, int instruction) {
         switch (instruction){
             case Load.loadscope_v:       slots.setObject(code[pc++], this.getParentScope());  break;
             case Load.loadscope_vc:      slots.setObject(code[pc++], getScope(code[pc++])); break;
@@ -1164,11 +1167,36 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Load.loadcls2_scope_v:     slots.setObject(code[pc++], this.getParentScope().getAgoClass().getAgoClass()); break;
             case Load.loadcls2_vo:          slots.setObject(code[pc++], slots.getObject(code[pc++]).getAgoClass().getAgoClass()); break;
 
-            case Load.bindcls_vCo:          slots.setObject(code[pc++], engine.createScopedClass(this, code[pc++], slots.getObject(code[pc++]))); break;
-            case Load.bindcls_scope_vCc:    slots.setObject(code[pc++], engine.createScopedClass(this, code[pc++], getScope(code[pc++]))); break;
+            case Load.bindcls_vCo:          {
+                int dest = code[pc++];
+                AgoClass scopedClass = createScopedClass(self, code[pc++], slots.getObject(code[pc++]), pc);
+                slots.setObject(dest, scopedClass);
+                if(scopedClass.getAgoClass().getEmptyArgsConstructor() != null){        // will invoke constructor soon
+                    return -1;
+                }
+            } break;
+            case Load.bindcls_scope_vCc:    {
+                int dest = code[pc++];
+                AgoClass scopedClass = createScopedClass(self, code[pc++], getScope(code[pc++]), pc);
+                slots.setObject(dest, scopedClass);
+                if(scopedClass.getAgoClass().getEmptyArgsConstructor() != null){
+                    return -1;
+                }
+            } break;
 
         }
         return pc;
+    }
+
+    public AgoClass createScopedClass(CallFrame<?> self, int classId, Instance<?> parentScope, int pc) {
+        var c = engine.getClass(classId).cloneWithScope(parentScope);
+        if(parentScope == null) return c;
+
+        AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
+        if(emptyArgsConstructor != null){
+            c.invokeMethod(self, REENTER_CREATE_SCOPED_CLASS, pc, emptyArgsConstructor);
+        }
+        return c;
     }
 
     protected int evaluateReturn(CallFrame<?> self, Slots slots, int pc, int instruction) {
@@ -1975,7 +2003,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     public void raiseException(CallFrame<?> self, String exceptionClassName, String message){
         var ExceptionClass = engine.getClass(exceptionClassName);
         var exception = engine.createInstance(null, ExceptionClass, this );
-        exception.invokeMethod(self, REENTER_RAISE_EXCEPTION, ExceptionClass.findMethod("new#message"), message);
+        exception.invokeMethod(self, REENTER_RAISE_EXCEPTION, 0, ExceptionClass.findMethod("new#message"), message);
     }
 
     public static char stringToChar(String s){
@@ -2393,13 +2421,23 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     }
 
     @Override
-    protected void reenter(WaitingReentrantFrame<?> waitingReentrantFrame, int instruction) {
-        switch (instruction){
+    protected boolean reenter(ReentrantProxyFrame<?> reentrantProxyFrame, int state, int additionalState) {
+        switch (state){
             case REENTER_RAISE_EXCEPTION:
-                var exception = waitingReentrantFrame.getParentScope();
-                waitingReentrantFrame.finishException(exception);       // waitingReentrantFrame will throw error back to its caller, that's me
+                return super.reenter(reentrantProxyFrame, state, additionalState);
+            case REENTER_CREATE_SCOPED_CLASS:
+                var caller = reentrantProxyFrame.getCaller();       // it's self
+                AgoFrame agoFrame;
+                if(caller instanceof EntranceCallFrame<?> entranceCallFrame){
+                    agoFrame = (AgoFrame) entranceCallFrame.getInner();
+                } else {
+                    agoFrame = (AgoFrame) caller;
+                }
+                agoFrame.pc = additionalState;
+                agoFrame.getRunSpace().setCurrCallFrame(caller);
                 break;
         }
+        return true;
     }
 
 
