@@ -222,7 +222,7 @@ public class Boxer {
     private boolean validateBoxType(AgoFrame agoFrame, AgoClass agoClass, int typeCode){
         if(agoClass instanceof AgoEnum agoEnum){
             if(agoEnum.getBasePrimitiveType().value != typeCode){
-                agoFrame.raiseException("lang.ClassCastException", "illegal cast from '%s' to '%s'".formatted(of(typeCode), agoClass.getFullname()));
+                agoFrame.raiseException(agoFrame, "lang.ClassCastException", "illegal cast from '%s' to '%s'".formatted(of(typeCode), agoClass.getFullname()));
                 return false;
             }
             return true;
@@ -246,7 +246,7 @@ public class Boxer {
     public boolean forceUnbox(AgoFrame agoFrame, int receiverIndex, Instance<?> object, int typeCode) {
         Slots slots = agoFrame.getSlots();
         if(object == null) {
-            agoFrame.raiseException("NullPointerException","unbox to '%s' meet null".formatted(TypeCode.of(typeCode)));
+            agoFrame.raiseException(agoFrame, "lang.NullPointerException","unbox to '%s' meet null".formatted(TypeCode.of(typeCode)));
             return false;
         }
         if(!validateBoxType(agoFrame, object.getAgoClass(), typeCode)){

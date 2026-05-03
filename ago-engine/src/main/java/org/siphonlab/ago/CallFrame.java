@@ -15,7 +15,6 @@
  */
 package org.siphonlab.ago;
 
-import org.siphonlab.ago.runtime.UnhandledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -240,20 +239,15 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         }
     }
 
-    public void finishException(Instance<?> exception, boolean throwOut) {
-        if(throwOut) {
-            var caller = this.getCaller();
-            if(caller == null){
-                this.getRunSpace().acceptException(exception, caller);
-                return;
-            }
-            var callerRunSpace = caller.getRunSpace();
-            if(callerRunSpace != this.getRunSpace()){
-                getRunSpace().setCurrCallFrame(null);
-            }
-            callerRunSpace.acceptException(exception, caller);
+    public void finishException(Instance<?> exception) {
+        CallFrame<?> caller = getCaller();
+        RunSpace runSpace = getRunSpace();
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptException(exception, caller);
         } else {
-            getRunSpace().acceptException(exception);
+            runSpace.acceptException(exception, null);
         }
     }
 
@@ -361,4 +355,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         finishClassRef(value);
     }
 
+    protected void reenter(WaitingReentrantFrame<?> waitingReentrantFrame, int state) {
+
+    }
 }

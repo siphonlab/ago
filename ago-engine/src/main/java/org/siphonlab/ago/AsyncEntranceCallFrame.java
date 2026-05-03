@@ -100,10 +100,8 @@ public class AsyncEntranceCallFrame<T extends AgoFunction> extends EntranceCallF
     }
 
     @Override
-    public void finishException(Instance<?> exception, boolean throwOut) {
-        if (!fail(exception)) {
-            getCaller().getRunSpace().acceptExceptionByAsync(exception);
-        }
+    public void finishException(Instance<?> exception) {
+        getCaller().getRunSpace().acceptExceptionByAsync(exception);
     }
 
     public void yieldVoid() {

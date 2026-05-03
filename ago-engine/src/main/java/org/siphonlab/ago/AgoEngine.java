@@ -323,11 +323,12 @@ public class AgoEngine implements ClassManager{
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if(emptyArgsConstructor != null){
-            try {
-                c.invokeMethod(caller, emptyArgsConstructor,emptyArgsConstructor).get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            throw new UnsupportedOperationException("TODO");        //TODO
+//            try {
+//                c.invokeMethod(caller, emptyArgsConstructor,emptyArgsConstructor).get();
+//            } catch (InterruptedException | ExecutionException e) {
+//                throw new RuntimeException(e);
+//            }
         }
         return c;
     }
@@ -428,14 +429,6 @@ public class AgoEngine implements ClassManager{
     @Override
     public MetaClass getTheMeta() {
         return theMata;
-    }
-
-    public boolean validateClassInheritance(AgoFrame agoFrame, AgoClass sampleClass, AgoClass expectedClass) {
-        if (!sampleClass.isThatOrDerivedFrom(expectedClass)) {
-            agoFrame.raiseException("lang.ClassCastException", "illegal cast from '%s' to '%s'".formatted(expectedClass.getFullname(), sampleClass.getFullname()));
-            return false;
-        }
-        return true;
     }
 
     public LangClasses getLangClasses() {

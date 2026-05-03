@@ -116,10 +116,11 @@ public class RestfulService {
                             }
                         }
                         var constructor = fun.getEmptyArgsConstructor();
-                        frame.invokeMethod(frame, frame.getRunSpace(),constructor);
+                        throw new UnsupportedOperationException("broken");
+                        //frame.invokeMethod(frame, frame.getRunSpace(),constructor);
 
-                        NativeInstance traitInstance = (NativeInstance) slots.getObject(traitField.getSlotIndex());
-                        traitInstance.setNativePayload(req);
+//                        NativeInstance traitInstance = (NativeInstance) slots.getObject(traitField.getSlotIndex());
+//                        traitInstance.setNativePayload(req);
 
                         //TODO remove DummyCallFrame
 //                        var waiter = new DummyCallFrame() {
@@ -144,8 +145,8 @@ public class RestfulService {
 //
 //                        frame.setCaller(waiter);
 //                        frame.setCreator(waiter);
-                        agoEngine.getRunSpace().fork(frame);
-                        return HttpResponse.of(completableFuture);
+//                        agoEngine.getRunSpace().fork(frame);
+//                        return HttpResponse.of(completableFuture);
                     }
                 });
             }

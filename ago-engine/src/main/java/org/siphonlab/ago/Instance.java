@@ -62,13 +62,20 @@ public class Instance<C extends AgoClass>  {
         return "Instance" + "@" + this.agoClass;
     }
 
-    public CompletableFuture<Object> invokeMethod(CallFrame<?> caller, AgoFunction method, Object... arguments) {
-        return invokeMethod(caller,caller.getRunSpace(),method, arguments);
-    }
-    public CompletableFuture<Object> invokeMethod(CallFrame<?> caller, RunSpace runSpace, AgoFunction method, Object... arguments){
+    public CompletableFuture<Object> invokeMethod(CallFrame<?> caller, int reenterState, AgoFunction method, Object... arguments){
+        var runSpace = caller.getRunSpace();
         CallFrame<?> callFrame = runSpace.getAgoEngine().createFunctionInstance(this, method, caller, caller);
-        callFrame.setCaller(caller);
-        callFrame.setRunSpace(runSpace);
+        var interframe = new WaitingReentrantFrame(caller, callFrame, reenterState);
+//        AgoParameter[] parameters = method.getParameters();
+//        for (int i = 0; i < parameters.length; i++) {
+//            AgoParameter parameter = parameters[i];
+//            switch (parameter.getTypeCode().value) {
+//                case TypeCode.INT_VALUE:
+//                    callFrame.getSlots().setInt(i, ((Number)arguments[i]).intValue());
+//                    break;
+//            }
+//        }
+
         for (int i = 0; i < arguments.length; i++) {
             Object argument = arguments[i];
             if(argument instanceof Integer integer) {
@@ -95,22 +102,8 @@ public class Instance<C extends AgoClass>  {
                 callFrame.getSlots().setObject(i, null);
             }
         }
-        runSpace.setCurrCallFrame(callFrame);
-        var future = new CompletableFuture<Object>();
-        callFrame.stateHandler = new CallFrameStateHandler<Object>() {
-            @Override
-            public boolean complete(Object result) {
-                future.complete(result);
-                return false;
-            }
-
-            @Override
-            public boolean fail(Throwable cause) {
-                future.completeExceptionally(cause);
-                return false;
-            }
-        };
-        return future;
+        runSpace.setCurrCallFrame(interframe);
+        return null;
     }
 
 //    public void run(Instance<?> instance, String functionName, Object... arguments) throws ClassNotFoundException {

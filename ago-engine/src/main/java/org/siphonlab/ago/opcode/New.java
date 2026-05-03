@@ -61,12 +61,12 @@ public class New {
     // new_scope(target), scope depth = 0, recursive invoke
     public static final int new_scope_v  = 0x04_ff_0b_01;
 
-    // new_dynamic(target, scoped class instance, args_array)
+    // new_dynamic(target, scoped class instance, args_tuple)
     // auto find constructor to match the args to create instance
     // if the class instance is an inner class (need scope) and no scope given, throw error
     public static final int new_dynamic_voa = 0x04_ff_09_03;
 
-    // new_dynamic(target, parent scope instance, method_simple_name, args_array)
+    // new_dynamic(target, parent scope instance, method_simple_name, args_tuple)
     // auto find method for the simple name that matches args
     public static final int new_scope_method_fix_voma = 0x04_ff_0a_04;
 
