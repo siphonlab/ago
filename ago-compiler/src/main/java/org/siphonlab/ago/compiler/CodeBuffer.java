@@ -868,7 +868,7 @@ public class CodeBuffer {
     }
 
     public void store_exception(SlotDef variableSlot) {
-        ls.addInt(TryCatch.except_store_v);
+        ls.addInt(TryCatch.except_accept_v);
         slot(variableSlot);
     }
 
