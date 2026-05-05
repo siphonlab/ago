@@ -222,34 +222,23 @@ public class TaskRunSpace extends SavableRunSpace {
 
         var curRunSpace = (TaskRunSpace) frame.getRunSpace();
 
-        // save runspace before fork
         try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
             conn.setAutoCommit(false);
+
+            var nextRunSpace = (TaskRunSpace) this.createChildRunSpace(null);
+            frame.setRunSpace(nextRunSpace);
+            logger.info("{} fork {} got {}", this, nextRunSpace, this.forkedSpaces.size());
+
             this.rdbAdapter.saveRunspaceWithTx(conn, curRunSpace);
-            this.rdbAdapter.saveWithConn(conn, frame);
-            conn.commit();
-        }
-        catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        var nextRunSpace = (TaskRunSpace) this.createChildRunSpace(null);
-        frame.setRunSpace(nextRunSpace);
-        logger.info("{} fork {} got {}", this, nextRunSpace, this.forkedSpaces.size());
-
-        // saving after fork
-        try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
-            conn.setAutoCommit(false);
-            this.rdbAdapter.saveRunspaceWithTx(conn, (TaskRunSpace) frame.getRunSpace());
             this.rdbAdapter.saveRunspaceWithTx(conn, nextRunSpace);
             this.rdbAdapter.saveWithConn(conn, frame);
             conn.commit();
+
+            nextRunSpace.start(frame);
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
-
-        nextRunSpace.start(frame);
     }
 
     @Override
