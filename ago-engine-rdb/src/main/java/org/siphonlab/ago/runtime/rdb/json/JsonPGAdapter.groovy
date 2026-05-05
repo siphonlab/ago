@@ -303,7 +303,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         }
     }
 
-    void saveAgoClass(AgoClass agoClass) {
+    void saveAgoClass(@Nonnull Connection conn, AgoClass agoClass) {
         var slots = agoClass.slots as JsonRefSlots;
         if(logger.isDebugEnabled()) logger.debug("INSERT CLASS " + slots.objectRef.id())
 
@@ -419,7 +419,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         return ["codeOffset": sourceMapEntry.codeOffset(), "sourceLocation": toMap(sourceMapEntry.sourceLocation())]
     }
 
-    void saveAgoFunction(AgoFunction agoFunction) {
+    void saveAgoFunction(@Nonnull Connection conn, AgoFunction agoFunction) {
         var slots = agoFunction.slots as JsonRefSlots;
         if (logger.isDebugEnabled()) logger.debug("INSERT Function " + slots.objectRef.id())
 
@@ -435,6 +435,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         m["native_function_entrance"] = agoFunction instanceof AgoNativeFunction? agoFunction.nativeEntrance : null
         m["native_function_result_slot"] = agoFunction instanceof AgoNativeFunction ? agoFunction.resultSlot : null
 
+        var sql = new Sql(conn);
         sql.executeInsert("INSERT INTO ago_function (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots, fullname, modifiers, super_class, " +
                         'interfaces, children, methods, parent, permit_class, parameterized_base_class, "name", fields, slotdefs, concrete_type_info, source_location, ' +
                         'variables,parameters,switch_tables,try_catch_items,source_map_entries, native_function_entrance, native_function_result_slot, has_slots_creator, code, result_type) ' +

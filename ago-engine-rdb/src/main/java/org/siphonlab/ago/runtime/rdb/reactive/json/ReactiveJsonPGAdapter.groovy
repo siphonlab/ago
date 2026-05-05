@@ -54,9 +54,9 @@ public class ReactiveJsonPGAdapter extends JsonPGAdapter {
         if (instance instanceof AgoFrame) {
             saveAgoFrame(conn, (AgoFrame) instance)
         } else if (instance instanceof AgoFunction) {
-            saveAgoFunction((AgoFunction) instance)
+            saveAgoFunction(conn, (AgoFunction) instance)
         } else if (instance instanceof AgoClass) {
-            saveAgoClass((AgoClass) instance)
+            saveAgoClass(conn, (AgoClass) instance)
         } else {
             saveAgoInstance(instance)
         }

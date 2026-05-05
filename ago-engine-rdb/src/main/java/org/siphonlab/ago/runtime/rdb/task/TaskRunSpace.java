@@ -216,11 +216,14 @@ public class TaskRunSpace extends SavableRunSpace {
         if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
             frame = objectRefCallFrame.expandFor(objectRefCallFrame);
         }
-        try {
-            var conn = this.rdbAdapter.getDataSource().getConnection();
+        try (var conn = this.rdbAdapter.getDataSource().getConnection();) {
             var runspace = (TaskRunSpace) this.createChildRunSpace(null);
             frame.setRunSpace(runspace);
-            this.rdbAdapter.saveInstance(null);
+            conn.setAutoCommit(false);
+            System.out.println("======");
+            System.out.println(frame);
+            this.rdbAdapter.saveWithConn(conn, frame);
+            conn.commit();
             // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
         }
         catch (SQLException e) {

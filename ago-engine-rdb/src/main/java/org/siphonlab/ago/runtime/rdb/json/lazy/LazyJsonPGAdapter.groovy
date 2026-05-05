@@ -146,9 +146,9 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
         } else if(instance instanceof NativeFrame){
             saveNativeFrame(conn, instance)
         } else if (instance instanceof AgoFunction) {
-            saveAgoFunction((AgoFunction) instance)
+            saveAgoFunction(conn, (AgoFunction) instance)
         } else if (instance instanceof AgoClass) {
-            saveAgoClass((AgoClass) instance)
+            saveAgoClass(conn, (AgoClass) instance)
         } else {
             saveAgoInstance(instance)
         }
