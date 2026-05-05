@@ -35,6 +35,7 @@ import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseCaller;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseRef;
 
 public class TaskRunSpace extends SavableRunSpace {
+    private final TaskAdapter rdbAdapter;
     private final static Logger logger = LoggerFactory.getLogger(TaskRunSpace.class);
 
     private static boolean isEntranceOrTask(CallFrame<?> frame) {
@@ -58,10 +59,12 @@ public class TaskRunSpace extends SavableRunSpace {
 
     public TaskRunSpace(RdbEngine agoEngine, TaskAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
         super(agoEngine, rdbAdapter, runSpaceHost);
+        this.rdbAdapter = rdbAdapter;
     }
 
     public TaskRunSpace(RdbEngine agoEngine, TaskAdapter rdbAdapter, RunSpaceHost runSpaceHost, long id) {
         super(agoEngine, rdbAdapter, runSpaceHost, id);
+        this.rdbAdapter = rdbAdapter;
     }
 
     HashSet<CallFrame<?>> callFrames = new HashSet<>();
@@ -216,19 +219,37 @@ public class TaskRunSpace extends SavableRunSpace {
         if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
             frame = objectRefCallFrame.expandFor(objectRefCallFrame);
         }
-        try (var conn = this.rdbAdapter.getDataSource().getConnection();) {
-            var runspace = (TaskRunSpace) this.createChildRunSpace(null);
-            frame.setRunSpace(runspace);
+
+        var curRunSpace = (TaskRunSpace) frame.getRunSpace();
+
+        // save runspace before fork
+        try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
             conn.setAutoCommit(false);
-            System.out.println("======");
-            System.out.println(frame);
+            this.rdbAdapter.saveRunspaceWithTx(conn, curRunSpace);
             this.rdbAdapter.saveWithConn(conn, frame);
             conn.commit();
-            // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
+
+        var nextRunSpace = (TaskRunSpace) this.createChildRunSpace(null);
+        frame.setRunSpace(nextRunSpace);
+        logger.info("{} fork {} got {}", this, nextRunSpace, this.forkedSpaces.size());
+
+        // saving after fork
+        try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
+            conn.setAutoCommit(false);
+            this.rdbAdapter.saveRunspaceWithTx(conn, (TaskRunSpace) frame.getRunSpace());
+            this.rdbAdapter.saveRunspaceWithTx(conn, nextRunSpace);
+            this.rdbAdapter.saveWithConn(conn, frame);
+            conn.commit();
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        nextRunSpace.start(frame);
     }
 
     @Override

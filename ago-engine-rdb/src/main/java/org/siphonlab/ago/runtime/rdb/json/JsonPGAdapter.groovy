@@ -562,7 +562,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 """);
     }
 
-    void updateRunSpace(SavableRunSpace runSpace){
+    void updateRunSpace(SavableRunSpace runSpace) {
         sql.executeUpdate(toUpdateMap(runSpace),
             """UPDATE ago_runspace
                 SET
@@ -597,7 +597,6 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         RdbEngine rdbEngine = this.classManager as RdbEngine
 
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
-        def x = currFrameRef?.className() ?: "_____"
         return [
                 "id"               : (Object) runSpace.id,
                 "curr_frame_table" : currFrameRef?.className(),
