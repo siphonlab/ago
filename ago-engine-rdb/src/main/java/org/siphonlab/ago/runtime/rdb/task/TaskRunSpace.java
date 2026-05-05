@@ -23,10 +23,8 @@ import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.Future;
 
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.*;
@@ -76,8 +74,7 @@ public class TaskRunSpace extends SavableRunSpace {
         }
 
         this.setRunningState(RunningState.RUNNING);
-        CallFrame<?> cf = null;
-        boolean saveAtEnd = false;
+        CallFrame<?> cf;
         while (this.currCallFrame != null && !RunningState.isPausingOrWaitingResult(this.getRunningState())) {
             cf = currCallFrame;
 
@@ -88,18 +85,8 @@ public class TaskRunSpace extends SavableRunSpace {
             }
 
             this.currCallFrame.run();
-
-            if(this.currCallFrame == null) {     // exited goto tryComplete
-                saveAtEnd = true;
-            }
         }
         tryComplete();
-        if(saveAtEnd && isRefCallFrame(cf)) {
-            // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, this.runningState));
-            // foldObjectRefFrame(cf);
-            // releaseCaller(cf);
-            // releaseRef(cf, Reason.CleanSlotsForCallFrameQuit);
-        }
     }
 
     static void runRealease(CallFrame<?> caller) {
@@ -269,8 +256,6 @@ public class TaskRunSpace extends SavableRunSpace {
         foldObjectRefFrame(callFrame);
         releaseCaller(callFrame);
         releaseRef(callFrame,Reason.CallFrameInterrupt);
-
-        // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(callFrame, RunningState.INTERRUPTED));
     }
 
     public void resumeByRestore() {
@@ -299,7 +284,6 @@ public class TaskRunSpace extends SavableRunSpace {
         if (isEntranceOrTask(cur)) {
             logger.debug("saving task instances {}", prev);
             this.save(prev);
-            // this.rdbAdapter.saveInstance(new CallFrameWithRunningState<>(prev, this.runningState));
             this.rdbAdapter.updateCallFrameRunningState(prev, prev.getRunSpace().getRunningState(), pc);
         }
     }
