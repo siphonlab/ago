@@ -43,6 +43,7 @@ public class Boxer {
     private final AgoClass FLOAT;
     private final AgoClass DOUBLE;
     private final AgoClass DECIMAL;
+    private final AgoClass NULL;
 
     private AgoEngine engine;
 
@@ -59,6 +60,7 @@ public class Boxer {
         this.FLOAT = langClasses.getFloatClass();
         this.DOUBLE = langClasses.getDoubleClass();
         this.DECIMAL = langClasses.getDecimalClass();
+        this.NULL = langClasses.getNullClass();
     }
 
     public boolean isNarrowBoxType(AgoClass agoClass){
@@ -162,7 +164,7 @@ public class Boxer {
     }
 
     public Instance<?> boxAny(AgoSlotDef slotDef, Slots slots, int slotIndex) {
-        switch (slotDef.getTypeCode().value){
+        switch (slotDef.getTypeCode().value) {
             case INT_VALUE:
                 return boxInt(slots.getInt(slotIndex));
             case LONG_VALUE:
@@ -212,7 +214,7 @@ public class Boxer {
             case CHAR_VALUE -> boxChar((Character) union);
             case OBJECT_VALUE -> (Instance<?>) union;
             case UNION_VALUE -> throw new IllegalArgumentException("nested union type not supported");
-            case NULL_VALUE -> null;
+            case NULL_VALUE -> boxNull();
             case CLASS_REF_VALUE -> boxClassRef((ClassRefValue) union);
             default -> throw new IllegalArgumentException("unsupported union type: " + union);
         };
@@ -392,5 +394,9 @@ public class Boxer {
 
     public Object unbox(Instance<?> instance){
         return boxTypes.unbox(engine,instance);
+    }
+
+    public Instance<?> boxNull() {
+        return new Instance<>(NULL.createSlots(), NULL);
     }
 }

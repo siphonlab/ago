@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 import static org.siphonlab.ago.AgoClass.NATIVE;
+import static org.siphonlab.ago.TypeCode.NULL;
 import static org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter.*;
 
 public class JsonAgoClassLoader extends AgoClassLoader {
@@ -223,10 +224,12 @@ public class JsonAgoClassLoader extends AgoClassLoader {
             }
             break;
         case AgoClass.TYPE_PRIMITIVE_CLASS:
-            agoClass = new AgoPrimitiveClass(this, metaClass, fullname, TypeCode.fromString(fullname).value);
-            break;
-        case AgoClass.TYPE_NULL:
-            agoClass = new AgoNullClass(this, metaClass);
+            TypeCode typeCode = TypeCode.fromString(fullname);
+            if(typeCode == NULL){
+                agoClass = new AgoNullClass(this, metaClass, typeCode.value);
+            } else {
+                agoClass = new AgoPrimitiveClass(this, metaClass, fullname, typeCode.value);
+            }
             break;
         default:
             throw new IllegalArgumentException("illegal type " + row.get("class_type"));

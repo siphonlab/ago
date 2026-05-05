@@ -37,5 +37,4 @@ final class decimal from PrimitiveNumber::(0x0d){}
 
 final class classref from Primitive::(12){}
 
-//final class null from Object{}          // type code should be 2, but must derived from Object
-// null created within classloader and compiler
+final class null from Primitive::(2){}

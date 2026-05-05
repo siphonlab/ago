@@ -69,24 +69,17 @@ public class AgoClassLoader implements ClassManager{
     public AgoClassLoader(MetaClass theMeta, SlotsCreatorFactory slotsCreatorFactory) {
         this.theMeta = theMeta;
         this.slotsCreatorFactory = slotsCreatorFactory;
-        this.initNullClass();
-    }
-
-    private void initNullClass() {
-        this.registerNewClass(new NullClassHeader(this));
     }
 
 
     public AgoClassLoader(SlotsCreatorFactory slotsCreatorFactory) {
         this.theMeta = MetaClass.createTheMeta(this);
         this.slotsCreatorFactory = slotsCreatorFactory;
-        this.initNullClass();
     }
 
     public AgoClassLoader() {
         this.theMeta = MetaClass.createTheMeta(this);
         this.slotsCreatorFactory = new DefaultSlotsCreatorFactory();
-        this.initNullClass();
     }
 
     public SlotsCreatorFactory getSlotsCreatorFactory() {

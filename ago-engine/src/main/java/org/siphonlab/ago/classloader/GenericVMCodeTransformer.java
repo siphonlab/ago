@@ -302,7 +302,7 @@ public class GenericVMCodeTransformer {
                 case New.OP:
                     isMethod = (instruction == New.new_method_voCm || instruction == New.new_cls_method_vCm
                             || instruction == New.new_scope_method_vcCm || instruction == New.new_scope_method_fix_vcCm
-                            || instruction == New.new_method_voIm || instruction == New.new_scope_method_fix_voma);
+                            || instruction == New.new_method_voIm);
                     break;
             }
 

@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 import static org.siphonlab.ago.AgoClass.*;
+import static org.siphonlab.ago.TypeCode.NULL;
 import static org.siphonlab.ago.TypeCode.OBJECT;
 import static org.siphonlab.ago.classloader.LoadingStage.*;
 
@@ -930,7 +931,11 @@ public class ClassHeader {
                 agoClass = new AgoClass(classLoader, metaClass, this.fullname, this.name);
                 break;
             case TYPE_PRIMITIVE_CLASS:
-                agoClass = new AgoPrimitiveClass(classLoader, metaClass, this.name, this.getTypeCode().value);
+                if(this.getTypeCode() == NULL){
+                    agoClass = new AgoNullClass(classLoader, metaClass, this.getTypeCode().value);
+                } else {
+                    agoClass = new AgoPrimitiveClass(classLoader, metaClass, this.name, this.getTypeCode().value);
+                }
                 break;
             case TYPE_ENUM:
                 var enumClass = new AgoEnum(classLoader, metaClass, this.fullname, this.name);
@@ -952,9 +957,6 @@ public class ClassHeader {
                 } else {
                     agoClass = new AgoFunction(classLoader, metaClass, this.fullname, this.name);
                 }
-                break;
-            case TYPE_NULL:
-                agoClass = new AgoNullClass(classLoader, metaClass);
                 break;
             default:
                 throw new UnsupportedOperationException();

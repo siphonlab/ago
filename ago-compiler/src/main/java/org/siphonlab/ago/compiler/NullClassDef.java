@@ -20,11 +20,10 @@ import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 
-public class NullClassDef extends ClassDef {
+public class NullClassDef extends PrimitiveClassDef {
 
     public NullClassDef(Root root) {
-        super(root, "null");
-        this.compilingStage = CompilingStage.Compiled;
+        super(root, TypeCode.NULL);
     }
 
 
@@ -38,24 +37,4 @@ public class NullClassDef extends ClassDef {
         return null;
     }
 
-    @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
-        return false;
-    }
-
-    @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
-        return this;
-    }
-
-    @Override
-    public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) {
-        if(returnExisted!=null) returnExisted.setTrue();
-        return this;
-    }
-
-    @Override
-    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        return instantiate(arguments, returnExisted);
-    }
 }

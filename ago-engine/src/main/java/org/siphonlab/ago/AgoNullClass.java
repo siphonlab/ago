@@ -17,11 +17,10 @@ package org.siphonlab.ago;
 
 import org.siphonlab.ago.classloader.AgoClassLoader;
 
-public class AgoNullClass extends AgoClass{
+public class AgoNullClass extends AgoPrimitiveClass{
 
-    public AgoNullClass(AgoClassLoader classLoader, MetaClass meta) {
-        super(classLoader, meta, "null", "null");
-        this.type = TYPE_NULL;
+    public AgoNullClass(AgoClassLoader classLoader, MetaClass meta, int typeCode) {
+        super(classLoader, meta, "null", typeCode);
     }
 
     public TypeCode getTypeCode() {
