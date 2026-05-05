@@ -46,6 +46,7 @@ import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.annotation.Nonnull
 import javax.sql.DataSource
 import java.sql.Connection
 import java.sql.SQLException
@@ -154,7 +155,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 ////        }
 //    }
 
-    void saveAgoFrame(AgoFrame agoFrame) {
+    void saveAgoFrame(@Nonnull Connection conn, AgoFrame agoFrame) {
         var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
@@ -178,6 +179,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
         ]
 
+        var sql = new Sql(conn);
         sql.executeInsert("""
             INSERT INTO ago_frame
                 (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, 
@@ -188,7 +190,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     }
 
-    void saveNativeFrame(NativeFrame agoFrame) {
+    void saveNativeFrame(@Nonnull Connection conn, NativeFrame agoFrame) {
         var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
@@ -210,6 +212,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
         ]
 
+        var sql = new Sql(conn);
         sql.executeInsert("""INSERT INTO ago_frame
                 (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, 
                  caller_id, caller_class, pc, state, suspended, exception_id, exception_class, runspace, slots)

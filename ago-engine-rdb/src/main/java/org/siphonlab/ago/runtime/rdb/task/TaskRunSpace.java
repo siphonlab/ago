@@ -23,6 +23,7 @@ import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -214,9 +215,17 @@ public class TaskRunSpace extends SavableRunSpace {
     public void fork(CallFrame<?> frame) {
         if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
             frame = objectRefCallFrame.expandFor(objectRefCallFrame);
-        }   // for ExpandableCallFrame, let's move on
-        super.fork(frame);
-        // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
+        }
+        try {
+            var conn = this.rdbAdapter.getDataSource().getConnection();
+            var runspace = (TaskRunSpace) this.createChildRunSpace(null);
+            frame.setRunSpace(runspace);
+            this.rdbAdapter.saveInstance(null);
+            // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

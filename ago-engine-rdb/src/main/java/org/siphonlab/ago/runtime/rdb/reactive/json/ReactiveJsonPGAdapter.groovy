@@ -25,6 +25,9 @@ import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.reactive.SlotsAdapter
 import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter
 
+import javax.annotation.Nonnull
+import java.sql.Connection
+
 @CompileStatic
 public class ReactiveJsonPGAdapter extends JsonPGAdapter {
 
@@ -42,14 +45,14 @@ public class ReactiveJsonPGAdapter extends JsonPGAdapter {
     }
 
     @Override
-    protected void insert(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
+    protected void insert(@Nonnull Connection conn, Instance < ? > instance, RdbSlots rdbSlots, AgoClass agoClass) {
         ReactiveJsonRefSlots jsonRefSlots = rdbSlots as ReactiveJsonRefSlots;
         if (jsonRefSlots.isSaved())
             return
 
         // it's new created instance
         if (instance instanceof AgoFrame) {
-            saveAgoFrame((AgoFrame) instance)
+            saveAgoFrame(conn, (AgoFrame) instance)
         } else if (instance instanceof AgoFunction) {
             saveAgoFunction((AgoFunction) instance)
         } else if (instance instanceof AgoClass) {

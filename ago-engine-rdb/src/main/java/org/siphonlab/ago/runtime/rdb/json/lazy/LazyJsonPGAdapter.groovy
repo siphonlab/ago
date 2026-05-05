@@ -15,20 +15,19 @@
  */
 package org.siphonlab.ago.runtime.rdb.json.lazy
 
-import groovy.json.JsonSlurper;
+import groovy.json.JsonSlurper
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import org.agrona.concurrent.IdGenerator
 import org.apache.commons.lang3.mutable.MutableObject
-import org.postgresql.util.PGobject;
+import org.postgresql.util.PGobject
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.native_.NativeInstance
 import org.siphonlab.ago.runtime.AgoArrayInstance
-import org.siphonlab.ago.runtime.rdb.CallFrameWithRunningState;
+import org.siphonlab.ago.runtime.rdb.CallFrameWithRunningState
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
-import org.siphonlab.ago.runtime.rdb.RdbRunSpace
 import org.siphonlab.ago.runtime.rdb.RdbSlots
 import org.siphonlab.ago.runtime.rdb.ReferenceCounter
 import org.siphonlab.ago.runtime.rdb.RowState
@@ -43,8 +42,9 @@ import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots
 import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter
 import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine
 import org.slf4j.Logger
-import org.slf4j.LoggerFactory;
+import org.slf4j.LoggerFactory
 
+import javax.annotation.Nonnull
 import java.sql.Connection
 import java.util.concurrent.ConcurrentHashMap
 
@@ -60,7 +60,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     @Override
-    public Instance restoreInstance(Connection connection, ObjectRef objectRef) {
+    Instance restoreInstance(Connection connection, ObjectRef objectRef) {
         return restoreInstance(objectRef)
     }
 
@@ -107,7 +107,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     @Override
-    protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved) {
+    protected void saveInstance(@Nonnull Connection conn, Instance<?> instance, Set<Instance<?>> saved) {
         if (boxTypes.isBoxType((AgoClass)instance.getAgoClass()) || instance instanceof AgoArrayInstance)
             return;
 
@@ -115,36 +115,36 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             if(instance.getDeferencedInstance() != null){
                 var d = instance.getDeferencedInstance()
                 if(!saved.contains(d)) {
-                    saveInstance(d, saved)
+                    saveInstance(conn, d, saved)
                 }
             }
             return;     // for folded Instance, it must be already saved or never touch its Slots, needn't save
         } else if(instance instanceof ExpandableObject){
             if(instance.isExpanded()){
                 saved.add((Instance) instance);
-                saveInstance(instance.getExpandedInstance(), saved)
+                saveInstance(conn, instance.getExpandedInstance(), saved)
             }
             return      // ignore folded Instance
         }
         if(logger.isDebugEnabled()) logger.debug("save instance " + instance)
-        super.saveInstance(instance, saved)
+        super.saveInstance(conn, instance, saved)
         if(instance instanceof DeferenceObject){
             if(instance.isSaveRequired()){
                 if(instance instanceof CallFrame) {
                     updateCallFrameRunningState(instance, (byte) -1)
                 } else {
-                    this.update((Instance)instance, (RdbSlots)null, instance.getAgoClass() as AgoClass);
+                    this.update(conn, (Instance)instance, (RdbSlots)null, instance.getAgoClass() as AgoClass);
                 }
             }
         }
     }
 
     @Override
-    void insert(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
+    void insert(@Nonnull Connection conn, Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
         if (instance instanceof AgoFrame) {
-            saveAgoFrame(instance)
+            saveAgoFrame(conn, instance)
         } else if(instance instanceof NativeFrame){
-            saveNativeFrame(instance)
+            saveNativeFrame(conn, instance)
         } else if (instance instanceof AgoFunction) {
             saveAgoFunction((AgoFunction) instance)
         } else if (instance instanceof AgoClass) {
@@ -159,7 +159,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     }
 
     @Override
-    void update(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
+    void update(@Nonnull Connection conn, Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
         if (instance instanceof CallFrameWithRunningState) {
             updateCallFrameRunningState(instance.unwrap(), instance.getRunningState());
             return
@@ -215,7 +215,8 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             instance.markSaved()
         }
 
-        this.sql.executeUpdate(arguments, sql)
+        var sqlx = new Sql(conn);
+        sqlx.executeUpdate(arguments, sql)
 
     }
 
