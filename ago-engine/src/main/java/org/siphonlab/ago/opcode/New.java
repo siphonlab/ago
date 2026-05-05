@@ -61,13 +61,6 @@ public class New {
     // new_scope(target), scope depth = 0, recursive invoke
     public static final int new_scope_v  = 0x04_ff_0b_01;
 
-    // new_dynamic(target, scoped class instance, args_tuple)
-    // auto find constructor to match the args to create instance
-    //      for Function, there is no constructor need to invoke(function invoke its constructor in method body)
-    // if the class instance is an inner class (need scope) and no scope given, throw error
-    public static final int new_dynamic_voa = 0x04_ff_09_03;
-    public static final int new_dynamic_vo  = 0x04_ff_09_02;
-
     // invoke method of interface. from I.method -> Instance.C.implemented[interface id][method id in interface-> method id in class]
     public static final int new_method_voIm = 0x04_ff_0c_04;
 
@@ -87,8 +80,6 @@ public class New {
             case 0x04_ff_06_03 -> "new_scope_child_vcC";
             case 0x04_ff_07_04 -> "new_scope_method_vcCm";
             case 0x04_ff_08_02 -> "new_vo";
-            case new_dynamic_voa -> "new_dynamic_voa";
-            case new_dynamic_vo -> "new_dynamic_vo";
             case 0x04_ff_0b_04 -> "new_scope_method_fix_vcCm";
             case 0x04_ff_0c_04 -> "new_method_voIm";
             case new_scope_vc -> "new_scope_vc";

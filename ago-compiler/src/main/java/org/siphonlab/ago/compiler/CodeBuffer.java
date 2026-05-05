@@ -317,14 +317,14 @@ public class CodeBuffer {
      * @param argumentsTuple
      */
     public void new_dynamic(SlotDef target, SlotDef scopeBoundClass, SlotDef argumentsTuple){
-        ls.addInt(New.new_dynamic_voa);
+        ls.addInt(Dynamic.new_dynamic_voa);
         slot(target);
         slot(scopeBoundClass);
         slot(argumentsTuple);
     }
 
     public void new_dynamic(SlotDef target, SlotDef scopeBoundClass){
-        ls.addInt(New.new_dynamic_vo);
+        ls.addInt(Dynamic.new_dynamic_vo);
         slot(target);
         slot(scopeBoundClass);
     }

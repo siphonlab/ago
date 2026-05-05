@@ -1641,6 +1641,17 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 slots.setObject(code[pc++], frame);
                 break;
             }
+            case Dynamic.new_dynamic_vo: {
+                System.out.println(1);
+                break;
+            }
+            case Dynamic.new_dynamic_voa: {
+                var dest = code[pc++];
+                var instance = createDynamicInstance(self, slots.getObject(code[pc++]), slots.getObject(code[pc++]));
+                if(instance == null) return -1;
+                slots.setObject(dest, instance);
+                break;
+            }
         }
         return pc;
     }
@@ -1716,6 +1727,42 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             raiseException(self, "lang.ClassCastException", "'%s' is not a function".formatted(agoClass.getFullname()));
             return null;
         }
+    }
+
+    private Instance<?> createDynamicInstance(CallFrame<?> self, Instance<?> creator, Instance<?> tupleArguments){
+        Instance<?> instance;
+        AgoClass agoClass = creator.getAgoClass();
+        if(engine.getLangClasses().getScopedClassIntervalClass().isThatOrSuperOfThat(agoClass)) {
+            instance = engine.createInstanceFromScopedClassInterval(creator, self);
+        } else if(creator instanceof AgoFunction f){
+            instance = engine.createInstanceFromScopedClass(f, self, getRunSpace());
+        } else {
+            raiseException(self, "lang.ClassCastException", "'%s' is not a function".formatted(agoClass.getFullname()));
+            return null;
+        }
+        if(!instance.getAgoClass().isFunction()){
+            throw new UnsupportedOperationException("need to find out the constructor match arguments");
+        }
+        var argSlots = tupleArguments.getSlots();
+        for (AgoSlotDef slotDef : tupleArguments.getAgoClass().getSlotDefs()) {
+            int index = slotDef.getIndex();
+            switch (slotDef.getTypeCode().value){
+                case INT_VALUE: instance.getSlots().setInt(index, argSlots.getInt(index)); break;
+                case LONG_VALUE: instance.getSlots().setLong(index, argSlots.getLong(index)); break;
+                case DOUBLE_VALUE: instance.getSlots().setDouble(index, argSlots.getDouble(index)); break;
+                case DECIMAL_VALUE: instance.getSlots().setDecimal(index, argSlots.getDecimal(index)); break;
+                case BOOLEAN_VALUE: instance.getSlots().setBoolean(index, argSlots.getBoolean(index)); break;
+                case STRING_VALUE: instance.getSlots().setString(index, argSlots.getString(index)); break;
+                case CHAR_VALUE: instance.getSlots().setChar(index, argSlots.getChar(index)); break;
+                case SHORT_VALUE: instance.getSlots().setShort(index, argSlots.getShort(index)); break;
+                case BYTE_VALUE: instance.getSlots().setByte(index, argSlots.getByte(index)); break;
+                case FLOAT_VALUE: instance.getSlots().setFloat(index, argSlots.getFloat(index)); break;
+                case CLASS_REF_VALUE: instance.getSlots().setClassRef(index, argSlots.getClassRef(index)); break;
+                case OBJECT_VALUE: instance.getSlots().setObject(index, argSlots.getObject(index)); break;
+                case UNION_VALUE: instance.getSlots().setUnion(index, argSlots.getUnion(index)); break;
+            }
+        }
+        return instance;
     }
 
     protected int evaluateCast(CallFrame<?> self, Slots slots, int pc, int instruction){

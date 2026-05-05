@@ -46,9 +46,10 @@ fun main(){
     var s = 'bark';
     a[s]()
 
-//    var c = new Calc();
-//    var r as int = c['add'](1, 2)
-//    Trace.print(r);
+    var c = new Calc();
+    s = 'add';
+    var r as int = c[s](1, 2)
+    Trace.print(r);
 //    var s as Object = new Staff();
 //    Trace.print('name' in s)
 //    Trace.print('age' in s)
