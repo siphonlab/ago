@@ -39,6 +39,12 @@ public class Invoke {
 
     public static final int awaitc_vo = 0x05_00_08_02;
 
+    // invoke a non-args function or a call frame
+    public static final int invoke_dynamic_vo = 0x05000902;
+
+    // invoke async(callframe/non-args fun, invoke mode, fork context)
+    public static final int invoke_dynamic_vocv = 0x05000904;
+
     public static String getName(int code) {
         return switch (code) {
             case invoke_v -> "invoke_v";
@@ -54,6 +60,9 @@ public class Invoke {
              case spawnc_vo -> "spawnc_vo";
              case spawnc_vvo -> "spawnc_vvo";
              case awaitc_vo -> "awaitc_vo";
+
+             case invoke_dynamic_vo -> "invoke_dynamic_vo";
+             case invoke_dynamic_vocv -> "invoke_dynamic_vocv";
 
             default -> throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
         };

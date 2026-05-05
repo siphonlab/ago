@@ -45,8 +45,7 @@ public class NewGeneric {
     public static final int newg_scope_child_vcC = 0x14_01_06_03;
     public static final int newg_scope_method_vcCm = 0x14_01_07_04;
     public static final int newg_scope_method_fix_vcCm = 0x14_01_0b_04;
-    public static final int newg_dynamic_voa = 0x14_01_09_03;
-    public static final int newg_scope_method_fix_voma = 0x14_01_0a_04;
+
     // method in trait-within-scope
     public static final int newg_method_voTm = 0x14_01_0c_04;
 

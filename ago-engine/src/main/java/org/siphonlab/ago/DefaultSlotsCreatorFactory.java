@@ -67,7 +67,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
                 var caseSlot = cases.get(i);
                 casesInts[i] = caseSlot.getIndex();
             }
-            if(typeCode != VOID) {
+            if(typeCode != VOID && typeCode != NULL) {
                 MethodMaker getter = clsCM.addMethod(typeOf(typeCode), "get" + slotFunctionName(typeCode), int.class).public_().override();
                 Label defaultBranch = getter.label();
                 Label[] entrances = new Label[cases.size()];
@@ -84,7 +84,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
                 }
             }
 
-            if (typeCode != VOID) {
+            if (typeCode != VOID && typeCode != NULL) {
                 MethodMaker setter = clsCM.addMethod(void.class, "set" + slotFunctionName(typeCode), int.class, typeOf(typeCode)).public_().override();
                 Label defaultBranch = setter.label();
                 Label[] entrances = new Label[cases.size()];
@@ -216,7 +216,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
             case LONG_VALUE -> long.class;
             case OBJECT_VALUE -> Instance.class;
             case UNION_VALUE -> Object.class;
-            case NULL_VALUE -> null;
+            case NULL_VALUE -> Object.class;
             case STRING_VALUE -> String.class;
             case CLASS_REF_VALUE -> int.class;
             default -> throw new IllegalStateException("Unexpected value: " + typeCode);

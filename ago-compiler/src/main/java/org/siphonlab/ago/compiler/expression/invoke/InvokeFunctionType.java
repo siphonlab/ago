@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.apache.commons.lang3.StringUtils.join;
+import static org.siphonlab.ago.compiler.expression.invoke.Invoke.invokeCallFrame;
 
 // for `var v as [SomeFunction] = f; f()`, the expression is scopedFunctionExpr
 public class InvokeFunctionType extends ExpressionInFunctionBody {
@@ -109,38 +110,9 @@ public class InvokeFunctionType extends ExpressionInFunctionBody {
             blockCompiler.lockRegister(localVar);
 
             var instance = prepareInvocation(blockCompiler);
-            blockCompiler.lockRegister(instance);
 
-            Var.LocalVar forkContextVar = null;
-            if(forkContext != null){
-                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
-            }
+            invokeCallFrame(blockCompiler, invokeMode, instance, localVar, forkContext);
 
-            if (invokeMode.isAsync()) {
-                if(forkContext != null){
-                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot(), forkContextVar.getVariableSlot());
-                } else {
-                    blockCompiler.getCode().invokeAsync(invokeMode, instance.getVariableSlot(), localVar.getVariableSlot());
-                }
-            } else {
-                if(invokeMode == Invoke.InvokeMode.Await && forkContext != null){
-                    blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
-                } else {
-                    blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
-                }
-
-                if (localVar.getVariableSlot().getTypeCode() == TypeCode.OBJECT
-                        && localVar.getVariableSlot().getClassDef() == blockCompiler.getFunctionDef().getRoot().getAnyClass()) {
-                    blockCompiler.getCode().acceptAny(localVar.getVariableSlot());
-                } else {
-                    blockCompiler.getCode().accept(localVar.getVariableSlot());
-                }
-            }
-            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
-                // release the register after invoke if it's a temp var
-                ownerFunction.assign(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
-            }
-            blockCompiler.releaseRegister(instance);
             blockCompiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
@@ -156,25 +128,9 @@ public class InvokeFunctionType extends ExpressionInFunctionBody {
             blockCompiler.enter(this);
 
             var instance = prepareInvocation(blockCompiler);
-            blockCompiler.lockRegister(instance);
 
-            Var.LocalVar forkContextVar = null;
-            if(forkContext != null){
-                forkContextVar = (Var.LocalVar) this.forkContext.visit(blockCompiler);
-            }
+            invokeCallFrame(blockCompiler, invokeMode, instance, forkContext);
 
-            if(forkContext != null){
-                blockCompiler.getCode().invokeAsyncViaContext(invokeMode, instance.getVariableSlot(), forkContextVar.getVariableSlot());
-            } else {
-                blockCompiler.getCode().invoke(invokeMode, instance.getVariableSlot());
-            }
-
-            if (instance.varMode == Var.LocalVar.VarMode.Temp) {
-                // release the register after invoke if it's a temp var
-                ownerFunction.assign(instance, new NullLiteral(accordingFunction)).termVisit(blockCompiler);
-            }
-
-            blockCompiler.releaseRegister(instance);
         } catch (CompilationError e) {
             throw e;
         } finally {

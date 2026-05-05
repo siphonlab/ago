@@ -323,20 +323,12 @@ public class CodeBuffer {
         slot(argumentsTuple);
     }
 
-    /**
-     * auto find method for the simple name that matches args
-     * @param target
-     * @param parentScopeInstance
-     * @param methodSimpleNameStr  the string of method simple name, not index in `ClassInstance.methods`
-     * @param argumentsTuple
-     */
-    public void new_dynamic_method(SlotDef target, SlotDef parentScopeInstance, int methodSimpleNameStr, SlotDef argumentsTuple){
-        ls.addInt(New.new_scope_method_fix_voma);
+    public void new_dynamic(SlotDef target, SlotDef scopeBoundClass){
+        ls.addInt(New.new_dynamic_vo);
         slot(target);
-        slot(parentScopeInstance);
-        ls.addInt(methodSimpleNameStr);
-        slot(argumentsTuple);
+        slot(scopeBoundClass);
     }
+
 
     public void assignLiteral(SlotDef targetSlot, Literal<?> value) {
         TypeCode typeCode = targetSlot.getTypeCode();
@@ -968,6 +960,49 @@ public class CodeBuffer {
         slot(target);
         slot(left);
         slot(right);
+    }
+
+    public void getDynamicMember(SlotDef target, SlotDef instance, SlotDef memberString) {
+        ls.addInt(Dynamic.get_member_vov);
+        slot(target);
+        slot(instance);
+        slot(memberString);
+    }
+
+    public void setDynamicMember(SlotDef instance, SlotDef memberString, SlotDef value) {
+        ls.addInt(Dynamic.set_member_vov);
+        slot(instance);
+        slot(memberString);
+        slot(value);
+    }
+
+    public void dynamicInvoke(SlotDef target, SlotDef functorSlot) {
+        ls.addInt(Invoke.invoke_dynamic_vo);
+        slot(target);
+        slot(functorSlot);
+    }
+
+    public void dynamicInvokeAsync(SlotDef target, SlotDef functorSlot, InvokeMode invokeMode, SlotDef forkContext) {
+        ls.addInt(Invoke.invoke_dynamic_vocv);
+        slot(target);
+        slot(functorSlot);
+        var op = switch (invokeMode){
+            case Spawn -> 1;
+            case Fork -> 2;
+            case Await -> 3;
+            default -> throw new IllegalStateException("Unexpected value: " + invokeMode);
+        };
+        ls.addInt(op);
+        if(forkContext != null) {
+            slot(forkContext);
+        } else {
+            ls.addInt(-1);
+        }
+    }
+
+    public void validateInvocable(SlotDef dynamicSlot) {
+        ls.addInt(Dynamic.validate_invocable_v);
+        slot(dynamicSlot);
     }
 
     private static class SizeVerifier{

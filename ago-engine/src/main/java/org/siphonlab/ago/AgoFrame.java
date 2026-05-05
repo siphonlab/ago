@@ -149,6 +149,11 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case BitUnsignedRight.OP: pc = evaluateBitURShift(slots, pc, instruction); break;
                 case InstanceOf.OP: pc = evaluateInstanceOf(slots, pc, instruction); break;
                 case UnionInstanceOf.OP: pc = evaluateUnionInstanceOf(slots, pc, instruction); break;
+                case Dynamic.OP: {
+                    var p = evaluateDynamic(self, slots, pc, instruction);
+                    if(p != -1) pc = p; else return;
+                    break;
+                }
                 default:
                     throw new UnsupportedOperationException("%s not implemented yet, at '%s'".formatted(OpCode.getName(instruction), this));
             }
@@ -1614,6 +1619,103 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Const.const_fld_S_ovc: slots.getObject(code[pc++]).getSlots().setString(code[pc++], engine.toString(code[pc++])); break;
         }
         return pc;
+    }
+
+    protected int evaluateDynamic(CallFrame<?> self, Slots slots, int pc, int instruction) {
+        switch (instruction) {
+            case Dynamic.get_member_vov:{
+                var dest = code[pc++];
+                var member = readMember(self, slots.getObject(code[pc++]), slots.getString(code[pc++]));
+                if(member == null) return -1;
+                slots.setObject(dest, member);
+                break;
+            }
+            case Dynamic.set_member_vov:{
+                System.out.println(1);
+                break;
+            }
+            case Dynamic.validate_invocable_v:{
+                var obj = slots.getObject(code[pc]);
+                var frame = createOrGetDynamicCallFrame(self, obj);
+                if(frame == null) return -1;
+                slots.setObject(code[pc++], frame);
+                break;
+            }
+        }
+        return pc;
+    }
+
+    private Instance<?> readMember(CallFrame<?> self, Instance<?> object, String memberName){
+        AgoClass agoClass = object.getAgoClass();
+        String possibleError = null;
+        var fld = agoClass.findField(memberName);
+        if(fld != null){
+            if(Modifier.isPublic(fld.getModifiers())) {
+                switch (fld.getTypeCode().value) {
+                    case INT_VALUE: return engine.getBoxer().boxInt(object.getSlots().getInt(fld.getSlotIndex()));
+                    case LONG_VALUE: return engine.getBoxer().boxLong(object.getSlots().getLong(fld.getSlotIndex()));
+                    case DOUBLE_VALUE: return engine.getBoxer().boxDouble(object.getSlots().getDouble(fld.getSlotIndex()));
+                    case DECIMAL_VALUE: return engine.getBoxer().boxDecimal(object.getSlots().getDecimal(fld.getSlotIndex()));
+                    case BOOLEAN_VALUE: return engine.getBoxer().boxBoolean(object.getSlots().getBoolean(fld.getSlotIndex()));
+                    case STRING_VALUE: return engine.getBoxer().boxString(object.getSlots().getString(fld.getSlotIndex()));
+                    case CHAR_VALUE: return engine.getBoxer().boxChar(object.getSlots().getChar(fld.getSlotIndex()));
+                    case SHORT_VALUE: return engine.getBoxer().boxShort(object.getSlots().getShort(fld.getSlotIndex()));
+                    case BYTE_VALUE: return engine.getBoxer().boxByte(object.getSlots().getByte(fld.getSlotIndex()));
+                    case FLOAT_VALUE: return engine.getBoxer().boxFloat(object.getSlots().getFloat(fld.getSlotIndex()));
+                    case CLASS_REF_VALUE: return engine.getBoxer().boxClassRef(object.getSlots().getClassRef(fld.getSlotIndex()));
+                    case OBJECT_VALUE: return object.getSlots().getObject(fld.getSlotIndex());
+                    case UNION_VALUE: {
+                        return engine.getBoxer().unionToObject(object.getSlots().getUnion(fld.getSlotIndex()));
+                    }
+                }
+            } else {
+                possibleError = "field '%s' is not visible for '%s'".formatted(fld.getName(), getAgoClass().getFullname());
+            }
+        }
+        AgoFunction method;
+        if(memberName.contains("#")){
+            method = agoClass.findMethod(memberName);
+        } else {
+            method = agoClass.findMethod(memberName + '#');
+            if(method == null){
+                method = agoClass.findMethod(memberName + "#get");
+            }
+        }
+        if(method != null){     // TODO maybe visible to current frame
+            if(Modifier.isPublic(method.getModifiers())) {
+                return engine.createScopedClass(this, method.getClassId(), object);     // to create ScopedClassInterval need a parameterized ClassInterval class
+            } else {
+                possibleError = "method '%s' is not visible for '%s'".formatted(method.getName(), getAgoClass().getFullname());
+            }
+        }
+        var child = agoClass.findChild(memberName);
+        if(child != null){
+            if(Modifier.isPublic(child.getModifiers())) {
+                return engine.createScopedClass(this, child.getClassId(), object);
+            } else {
+                possibleError = "class '%s' is not visible for '%s'".formatted(child.getName(), getAgoClass().getFullname());
+            }
+        }
+        if(possibleError != null){
+            raiseException(self, "lang.IllegalAccessException", possibleError);
+        } else {
+            raiseException(self, "lang.NoSuchMemberException", "'%s' not found in '%s'".formatted(memberName, agoClass.getFullname()));
+        }
+        return null;
+    }
+
+    private CallFrame<?> createOrGetDynamicCallFrame(CallFrame<?> self, Instance<?> obj){
+        if(obj instanceof CallFrame<?> f) return f;
+
+        AgoClass agoClass = obj.getAgoClass();
+        if(engine.getLangClasses().getScopedClassIntervalClass().isThatOrSuperOfThat(agoClass)) {
+            return (CallFrame<?>) engine.createInstanceFromScopedClassInterval(obj, self);
+        } else if(obj instanceof AgoFunction f){
+            return (CallFrame<?>) engine.createInstanceFromScopedClass(f, self, getRunSpace());
+        } else {
+            raiseException(self, "lang.ClassCastException", "'%s' is not a function".formatted(agoClass.getFullname()));
+            return null;
+        }
     }
 
     protected int evaluateCast(CallFrame<?> self, Slots slots, int pc, int instruction){

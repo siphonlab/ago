@@ -1,0 +1,61 @@
+class Animal{
+    metaclass{
+        fun foo(){
+            Trace.print("Animal.foo")
+        }
+    }
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    metaclass{
+        override foo(){
+            Trace.print("Cat.foo")
+        }
+    }
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Calc{
+    fun add(a as int, b as int) as int{
+        return a + b
+    }
+    fun subtract(a as int, b as int) as int{
+        return a - b
+    }
+}
+
+class Staff{
+    public name as string;
+    age as int {public get; private set;}
+
+    fun work(title as string, duration as int){
+        Trace.print($"name: ${name} do ${title}, duration ${duration}"$)
+    }
+}
+
+fun main(){
+    var a as Animal = new Cat();
+    var s = 'bark';
+    a[s]()
+
+//    var c = new Calc();
+//    var r as int = c['add'](1, 2)
+//    Trace.print(r);
+//    var s as Object = new Staff();
+//    Trace.print('name' in s)
+//    Trace.print('age' in s)
+//
+//    s['name'] = 'John'
+//    s['age'] = 20
+//    Trace.print(s['name'])
+//    Trace.print(s['age'])
+//    s['work']('coding', 20)
+}
