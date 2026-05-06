@@ -168,9 +168,7 @@ public class TaskRunSpace extends SavableRunSpace {
 
     @Override
     public RunSpace createChildRunSpace(ForkContext forkContext) {
-        var r = super.createChildRunSpace(forkContext);
-        rdbAdapter.updateRunSpace(this);        // add forkedRunSpace
-        return r;
+        return super.createChildRunSpace(forkContext);
     }
 
     @Override
@@ -216,7 +214,7 @@ public class TaskRunSpace extends SavableRunSpace {
 
     @Override
     public void fork(CallFrame<?> frame, ForkContext forkContext) {
-        if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
+        if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame) {
             frame = objectRefCallFrame.expandFor(objectRefCallFrame);
         }
 
@@ -236,13 +234,17 @@ public class TaskRunSpace extends SavableRunSpace {
             this.rdbAdapter.saveRunspaceWithTx(conn, curRunSpace);
             this.rdbAdapter.saveRunspaceWithTx(conn, nextRunSpace);
             this.rdbAdapter.saveWithConn(conn, frame);
+            this.rdbAdapter.updateCallFrameRunningState(
+                    conn,
+                    frame.getCaller(),
+                    curRunSpace.runningState);
             conn.commit();
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
 
-        nextRunSpace.start(frame);
+        nextRunSpace.start(new AsyncEntranceCallFrame<>(frame));
     }
 
     @Override
@@ -308,9 +310,14 @@ public class TaskRunSpace extends SavableRunSpace {
             return ;
         }
         if (isEntranceOrTask(cur)) {
-            logger.debug("saving task instances {}", prev);
-            this.save(prev);
-            this.rdbAdapter.updateCallFrameRunningState(prev, prev.getRunSpace().getRunningState(), pc);
+            try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
+                logger.debug("saving task instances {}", prev);
+                this.save(prev);
+                this.rdbAdapter.updateCallFrameRunningState(conn, prev, prev.getRunSpace().getRunningState(), pc);
+            }
+            catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }

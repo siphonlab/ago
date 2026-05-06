@@ -8,7 +8,9 @@ fun nosave(n as int) as string {
     return "String: " + n;
 }
 
-fun runf() {}
+fun runf() {
+    Trace.print("~~~hello running~~~");
+}
 
 fun main() {
     var n = 10;
@@ -16,12 +18,13 @@ fun main() {
     var x = save(n);
     Trace.print(x);
 
-    fork save(n);
+    fork runf();
+    fail();
 
     var s = nosave(x);
     Trace.print(s);
 
-    fail();
+    // fail();
 
     var y = save(x);
     Trace.print(y);

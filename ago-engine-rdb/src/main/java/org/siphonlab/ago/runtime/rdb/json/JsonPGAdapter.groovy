@@ -220,7 +220,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                     :caller_id, :caller_class, :pc, :state, :suspended, :exception_id, :exception_class, :runspace, :slots)""", params)
     }
 
-    def updateRow(String table, Map<String, Object> data, String pkName = 'id') {
+    def updateRow(@Nonnull Connection conn, String table, Map<String, Object> data, String pkName = 'id') {
         def pkValue = data[pkName]
         if (pkValue == null)
             throw new IllegalArgumentException("Missing primary key '${pkName}'")
@@ -232,12 +232,13 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         def setClause = columns.collect { k, v -> "$k = :$k" }.join(', ')
         def sqlText = "UPDATE $table SET $setClause WHERE $pkName = :$pkName"
 
+        var sql = new Sql(conn)
         return sql.executeUpdate(data, sqlText)
     }
 
 
-    void updateCallFrameRunningState(CallFrame callFrame, byte runningState, int pc = -1) {
-        var objectRef = ObjectRefOwner.extractObjectRef(callFrame);
+    void updateCallFrameRunningState(@Nonnull Connection conn, CallFrame callFrame, byte runningState, int pc = -1) {
+        var objectRef = ObjectRefOwner.extractObjectRef(callFrame)
         logger.info("UPDATE " + objectRef)
         var map = [
                 "id"       : objectRef.id() as Object,
@@ -297,7 +298,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         } else {
             throw new UnsupportedOperationException("unsupported frame type " + callFrame)
         }
-        updateRow("ago_frame", map, "id")
+        updateRow(conn, "ago_frame", map, "id")
         if(callFrame instanceof DeferenceObject){
             callFrame.markSaved()
         }

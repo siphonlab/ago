@@ -385,7 +385,7 @@ public abstract class RdbAdapter {
         throw new NotImplementedException("not implemented yet");
     }
 
-    public void updateCallFrameRunningState(CallFrame<?> statefulCallFrame, byte runningState, int pc) {
+    public void updateCallFrameRunningState(@Nonnull Connection conn, CallFrame<?> statefulCallFrame, byte runningState, int pc) {
         throw new NotImplementedException();
     }
 

@@ -131,7 +131,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
         if(instance instanceof DeferenceObject){
             if(instance.isSaveRequired()){
                 if(instance instanceof CallFrame) {
-                    updateCallFrameRunningState(instance, (byte) -1)
+                    updateCallFrameRunningState(conn, instance, (byte) -1)
                 } else {
                     this.update(conn, (Instance)instance, (RdbSlots)null, instance.getAgoClass() as AgoClass);
                 }
@@ -161,7 +161,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
     @Override
     void update(@Nonnull Connection conn, Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
         if (instance instanceof CallFrameWithRunningState) {
-            updateCallFrameRunningState(instance.unwrap(), instance.getRunningState());
+            updateCallFrameRunningState(conn, instance.unwrap(), instance.getRunningState());
             return
         }
 
