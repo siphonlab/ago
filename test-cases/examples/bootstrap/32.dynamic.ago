@@ -1,0 +1,62 @@
+class Animal{
+    metaclass{
+        fun foo(){
+            Trace.print("Animal.foo")
+        }
+    }
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    metaclass{
+        override foo(){
+            Trace.print("Cat.foo")
+        }
+    }
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Calc{
+    fun add(a as int, b as int) as int{
+        return a + b
+    }
+    fun subtract(a as int, b as int) as int{
+        return a - b
+    }
+}
+
+class Staff{
+    public name as string;
+    age as int {public get; public set;}
+
+    fun work(title as string, duration as int){
+        Trace.print($"name: ${name} do ${title}, already ${duration} min"$)
+    }
+}
+
+fun main(){
+    var a as Animal = new Cat();
+    a['bark']()     // it can located to ClassUnder(a, Animal.bark), however, the result type is still Object?, for unify the result type
+
+    var c = new Calc();
+    var s = 'add';
+    var r as int = c[s](1, 2)
+    Trace.print(r);
+
+    var staff as Object = new Staff();
+    Trace.print('name' in staff)
+    Trace.print('age' in staff)
+
+    staff['name'] = 'John'
+    staff['age'] = 20
+    Trace.print(staff['name'])
+    Trace.print(staff['age'])
+    staff['work']('coding', 60)
+}

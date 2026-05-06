@@ -39,6 +39,7 @@ public class LangClasses {
     private final AgoClass floatClass;
     private final AgoClass doubleClass;
     private final AgoClass decimalClass;
+    private final AgoClass nullClass;
 
     private final AgoClass primitiveClass;
     private final AgoClass primitiveNumberClass;
@@ -88,6 +89,7 @@ public class LangClasses {
         this.floatClass = classManager.getClass("lang.Float");
         this.doubleClass = classManager.getClass("lang.Double");
         this.decimalClass = classManager.getClass("lang.Decimal");
+        this.nullClass = classManager.getClass("lang.Null");
 
         this.primitiveClass = classManager.getClass("lang.Primitive");
         this.primitiveNumberClass = classManager.getClass("lang.PrimitiveNumber");
@@ -204,6 +206,10 @@ public class LangClasses {
 
     public AgoClass getDecimalClass() {
         return decimalClass;
+    }
+
+    public AgoClass getNullClass() {
+        return nullClass;
     }
 
     public AgoClass getArrayClass() {

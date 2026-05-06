@@ -66,8 +66,6 @@ public class RunSpace implements Runnable{
     protected Set<RunSpace> forkedSpaces = new ConcurrentHashSet<>();
     protected RunSpace parent;
 
-    protected Exception unhandledException;
-
     public interface CompleteListener {
         void handle();
     }
@@ -153,10 +151,12 @@ public class RunSpace implements Runnable{
 
     protected boolean tryComplete() {
         if(this.getRunningState() == RunningState.RUNNING && this.forkedSpaces.isEmpty()){    // wait children complete
-            if(this.unhandledException != null)
+            if(this.exception != null) {
                 this.setRunningState(RunningState.ERROR);
-            else
+                throwUnhandledException();
+            } else {
                 this.setRunningState(RunningState.DONE);
+            }
 
             for (CompleteListener completeListener : this.completeListeners) {
                 completeListener.handle();
@@ -261,12 +261,14 @@ public class RunSpace implements Runnable{
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
-        if(unhandledException instanceof RuntimeException r){
-            throw r;
-        } else if(unhandledException != null){
-            throw new RuntimeException(unhandledException);
-        }
+        throwUnhandledException();
         return space.getResultSlots().getResultAsObject();
+    }
+
+    private void throwUnhandledException() {
+        if(exception != null){
+            throw new UnhandledException(agoEngine, exception);
+        }
     }
 
     public void fork(CallFrame<?> frame) {
@@ -474,35 +476,29 @@ public class RunSpace implements Runnable{
         setCurrCallFrame(caller);
     }
 
-    public void acceptException(Instance<?> exception) {
-        this.setException(exception);
-    }
-
+    // caller.runSpace is me
     public void acceptException(Instance<?> exception, CallFrame<?> caller) {
         this.setException(exception);
         if(caller == null) {
-            this.setRunningState(RunningState.ERROR);
             this.setCurrCallFrame(null);
-            throw new UnhandledException(getAgoEngine(), exception);
+        } else {
+            if (caller.handleException(exception)) {
+                this.setCurrCallFrame(caller);
+            } else {
+                caller.finishException(exception);      // throw out to caller
+            }
         }
-
-        if(caller.handleException(exception)){
-            this.setCurrCallFrame(null);
-            start(caller);
-            return;
-        }
-        throw new UnhandledException(getAgoEngine(), exception);
     }
 
     public void acceptExceptionByAsync(Instance<?> exception) {
         this.setException(exception);
         var caller = this.currCallFrame;
         if (caller.handleException(exception)) {
-            this.setCurrCallFrame(null);
-            start(caller);
-            return;
+            this.setCurrCallFrame(caller);
+            resumeByAcceptResult();
+        } else {
+            caller.finishException(exception);
         }
-        throw new UnhandledException(getAgoEngine(), exception);
     }
 
     protected void setException(Instance<?> exception) {
@@ -517,6 +513,10 @@ public class RunSpace implements Runnable{
         return exception;
     }
 
+    /**
+       if the callframe can handle this exception, it should take away the exception and call cleanException.
+       otherwise preserve the exception. RunSpace will find its caller to accept the exception, until no caller, throw an UnhandledException at last
+     */
     public void cleanException() {
         setException(null);
     }

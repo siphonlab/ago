@@ -309,9 +309,9 @@ public class CastStrategy {
 
         if(toType instanceof UnionClassDef){
             if(toType instanceof NullableClassDef toNullableClassDef){
-                if(fromType instanceof NullClassDef) {
+                if(fromType instanceof NullClassDef || fromType.isVoid()) {
                     return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
-                } else if(fromType instanceof NullableClassDef fromNullableClassDef){
+                } else if(fromType instanceof NullableClassDef fromNullableClassDef) {
                     // work as Object cast
                 } else {
                     var expr = castTo(expression, toNullableClassDef.getBaseClass());

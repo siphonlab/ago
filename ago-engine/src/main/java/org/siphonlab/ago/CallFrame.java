@@ -15,27 +15,68 @@
  */
 package org.siphonlab.ago;
 
-import org.siphonlab.ago.runtime.UnhandledException;
+import org.siphonlab.ago.classloader.ClassRefValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 
+import static org.siphonlab.ago.TypeCode.*;
+
 public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     private final static Logger logger = LoggerFactory.getLogger(CallFrame.class);
+
+    protected final static int REENTER_RAISE_EXCEPTION = 1;
 
     protected CallFrame<?> caller;
 
     protected RunSpace runSpace;
 
-    protected CallFrameStateHandler<?> stateHandler;
     protected boolean suspended = false;
 
     protected Debugger debugger = null;
 
     public CallFrame(Slots slots, F agoClass) {
         super(slots, agoClass);
+    }
+
+    public void assignArguments(Object[] arguments) {
+        AgoFunction function = this.getAgoClass();
+        for (int i = 0; i < arguments.length; i++) {
+            Object argument = arguments[i];
+            var p = function.getParameters()[i];
+            switch (p.getTypeCode().value){
+                case INT_VALUE:       this.getSlots().setInt(i, (Integer) argument); break;
+                case STRING_VALUE:    this.getSlots().setString(i, (String) argument); break;
+                case LONG_VALUE:      this.getSlots().setLong(i, (Long)argument); break;
+                case BOOLEAN_VALUE:   this.getSlots().setBoolean(i, (Boolean)argument); break;
+                case DOUBLE_VALUE:    this.getSlots().setDouble(i, (Double) argument); break;
+                case DECIMAL_VALUE:   this.getSlots().setDecimal(i, (BigDecimal) argument); break;
+                case BYTE_VALUE:      this.getSlots().setByte(i, (Byte) argument); break;
+                case FLOAT_VALUE:     this.getSlots().setFloat(i, (Float) argument); break;
+                case CHAR_VALUE:      this.getSlots().setChar(i, (Character)argument); break;
+                case SHORT_VALUE:     this.getSlots().setShort(i, (Short) argument); break;
+                case CLASS_REF_VALUE: {
+                    if(argument instanceof ClassRefValue(String className)){
+                        this.getSlots().setClassRef(i, (getAgoEngine().getClass(className)).getClassId());
+                    } else {
+                        this.getSlots().setClassRef(i, ((AgoClass) argument).getClassId());
+                    }
+                } break;
+                case OBJECT_VALUE:    this.getSlots().setObject(i, (Instance<?>) argument); break;
+                case UNION_VALUE:     this.getSlots().setUnion(i, argument);
+                case VOID_VALUE:      this.getSlots().setVoid(i, null);
+                default:
+                    if(p.getAgoClass() instanceof AgoEnum agoEnum){
+                        var enumValue = agoEnum.findMember(argument);
+                        assert enumValue != null;
+                        this.getSlots().setObject(i,enumValue);
+                        break;
+                    }
+                    throw new IllegalArgumentException("unexpected type for meta class constructor");
+            }
+        }
     }
 
     public CallFrame<?> getCaller() {
@@ -61,16 +102,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         return this.getRunSpace().getAgoEngine();
     }
 
-    protected boolean fail(Instance<?> exception) {
-        if (stateHandler != null) {
-            return stateHandler.fail(new UnhandledException(this.runSpace.getAgoEngine(), exception));
-        }
-        return false;
-    }
-
     public void finishVoid() {
-        if (stateHandler != null) stateHandler.complete(null);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -83,8 +115,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishBoolean(boolean result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Boolean>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -97,8 +127,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishByte(byte result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Byte>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -111,8 +139,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishShort(short result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Short>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -125,8 +151,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishInt(int result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Integer>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -139,8 +163,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishLong(long result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Long>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -153,8 +175,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishFloat(float result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Float>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -167,8 +187,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishDouble(double result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Double>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -181,8 +199,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishDecimal(BigDecimal result) {
-        if (stateHandler != null) ((CallFrameStateHandler<BigDecimal>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -195,8 +211,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishChar(char result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Character>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -209,8 +223,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishObject(Instance<?> result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Instance<?>>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -223,8 +235,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishUnion(Object result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Object>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -237,8 +247,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishString(String result) {
-        if (stateHandler != null) ((CallFrameStateHandler<String>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -251,8 +259,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishNull() {
-        if (stateHandler != null) stateHandler.complete(null);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -265,8 +271,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     public void finishClassRef(AgoClass result){
-        if (stateHandler != null) ((CallFrameStateHandler<AgoClass>) stateHandler).complete(result);
-
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
         if(caller != null) {
@@ -278,25 +282,15 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         }
     }
 
-    public void finishException(Instance<?> exception, boolean throwOut) {
-        if(throwOut) {
-            if (!fail(exception)) {
-                var caller = this.getCaller();
-                if(caller == null){
-                    this.getRunSpace().acceptException(exception, caller);
-                    return;
-                }
-                var callerRunSpace = caller.getRunSpace();
-                if(callerRunSpace != this.getRunSpace()){
-                    getRunSpace().setCurrCallFrame(null);
-                }
-                callerRunSpace.acceptException(exception, caller);
-            } else {
-                getRunSpace().setCurrCallFrame(null);
-                throw new UnhandledException(getAgoEngine(), exception);
-            }
+    public void finishException(Instance<?> exception) {
+        CallFrame<?> caller = getCaller();
+        RunSpace runSpace = getRunSpace();
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptException(exception, caller);
         } else {
-            getRunSpace().acceptException(exception);
+            runSpace.acceptException(exception, null);
         }
     }
 
@@ -404,4 +398,13 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         finishClassRef(value);
     }
 
+    protected boolean reenter(ReentrantProxyFrame<?> reentrantProxyFrame, int state, int additionalState) {
+        switch (state){
+            case REENTER_RAISE_EXCEPTION:
+                var exception = reentrantProxyFrame.getParentScope();
+                reentrantProxyFrame.finishException(exception);       // waitingReentrantFrame will throw error back to its caller, that's me
+                return true;
+        }
+        return false;
+    }
 }

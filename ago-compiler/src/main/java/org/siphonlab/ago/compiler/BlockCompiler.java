@@ -28,6 +28,8 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
+import org.siphonlab.ago.compiler.expression.dynamic.DynamicInvoke;
+import org.siphonlab.ago.compiler.expression.dynamic.ObjectMember;
 import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.expression.invoke.InvokeFunctionType;
 import org.siphonlab.ago.compiler.expression.invoke.InvokeCallFrame;
@@ -103,7 +105,7 @@ public class BlockCompiler {
             // trait may create constructor for functions
             ConstructorDef constructor = this.functionDef.getConstructor();
             if (constructor != null) {
-                var c = functionDef.classUnder(new Scope(0, functionDef), constructor);
+                var c = functionDef.classUnder(new Scope.Local(functionDef), constructor);
                 var constructorInvocation = functionDef.invoke(Invoke.InvokeMode.Invoke, c, Collections.emptyList(), functionDef.getSourceLocation()).setSourceLocation(functionDef.getSourceLocation()).transform();
                 compiledStatements.add(constructorInvocation);
             }
@@ -392,26 +394,30 @@ public class BlockCompiler {
             } else if(primaryExprContext.primaryExpression() instanceof NamePathExprContext namePath){
                 return unit.resolveNamePath(this.functionDef, this.functionDef, namePath.namePath(), NamePathResolver.ResolveMode.ForValue);
             }
-        } else if(expression instanceof MethodCallExprContext methodCallExpr){
+        } else if(expression instanceof MethodCallExprContext methodCallExpr) {
             var methodCall = methodCallExpr.methodCall();
             return methodCall(null, methodCall);        // static instance or current instance
+        } else if(expression instanceof NormalDynamicInvokeContext normalDynamicInvokeContext){
+            return dynamicInvoke(normalDynamicInvokeContext).setSourceLocation(unit.sourceLocation(expression));
+        } else if(expression instanceof AsyncDynamicInvokeContext asyncDynamicInvokeContext){
+            return asyncDynamicInvoke(asyncDynamicInvokeContext).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof MemberAccessExprContext memberAccessExpr){
-            return memberAccessExpr(memberAccessExpr);
+            return memberAccessExpr(memberAccessExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof QuotedExprContext quotedExpr){
             return expression(quotedExpr.expression());
         } else if(expression instanceof EqualsExprContext equalsExpr){
             return this.equalsExpr(equalsExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CreatorExprContext creatorExpr) {
-            return creator(creatorExpr);
+            return creator(creatorExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof ChainCreatorExprContext chainCreatorExpr){
             return creator(chainCreatorExpr);
         } else if(expression instanceof AssignExprContext assignExpr){
-            return assign(assignExpr);
+            return assign(assignExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CastTypeExprContext castTypeExprContext) {
             var type = unit.parseType(functionDef, castTypeExprContext.variableType(), false, false);
             ClassDef t = extractType(type);
             Compiler.processClassTillStage(t, CompilingStage.AllocateSlots);
-            return new Cast(functionDef, expression(castTypeExprContext.expression()), t, true);
+            return new Cast(functionDef, expression(castTypeExprContext.expression()), t, true).setSourceLocation(unit.sourceLocation(expression));
 //        } else if(expression instanceof HighPriorCastTypeExprContext highPriorCastTypeExprContext) {
 //            ClassDef type;
 //            if(highPriorCastTypeExprContext.primitiveType() != null){
@@ -425,15 +431,7 @@ public class BlockCompiler {
         } else if(expression instanceof ElementExprContext elementExpr){
             var obj = expression(elementExpr.expression(0));
             var index = expression(elementExpr.expression(1));
-            if(root.getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())) {
-                return new ArrayElement(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
-            } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())) {
-                return new ListElement(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
-            } else if(root.getAnyReadwriteMap().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyMap().isThatOrSuperOfThat(obj.inferType())){
-                return new MapValue(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
-            } else {
-                throw new TypeMismatchError("an array, a List or a Map expected", unit.sourceLocation(elementExpr));
-            }
+            return elementAt(expression, obj, index);
         } else if(expression instanceof ClassExprContext classExpr){
             //TODO
         } else if(expression instanceof WithMemberAccessExprContext withMemberAccessExprContext){
@@ -442,8 +440,7 @@ public class BlockCompiler {
             if(namePathContext != null){
                 var namePath = withMemberAccessExprContext.namePath();
                 NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, this.functionDef, left, ((FormalNamePathContext) namePath));
-                var r = namePathResolver.resolve();
-                return r;
+                return namePathResolver.resolve();
             } else {
                 MethodCallContext methodCallContext = withMemberAccessExprContext.methodCall();
                 return methodCall(left, methodCallContext);
@@ -482,8 +479,10 @@ public class BlockCompiler {
             return shiftExpr(shiftExprContext).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof PostWithExprContext postWithExpr){
             return withExpr(postWithExpr).setSourceLocation(unit.sourceLocation(expression));
-        } else if(expression instanceof IfElseExprContext ifElseExpr){
+        } else if(expression instanceof IfElseExprContext ifElseExpr) {
             return ifElseExpr(ifElseExpr).setSourceLocation(unit.sourceLocation(expression));
+        } else if(expression instanceof InExprContext inExpr){
+            return inExpr(inExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof LambdaExprContext lambdaExpr){          // we need name
 
         } else if(expression instanceof PostfixExprContext postfixExprContext){     //TODO need these?
@@ -494,6 +493,18 @@ public class BlockCompiler {
             return valueFromNullable(valueFromNullableContext);
         }
         throw new UnsupportedOperationException(expression.getText());
+    }
+
+    private ExpressionInFunctionBody elementAt(ExpressionContext expression, Expression obj, Expression index) throws CompilationError {
+        if(root.getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())) {
+            return new ArrayElement(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
+        } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())) {
+            return new ListElement(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
+        } else if(root.getAnyReadwriteMap().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyMap().isThatOrSuperOfThat(obj.inferType())) {
+            return new MapValue(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
+        } else {
+            return new ObjectMember(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
+        }
     }
 
     private Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
@@ -598,6 +609,10 @@ public class BlockCompiler {
             receiverVar = null;
         }
         return new InstanceOf(functionDef, expression(instanceOfExpr.expression()), type, receiverVar);
+    }
+
+    private Expression inExpr(InExprContext inExpr) throws CompilationError {
+        return new InExpr(functionDef, expression(inExpr.expression(0)), expression(inExpr.expression(1)));
     }
 
     private Expression ifElseExpr(IfElseExprContext ifElseExpr) throws CompilationError {
@@ -1335,20 +1350,43 @@ public class BlockCompiler {
         return invoke;
     }
 
+    private Expression dynamicInvoke(NormalDynamicInvokeContext normalDynamicInvoke) throws CompilationError {
+        var obj = expression(normalDynamicInvoke.expression(0));
+        var index = expression(normalDynamicInvoke.expression(1));
+        var expr = elementAt(normalDynamicInvoke, obj, index);
+        List<Expression> values = valueExpressions(normalDynamicInvoke.arguments());
+        return new DynamicInvoke(functionDef, Invoke.InvokeMode.Invoke, expr, values, null);
+    }
+
+    private Expression asyncDynamicInvoke(AsyncDynamicInvokeContext asyncDynamicInvokeContext) throws CompilationError {
+        var obj = expression(asyncDynamicInvokeContext.expression(0));
+        var index = expression(asyncDynamicInvokeContext.expression(1));
+        var expr = elementAt(asyncDynamicInvokeContext, obj, index);
+        List<Expression> values = valueExpressions(asyncDynamicInvokeContext.arguments());
+        Invoke.InvokeMode invokeMode = extractInvokeMode(asyncDynamicInvokeContext.invokeMode());
+        var invoke = new DynamicInvoke(functionDef, invokeMode, expr, values, viaForkContext(asyncDynamicInvokeContext.viaForkContext()));
+        return invoke;
+    }
+
+
     private static Invoke.InvokeMode extractInvokeMode(MethodCallContext methodCall) {
         if(methodCall instanceof NormalInvokeContext){
             return Invoke.InvokeMode.Invoke;
         }
 
         if(methodCall instanceof AsyncInvokeContext asyncInvokeContext) {
-            InvokeModeContext invokeModeContext = asyncInvokeContext.invokeMode();
-            if (invokeModeContext.AWAIT() != null) {
-                return Invoke.InvokeMode.Await;
-            } else if (invokeModeContext.FORK() != null) {
-                return Invoke.InvokeMode.Fork;
-            } else if (invokeModeContext.SPAWN() != null) {
-                return Invoke.InvokeMode.Spawn;
-            }
+            return extractInvokeMode( asyncInvokeContext.invokeMode());
+        }
+        return Invoke.InvokeMode.Invoke;
+    }
+
+    private static Invoke.InvokeMode extractInvokeMode(InvokeModeContext invokeModeContext) {
+        if (invokeModeContext.AWAIT() != null) {
+            return Invoke.InvokeMode.Await;
+        } else if (invokeModeContext.FORK() != null) {
+            return Invoke.InvokeMode.Fork;
+        } else if (invokeModeContext.SPAWN() != null) {
+            return Invoke.InvokeMode.Spawn;
         }
         return Invoke.InvokeMode.Invoke;
     }
@@ -1359,14 +1397,18 @@ public class BlockCompiler {
         }
 
         if(methodCall instanceof AsyncInvokeContext asyncInvokeContext) {
-            ViaForkContextContext viaForkContext = asyncInvokeContext.viaForkContext();
-            if(viaForkContext != null) {
-                Expression r = this.expression(viaForkContext.forkContext);
-                if(!r.inferType().isDeriveFrom(this.root.getForkContextInterface())){
-                    throw unit.typeError(viaForkContext.forkContext, "'lang.ForkContext' expected");
-                }
-                return r;
+            return viaForkContext(asyncInvokeContext.viaForkContext());
+        }
+        return null;
+    }
+
+    private Expression viaForkContext(ViaForkContextContext viaForkContext) throws CompilationError {
+        if(viaForkContext != null) {
+            Expression r = this.expression(viaForkContext.forkContext);
+            if(!r.inferType().isDeriveFrom(this.root.getForkContextInterface())){
+                throw unit.typeError(viaForkContext.forkContext, "'lang.ForkContext' expected");
             }
+            return r;
         }
         return null;
     }
@@ -1806,10 +1848,13 @@ public class BlockCompiler {
             cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, expression(switchLabel.constantExpression));
         } else if(switchLabel.enumConstantName != null) {
             Expression constExpr = unit.resolveNamePath(this.functionDef, this.functionDef, switchLabel.namePath(), NamePathResolver.ResolveMode.ForVariable);
-            if(!(constExpr instanceof EnumValue) && !(constExpr instanceof ConstValue)){
+            if(constExpr instanceof ConstClass constClass && constClass.getClassDef() instanceof NullClassDef){
+                cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, root.nullLiteral().withSourceLocation(unit.sourceLocation(switchLabel.enumConstantName)));
+            } else if(!(constExpr instanceof EnumValue) && !(constExpr instanceof ConstValue)){
                throw unit.typeError(switchLabel.namePath(), "enum value or const value expected");
+            } else {
+                cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.EnumConst, constExpr);
             }
-            cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.EnumConst, constExpr);
         } else if(switchLabel.DEFAULT() != null){
             cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null);
         } else {

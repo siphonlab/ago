@@ -30,6 +30,7 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
@@ -110,15 +111,20 @@ public class NamePathResolver {
     private CompilationError error;
 
     static class Id{
-        ParserRuleContext ast;
+        String text;
         SourceLocation sourceLocation;
 
-        public Id(ParserRuleContext ast, SourceLocation sourceLocation) {
-            this.ast = ast;
+        public Id(String text, SourceLocation sourceLocation) {
+            this.text = text;
             this.sourceLocation = sourceLocation;
         }
+
+        public Id(ParserRuleContext ast, SourceLocation sourceLocation) {
+            this(ast.getText(), sourceLocation);
+        }
+
         public String text(){
-            return ast.getText();
+            return text;
         }
 
         @Override
@@ -174,6 +180,10 @@ public class NamePathResolver {
 
     public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, AgoParser.IdentifierAllowPostfixContext identifierAllowPostfixContext){
         this(resolveMode, unit, null, scopeClass, null, identifierAllowPostfixContext, Collections.singletonList(new Id(identifierAllowPostfixContext, unit.sourceLocation(identifierAllowPostfixContext))));
+    }
+
+    public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, Expression head, StringLiteral string){
+        this(resolveMode, unit, null, scopeClass, head, null, Collections.singletonList(new Id(string.getString(), new SourceLocation(string.getSourceLocation()))));
     }
 
     public NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef ownerFunction, ClassDef scopeClass, AgoParser.FormalNamePathContext formalNamePath) {
@@ -250,7 +260,11 @@ public class NamePathResolver {
             if(this.error != null){
                 throw this.error;
             } else {
-                throw unit.resolveError(namePath, "cannot resolve '%s' as %s".formatted(namePath.getText(), resolveMode));
+                if(this.namePath != null) {
+                    throw unit.resolveError(namePath, "cannot resolve '%s' as %s".formatted(namePath.getText(), resolveMode));
+                } else {
+                    throw new ResolveError("cannot resolve '%s' as %s".formatted(this.ids.getFirst().text(), resolveMode), ids.getFirst().sourceLocation);
+                }
             }
         }
         return r;
@@ -296,12 +310,12 @@ public class NamePathResolver {
         switch (pronounType){
             case This:
                 if(nearestClassOrTrait == null)
-                    throw unit.resolveError(id.ast, "'this','class.this' and 'trait.this' are not allowed in top-level function");
+                    throw new ResolveError( "'this','class.this' and 'trait.this' are not allowed in top-level function", id.sourceLocation);
 
                 return nearestClassOrTrait.toExpr(id, this);
             case ClassThis:
                 if(nearestClass == null && nearestTraitWithPermitClass == null)
-                    throw unit.resolveError(id.ast, "no class found within scope");
+                    throw new ResolveError("no class found within scope", id.sourceLocation);
 
                 if (nearestClass != null && (nearestTraitWithPermitClass == null || nearestClass.depth < nearestTraitWithPermitClass.depth)) {
                     return nearestClass.toExpr(id, this);
@@ -309,26 +323,26 @@ public class NamePathResolver {
                 return nearestTraitWithPermitClass.toExpr(id, this);
             case TraitThis:
                 if(nearestTrait == null)
-                    throw unit.resolveError(id.ast, "no trait found within scope");
+                    throw new ResolveError("no trait found within scope", id.sourceLocation);
 
                 return nearestTrait.toExpr(id, this);
 
             case FunThis:
                 if(nearestFun == null)
-                    throw unit.resolveError(id.ast, "no function found within scope");
+                    throw new ResolveError("no function found within scope", id.sourceLocation);
                 return nearestFun.toExpr(id, this);
 
             case Super:
                 if(nearestClassOrTrait == null)
-                    throw unit.resolveError(id.ast, "no class or trait found within scope");
+                    throw new ResolveError("no class or trait found within scope", id.sourceLocation);
                 return nearestClassOrTrait.toExpr(id, this);
             case ClassSuper:
                 if(nearestClass == null)
-                    throw unit.resolveError(id.ast, "no class found within scope");
+                    throw new ResolveError("no class found within scope", id.sourceLocation);
                 return nearestClass.toExpr(id, this);
             case TraitSuper:
                 if(nearestTrait == null)
-                    throw unit.resolveError(id.ast, "no trait found within scope");
+                    throw new ResolveError("no trait found within scope", id.sourceLocation);
                 return nearestTrait.toExpr(id, this);
             case FunSuper:
                 throw new UnsupportedOperationException("TODO");
@@ -355,7 +369,7 @@ public class NamePathResolver {
                 break;
             }
         }
-        throw unit.resolveError(idThis.ast, "cannot resolve '%s' within current scope".formatted(deferClass.getFullname()));
+        throw new ResolveError("cannot resolve '%s' within current scope".formatted(deferClass.getFullname()), idThis.sourceLocation);
     }
 
     private Expression traitField(Scope scope, ClassDef trait) throws CompilationError {
@@ -393,7 +407,7 @@ public class NamePathResolver {
                 case Scope:
                     if(pronounType.isSuper()){
                         if(c.getSuperClass() == null){
-                            throw resolver.unit.resolveError(id.ast, "no super class found for '%s'".formatted(c.getFullname()));
+                            throw new ResolveError("no super class found for '%s'".formatted(c.getFullname()), id.sourceLocation);
                         }
 
                         return new Scope(depth, c.getSuperClass()).fromPronoun(pronounType, c.getSuperClass()).setSourceLocation(id.sourceLocation);
@@ -414,7 +428,7 @@ public class NamePathResolver {
     private Expression resolveTypeBeforePronoun(int pronounPos, Pronoun id) throws CompilationError {
         PronounType pronounType = id.pronounType;
 //        if(pronounType != PronounType.This)
-//            throw unit.resolveError(id.ast,  "'%s' not allowed here".formatted(id.text()));
+//            throw new ResolveError( "'%s' not allowed here".formatted(id.text()));
 
         List<PronounResolveResult> matched = new ArrayList<>();
         var last = ids.get(pronounPos - 1);
@@ -505,9 +519,9 @@ public class NamePathResolver {
         }
 
         if(matched.isEmpty()){
-            throw unit.resolveError(last.ast, "nothing named '%s' for '%s' found".formatted(last.text(), id.text()));
+            throw new ResolveError("nothing named '%s' for '%s' found".formatted(last.text(), id.text()), last.sourceLocation);
         } else if(matched.size() > 1){
-            throw unit.resolveError(last.ast, "name '%s' duplicated in scope".formatted(last.text()));
+            throw new ResolveError("name '%s' duplicated in scope".formatted(last.text()), last.sourceLocation);
         } else {
             return matched.getFirst().toExpr(id, this);
         }
@@ -557,14 +571,14 @@ public class NamePathResolver {
 
     private Expression forward(Expression scope, Id id, int pos) throws CompilationError{
         if(id instanceof Pronoun pronoun){
-            throw unit.syntaxError(id.ast, "'%s' not allowed here".formatted(id.text()));
+            throw new SyntaxError( "'%s' not allowed here".formatted(id.text()), id.sourceLocation);
         }
         if(id instanceof PrimitiveType primitiveType){
-            throw unit.syntaxError(id.ast, "'%s' not allowed here".formatted(id.text()));
+            throw new SyntaxError( "'%s' not allowed here".formatted(id.text()), id.sourceLocation);
         }
 
         if(resolveMode == ResolveMode.ForTypeName){
-            throw unit.syntaxError(id.ast, "cannot resolve type name from scope");
+            throw new SyntaxError( "cannot resolve type name from scope", id.sourceLocation);
         }
         var r = resolveVariableOrClass(scope, id, pos, true);
         if(r != null){
@@ -717,7 +731,7 @@ public class NamePathResolver {
         if(id instanceof Pronoun pronoun){
             switch (pronoun.pronounType){
                 case This:
-                    throw unit.resolveError(id.ast,  "'%s' is outside of '%s'".formatted(curr.getClassDef().getFullname(), scopeClass.getFullname()));
+                    throw new ResolveError( "'%s' is outside of '%s'".formatted(curr.getClassDef().getFullname(), scopeClass.getFullname()), id.sourceLocation);
                 case ClassThis:
                 case TraitThis:
                 case FunThis:
@@ -725,7 +739,7 @@ public class NamePathResolver {
                 case ClassSuper:
                 case FunSuper:
                 case TraitSuper:
-                    throw unit.resolveError(id.ast,  "'%s' not allowed here".formatted(id.text()));
+                    throw new ResolveError( "'%s' not allowed here".formatted(id.text()), id.sourceLocation);
                 default:
                     throw new UnsupportedOperationException();
             }
@@ -750,7 +764,7 @@ public class NamePathResolver {
                 case ClassSuper:
                 case FunSuper:
                 case TraitSuper:
-                    throw unit.resolveError(id.ast,  "'%s' not allowed here".formatted(id.text()));
+                    throw new ResolveError( "'%s' not allowed here".formatted(id.text()), id.sourceLocation);
                 default:
                     throw new UnsupportedOperationException();
             }
@@ -765,7 +779,7 @@ public class NamePathResolver {
 
     Expression forward(ClassOf.ClassOfInstance curr, Id id, int pos) throws CompilationError {
         if(id instanceof Pronoun pronoun){
-            throw unit.resolveError(id.ast,  "'this' or 'super' not allowed here");
+            throw new ResolveError( "'this' or 'super' not allowed here", id.sourceLocation);
         } else {
             var r = resolveVariableOrClass(curr, id, pos, true);
             if(r != null){
@@ -777,7 +791,7 @@ public class NamePathResolver {
 
     Expression forward(ClassUnder.ClassUnderInstance curr, Id id, int pos) throws CompilationError {
         if(id instanceof Pronoun pronoun){
-            throw unit.resolveError(id.ast,  "'this' or 'super' not allowed here");
+            throw new ResolveError( "'this' or 'super' not allowed here", id.sourceLocation);
         } else {
             var r = resolveVariableOrClass(curr, id, pos, true);
             if(r != null){
@@ -790,7 +804,7 @@ public class NamePathResolver {
     Expression forward(ClassUnder.ClassUnderScope curr, Id id, int pos) throws CompilationError {
         assert scopeClass.distanceToOuterClass( curr.getClassDef()) == -1;      // assert not in scope path
         if(id instanceof Pronoun pronoun){
-            throw unit.resolveError(id.ast,  "'this' or 'super' not allowed here");
+            throw new ResolveError( "'this' or 'super' not allowed here", id.sourceLocation);
         } else {
             var r = resolveVariableOrClass(curr, id, pos, true);
             if(r != null){
@@ -1352,7 +1366,7 @@ public class NamePathResolver {
                 pronounPos = i;
                 for (i++;i < ids.size(); i++) {
                     if(ids.get(i) instanceof Pronoun p2){
-                        throw unit.syntaxError(p2.ast, "multiple times 'this' or 'super' found");
+                        throw new SyntaxError("multiple times 'this' or 'super' found", p2.sourceLocation);
                     }
                 }
             }

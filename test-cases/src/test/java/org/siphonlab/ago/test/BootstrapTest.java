@@ -251,4 +251,12 @@ public class BootstrapTest {
         assertTrue(Trace.outputted("2026", "-2026", "can't cast null to 'int'", "animal is null or name is null", "animal is null", "Jerry", "woof", "Jerry", "woof"));
     }
 
+    @Test
+    public void dynamic_test() throws CompilationError, IOException {
+        Util.run("bootstrap/32.dynamic.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("meow", "3", "true", "true", "John", "20", "name: John do coding, already 60 min"));
+    }
+
+
 }

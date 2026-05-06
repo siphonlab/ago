@@ -68,6 +68,7 @@ public class Root extends Namespace<Package> {
     private ClassDef BYTE_CLASS;
     private ClassDef DOUBLE_CLASS;
     private ClassDef DECIMAL_CLASS;
+    private ClassDef NULL_CLASS;
     private ClassDef SHORT_CLASS;
     private ClassDef FLOAT_CLASS;
     private ClassDef LONG_CLASS;
@@ -126,11 +127,6 @@ public class Root extends Namespace<Package> {
 
     public Root() {
         super("");
-        addNullClassDef();
-    }
-
-    private void addNullClassDef() {
-        this.getDefaultPackage().addChild(NULL = new NullClassDef(this));
     }
 
     public Package createPackage(String packageName) {
@@ -180,6 +176,11 @@ public class Root extends Namespace<Package> {
     public synchronized ClassDef getDoubleClass(){
         if(DOUBLE_CLASS != null) return DOUBLE_CLASS;
         return DOUBLE_CLASS = findByFullname("lang.Double");
+    }
+
+    public synchronized ClassDef getDecimalClass(){
+        if(DECIMAL_CLASS != null) return DECIMAL_CLASS;
+        return DECIMAL_CLASS = findByFullname("lang.Decimal");
     }
 
     public synchronized ClassDef getShortClass(){
@@ -257,6 +258,11 @@ public class Root extends Namespace<Package> {
 
     public synchronized ClassDef getFunctionInterface(int parameterCount){
         var interfaceName = "lang.Function%d".formatted(parameterCount);
+        return findByFullname(interfaceName);
+    }
+
+    public synchronized ClassDef getTupleClass(int parameterCount){
+        var interfaceName = "lang.Tuple%d".formatted(parameterCount);
         return findByFullname(interfaceName);
     }
 
@@ -620,6 +626,7 @@ public class Root extends Namespace<Package> {
         if(this.DOUBLE == null) this.DOUBLE = findByFullname("double");
         if(this.DECIMAL == null) this.DECIMAL = findByFullname("decimal");
         if(this.CLASREF == null) this.CLASREF = findByFullname("classref");
+        if(this.NULL == null) this.NULL = findByFullname("null");
 
         if(this.CLASS_CLASS == null) this.CLASS_CLASS = findByFullname("lang.Class");
         if(this.CLASS_REF_CLASS == null) this.CLASS_REF_CLASS = findByFullname("lang.ClassRef");
@@ -639,6 +646,8 @@ public class Root extends Namespace<Package> {
         if(this.BOOLEAN_CLASS == null) this.BOOLEAN_CLASS = findByFullname("lang.Boolean");
         if(this.FLOAT_CLASS == null) this.FLOAT_CLASS = findByFullname("lang.Float");
         if(this.DOUBLE_CLASS == null) this.DOUBLE_CLASS = findByFullname("lang.Double");
+        if(this.DECIMAL_CLASS == null) this.DECIMAL_CLASS = findByFullname("lang.Decimal");
+        if(this.NULL_CLASS == null) this.NULL_CLASS = findByFullname("lang.Null");
 
         if(this.ARRAY_CLASS == null) this.ARRAY_CLASS = findByFullname("lang.Array");
 
@@ -682,6 +691,7 @@ public class Root extends Namespace<Package> {
             case OBJECT_VALUE, UNION_VALUE -> throw new IllegalArgumentException("this class only handle primary type");
             case STRING_VALUE -> STRING;
             case CLASS_REF_VALUE -> this.CLASREF;
+            case NULL_VALUE -> NULL;
 
             default -> throw new IllegalStateException("Unexpected value: " + typeCode);
         };

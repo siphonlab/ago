@@ -86,7 +86,7 @@ public class Box implements GenericOpCode{
     public static final int box_C_vCC = 0x0d_0c_04_03;
     public static final int box_C_vvC = 0x0d_0c_05_03;
 
-    public static final int unbox_force_vot = 0x0d_01_04_02;
+    public static final int unbox_force_vot = 0x0d_01_04_03;
 
     public static String getName(int code){
         return switch (code){

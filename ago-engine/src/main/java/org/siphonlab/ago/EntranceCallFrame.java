@@ -75,85 +75,58 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     }
 
     public void finishVoid() {
-        if (stateHandler != null) stateHandler.complete(null);
         getRunSpace().acceptVoid(null);
     }
 
     public void finishBoolean(boolean result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Boolean>) stateHandler).complete(result);
-
         getRunSpace().acceptBoolean(result, null);
     }
 
     public void finishByte(byte result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Byte>) stateHandler).complete(result);
-
         getRunSpace().acceptByte(result, null);
     }
 
     public void finishShort(short result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Short>) stateHandler).complete(result);
-
         getRunSpace().acceptShort(result, null);
     }
 
     public void finishInt(int result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Integer>) stateHandler).complete(result);
-
         getRunSpace().acceptInt(result, null);
     }
 
     public void finishLong(long result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Long>) stateHandler).complete(result);
-
         getRunSpace().acceptLong(result, null);
     }
 
     public void finishFloat(float result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Float>) stateHandler).complete(result);
-
         getRunSpace().acceptFloat(result, null);
     }
 
     public void finishDouble(double result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Double>) stateHandler).complete(result);
-
         getRunSpace().acceptDouble(result, null);
     }
 
     public void finishDecimal(BigDecimal result) {
-        if (stateHandler != null) ((CallFrameStateHandler<BigDecimal>) stateHandler).complete(result);
-
         getRunSpace().acceptDecimal(result, null);
     }
 
     public void finishChar(char result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Character>) stateHandler).complete(result);
-
         getRunSpace().acceptChar(result, null);
     }
 
     public void finishObject(Instance<?> result) {
-        if (stateHandler != null) ((CallFrameStateHandler<Instance<?>>) stateHandler).complete(result);
-
         getRunSpace().acceptObject(result, null);
     }
 
     public void finishString(String result) {
-        if (stateHandler != null) ((CallFrameStateHandler<String>) stateHandler).complete(result);
-
         getRunSpace().acceptString(result, null);
     }
 
     public void finishNull() {
-        if (stateHandler != null) stateHandler.complete(null);
-
         getRunSpace().acceptNull(null);
     }
 
     public void finishClassRef(AgoClass result) {
-        if (stateHandler != null) ((CallFrameStateHandler<AgoClass>) stateHandler).complete(result);
-
         getRunSpace().acceptClassRef(result, null);
     }
 
@@ -163,10 +136,8 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
     }
 
     @Override
-    public void finishException(Instance<?> exception, boolean throwOut) {        // entrance callframe has no caller
-        if (!fail(exception)) {
-            throw new UnhandledException(getAgoEngine(), exception);
-        }
+    public void finishException(Instance<?> exception) {        // entrance callframe has no caller
+        throw new UnhandledException(getAgoEngine(), exception);
     }
 
     @Override
@@ -193,4 +164,9 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
         return inner;
     }
 
+    @Override
+    protected boolean reenter(ReentrantProxyFrame<?> reentrantProxyFrame, int state, int additionalState) {
+        inner.reenter(reentrantProxyFrame, state, additionalState);
+        return false;
+    }
 }

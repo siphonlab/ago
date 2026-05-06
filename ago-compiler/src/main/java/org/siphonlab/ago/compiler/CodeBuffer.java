@@ -317,25 +317,30 @@ public class CodeBuffer {
      * @param argumentsTuple
      */
     public void new_dynamic(SlotDef target, SlotDef scopeBoundClass, SlotDef argumentsTuple){
-        ls.addInt(New.new_dynamic_voa);
+        ls.addInt(Dynamic.dyn_new_vua);
         slot(target);
         slot(scopeBoundClass);
         slot(argumentsTuple);
     }
 
-    /**
-     * auto find method for the simple name that matches args
-     * @param target
-     * @param parentScopeInstance
-     * @param methodSimpleNameStr  the string of method simple name, not index in `ClassInstance.methods`
-     * @param argumentsTuple
-     */
-    public void new_dynamic_method(SlotDef target, SlotDef parentScopeInstance, int methodSimpleNameStr, SlotDef argumentsTuple){
-        ls.addInt(New.new_scope_method_fix_voma);
+    public void new_dynamic(SlotDef target, SlotDef scopeBoundClass){
+        ls.addInt(Dynamic.dyn_new_vu);
         slot(target);
-        slot(parentScopeInstance);
-        ls.addInt(methodSimpleNameStr);
-        slot(argumentsTuple);
+        slot(scopeBoundClass);
+    }
+
+    public void contains_member(SlotDef target, SlotDef object, SlotDef member){
+        ls.addInt(Dynamic.dyn_contains_member_vov);
+        slot(target);
+        slot(object);
+        slot(member);
+    }
+
+    public void contains_member(SlotDef target, SlotDef object, int stringMember){
+        ls.addInt(Dynamic.dyn_contains_member_voc);
+        slot(target);
+        slot(object);
+        ls.addInt(stringMember);
     }
 
     public void assignLiteral(SlotDef targetSlot, Literal<?> value) {
@@ -868,7 +873,7 @@ public class CodeBuffer {
     }
 
     public void store_exception(SlotDef variableSlot) {
-        ls.addInt(TryCatch.except_store_v);
+        ls.addInt(TryCatch.except_accept_v);
         slot(variableSlot);
     }
 
@@ -968,6 +973,31 @@ public class CodeBuffer {
         slot(target);
         slot(left);
         slot(right);
+    }
+
+    public void getDynamicMember(SlotDef target, SlotDef instance, SlotDef memberString) {
+        ls.addInt(Dynamic.dyn_get_member_vuv);
+        slot(target);
+        slot(instance);
+        slot(memberString);
+    }
+
+    public void setDynamicMember(SlotDef instance, SlotDef memberString, SlotDef value) {
+        ls.addInt(Dynamic.dyn_set_member_uSv);
+        slot(instance);
+        slot(memberString);
+        slot(value);
+    }
+
+    public void ensureInvocable(SlotDef callFrameSlot, SlotDef dynamicSlot) {
+        ls.addInt(Dynamic.dyn_ensure_invocable_vu);
+        slot(callFrameSlot);
+        slot(dynamicSlot);
+    }
+
+    public void ensureInvocable(SlotDef callFrameSlot) {
+        ls.addInt(Dynamic.dyn_ensure_invocable_v);
+        slot(callFrameSlot);
     }
 
     private static class SizeVerifier{

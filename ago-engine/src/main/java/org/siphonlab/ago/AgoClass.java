@@ -32,7 +32,6 @@ public class AgoClass extends Instance<MetaClass>{
     public static final byte TYPE_FUNCTION = 5;
     public static final byte TYPE_TRAIT = 6;
     public static final byte TYPE_PRIMITIVE_CLASS = 7;
-    public static final byte TYPE_NULL = 8;
 
     public static final int VISIBILITY_MASK  = 0x0000_0004;
     public static final int PUBLIC           = 0x0000_0001;

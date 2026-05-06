@@ -512,6 +512,7 @@ public class AgoClassParser {
                 case TypeCode.BYTE_VALUE -> new PrimitiveClassDef(root, TypeCode.BYTE);
                 case TypeCode.VOID_VALUE -> new PrimitiveClassDef(root, TypeCode.VOID);
                 case TypeCode.CLASS_REF_VALUE -> new PrimitiveClassDef(root, TypeCode.CLASS_REF);
+                case TypeCode.NULL_VALUE -> new NullClassDef(root);
                 default -> throw new RuntimeException("not supported type " + agoPrimitiveClass);
             };
             classDef.setSourceLocation(agoClass.getSourceLocation());

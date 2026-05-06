@@ -162,6 +162,7 @@ public class CodeTransformer {
                 case LittleThan.lt_S_vvc:
                 case LittleEquals.le_S_vvc:
                 case NotEquals.ne_S_vvc:
+                case Dynamic.dyn_contains_member_voc:
                     updateStringId(instruction, 2);
                     break;
                 case Concat.concat_S_vcv:       updateStringId(instruction, 1); break;

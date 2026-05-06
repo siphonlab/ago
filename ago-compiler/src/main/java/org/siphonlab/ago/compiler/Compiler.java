@@ -162,6 +162,7 @@ public class Compiler {
         root.FLOAT().setBoxedType(root.getFloatClass());
         root.LONG().setBoxedType(root.getLongClass());
         root.DOUBLE().setBoxedType(root.getDoubleClass());
+        root.DECIMAL().setBoxedType(root.getDecimalClass());
         root.STRING().setBoxedType(root.getStringClass());
         root.BOOLEAN().setBoxedType(root.getBooleanClass());
         root.CLASSREF().setBoxedType(root.getClassRefClass());
@@ -651,6 +652,7 @@ public class Compiler {
             case AgoLexer.BYTE -> TypeCode.BYTE;
             case AgoLexer.VOID -> TypeCode.VOID;
             case AgoLexer.CLASSREF -> TypeCode.CLASS_REF;
+            case AgoLexer.NULL_LITERAL -> TypeCode.NULL;
             default -> throw new RuntimeException("not supported type " + primitiveType.getText());
         };
         return type;

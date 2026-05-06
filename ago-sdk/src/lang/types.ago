@@ -114,3 +114,17 @@ public class Char from Boxer<char>{
     }
 
 }
+
+public class Null from Boxer<null>{
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof Null);
+    }
+    override toString() as string{
+        return "null";
+    }
+
+    override hashCode() as int{
+        return 0;
+    }
+}

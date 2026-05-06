@@ -25,6 +25,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     protected final AgoEngine engine;
     private CallFrame<?> entrance;
     private Object payload;
+    private int reenterState = 0;
 
     public NativeFrame(AgoEngine engine, Slots slots, AgoNativeFunction agoClass) {
         super(slots, agoClass);
@@ -53,8 +54,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishVoidAsync() {
-        if (stateHandler != null) stateHandler.complete(null);
-
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -62,8 +61,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishNullAsync() {
-        if (stateHandler != null) stateHandler.complete(null);
-
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -71,8 +68,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishIntAsync(int result) {
-        if (stateHandler != null) stateHandler.complete(null);
-
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -80,7 +75,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishByteAsync(byte result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -88,7 +82,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishShortAsync(short result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -96,7 +89,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishFloatAsync(float result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -104,7 +96,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishDoubleAsync(double result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -112,7 +103,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishDecimalAsync(BigDecimal result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -120,7 +110,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishLongAsync(long result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -128,7 +117,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishCharAsync(char result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -136,7 +124,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishStringAsync(String result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -144,7 +131,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishBooleanAsync(boolean result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -152,7 +138,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishObjectAsync(Instance<?> result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -160,7 +145,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishUnionAsync(Object result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -168,7 +152,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishClassRefAsync(AgoClass result) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -176,7 +159,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     }
 
     public void finishExceptionAsync(Instance<?> exception) {
-        if (stateHandler != null) stateHandler.complete(null);
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
         RunSpace callerRunSpace = resumeCallerRunSpace();
@@ -209,5 +191,18 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     @Override
     public void interrupt() {
         // native frame not support yet
+    }
+
+    @Override
+    protected boolean reenter(ReentrantProxyFrame<?> reentrantProxyFrame, int state, int additionalState) {
+        if(!super.reenter(reentrantProxyFrame, state, additionalState)){
+            this.reenterState = state;
+            this.run(reentrantProxyFrame.getCaller());
+        }
+        return true;
+    }
+
+    public int getReenterState() {
+        return reenterState;
     }
 }

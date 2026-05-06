@@ -473,8 +473,8 @@ parExpression
 expressionList: expression (',' expression)*;
 
 methodCall
-    : namePath arguments      # NormalInvoke
-    | invokeMode namePath arguments viaForkContext?      # AsyncInvoke
+    : namePath arguments                                    # NormalInvoke
+    | invokeMode namePath arguments viaForkContext?         # AsyncInvoke
 ;
 
 invokeMode: SPAWN | FORK | AWAIT;
@@ -483,25 +483,21 @@ viaForkContext: VIA forkContext=expression;
 
 postWith : WITH {withDepth++;} statement {withDepth--;};
 
-
 expression:
     // Expression order in accordance with https://introcs.cs.princeton.edu/java/11precedence/
     // Level 16, Primary, array and member access
-     '(' expression ')'                 # QuotedExpr
-    | expression '!'                    # ValueFromNullable
-    | methodCall                        # MethodCallExpr
-    | expression '[' expression ']'     # ElementExpr
-    | expression '.' 'class'            # ClassExpr
+     '(' expression ')'                                                         # QuotedExpr
+    | expression '!'                                                            # ValueFromNullable
+    | methodCall                                                                # MethodCallExpr
+    | expression '[' expression ']'                                             # ElementExpr
+    | expression '.' 'class'                                                    # ClassExpr
     // Method calls and method references are part of primary, and hence level 16 precedence
-    | expression bop = ('.' | '?.') (
-           methodCall
-         | namePath
-    )                           # MemberAccessExpr
-    | {withDepth > 0}? '.' (
-                namePath
-            |   methodCall
-            //| THIS
-    )               # WithMemberAccessExpr
+    | expression bop = ('.' | '?.') (methodCall | namePath)                     # MemberAccessExpr
+
+    | expression '[' expression ']' arguments                                                      # NormalDynamicInvoke
+    | invokeMode expression '[' expression ']' arguments viaForkContext?                           # AsyncDynamicInvoke
+
+    | {withDepth > 0}? '.' (namePath |   methodCall            /*| THIS*/)               # WithMemberAccessExpr
 //    | expression '::' instantiationArguments? identifier
 //    | typeType '::' (instantiationArguments? identifier | NEW)
 //    | classType '::' instantiationArguments? NEW
@@ -528,6 +524,7 @@ expression:
     | expression ('<''<' | '>''>''>' | '>''>') expression    # ShiftExpr     // Level 10, Shift operators
     | expression bop = ('<=' | '>=' | '>' | '<') expression  #  CompareExpr  // Level 9, Relational operators
     | expression bop = INSTANCEOF variableType identifier?   # InstanceOfExpr
+    | expression bop = IN expression                         # InExpr
     | expression bop = ('==' | '!=' | '===' | '!==') expression             # EqualsExpr      // Level 8, Equality Operators
     | expression bop = BITAND expression                    # BitAndExpr            // Level 7, Bitwise AND
     | expression bop = BITXOR expression                    # BitXorExpr         // Level 6, Bitwise XOR
@@ -678,7 +675,7 @@ possibleName
     | primitiveType             #NamePrimitive
 ;
 
-primitiveType: BOOLEAN    | CHAR    | BYTE    | SHORT    | INT    | LONG    | FLOAT    | DOUBLE    | STRING     | VOID  | CLASSREF | DECIMAL;
+primitiveType: BOOLEAN    | CHAR    | BYTE    | SHORT    | INT    | LONG    | FLOAT    | DOUBLE    | STRING     | VOID  | CLASSREF | DECIMAL    | NULL_LITERAL;
 
 pronoun:
     THIS                # ThisPrimary

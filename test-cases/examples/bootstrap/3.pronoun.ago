@@ -14,6 +14,9 @@ class A{
             class G{
                 metaclass{
                     f as int
+                    fun new(){
+                        f = 200     // to test AgoFrame.reenter
+                    }
                 }
             }
 

@@ -16,6 +16,8 @@
 package org.siphonlab.ago.classloader;
 
 import org.apache.mina.core.buffer.IoBuffer;
+import org.siphonlab.ago.AgoClass;
+import org.siphonlab.ago.AgoNullClass;
 import org.siphonlab.ago.TypeCode;
 
 public class PrimitiveClassHeader extends ClassHeader{
@@ -46,4 +48,5 @@ public class PrimitiveClassHeader extends ClassHeader{
     public boolean isGenericTerminated() {
         return true;
     }
+
 }

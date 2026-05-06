@@ -37,4 +37,8 @@ public class SourceLocation extends org.siphonlab.ago.SourceLocation {
     public SourceLocation(String filename, int line, int column, int length, int start, int end) {
         super(filename, line, column, length, start, end);
     }
+
+    public SourceLocation(org.siphonlab.ago.SourceLocation sourceLocation){
+        this(sourceLocation.getFilename(), sourceLocation.getLine(), sourceLocation.getColumn(), sourceLocation.getLength(), sourceLocation.getStart(), sourceLocation.getEnd());
+    }
 }
