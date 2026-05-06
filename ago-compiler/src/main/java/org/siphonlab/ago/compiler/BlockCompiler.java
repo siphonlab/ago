@@ -431,15 +431,7 @@ public class BlockCompiler {
         } else if(expression instanceof ElementExprContext elementExpr){
             var obj = expression(elementExpr.expression(0));
             var index = expression(elementExpr.expression(1));
-            if(root.getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())) {
-                return new ArrayElement(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
-            } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())) {
-                return new ListElement(functionDef,obj, index).setSourceLocation(unit.sourceLocation(expression));
-            } else if(root.getAnyReadwriteMap().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyMap().isThatOrSuperOfThat(obj.inferType())) {
-                return new MapValue(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
-            } else {
-                return new ObjectMember(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
-            }
+            return elementAt(expression, obj, index);
         } else if(expression instanceof ClassExprContext classExpr){
             //TODO
         } else if(expression instanceof WithMemberAccessExprContext withMemberAccessExprContext){
@@ -501,6 +493,18 @@ public class BlockCompiler {
             return valueFromNullable(valueFromNullableContext);
         }
         throw new UnsupportedOperationException(expression.getText());
+    }
+
+    private ExpressionInFunctionBody elementAt(ExpressionContext expression, Expression obj, Expression index) throws CompilationError {
+        if(root.getAnyArrayClass().isThatOrSuperOfThat(obj.inferType())) {
+            return new ArrayElement(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
+        } else if(root.getAnyReadwriteList().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyList().isThatOrSuperOfThat(obj.inferType())) {
+            return new ListElement(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
+        } else if(root.getAnyReadwriteMap().isThatOrSuperOfThat(obj.inferType()) || root.getAnyReadonlyMap().isThatOrSuperOfThat(obj.inferType())) {
+            return new MapValue(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
+        } else {
+            return new ObjectMember(functionDef, obj, index).setSourceLocation(unit.sourceLocation(expression));
+        }
     }
 
     private Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
@@ -1347,13 +1351,17 @@ public class BlockCompiler {
     }
 
     private Expression dynamicInvoke(NormalDynamicInvokeContext normalDynamicInvoke) throws CompilationError {
-        var expr = expression(normalDynamicInvoke.expression());
+        var obj = expression(normalDynamicInvoke.expression(0));
+        var index = expression(normalDynamicInvoke.expression(1));
+        var expr = elementAt(normalDynamicInvoke, obj, index);
         List<Expression> values = valueExpressions(normalDynamicInvoke.arguments());
         return new DynamicInvoke(functionDef, Invoke.InvokeMode.Invoke, expr, values, null);
     }
 
     private Expression asyncDynamicInvoke(AsyncDynamicInvokeContext asyncDynamicInvokeContext) throws CompilationError {
-        var expr = expression(asyncDynamicInvokeContext.expression());
+        var obj = expression(asyncDynamicInvokeContext.expression(0));
+        var index = expression(asyncDynamicInvokeContext.expression(1));
+        var expr = elementAt(asyncDynamicInvokeContext, obj, index);
         List<Expression> values = valueExpressions(asyncDynamicInvokeContext.arguments());
         Invoke.InvokeMode invokeMode = extractInvokeMode(asyncDynamicInvokeContext.invokeMode());
         var invoke = new DynamicInvoke(functionDef, invokeMode, expr, values, viaForkContext(asyncDynamicInvokeContext.viaForkContext()));
@@ -1840,10 +1848,13 @@ public class BlockCompiler {
             cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, expression(switchLabel.constantExpression));
         } else if(switchLabel.enumConstantName != null) {
             Expression constExpr = unit.resolveNamePath(this.functionDef, this.functionDef, switchLabel.namePath(), NamePathResolver.ResolveMode.ForVariable);
-            if(!(constExpr instanceof EnumValue) && !(constExpr instanceof ConstValue)){
+            if(constExpr instanceof ConstClass constClass && constClass.getClassDef() instanceof NullClassDef){
+                cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, root.nullLiteral().withSourceLocation(unit.sourceLocation(switchLabel.enumConstantName)));
+            } else if(!(constExpr instanceof EnumValue) && !(constExpr instanceof ConstValue)){
                throw unit.typeError(switchLabel.namePath(), "enum value or const value expected");
+            } else {
+                cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.EnumConst, constExpr);
             }
-            cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.EnumConst, constExpr);
         } else if(switchLabel.DEFAULT() != null){
             cs = new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null);
         } else {

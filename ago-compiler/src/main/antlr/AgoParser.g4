@@ -483,7 +483,6 @@ viaForkContext: VIA forkContext=expression;
 
 postWith : WITH {withDepth++;} statement {withDepth--;};
 
-
 expression:
     // Expression order in accordance with https://introcs.cs.princeton.edu/java/11precedence/
     // Level 16, Primary, array and member access
@@ -495,8 +494,8 @@ expression:
     // Method calls and method references are part of primary, and hence level 16 precedence
     | expression bop = ('.' | '?.') (methodCall | namePath)                     # MemberAccessExpr
 
-    | expression arguments                                                      # NormalDynamicInvoke
-    | invokeMode expression arguments viaForkContext?                           # AsyncDynamicInvoke
+    | expression '[' expression ']' arguments                                                      # NormalDynamicInvoke
+    | invokeMode expression '[' expression ']' arguments viaForkContext?                           # AsyncDynamicInvoke
 
     | {withDepth > 0}? '.' (namePath |   methodCall            /*| THIS*/)               # WithMemberAccessExpr
 //    | expression '::' instantiationArguments? identifier
