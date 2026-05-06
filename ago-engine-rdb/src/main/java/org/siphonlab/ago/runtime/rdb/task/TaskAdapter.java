@@ -26,6 +26,7 @@ import javax.sql.DataSource;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 public class TaskAdapter extends LazyJsonPGAdapter {
     public TaskAdapter(BoxTypes boxTypes, ClassManager classManager, DataSource ds, int applicationId, IdGenerator idGenerator) {
@@ -49,10 +50,10 @@ public class TaskAdapter extends LazyJsonPGAdapter {
             ps.setString(1, (String) obj.get("current_frame_table"));
             ps.setObject(2, obj.get("curr_frame_id"));
             ps.setObject(3, obj.get("result_slots"));
-            ps.setInt(4, (Integer) obj.get("running_state"));
+            ps.setByte(4, (Byte) obj.get("running_state"));
             ps.setObject(5, obj.get("exception_id"));
-            ps.setArray(6, (Array) obj.get("pausing_parents"));
-            ps.setArray(7, (Array) obj.get("forked_runspaces"));
+            ps.setArray(6, conn.createArrayOf("bigint", (Object[]) obj.get("pausing_parents")));
+            ps.setArray(7, conn.createArrayOf("bigint", (Object[]) obj.get("forked_runspaces")));
             ps.setObject(8, obj.get("id"));
         }
         catch (SQLException e) {

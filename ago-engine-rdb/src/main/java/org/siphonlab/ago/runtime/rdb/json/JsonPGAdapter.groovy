@@ -604,8 +604,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
-                "pausing_parents"  : runSpace.pausingParents.collect { ((RdbRunSpace) it).id}.toArray(new Long[0]),
-                "forked_runspaces" : runSpace.forkedSpaces.collect { ((RdbRunSpace) it).id}.toArray(new Long[0]),
+                "pausing_parents"  : runSpace.pausingParents.collect { ((SavableRunSpace) it).id}.toArray(new Long[0]),
+                "forked_runspaces" : runSpace.forkedSpaces.collect { ((SavableRunSpace) it).id}.toArray(new Long[0]),
         ];
     }
 

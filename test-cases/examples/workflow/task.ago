@@ -8,11 +8,15 @@ fun nosave(n as int) as string {
     return "String: " + n;
 }
 
+fun runf() {}
+
 fun main() {
     var n = 10;
     Trace.print("======");
     var x = save(n);
     Trace.print(x);
+
+    fork save(n);
 
     var s = nosave(x);
     Trace.print(s);

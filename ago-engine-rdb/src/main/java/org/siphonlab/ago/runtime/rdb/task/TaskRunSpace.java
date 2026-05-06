@@ -215,15 +215,21 @@ public class TaskRunSpace extends SavableRunSpace {
     }
 
     @Override
-    public void fork(CallFrame<?> frame) {
+    public void fork(CallFrame<?> frame, ForkContext forkContext) {
         if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
             frame = objectRefCallFrame.expandFor(objectRefCallFrame);
         }
 
         var curRunSpace = (TaskRunSpace) frame.getRunSpace();
-        var nextRunSpace = (TaskRunSpace) this.createChildRunSpace(null);
+        var nextRunSpace = (TaskRunSpace) this.createChildRunSpace(forkContext);
         frame.setRunSpace(nextRunSpace);
-        logger.info("{} fork {} got {}", this, nextRunSpace, this.forkedSpaces.size());
+
+        if (forkContext == null) {
+            logger.info("{} fork {} got {}", this, nextRunSpace, this.forkedSpaces.size());
+        }
+        else {
+            logger.info("{} fork {} via {}, got {}", this, nextRunSpace, forkContext, forkedSpaces.size());
+        }
 
         try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
             conn.setAutoCommit(false);
