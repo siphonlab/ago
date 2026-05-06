@@ -317,18 +317,31 @@ public class CodeBuffer {
      * @param argumentsTuple
      */
     public void new_dynamic(SlotDef target, SlotDef scopeBoundClass, SlotDef argumentsTuple){
-        ls.addInt(Dynamic.new_dynamic_voa);
+        ls.addInt(Dynamic.dyn_new_vua);
         slot(target);
         slot(scopeBoundClass);
         slot(argumentsTuple);
     }
 
     public void new_dynamic(SlotDef target, SlotDef scopeBoundClass){
-        ls.addInt(Dynamic.new_dynamic_vo);
+        ls.addInt(Dynamic.dyn_new_vu);
         slot(target);
         slot(scopeBoundClass);
     }
 
+    public void contains_member(SlotDef target, SlotDef object, SlotDef member){
+        ls.addInt(Dynamic.dyn_contains_member_vov);
+        slot(target);
+        slot(object);
+        slot(member);
+    }
+
+    public void contains_member(SlotDef target, SlotDef object, int stringMember){
+        ls.addInt(Dynamic.dyn_contains_member_voc);
+        slot(target);
+        slot(object);
+        ls.addInt(stringMember);
+    }
 
     public void assignLiteral(SlotDef targetSlot, Literal<?> value) {
         TypeCode typeCode = targetSlot.getTypeCode();
@@ -963,46 +976,28 @@ public class CodeBuffer {
     }
 
     public void getDynamicMember(SlotDef target, SlotDef instance, SlotDef memberString) {
-        ls.addInt(Dynamic.get_member_vov);
+        ls.addInt(Dynamic.dyn_get_member_vuv);
         slot(target);
         slot(instance);
         slot(memberString);
     }
 
     public void setDynamicMember(SlotDef instance, SlotDef memberString, SlotDef value) {
-        ls.addInt(Dynamic.set_member_vov);
+        ls.addInt(Dynamic.dyn_set_member_uSv);
         slot(instance);
         slot(memberString);
         slot(value);
     }
 
-    public void dynamicInvoke(SlotDef target, SlotDef functorSlot) {
-        ls.addInt(Invoke.invoke_dynamic_vo);
-        slot(target);
-        slot(functorSlot);
-    }
-
-    public void dynamicInvokeAsync(SlotDef target, SlotDef functorSlot, InvokeMode invokeMode, SlotDef forkContext) {
-        ls.addInt(Invoke.invoke_dynamic_vocv);
-        slot(target);
-        slot(functorSlot);
-        var op = switch (invokeMode){
-            case Spawn -> 1;
-            case Fork -> 2;
-            case Await -> 3;
-            default -> throw new IllegalStateException("Unexpected value: " + invokeMode);
-        };
-        ls.addInt(op);
-        if(forkContext != null) {
-            slot(forkContext);
-        } else {
-            ls.addInt(-1);
-        }
-    }
-
-    public void validateInvocable(SlotDef dynamicSlot) {
-        ls.addInt(Dynamic.validate_invocable_v);
+    public void ensureInvocable(SlotDef callFrameSlot, SlotDef dynamicSlot) {
+        ls.addInt(Dynamic.dyn_ensure_invocable_vu);
+        slot(callFrameSlot);
         slot(dynamicSlot);
+    }
+
+    public void ensureInvocable(SlotDef callFrameSlot) {
+        ls.addInt(Dynamic.dyn_ensure_invocable_v);
+        slot(callFrameSlot);
     }
 
     private static class SizeVerifier{

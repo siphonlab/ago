@@ -51,6 +51,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     protected final AgoEngine engine;
 
     private final static int REENTER_CREATE_SCOPED_CLASS = 2;
+    final static int REENTER_INVOKE_GETTER = 3;
 
     public AgoFrame(Slots slots, AgoFunction agoFunction, AgoEngine engine) {
         super(slots, agoFunction );
@@ -151,7 +152,11 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case UnionInstanceOf.OP: pc = evaluateUnionInstanceOf(slots, pc, instruction); break;
                 case Dynamic.OP: {
                     var p = evaluateDynamic(self, slots, pc, instruction);
-                    if(p != -1) pc = p; else return;
+                    if (p == -1 || p == -2) {
+                        return;     // when p is -2, it calls setter, setter become current frame, and pc was set to next instruction
+                    } else {
+                        pc = p;
+                    }
                     break;
                 }
                 default:
@@ -996,7 +1001,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             break;
 
             case Box.unbox_force_vot:{
-                var r = engine.getBoxer().forceUnbox(this, self, code[pc++], slots.getObject(code[pc++]), slots.getInt(code[pc++]));
+                var r = engine.getBoxer().forceUnbox(this, this.getSlots(), self, code[pc++], slots.getObject(code[pc++]), code[pc++]);
                 if(!r) return -1;
             }
             break;
@@ -1623,147 +1628,71 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     protected int evaluateDynamic(CallFrame<?> self, Slots slots, int pc, int instruction) {
         switch (instruction) {
-            case Dynamic.get_member_vov:{
+            case Dynamic.dyn_get_member_vuv:{
                 var dest = code[pc++];
-                var member = readMember(self, slots.getObject(code[pc++]), slots.getString(code[pc++]));
-                if(member == null) return -1;
-                slots.setObject(dest, member);
+                DynamicOp dynamicOp = new DynamicOp(this);
+                var member = dynamicOp.readMember(self, (Instance<?>)slots.getUnion(code[pc++]), slots.getString(code[pc++]), dest);
+                if(member == null) {
+                    if(dynamicOp.getResult() == DynamicOp.RESULT_WITH_GETTER){
+                        this.pc = pc;       // wait getter callback, it will reenter REENTER_INVOKE_GETTER
+                    }
+                    return -1;
+                }
+                slots.setUnion(dest, member);
                 break;
             }
-            case Dynamic.set_member_vov:{
-                System.out.println(1);
+            case Dynamic.dyn_set_member_uSv:{
+                var v = new DynamicOp(this).writeMember(self, (Instance<?>)slots.getUnion(code[pc++]), slots.getString(code[pc++]), (Instance<?>) slots.getUnion(code[pc++]));
+                if(v == DynamicOp.RESULT_EXCEPTION) {
+                    return -1;
+                } else if(v == DynamicOp.WRITE_RESULT_OK){
+                    return pc;
+                } else if(v == DynamicOp.WRITE_RESULT_WITH_SETTER){
+                    this.pc = pc;
+                    return -1;
+                }
                 break;
             }
-            case Dynamic.validate_invocable_v:{
-                var obj = slots.getObject(code[pc]);
-                var frame = createOrGetDynamicCallFrame(self, obj);
+            case Dynamic.dyn_ensure_invocable_vu:{
+                var dest = code[pc++];
+                var obj = slots.getUnion(code[pc++]);
+                var frame = new DynamicOp(this).createOrGetDynamicCallFrame(self, (Instance<?>) obj);
                 if(frame == null) return -1;
-                slots.setObject(code[pc++], frame);
+                slots.setObject(dest, frame);
                 break;
             }
-            case Dynamic.new_dynamic_vo: {
-                System.out.println(1);
+            case Dynamic.dyn_ensure_invocable_v:{
+                var dest = code[pc];
+                var obj = slots.getObject(code[pc++]);
+                var frame = new DynamicOp(this).createOrGetDynamicCallFrame(self, obj);
+                if(frame == null) return -1;
+                slots.setObject(dest, frame);
                 break;
             }
-            case Dynamic.new_dynamic_voa: {
+            case Dynamic.dyn_new_vu: {
                 var dest = code[pc++];
-                var instance = createDynamicInstance(self, slots.getObject(code[pc++]), slots.getObject(code[pc++]));
+                var instance = new DynamicOp(this).createDynamicInstance(self, slots.getObject(code[pc++]), null);
                 if(instance == null) return -1;
                 slots.setObject(dest, instance);
                 break;
             }
+            case Dynamic.dyn_new_vua: {
+                var dest = code[pc++];
+                var instance = new DynamicOp(this).createDynamicInstance(self, (Instance<?>) slots.getUnion(code[pc++]), slots.getObject(code[pc++]));
+                if(instance == null) return -1;
+                slots.setObject(dest, instance);
+                break;
+            }
+            case Dynamic.dyn_contains_member_vov:
+                slots.setBoolean(code[pc++], new DynamicOp(this).containsMember(slots.getObject(code[pc++]), slots.getString(code[pc++])));
+                break;
+            case Dynamic.dyn_contains_member_voc:
+                slots.setBoolean(code[pc++], new DynamicOp(this).containsMember(slots.getObject(code[pc++]), engine.toString(code[pc++])));
+                break;
         }
         return pc;
     }
 
-    private Instance<?> readMember(CallFrame<?> self, Instance<?> object, String memberName){
-        AgoClass agoClass = object.getAgoClass();
-        String possibleError = null;
-        var fld = agoClass.findField(memberName);
-        if(fld != null){
-            if(Modifier.isPublic(fld.getModifiers())) {
-                switch (fld.getTypeCode().value) {
-                    case INT_VALUE: return engine.getBoxer().boxInt(object.getSlots().getInt(fld.getSlotIndex()));
-                    case LONG_VALUE: return engine.getBoxer().boxLong(object.getSlots().getLong(fld.getSlotIndex()));
-                    case DOUBLE_VALUE: return engine.getBoxer().boxDouble(object.getSlots().getDouble(fld.getSlotIndex()));
-                    case DECIMAL_VALUE: return engine.getBoxer().boxDecimal(object.getSlots().getDecimal(fld.getSlotIndex()));
-                    case BOOLEAN_VALUE: return engine.getBoxer().boxBoolean(object.getSlots().getBoolean(fld.getSlotIndex()));
-                    case STRING_VALUE: return engine.getBoxer().boxString(object.getSlots().getString(fld.getSlotIndex()));
-                    case CHAR_VALUE: return engine.getBoxer().boxChar(object.getSlots().getChar(fld.getSlotIndex()));
-                    case SHORT_VALUE: return engine.getBoxer().boxShort(object.getSlots().getShort(fld.getSlotIndex()));
-                    case BYTE_VALUE: return engine.getBoxer().boxByte(object.getSlots().getByte(fld.getSlotIndex()));
-                    case FLOAT_VALUE: return engine.getBoxer().boxFloat(object.getSlots().getFloat(fld.getSlotIndex()));
-                    case CLASS_REF_VALUE: return engine.getBoxer().boxClassRef(object.getSlots().getClassRef(fld.getSlotIndex()));
-                    case OBJECT_VALUE: return object.getSlots().getObject(fld.getSlotIndex());
-                    case UNION_VALUE: {
-                        return engine.getBoxer().unionToObject(object.getSlots().getUnion(fld.getSlotIndex()));
-                    }
-                }
-            } else {
-                possibleError = "field '%s' is not visible for '%s'".formatted(fld.getName(), getAgoClass().getFullname());
-            }
-        }
-        AgoFunction method;
-        if(memberName.contains("#")){
-            method = agoClass.findMethod(memberName);
-        } else {
-            method = agoClass.findMethod(memberName + '#');
-            if(method == null){
-                method = agoClass.findMethod(memberName + "#get");
-            }
-        }
-        if(method != null){     // TODO maybe visible to current frame
-            if(Modifier.isPublic(method.getModifiers())) {
-                return engine.createScopedClass(this, method.getClassId(), object);     // to create ScopedClassInterval need a parameterized ClassInterval class
-            } else {
-                possibleError = "method '%s' is not visible for '%s'".formatted(method.getName(), getAgoClass().getFullname());
-            }
-        }
-        var child = agoClass.findChild(memberName);
-        if(child != null){
-            if(Modifier.isPublic(child.getModifiers())) {
-                return engine.createScopedClass(this, child.getClassId(), object);
-            } else {
-                possibleError = "class '%s' is not visible for '%s'".formatted(child.getName(), getAgoClass().getFullname());
-            }
-        }
-        if(possibleError != null){
-            raiseException(self, "lang.IllegalAccessException", possibleError);
-        } else {
-            raiseException(self, "lang.NoSuchMemberException", "'%s' not found in '%s'".formatted(memberName, agoClass.getFullname()));
-        }
-        return null;
-    }
-
-    private CallFrame<?> createOrGetDynamicCallFrame(CallFrame<?> self, Instance<?> obj){
-        if(obj instanceof CallFrame<?> f) return f;
-
-        AgoClass agoClass = obj.getAgoClass();
-        if(engine.getLangClasses().getScopedClassIntervalClass().isThatOrSuperOfThat(agoClass)) {
-            return (CallFrame<?>) engine.createInstanceFromScopedClassInterval(obj, self);
-        } else if(obj instanceof AgoFunction f){
-            return (CallFrame<?>) engine.createInstanceFromScopedClass(f, self, getRunSpace());
-        } else {
-            raiseException(self, "lang.ClassCastException", "'%s' is not a function".formatted(agoClass.getFullname()));
-            return null;
-        }
-    }
-
-    private Instance<?> createDynamicInstance(CallFrame<?> self, Instance<?> creator, Instance<?> tupleArguments){
-        Instance<?> instance;
-        AgoClass agoClass = creator.getAgoClass();
-        if(engine.getLangClasses().getScopedClassIntervalClass().isThatOrSuperOfThat(agoClass)) {
-            instance = engine.createInstanceFromScopedClassInterval(creator, self);
-        } else if(creator instanceof AgoFunction f){
-            instance = engine.createInstanceFromScopedClass(f, self, getRunSpace());
-        } else {
-            raiseException(self, "lang.ClassCastException", "'%s' is not a function".formatted(agoClass.getFullname()));
-            return null;
-        }
-        if(!instance.getAgoClass().isFunction()){
-            throw new UnsupportedOperationException("need to find out the constructor match arguments");
-        }
-        var argSlots = tupleArguments.getSlots();
-        for (AgoSlotDef slotDef : tupleArguments.getAgoClass().getSlotDefs()) {
-            int index = slotDef.getIndex();
-            switch (slotDef.getTypeCode().value){
-                case INT_VALUE: instance.getSlots().setInt(index, argSlots.getInt(index)); break;
-                case LONG_VALUE: instance.getSlots().setLong(index, argSlots.getLong(index)); break;
-                case DOUBLE_VALUE: instance.getSlots().setDouble(index, argSlots.getDouble(index)); break;
-                case DECIMAL_VALUE: instance.getSlots().setDecimal(index, argSlots.getDecimal(index)); break;
-                case BOOLEAN_VALUE: instance.getSlots().setBoolean(index, argSlots.getBoolean(index)); break;
-                case STRING_VALUE: instance.getSlots().setString(index, argSlots.getString(index)); break;
-                case CHAR_VALUE: instance.getSlots().setChar(index, argSlots.getChar(index)); break;
-                case SHORT_VALUE: instance.getSlots().setShort(index, argSlots.getShort(index)); break;
-                case BYTE_VALUE: instance.getSlots().setByte(index, argSlots.getByte(index)); break;
-                case FLOAT_VALUE: instance.getSlots().setFloat(index, argSlots.getFloat(index)); break;
-                case CLASS_REF_VALUE: instance.getSlots().setClassRef(index, argSlots.getClassRef(index)); break;
-                case OBJECT_VALUE: instance.getSlots().setObject(index, argSlots.getObject(index)); break;
-                case UNION_VALUE: instance.getSlots().setUnion(index, argSlots.getUnion(index)); break;
-            }
-        }
-        return instance;
-    }
 
     protected int evaluateCast(CallFrame<?> self, Slots slots, int pc, int instruction){
         switch (instruction){
@@ -2115,7 +2044,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             }
         } else {
             if(TypeCode.isPrimitive(targetTypeCode)){       //TODO for union, take primitive value
-                return engine.getBoxer().forceUnbox(this,self, targetIndex,slots.getObject(srcSlotIndex),targetTypeCode);
+                return engine.getBoxer().forceUnbox(this,this.getSlots(), self, targetIndex,slots.getObject(srcSlotIndex),targetTypeCode);
             } else {
                 return castObject(slots, targetIndex,slots.getObject(srcSlotIndex),targetTypeCode,targetClass);
             }
@@ -2574,10 +2503,10 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         switch (state){
             case REENTER_RAISE_EXCEPTION:
                 return super.reenter(reentrantProxyFrame, state, additionalState);
-            case REENTER_CREATE_SCOPED_CLASS:
+            case REENTER_CREATE_SCOPED_CLASS: {
                 var caller = reentrantProxyFrame.getCaller();       // it's self
                 AgoFrame agoFrame;
-                if(caller instanceof EntranceCallFrame<?> entranceCallFrame){
+                if (caller instanceof EntranceCallFrame<?> entranceCallFrame) {
                     agoFrame = (AgoFrame) entranceCallFrame.getInner();
                 } else {
                     agoFrame = (AgoFrame) caller;
@@ -2585,6 +2514,20 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 agoFrame.pc = additionalState;
                 agoFrame.getRunSpace().setCurrCallFrame(caller);
                 break;
+            }
+            case REENTER_INVOKE_GETTER:{
+                var caller = reentrantProxyFrame.getCaller();       // it's self
+                AgoFrame agoFrame;
+                if(caller instanceof EntranceCallFrame<?> entranceCallFrame){
+                    agoFrame = (AgoFrame) entranceCallFrame.getInner();
+                } else {
+                    agoFrame = (AgoFrame) caller;
+                }
+                agoFrame.getSlots().setUnion(additionalState, runSpace.getResultSlots().castAnyToObject(engine.getBoxer()));
+                agoFrame.getRunSpace().setCurrCallFrame(caller);
+                break;
+            }
+
         }
         return true;
     }

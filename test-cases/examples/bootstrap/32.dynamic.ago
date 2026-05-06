@@ -34,29 +34,29 @@ class Calc{
 
 class Staff{
     public name as string;
-    age as int {public get; private set;}
+    age as int {public get; public set;}
 
     fun work(title as string, duration as int){
-        Trace.print($"name: ${name} do ${title}, duration ${duration}"$)
+        Trace.print($"name: ${name} do ${title}, already ${duration} min"$)
     }
 }
 
 fun main(){
     var a as Animal = new Cat();
-    var s = 'bark';
-    a[s]()
+    a['bark']()     // it can located to ClassUnder(a, Animal.bark), however, the result type is still Object?, for unify the result type
 
     var c = new Calc();
-    s = 'add';
+    var s = 'add';
     var r as int = c[s](1, 2)
     Trace.print(r);
-//    var s as Object = new Staff();
-//    Trace.print('name' in s)
-//    Trace.print('age' in s)
-//
-//    s['name'] = 'John'
-//    s['age'] = 20
-//    Trace.print(s['name'])
-//    Trace.print(s['age'])
-//    s['work']('coding', 20)
+
+    var staff as Object = new Staff();
+    Trace.print('name' in staff)
+    Trace.print('age' in staff)
+
+    staff['name'] = 'John'
+    staff['age'] = 20
+    Trace.print(staff['name'])
+    Trace.print(staff['age'])
+    staff['work']('coding', 60)
 }

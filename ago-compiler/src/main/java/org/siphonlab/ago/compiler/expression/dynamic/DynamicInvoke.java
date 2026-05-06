@@ -21,6 +21,7 @@ import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.expression.ExpressionInFunctionBody;
+import org.siphonlab.ago.compiler.expression.MaybeFunction;
 import org.siphonlab.ago.compiler.expression.Var;
 import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 
@@ -32,15 +33,19 @@ public class DynamicInvoke extends ExpressionInFunctionBody {
 
     private final Invoke.InvokeMode invokeMode;
 
-    private final Expression functor;
+    private Expression functor;
     private final List<Expression> arguments;
     private final Expression forkContext;
 
-    public DynamicInvoke(FunctionDef ownerFunction, Invoke.InvokeMode invokeMode, Expression functor, List<Expression> arguments, Expression forkContext){
+    public DynamicInvoke(FunctionDef ownerFunction, Invoke.InvokeMode invokeMode, Expression functor, List<Expression> arguments, Expression forkContext) throws CompilationError {
         super(ownerFunction);
         this.invokeMode = invokeMode;
-        this.functor = functor;
+        this.functor = functor.setParent(this);
         this.arguments = arguments;
+        for (Expression argument : arguments) {
+            argument.setParent(this);
+        }
+
         this.forkContext = forkContext;
         functor.setParent(this);
     }
@@ -50,8 +55,23 @@ public class DynamicInvoke extends ExpressionInFunctionBody {
         if (invokeMode.isAsync()) {
             return getRoot().getFunctionBaseOfAnyClass();
         } else {
-            return getRoot().getAnyClass();
+            return ownerFunction.getOrCreateNullableType(getRoot().getObjectClass(), null);
         }
+    }
+
+    @Override
+    protected Expression transformInner() throws CompilationError {
+        this.functor = this.functor.transform();
+        if(this.functor instanceof MaybeFunction maybeFunction){
+            var r = ownerFunction.cast(new Invoke(ownerFunction, invokeMode, maybeFunction, arguments, getSourceLocation()).setParent(this.getParent()).transform(), inferType());
+            return r;
+        }
+        List<Expression> expressions = this.arguments;
+        for (int i = 0; i < expressions.size(); i++) {
+            Expression argument = expressions.get(i);
+            arguments.set(i, argument.transform());
+        }
+        return this;
     }
 
     public Expression getForkContext() {
@@ -73,22 +93,19 @@ public class DynamicInvoke extends ExpressionInFunctionBody {
 
             } else {
                 // the functor must be not call frame, call frame needn't argument
+                // creator result won't be null, so the type is Object
                 instance = (Var.LocalVar) new DynamicCreator(ownerFunction, functor, arguments).transform().visit(blockCompiler);
             }
 
             blockCompiler.lockRegister(instance);
-            blockCompiler.getCode().validateInvocable(instance.getVariableSlot());
-            Invoke.invokeCallFrame(blockCompiler, this.invokeMode, instance, localVar, this.forkContext);
-//            Var.LocalVar forkContextVar = null;
-//            if(forkContext != null){
-//                forkContextVar = (Var.LocalVar) forkContext.visit(blockCompiler);
-//            }
-//            if(this.invokeMode == Invoke.InvokeMode.Invoke) {
-//                blockCompiler.getCode().dynamicInvoke(localVar.getVariableSlot(), instance.getVariableSlot());
-//            } else {
-//                blockCompiler.getCode().dynamicInvokeAsync(localVar.getVariableSlot(), instance.getVariableSlot(), this.invokeMode, this.forkContext == null ? null : forkContextVar.getVariableSlot());
-//            }
+            blockCompiler.getCode().ensureInvocable(instance.getVariableSlot());
+
+            var r = blockCompiler.acquireTempVar(getRoot().getAnyClass());
+            Invoke.invokeCallFrame(blockCompiler, this.invokeMode, instance, r, this.forkContext);
             blockCompiler.releaseRegister(instance);
+
+            ownerFunction.cast(r, localVar.inferType()).transform().outputToLocalVar(localVar, blockCompiler);
+
         } catch (CompilationError e) {
             throw e;
         } finally {
@@ -98,8 +115,27 @@ public class DynamicInvoke extends ExpressionInFunctionBody {
 
     @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
-        this.visit(blockCompiler);
-    }
+        try {
+            blockCompiler.enter(this);
+            Var.LocalVar instance;
+            if(arguments.isEmpty()){
+                instance = (Var.LocalVar) functor.visit(blockCompiler);
+
+            } else {
+                instance = (Var.LocalVar) new DynamicCreator(ownerFunction, functor, arguments).transform().visit(blockCompiler);
+            }
+
+            blockCompiler.lockRegister(instance);
+            blockCompiler.getCode().ensureInvocable(instance.getVariableSlot());
+
+            Invoke.invokeCallFrame(blockCompiler, this.invokeMode, instance, this.forkContext);
+
+            blockCompiler.releaseRegister(instance);
+        } catch (CompilationError e) {
+            throw e;
+        } finally {
+            blockCompiler.leave(this);
+        }    }
 
     @Override
     public String toString() {

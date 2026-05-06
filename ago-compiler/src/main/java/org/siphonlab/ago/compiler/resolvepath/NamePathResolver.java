@@ -260,7 +260,11 @@ public class NamePathResolver {
             if(this.error != null){
                 throw this.error;
             } else {
-                throw unit.resolveError(namePath, "cannot resolve '%s' as %s".formatted(namePath.getText(), resolveMode));
+                if(this.namePath != null) {
+                    throw unit.resolveError(namePath, "cannot resolve '%s' as %s".formatted(namePath.getText(), resolveMode));
+                } else {
+                    throw new ResolveError("cannot resolve '%s' as %s".formatted(this.ids.getFirst().text(), resolveMode), ids.getFirst().sourceLocation);
+                }
             }
         }
         return r;

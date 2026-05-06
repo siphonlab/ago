@@ -46,30 +46,27 @@ public class ObjectMember extends ExpressionInFunctionBody implements Assign.Ass
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return getRoot().getAnyClass();
+        return ownerFunction.getOrCreateNullableType(getRoot().getObjectClass(), null);
     }
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        if(this.object.inferType() instanceof NullableClassDef nullableClassDef){
-            return BlockCompiler.nullableIfThenExpr(ownerFunction, this.object, nonNullExpression -> new ObjectMember(ownerFunction, nonNullExpression, indexExpr));
-        }
-        this.object = ownerFunction.cast(object, getRoot().getObjectClass()).transform();
         this.indexExpr = ownerFunction.cast(indexExpr.setParent(this).transform(), getRoot().STRING()).transform();
-//        if(this.indexExpr instanceof Literal<?> literal){
-//            StringLiteral index = (StringLiteral) literal;
-//            var resolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, ownerFunction.getUnit(), ownerFunction, object, index);
-//            try{
-//                return resolver.resolve();
-//            } catch (ResolveError _){
-//                resolver = new NamePathResolver(NamePathResolver.ResolveMode.ForInvokable, ownerFunction.getUnit(), ownerFunction, object, index);
-//            }
-//            try{
-//                return resolver.resolve();
-//            } catch (ResolveError _){
-//
-//            }
-//        }
+        if(this.indexExpr instanceof Literal<?> literal && !(object.inferType() instanceof NullableClassDef)){
+            StringLiteral index = (StringLiteral) literal;
+            var resolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, ownerFunction.getUnit(), ownerFunction, object, index);
+            try{
+                return resolver.resolve();
+            } catch (Exception _){
+                resolver = new NamePathResolver(NamePathResolver.ResolveMode.ForInvokable, ownerFunction.getUnit(), ownerFunction, object, index);
+            }
+            try{
+                return resolver.resolve();
+            } catch (Exception _){
+
+            }
+        }
+        this.object = ownerFunction.cast(object, this.inferType()).transform();
         return this;
     }
 
@@ -77,13 +74,16 @@ public class ObjectMember extends ExpressionInFunctionBody implements Assign.Ass
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
         Var.LocalVar object = (Var.LocalVar) this.object.visit(blockCompiler);
         blockCompiler.lockRegister(object);
-        var indexExpr = (Var.LocalVar)this.indexExpr.visit(blockCompiler);
+        var indexExpr = this.indexExpr.visit(blockCompiler);
+        if(indexExpr instanceof Literal<?> literal){
+            indexExpr = new PipeToTempVar(ownerFunction, literal).visit(blockCompiler);
+        }
 
         this.processedIndex = indexExpr;
 
         blockCompiler.enter(this);
 
-        blockCompiler.getCode().getDynamicMember(localVar.getVariableSlot(), object.getVariableSlot(), indexExpr.getVariableSlot());
+        blockCompiler.getCode().getDynamicMember(localVar.getVariableSlot(), object.getVariableSlot(), ((Var.LocalVar)indexExpr).getVariableSlot());
 
         blockCompiler.leave(this);
 
@@ -125,7 +125,7 @@ public class ObjectMember extends ExpressionInFunctionBody implements Assign.Ass
 
     @Override
     public Expression toPutElement(Expression processedCollection, TermExpression processedIndex, Expression value, FunctionDef ownerFunction) throws CompilationError {
-        return new MapPut(ownerFunction, processedCollection, processedIndex, value);
+        return new SetObjectMember(ownerFunction, processedCollection, processedIndex, value);
     }
 
     @Override

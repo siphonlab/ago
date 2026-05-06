@@ -245,8 +245,7 @@ public class Boxer {
         };
     }
 
-    public boolean forceUnbox(AgoFrame agoFrame, CallFrame<?> self, int receiverIndex, Instance<?> object, int typeCode) {
-        Slots slots = agoFrame.getSlots();
+    public boolean forceUnbox(AgoFrame agoFrame, Slots slots, CallFrame<?> self, int receiverIndex, Instance<?> object, int typeCode) {
         if(object == null) {
             agoFrame.raiseException(agoFrame, "lang.NullPointerException","unbox to '%s' meet null".formatted(TypeCode.of(typeCode)));
             return false;

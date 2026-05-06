@@ -21,6 +21,8 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.array.*;
+import org.siphonlab.ago.compiler.expression.dynamic.ObjectMember;
+import org.siphonlab.ago.compiler.expression.dynamic.SetObjectMember;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 import java.util.Objects;
@@ -78,8 +80,10 @@ public abstract class Assign extends ExpressionInFunctionBody {
             return new ArrayPut(ownerFunction, arrayElement, value);
         } else if(assignee instanceof ListElement listElement){
             return new ListPut(ownerFunction, listElement, value);
-        } else if(assignee instanceof MapValue mapValue){
+        } else if(assignee instanceof MapValue mapValue) {
             return new MapPut(ownerFunction, mapValue, value);
+        } else if(assignee instanceof ObjectMember objectMember){
+            return new SetObjectMember(ownerFunction, objectMember, value);
         } else {
             throw new UnsupportedOperationException();
         }

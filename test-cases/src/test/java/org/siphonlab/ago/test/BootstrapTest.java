@@ -255,6 +255,7 @@ public class BootstrapTest {
     public void dynamic_test() throws CompilationError, IOException {
         Util.run("bootstrap/32.dynamic.ago");
         Trace.printOutput();
+        assertTrue(Trace.outputted("meow", "3", "true", "true", "John", "20", "name: John do coding, already 60 min"));
     }
 
 

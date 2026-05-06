@@ -22,6 +22,8 @@ import org.siphonlab.ago.compiler.expression.*;
 
 import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
 
+import java.util.Objects;
+
 public class InstanceOf extends ExpressionInFunctionBody {
 
     private final Expression expression;
@@ -108,4 +110,20 @@ public class InstanceOf extends ExpressionInFunctionBody {
         }
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        InstanceOf that = (InstanceOf) o;
+        return Objects.equals(expression, that.expression) && Objects.equals(type, that.type) && Objects.equals(receiverVar, that.receiverVar);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(expression, type, receiverVar);
+    }
+
+    @Override
+    public String toString() {
+        return "(InstanceOf %s %s)".formatted(expression, type);
+    }
 }

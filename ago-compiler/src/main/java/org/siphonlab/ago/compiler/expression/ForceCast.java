@@ -181,6 +181,11 @@ public class ForceCast extends ExpressionInFunctionBody{
     }
 
     @Override
+    public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
+        this.expression.termVisit(blockCompiler);
+    }
+
+    @Override
     public String toString() {
         return "(ForceCast %s %s %s)".formatted(this.castMode, this.toType, this.expression);
     }

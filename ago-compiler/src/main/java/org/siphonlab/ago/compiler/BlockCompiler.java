@@ -398,26 +398,26 @@ public class BlockCompiler {
             var methodCall = methodCallExpr.methodCall();
             return methodCall(null, methodCall);        // static instance or current instance
         } else if(expression instanceof NormalDynamicInvokeContext normalDynamicInvokeContext){
-            return dynamicInvoke(normalDynamicInvokeContext);
+            return dynamicInvoke(normalDynamicInvokeContext).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof AsyncDynamicInvokeContext asyncDynamicInvokeContext){
-            return asyncDynamicInvoke(asyncDynamicInvokeContext);
+            return asyncDynamicInvoke(asyncDynamicInvokeContext).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof MemberAccessExprContext memberAccessExpr){
-            return memberAccessExpr(memberAccessExpr);
+            return memberAccessExpr(memberAccessExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof QuotedExprContext quotedExpr){
             return expression(quotedExpr.expression());
         } else if(expression instanceof EqualsExprContext equalsExpr){
             return this.equalsExpr(equalsExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CreatorExprContext creatorExpr) {
-            return creator(creatorExpr);
+            return creator(creatorExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof ChainCreatorExprContext chainCreatorExpr){
             return creator(chainCreatorExpr);
         } else if(expression instanceof AssignExprContext assignExpr){
-            return assign(assignExpr);
+            return assign(assignExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CastTypeExprContext castTypeExprContext) {
             var type = unit.parseType(functionDef, castTypeExprContext.variableType(), false, false);
             ClassDef t = extractType(type);
             Compiler.processClassTillStage(t, CompilingStage.AllocateSlots);
-            return new Cast(functionDef, expression(castTypeExprContext.expression()), t, true);
+            return new Cast(functionDef, expression(castTypeExprContext.expression()), t, true).setSourceLocation(unit.sourceLocation(expression));
 //        } else if(expression instanceof HighPriorCastTypeExprContext highPriorCastTypeExprContext) {
 //            ClassDef type;
 //            if(highPriorCastTypeExprContext.primitiveType() != null){
@@ -448,8 +448,7 @@ public class BlockCompiler {
             if(namePathContext != null){
                 var namePath = withMemberAccessExprContext.namePath();
                 NamePathResolver namePathResolver = new NamePathResolver(NamePathResolver.ResolveMode.ForVariable, unit, this.functionDef, left, ((FormalNamePathContext) namePath));
-                var r = namePathResolver.resolve();
-                return r;
+                return namePathResolver.resolve();
             } else {
                 MethodCallContext methodCallContext = withMemberAccessExprContext.methodCall();
                 return methodCall(left, methodCallContext);
@@ -488,8 +487,10 @@ public class BlockCompiler {
             return shiftExpr(shiftExprContext).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof PostWithExprContext postWithExpr){
             return withExpr(postWithExpr).setSourceLocation(unit.sourceLocation(expression));
-        } else if(expression instanceof IfElseExprContext ifElseExpr){
+        } else if(expression instanceof IfElseExprContext ifElseExpr) {
             return ifElseExpr(ifElseExpr).setSourceLocation(unit.sourceLocation(expression));
+        } else if(expression instanceof InExprContext inExpr){
+            return inExpr(inExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof LambdaExprContext lambdaExpr){          // we need name
 
         } else if(expression instanceof PostfixExprContext postfixExprContext){     //TODO need these?
@@ -604,6 +605,10 @@ public class BlockCompiler {
             receiverVar = null;
         }
         return new InstanceOf(functionDef, expression(instanceOfExpr.expression()), type, receiverVar);
+    }
+
+    private Expression inExpr(InExprContext inExpr) throws CompilationError {
+        return new InExpr(functionDef, expression(inExpr.expression(0)), expression(inExpr.expression(1)));
     }
 
     private Expression ifElseExpr(IfElseExprContext ifElseExpr) throws CompilationError {
