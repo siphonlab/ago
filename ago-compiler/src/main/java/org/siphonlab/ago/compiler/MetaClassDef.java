@@ -37,7 +37,7 @@ public class MetaClassDef extends ClassDef{
     private final int metaLevel;
 
     public MetaClassDef(Root root, ClassDef instanceClassDef, int metaLevel, AgoParser.MetaclassDeclarationContext metaclassDeclaration) {
-        super(root, format("Meta@<%s>", instanceClassDef.getFullnameWithoutPackage()));
+        super(root, format("Meta@<%s>", instanceClassDef.getFullname()));
         this.instanceClassDef = instanceClassDef;
         this.metaclassDeclaration = metaclassDeclaration;
         this.metaLevel = metaLevel;

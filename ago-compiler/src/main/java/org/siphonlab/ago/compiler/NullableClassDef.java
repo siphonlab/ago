@@ -16,53 +16,58 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
-import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.Set;
 
 public class NullableClassDef extends UnionClassDef {
 
-    private final ClassDef baseClass;
+    private final ClassDef nullableBaseClass;
 
     public NullableClassDef(Root root, ClassDef classDef) {
-        super(root, composeName(classDef.getName()));
-        this.baseClass = classDef;
-        this.classes = new ClassDef[]{baseClass, root.NULL()};
+        super(root.getNullableClass(), root.getNullableClass().getMetaClassDef().getConstructor(), new Literal[]{classDef.toClassRefLiteral(), root.NULL().toClassRefLiteral()});
+        this.nullableBaseClass = classDef;
         this.compilingStage = CompilingStage.ResolveHierarchicalClasses;
+        this.name = composeName(nullableBaseClass.getFullname());
     }
 
-    public static String composeName(String name) {
-        return name + "?";
+    // constructor changed, from 2 params to 1
+    @Override
+    public Literal<?>[] getArguments() {
+        return new Literal[]{this.arguments[0]};
     }
 
-    public ClassDef getBaseClass() {
-        return baseClass;
+    public static String composeName(String fullname) {
+        return "?" + fullname + ";";
+    }
+
+    public ClassDef getNullableBaseClass() {
+        return nullableBaseClass;
     }
 
     @Override
     public void resolveHierarchicalClasses() throws CompilationError {
         if(this.compilingStage != CompilingStage.ResolveHierarchicalClasses) return;
 
-        if(this.baseClass.compilingStage.lte(CompilingStage.ResolveHierarchicalClasses)){
-            this.baseClass.resolveHierarchicalClasses();
+        if(this.nullableBaseClass.compilingStage.lte(CompilingStage.ResolveHierarchicalClasses)){
+            this.nullableBaseClass.resolveHierarchicalClasses();
         }
 
         this.setSuperClass(root.getAnyClass());
 
         this.setCompilingStage(CompilingStage.InheritsFields);
         try {
-            Compiler.processClassTillStage(this, baseClass.getCompilingStage());
+            Compiler.processClassTillStage(this, nullableBaseClass.getCompilingStage());
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
     }
 
     public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
-        var newBaseType = baseClass.instantiate(instantiationArguments, returnExisted);
-        if(newBaseType == baseClass) {
+        var newBaseType = nullableBaseClass.instantiate(instantiationArguments, returnExisted);
+        if(newBaseType == nullableBaseClass) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;
         }
@@ -75,12 +80,12 @@ public class NullableClassDef extends UnionClassDef {
 
     @Override
     public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
-        return this.baseClass.isAffectedByTypeArguments(instantiationArguments);
+        return this.nullableBaseClass.isAffectedByTypeArguments(instantiationArguments);
     }
 
     @Override
     public boolean isGenericTerminated(Set<ClassDef> visited) {
-        return this.baseClass.isGenericTerminated(visited);
+        return this.nullableBaseClass.isGenericTerminated(visited);
     }
 
     @Override
@@ -95,12 +100,12 @@ public class NullableClassDef extends UnionClassDef {
         }
 
         if(anotherClass instanceof NullableClassDef another){
-            if(baseClass.isThatOrSuperOfThat(another.baseClass, visited)){
+            if(nullableBaseClass.isThatOrSuperOfThat(another.nullableBaseClass, visited)){
                 return this;
             }
         }
 
-        if(baseClass.isThatOrSuperOfThat(anotherClass, visited) || anotherClass instanceof NullClassDef)
+        if(nullableBaseClass.isThatOrSuperOfThat(anotherClass, visited) || anotherClass instanceof NullClassDef)
             return this;
 
         return null;

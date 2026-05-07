@@ -18,22 +18,34 @@ package org.siphonlab.ago.compiler;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.expression.Literal;
+import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class UnionClassDef extends ClassDef implements ConcreteType{
+public class UnionClassDef extends ParameterizedClassDef {
 
     protected ClassDef[] classes;
 
-    public UnionClassDef(Root root, String name) {
-        super(root, name);
+    public UnionClassDef(Root root, ConstructorDef parameterizedConstructor, Literal<?>[] arguments) {
+        super(root.getUnionClass(), parameterizedConstructor, arguments);
+        this.classes = Arrays.stream(arguments).map(a -> ((ClassRefLiteral)a).getClassDefValue()).toArray(ClassDef[]::new);
+        this.name = composeName(arguments);
     }
 
-    public UnionClassDef(Root root, String name, AgoParser.ClassDeclarationContext classDeclaration) {
-        super(root, name, classDeclaration);
+    public UnionClassDef(ClassDef baseClass, ConstructorDef parameterizedConstructor, Literal<?>[] arguments) {
+        super(baseClass, parameterizedConstructor, arguments);
+        this.classes = Arrays.stream(arguments).map(a -> ((ClassRefLiteral)a).getClassDefValue()).toArray(ClassDef[]::new);
+        this.name = composeName(arguments);
+    }
+
+    private String composeName(Literal<?>[] arguments) {
+        return "@|" + Arrays.stream(arguments).map(a -> ((ClassRefLiteral)a).getClassDefValue().getFullname()).collect(Collectors.joining("|")) + ';';
     }
 
     public ClassDef[] getClasses() {

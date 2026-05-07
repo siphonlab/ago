@@ -314,7 +314,7 @@ public class CastStrategy {
                 } else if(fromType instanceof NullableClassDef fromNullableClassDef) {
                     // work as Object cast
                 } else {
-                    var expr = castTo(expression, toNullableClassDef.getBaseClass());
+                    var expr = castTo(expression, toNullableClassDef.getNullableBaseClass());
                     return new ForceCast(ownerFunction, expr, toType, ForceCast.CastMode.ToUnion);
                 }
             } else {
@@ -322,7 +322,7 @@ public class CastStrategy {
             }
         } else if(fromType instanceof UnionClassDef){
             if(fromType instanceof NullableClassDef nullableClassDef){
-                var expr = new ForceCast(ownerFunction, expression, nullableClassDef.getBaseClass(), ForceCast.CastMode.FromUnion);
+                var expr = new ForceCast(ownerFunction, expression, nullableClassDef.getNullableBaseClass(), ForceCast.CastMode.FromUnion);
                 return castTo(expr, toType);
             } else {
                 throw new UnsupportedOperationException("only nullable supported now");
@@ -781,6 +781,9 @@ public class CastStrategy {
                     return root.createLongLiteral(Long.parseLong(str));
             }
         } else if(literal instanceof NullLiteral n){
+            if(toType.getTypeCode() == CLASS_REF){
+                return n.getClassDef().toClassRefLiteral();
+            }
             throw new TypeMismatchError("cannot cast null to object", sourceLocation);
         }
         throw new TypeMismatchError(literal.inferType().getTypeCode() + " cannot cast to " + toTypeCode, sourceLocation);

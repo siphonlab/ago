@@ -182,6 +182,8 @@ public class TypeCode {
             return true;
         } else if (this == OBJECT) {
             return true;
+        } else if(this == CLASS_REF){
+            return another == TypeCode.NULL;
         } else {
             return false;
         }

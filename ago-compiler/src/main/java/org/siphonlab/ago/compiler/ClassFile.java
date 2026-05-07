@@ -412,8 +412,12 @@ public class ClassFile {
                     buffer.put((byte) 1);
                 } else if(pc instanceof SharedGenericTypeParameterClassDef){
                     buffer.put((byte) 2);
-                } else if(pc instanceof ScopedClassIntervalClassDef){
+                } else if(pc instanceof ScopedClassIntervalClassDef) {
                     buffer.put((byte) 3);
+                } else if(pc instanceof NullableClassDef){
+                    buffer.put((byte) 5);
+                } else if(pc instanceof UnionClassDef){
+                    buffer.put((byte) 4);
                 } else {
                     buffer.put((byte) 0);
                 }
@@ -464,14 +468,6 @@ public class ClassFile {
                 } else {
                     buffer.putInt(0);
                 }
-            } else if (concreteType instanceof NullableClassDef nullableClassDef) {
-                if (nullableClassDef.getBaseClass() instanceof ConcreteType ele && solving.contains(ele)) {
-                    putConcreteType(ownerClass, buffer, ele, solving);
-                }
-                buffer.put((byte) 4);
-                buffer.putInt(ownerClass.idOfKnownConstString(nullableClassDef.getFullname()));
-                buffer.putPrefixedString(nullableClassDef.getName(), encoder);
-                putType(buffer, ownerClass,nullableClassDef.getBaseClass());
             } else {
                 throw new RuntimeException("unknown concrete type " + concreteType.getFullname());
             }

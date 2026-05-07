@@ -53,23 +53,7 @@ public class ArrayTypeHeader extends ClassHeader {
     private static Pair<String, String> composeName(ClassHeader elementClassHeader, Map<String, ClassHeader> headers){
         String name;
         String fullname;
-        if(elementClassHeader.getTypeCode().isObject()) {
-            var el = headers.get(elementClassHeader.fullname());
-            name = el.getName() + "[]";
-            fullname = el.extractPackagePrefix() + name;
-        } else if(elementClassHeader instanceof GenericTypeCodeAvatarClassHeader g){
-            if(g.fullname != null){
-                var el = headers.get(g.fullname);
-                name = g.getName() + "[]";
-                fullname = el.extractPackagePrefix() + name;
-            } else {
-                name = g.getName() + "[]";
-                fullname = name;
-            }
-        } else {
-            name = elementClassHeader.getName() + "[]";
-            fullname = name;
-        }
+        name = fullname  = '[' + elementClassHeader.fullname + ';';
         return Pair.of(name, fullname);
     }
 

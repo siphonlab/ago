@@ -15,7 +15,6 @@
  */
 package org.siphonlab.ago.classloader;
 
-import com.fasterxml.jackson.databind.node.DecimalNode;
 import org.agrona.collections.IntArrayList;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -26,8 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
@@ -458,36 +455,7 @@ public class AgoClassLoader implements ClassManager{
     }
 
     protected static String extractName(String classFullName) {
-        int length = classFullName.length();
-        int start = 0;
-        int depth = 0;
-        i_loop:
-        for(var i = 0; i< length; i++){
-            char c = classFullName.charAt(i);
-            if(c == '.'){
-                start = i + 1;
-            }
-            for(var j = i + 1; j < length; j++){
-                char cj = classFullName.charAt(j);
-                if(cj == '.') {
-                    i = j - 1;
-                    continue i_loop;
-                } else if(cj == '<'){
-                    depth ++;
-                    for(j++; j < length; j++){
-                        cj = classFullName.charAt(j);
-                        if(cj == '<') depth ++;
-                        if(cj == '>') {
-                            depth --;
-                            if(depth == 0)
-                                break;        // skip <...>
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        return classFullName.substring(start);
+        return new ExtractName(classFullName).extractName();
     }
 
     static class ConcreteTypeDesc{
@@ -504,18 +472,6 @@ public class AgoClassLoader implements ClassManager{
             this.elementType = elementType;
         }
     }
-
-    static class NullableConcreteTypeDesc extends ConcreteTypeDesc{
-        String nullableClassName;
-        TypeDesc baseType;
-
-        public NullableConcreteTypeDesc(String baseClassFullName, String nullableClassName, TypeDesc baseType) {
-            this.fullname = baseClassFullName;
-            this.nullableClassName = nullableClassName;
-            this.baseType = baseType;
-        }
-    }
-
 
     static class ParameterizedClassConcreteTypeDesc extends ConcreteTypeDesc{
         byte specialType;
@@ -590,14 +546,6 @@ public class AgoClassLoader implements ClassManager{
                 } else {
                     ls.add(concreteTypeDesc);
                 }
-            } else if(concreteTypeDesc instanceof NullableConcreteTypeDesc nullableConcreteTypeDesc){
-                ClassHeader elementType = this.headers.get(nullableConcreteTypeDesc.baseType.className);
-                if(elementType != null || !this.concreteTypeDescs.containsKey(nullableConcreteTypeDesc.baseType.className)){
-                    NullableTypeHeader header = new NullableTypeHeader(nullableConcreteTypeDesc.fullname, nullableConcreteTypeDesc.nullableClassName, nullableConcreteTypeDesc.baseType.className, this);
-                    registerNewClass(header);
-                } else {
-                    ls.add(concreteTypeDesc);
-                }
             } else if(concreteTypeDesc instanceof ParameterizedClassConcreteTypeDesc desc){
                 boolean ready = true;
                 if(headers.containsKey(desc.baseClass)){
@@ -621,6 +569,8 @@ public class AgoClassLoader implements ClassManager{
                         case 1 -> new GenericTypeCodeAvatarClassHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
                         case 2 -> new SharedGenericTypeParameterClassHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
                         case 3 -> new ScopedClassIntervalClassHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
+                        case 5 -> new NullableTypeHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
+                        case 4 -> new UnionTypeHeader(desc.fullname, desc.baseClass, desc.metaClass, desc.constructor, desc.arguments, this);
                         default -> throw new IllegalArgumentException("unknown special parameterized class '%d' for '%s'".formatted(desc.specialType, desc.fullname));
                     };
                     header.setName(extractName(desc.fullname));
@@ -659,11 +609,6 @@ public class AgoClassLoader implements ClassManager{
             readParameterizedClass(buffer, strings);
         } else if(kind == 3) {
             readGenericParameterizedClass(buffer, strings);
-        } else if(kind == 4){
-            String nullableClassFullName = strings[buffer.getInt()];
-            String nullableClassName = buffer.getPrefixedString(decoder);
-            var baseType = readType(buffer, strings);
-            this.concreteTypeDescs.put(nullableClassFullName, new NullableConcreteTypeDesc(nullableClassFullName, nullableClassName, baseType));
         }
     }
 
@@ -1310,4 +1255,6 @@ public class AgoClassLoader implements ClassManager{
     public LangClasses getLangClasses() {
         return langClasses;
     }
+
+
 }

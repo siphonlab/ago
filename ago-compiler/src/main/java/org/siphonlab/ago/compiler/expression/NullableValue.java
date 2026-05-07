@@ -205,7 +205,7 @@ public class NullableValue extends ExpressionInFunctionBody{
         @Override
         public ClassDef inferType() throws CompilationError {
             var n = (NullableClassDef) NullableValue.this.inferType();
-            return n.getBaseClass();
+            return n.getNullableBaseClass();
         }
 
         @Override
@@ -252,7 +252,7 @@ public class NullableValue extends ExpressionInFunctionBody{
         @Override
         public ClassDef inferType() throws CompilationError {
             var n = (NullableClassDef) NullableValue.this.inferType();
-            return n.getBaseClass();
+            return n.getNullableBaseClass();
         }
 
         @Override

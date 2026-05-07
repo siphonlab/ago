@@ -34,7 +34,7 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     public static String composeArrayTypeName(ClassDef componentType) {
-        return componentType.getName() + "[]";
+        return '[' + componentType.getFullname() + ';';
     }
 
     private ClassDef elementType;

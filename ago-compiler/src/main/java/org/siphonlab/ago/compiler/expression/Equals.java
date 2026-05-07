@@ -166,7 +166,7 @@ public class Equals extends BiExpression{
         var variable = localVar.variable;
         var nullableClass = (NullableClassDef)variable.getType();
         if(narrowTyper.isCollecting()) {
-            var nonNullVar = blockCompiler.acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
+            var nonNullVar = blockCompiler.acquireNarrowTypingVar(variable, nullableClass.getNullableBaseClass());
             var nullVar = blockCompiler.acquireNarrowTypingVar(variable, getRoot().NULL());
             if(type == Type.Equals && value.inferType() instanceof NullClassDef) {
                 narrowTyper.collectNarrowVar(nullVar, nonNullVar);

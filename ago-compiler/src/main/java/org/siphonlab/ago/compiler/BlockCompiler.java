@@ -986,10 +986,10 @@ public class BlockCompiler {
             eleType = listType.getGenericSource().typeArguments()[0].getClassDefValue();
             arrayType = null;
         } else if(arrayType instanceof NullableClassDef n){
-            if(!root.getAnyArrayClass().isThatOrSuperOfThat(n.getBaseClass())){
+            if(!root.getAnyArrayClass().isThatOrSuperOfThat(n.getNullableBaseClass())){
                 throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
             }
-            arrayType = n.getBaseClass();
+            arrayType = n.getNullableBaseClass();
             eleType = ((ArrayClassDef)arrayType).getElementType();
         } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
             throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
@@ -1598,7 +1598,7 @@ public class BlockCompiler {
             var expr = expression(primaryExprContext);
             if(expr.inferType() instanceof NullableClassDef n) {
                 if (expr instanceof Var.LocalVar localVar) {
-                    Var.NarrowTypingLocalVar nonNullValueReceiver = acquireNarrowTypingVar(localVar.variable, n.getBaseClass());
+                    Var.NarrowTypingLocalVar nonNullValueReceiver = acquireNarrowTypingVar(localVar.variable, n.getNullableBaseClass());
                     var nullValue = acquireNarrowTypingVar(localVar.variable, root.NULL());
                     narrowTyper.collectNarrowVar(nonNullValueReceiver, nullValue);
                     return new NullableValue(functionDef, localVar, nonNullValueReceiver);
@@ -1623,7 +1623,7 @@ public class BlockCompiler {
         var variable = localVar.variable;
         var nullableClass = (NullableClassDef)variable.getType();
         if(narrowTyper.isCollecting()) {
-            var nonNullVar = acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
+            var nonNullVar = acquireNarrowTypingVar(variable, nullableClass.getNullableBaseClass());
             var nullVar = acquireNarrowTypingVar(variable, getRoot().NULL());
             narrowTyper.collectNarrowVar(nonNullVar, nullVar);
             return new NullableValue(functionDef, localVar, nonNullVar);
@@ -1708,7 +1708,7 @@ public class BlockCompiler {
             var mapper = narrowTyper.exit();
             ClassDef expressionType = expression.inferType();
             if(expressionType instanceof NullableClassDef nullableClassDef){
-                expressionType = nullableClassDef.getBaseClass();
+                expressionType = nullableClassDef.getNullableBaseClass();
             }
             this.narrowTyper.reenter(mapper, true);
             var r = forEachStmt(forStmt, expression, expressionType, forControl, enhancedForControl, label);
@@ -2138,7 +2138,7 @@ public class BlockCompiler {
         if(!(classDef instanceof NullableClassDef)){
             throw unit.typeError(valueFromNullableContext, "nullable expression expected");
         }
-        return new Cast(functionDef, expr, ((NullableClassDef) classDef).getBaseClass());
+        return new Cast(functionDef, expr, ((NullableClassDef) classDef).getNullableBaseClass());
     }
 
 }

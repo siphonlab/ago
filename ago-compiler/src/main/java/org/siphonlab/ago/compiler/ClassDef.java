@@ -1164,7 +1164,7 @@ public class ClassDef extends ClassContainer {
         var id = this.stringTable.get(classDef.getFullname());
         if(id != null) return id;
 
-        if (classDef.isPrimitive()) throw new UnsupportedOperationException(classDef + " is primary type");
+//        if (classDef.isPrimitive()) throw new UnsupportedOperationException(classDef + " is primary type");
 
         id = idOfConstString(classDef.getFullname());
 //        if (classDef instanceof ConcreteType c) {
@@ -1628,7 +1628,7 @@ public class ClassDef extends ClassContainer {
                     mockMeta.setSourceLocation(superMeta.getSourceLocation());
                     mockMeta.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);
                     this.setMetaClassDef(mockMeta);
-                    this.getPackage().addChild(mockMeta);
+                    root.getDefaultPackage().addChild(mockMeta);
                     return mockMeta;
                 }
             } else {
