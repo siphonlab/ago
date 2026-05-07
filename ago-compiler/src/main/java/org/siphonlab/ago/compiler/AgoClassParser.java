@@ -531,7 +531,7 @@ public class AgoClassParser {
             if(instanceClassDef == null) return null;
             var classDef = new MetaClassDef(root, instanceClassDef, instanceClass instanceof MetaClass ? 2 : 1, null);
             classDef.setSourceLocation(metaClass.getSourceLocation());
-            root.getDefaultPackage().addChild(classDef);
+            instanceClassDef.getPackage().addChild(classDef);
             classes.put(agoClass, classDef);
             loadChildren(agoClass, classDef);
             classDef.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);

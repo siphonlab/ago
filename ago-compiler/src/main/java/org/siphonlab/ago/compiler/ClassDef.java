@@ -1628,7 +1628,7 @@ public class ClassDef extends ClassContainer {
                     mockMeta.setSourceLocation(superMeta.getSourceLocation());
                     mockMeta.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);
                     this.setMetaClassDef(mockMeta);
-                    root.getDefaultPackage().addChild(mockMeta);
+                    this.getPackage().addChild(mockMeta);
                     return mockMeta;
                 }
             } else {

@@ -268,7 +268,7 @@ public class Unit {
         metaclass.setSourceLocation(sourceLocation(metaclassDecl));
         metaclass.setSuperClass(root.getClassClass());  // let the super class of MetaClass be lang.Class
         metaclass.setCompilingStage(CompilingStage.ParseFields);      // direct jump to parse fields for metaclass
-        root.getDefaultPackage().addChild(metaclass);
+        instanceClass.getPackage().addChild(metaclass);
         classes.add(metaclass);
         addChildClasses(metaclass, metaclassDecl.classBody());
     }

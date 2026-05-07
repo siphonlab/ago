@@ -60,8 +60,28 @@ public class GenericInstantiationClassHeader extends ClassHeader {
 
     public static String[] composeMetaClassName(ClassHeader instanceTemplate, InstantiationArguments instantiationArguments) {
         var instance = instanceTemplate.classLoader.instantiateReferenceClass(instanceTemplate.fullname, instantiationArguments);
-        String name = "Meta@<" + instance.fullname + ">";
-        return new String[]{name, name};
+        String name = "Meta@<" + instance.name + ">";
+        var parent = instanceTemplate.parent;
+        if(parent != null) {
+            String fullCalssName = instance.name;       // full class name without package, parent.parent...me
+            List<ClassHeader> parents = new ArrayList<>();
+            for(; parent != null; parent = parent.parent){
+                parents.add(parent.instantiate(instantiationArguments, null, null, null));
+            }
+            for (int i = 0; i < parents.size(); i++) {
+                ClassHeader p = parents.get(i);
+                if(i == parents.size() - 1){
+                    name = "Meta@<%s>".formatted(p.name + "." + fullCalssName);
+                    fullCalssName = p.extractPackagePrefix() + name;
+                } else {
+                    fullCalssName = p.name + "." + fullCalssName;
+                }
+            }
+            return new String[]{name, fullCalssName};
+        } else {
+            String fullname = instanceTemplate.extractPackagePrefix() + name;
+            return new String[]{name, fullname};
+        }
     }
 
     @Override
