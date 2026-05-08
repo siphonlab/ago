@@ -317,28 +317,6 @@ public class CastStrategy {
             }
         }
 
-//        if(toType instanceof UnionClassDef){
-//            if(toType instanceof NullableClassDef toNullableClassDef){
-//                if(fromType instanceof NullClassDef || fromType.isVoid()) {
-//                    return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
-//                } else if(fromType instanceof NullableClassDef fromNullableClassDef) {
-//                    // work as Object cast
-//                } else {
-//                    var expr = castTo(expression, toNullableClassDef.getNullableBaseClass());
-//                    return new ForceCast(ownerFunction, expr, toType, ForceCast.CastMode.ToUnion);
-//                }
-//            } else {
-//                throw new UnsupportedOperationException("only nullable supported now");
-//            }
-//        } else if(fromType instanceof UnionClassDef){
-//            if(fromType instanceof NullableClassDef nullableClassDef){
-//                var expr = new ForceCast(ownerFunction, expression, nullableClassDef.getNullableBaseClass(), ForceCast.CastMode.FromUnion);
-//                return castTo(expr, toType);
-//            } else {
-//                throw new UnsupportedOperationException("only nullable supported now");
-//            }
-//        }
-
         if (expression instanceof Literal<?> literal) {
             if (literal instanceof NullLiteral n) {
                 if (toTypeKind == TypeKind.langObject || toTypeKind == TypeKind.Object || toTypeKind == TypeKind.PrimitiveBoxer) {
