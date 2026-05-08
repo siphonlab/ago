@@ -46,11 +46,11 @@ public class Long from Number<long>{
             native "org.siphonlab.ago.lang.Lang.Long_toHexString";
     }
 
-    public override intValue() as int    { return value; }
+    public override intValue() as int    { return value|int; }
 
     public override longValue() as long  { return value; }
 
-    public override floatValue() as float    { return value; }
+    public override floatValue() as float    { return value|float; }
 
     public override doubleValue() as double  { return value; }
 
