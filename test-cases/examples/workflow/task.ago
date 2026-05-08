@@ -11,6 +11,7 @@ fun nosave(n as int) as string {
 fun runf() {
     Trace.print("~~~hello running~~~");
     sleep(500);
+    Trace.print("~~~hello fork~~~");
 }
 
 fun rnd() as boolean native "org.siphonlab.ago.test.TestFunctions.rnd";

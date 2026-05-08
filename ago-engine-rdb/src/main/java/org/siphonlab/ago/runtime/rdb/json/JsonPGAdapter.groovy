@@ -672,7 +672,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         return r;
     }
 
-    static int[] loadPgLongArray(PgArray array) throws SQLException {
+    static long[] loadPgLongArray(PgArray array) throws SQLException {
         if (array == null) return null;
         Long[] integers = (Long[]) array.getArray();
         long[] r = new long[integers.length];
@@ -707,7 +707,17 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         for(var row : rows){
             var r = runspaceDescById[row['id'] as Long]
             r.pausingParents = row['pausing_parents'] == null ? null : loadPgLongArray(row['pausing_parents'] as PgArray).collect { runspaceDescById[it as Long] }.toList()
-            r.forkedRunSpaces = row['forked_runspaces'] == null ? null : loadPgLongArray(row['forked_runspaces'] as PgArray).collect { runspaceDescById[it as Long] }.toList()
+
+            r.forkedRunSpaces = null
+            var forkedRunspaces = row['forked_runspaces']
+            if (forkedRunspaces != null) {
+                var ids = loadPgLongArray(forkedRunspaces as PgArray)
+                var rs = ids.collect {
+                    runspaceDescById[it as Long]
+                }.toList()
+                r.forkedRunSpaces = rs
+            }
+
             r.parentRunSpace = row['parent_runspace'] == null ? null : runspaceDescById[row['parent_runspace'] as Long]
         }
 

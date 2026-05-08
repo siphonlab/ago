@@ -42,19 +42,22 @@ public class TaskAdapter extends LazyJsonPGAdapter {
                     running_state = ?, -- 4
                     exception_id = ?, -- 5
                     pausing_parents = ?, -- 6
-                    forked_runspaces = ?, -- 7
+                    forked_runspaces = ? -- 7
                 where id = ? -- 8
                 """;
         var obj = this.toUpdateMap(space);
+
         try (var ps = conn.prepareStatement(sql)) {
-            ps.setString(1, (String) obj.get("current_frame_table"));
+            ps.setString(1, (String) obj.get("curr_frame_table"));
             ps.setObject(2, obj.get("curr_frame_id"));
             ps.setObject(3, obj.get("result_slots"));
             ps.setByte(4, (Byte) obj.get("running_state"));
             ps.setObject(5, obj.get("exception_id"));
-            ps.setArray(6, conn.createArrayOf("bigint", (Object[]) obj.get("pausing_parents")));
-            ps.setArray(7, conn.createArrayOf("bigint", (Object[]) obj.get("forked_runspaces")));
+            ps.setArray(6, conn.createArrayOf("bigint", (Long[]) obj.get("pausing_parents")));
+            ps.setArray(7, conn.createArrayOf("bigint", (Long[]) obj.get("forked_runspaces")));
             ps.setObject(8, obj.get("id"));
+
+            ps.executeUpdate();
         }
         catch (SQLException e) {
             throw new RuntimeException(e);

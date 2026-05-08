@@ -20,6 +20,7 @@ import com.rabbitmq.client.*;
 import groovy.json.JsonBuilder;
 import groovy.json.JsonSlurper;
 import org.apache.commons.dbcp2.Utils;
+import org.apache.commons.io.FileUtils;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
@@ -32,6 +33,7 @@ import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -69,10 +71,15 @@ public class TestFunctions {
         System.exit(0);
     }
 
-    public static void rnd(NativeFrame frame) {
-        var r = new Random();
-        var b = r.nextBoolean();
-        frame.finishBoolean(b);
+    public static void rnd(NativeFrame frame) throws IOException {
+        var file = new File("output/workflow/task_toggle");
+        if (!file.exists()) {
+            frame.finishBoolean(true);
+            return ;
+        }
+        var content = FileUtils.readFileToString(file).trim();
+
+        frame.finishBoolean(content.isEmpty());
     }
 
     //TODO auto convert enum to primitive type
