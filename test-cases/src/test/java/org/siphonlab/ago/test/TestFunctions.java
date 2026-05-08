@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
 public class TestFunctions {
@@ -66,6 +67,12 @@ public class TestFunctions {
 
     public static void quitNow(NativeFrame frame) {
         System.exit(0);
+    }
+
+    public static void rnd(NativeFrame frame) {
+        var r = new Random();
+        var b = r.nextBoolean();
+        frame.finishBoolean(b);
     }
 
     //TODO auto convert enum to primitive type
