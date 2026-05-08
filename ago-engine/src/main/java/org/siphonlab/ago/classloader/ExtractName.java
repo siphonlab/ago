@@ -80,11 +80,6 @@ class ExtractName {
             depth++;
             tillPair(';');
             depth--;
-        } else if (c == 'M' && laIs("eta@<")) {
-            pos += 5;
-            depth++;
-            tillPair('>');
-            depth--;
         } else if ((c == '+' || c == '-') && peek() == '[') {     // shared generic type parameter
             pos++;
             depth++;
@@ -182,11 +177,6 @@ class ExtractName {
             depth++;
             tillPair(';');
             depth--;
-        } else if (c == 'M' && laIs("eta@<")) {
-            pos += 5;
-            depth++;
-            tillPair('>');
-            depth--;
         } else if ((c == '+' || c == '-') && peek() == '[') {     // shared generic type parameter
             pos++;
             depth++;
@@ -220,7 +210,7 @@ class ExtractName {
         s = "lang.ArrayIterator<lang.T_0_lang/Array_16|lang/[_~_]>.new#";
         System.out.println(new ExtractName(s).extractName());
 
-        s = "Meta@<lang.Enum>.valueOf#";
+        s = "lang.Meta@<Enum>.valueOf#";
         System.out.println(new ExtractName(s).extractName());
     }
 }

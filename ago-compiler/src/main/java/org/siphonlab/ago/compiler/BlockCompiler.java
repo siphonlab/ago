@@ -2138,7 +2138,7 @@ public class BlockCompiler {
         if(!(classDef instanceof NullableClassDef)){
             throw unit.typeError(valueFromNullableContext, "nullable expression expected");
         }
-        return new Cast(functionDef, expr, ((NullableClassDef) classDef).getNullableBaseClass());
+        return new Cast(functionDef, expr, ((NullableClassDef) classDef).getNullableBaseClass(), true);
     }
 
 }

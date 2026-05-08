@@ -54,7 +54,7 @@ public class ArrayElement extends ExpressionInFunctionBody implements Assign.Ass
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        this.indexExpr = ownerFunction.cast(indexExpr.setParent(this).transform(), ownerFunction.getRoot().INT()).transform();
+        this.indexExpr = ownerFunction.cast(indexExpr.setParent(this).transform(), ownerFunction.getRoot().INT(), true).transform();
         return this;
     }
 

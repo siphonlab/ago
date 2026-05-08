@@ -193,6 +193,11 @@ class IllegalAccessException from RuntimeException{
 
 }
 
+class IllegalStateException from RuntimeException{
+
+}
+
+
 class NoSuchMemberException from RuntimeException{
 
 }

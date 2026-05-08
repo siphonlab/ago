@@ -47,10 +47,12 @@ public class CastStrategy {
         PrimitiveInterface,         // i instanceof Primitive
         Enum,                       // enum, a special Primitive Boxer type, that can extract literal compile time
         PrimitiveBoxer,             // boxer type of primitive type
-        Any,                        // any, generic
+        Any,                        // any, generic, support primitive, union, and other possible class
         langObject,                 // lang.Object
         Object,                     // object type
-//        Union,                      // union, now only nullable
+
+        Null,                       // null, belongs to Primitive
+        Union,                      // union, now only nullable
     }
 
     public CastStrategy(FunctionDef ownerFunction, SourceLocation sourceLocation, boolean forceCast){
@@ -62,7 +64,11 @@ public class CastStrategy {
     private TypeKind typeKind(ClassDef classDef){
         Root root = classDef.getRoot();
         if(classDef instanceof PrimitiveClassDef) {
-            return TypeKind.Primitive;
+            if(classDef instanceof NullClassDef){
+                return TypeKind.Null;
+            } else {
+                return TypeKind.Primitive;
+            }
         } else if(classDef instanceof GenericTypeCodeAvatarClassDef a){
             if(a.isPrimitiveFamily()){      // <T as [Primitive]>
                 return TypeKind.PrimitiveGeneric;
@@ -86,8 +92,8 @@ public class CastStrategy {
             return TypeKind.Any;
         } else if(classDef == root.getObjectClass()) {
             return TypeKind.langObject;
-//        } else if(classDef.getTypeCode() == UNION){
-//            return TypeKind.Union;
+        } else if(classDef.getTypeCode() == UNION){
+            return TypeKind.Union;
         } else {
             return TypeKind.Object;
         }
@@ -144,7 +150,7 @@ public class CastStrategy {
                         unifyTypes(left, ownerFunction.unbox(right));
                     case langObject -> {
                         left = new Box(ownerFunction, left, ((PrimitiveClassDef)leftType).getBoxedType(), Box.BoxMode.Box);
-                        left = new ForceCast(ownerFunction, left,rightType, ForceCast.CastMode.ObjectCast);
+                        left = new ForceCast(ownerFunction, left,rightType, ForceCast.CastMode.WearClassMask);
                         yield new UnifyTypeResult(left,right,rightType,true);
                     }
                     default -> throwTypeMismatchError(originLeftType, originRightType);
@@ -216,6 +222,10 @@ public class CastStrategy {
     }
 
     private UnifyTypeResult throwTypeMismatchError(ClassDef originLeftType, ClassDef originRightType) throws TypeMismatchError {
+        throw new TypeMismatchError("cannot cast '%s' to '%s'".formatted(originLeftType.getFullname(), originRightType.getFullname()), this.sourceLocation);
+    }
+
+    private Expression throwTypeMismatchErrorExpr(ClassDef originLeftType, ClassDef originRightType) throws TypeMismatchError {
         throw new TypeMismatchError("cannot cast '%s' to '%s'".formatted(originLeftType.getFullname(), originRightType.getFullname()), this.sourceLocation);
     }
 
@@ -307,36 +317,36 @@ public class CastStrategy {
             }
         }
 
-        if(toType instanceof UnionClassDef){
-            if(toType instanceof NullableClassDef toNullableClassDef){
-                if(fromType instanceof NullClassDef || fromType.isVoid()) {
-                    return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
-                } else if(fromType instanceof NullableClassDef fromNullableClassDef) {
-                    // work as Object cast
-                } else {
-                    var expr = castTo(expression, toNullableClassDef.getNullableBaseClass());
-                    return new ForceCast(ownerFunction, expr, toType, ForceCast.CastMode.ToUnion);
-                }
-            } else {
-                throw new UnsupportedOperationException("only nullable supported now");
-            }
-        } else if(fromType instanceof UnionClassDef){
-            if(fromType instanceof NullableClassDef nullableClassDef){
-                var expr = new ForceCast(ownerFunction, expression, nullableClassDef.getNullableBaseClass(), ForceCast.CastMode.FromUnion);
-                return castTo(expr, toType);
-            } else {
-                throw new UnsupportedOperationException("only nullable supported now");
-            }
-        }
+//        if(toType instanceof UnionClassDef){
+//            if(toType instanceof NullableClassDef toNullableClassDef){
+//                if(fromType instanceof NullClassDef || fromType.isVoid()) {
+//                    return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
+//                } else if(fromType instanceof NullableClassDef fromNullableClassDef) {
+//                    // work as Object cast
+//                } else {
+//                    var expr = castTo(expression, toNullableClassDef.getNullableBaseClass());
+//                    return new ForceCast(ownerFunction, expr, toType, ForceCast.CastMode.ToUnion);
+//                }
+//            } else {
+//                throw new UnsupportedOperationException("only nullable supported now");
+//            }
+//        } else if(fromType instanceof UnionClassDef){
+//            if(fromType instanceof NullableClassDef nullableClassDef){
+//                var expr = new ForceCast(ownerFunction, expression, nullableClassDef.getNullableBaseClass(), ForceCast.CastMode.FromUnion);
+//                return castTo(expr, toType);
+//            } else {
+//                throw new UnsupportedOperationException("only nullable supported now");
+//            }
+//        }
 
         if (expression instanceof Literal<?> literal) {
-            if (toType instanceof PrimitiveClassDef) {
-                return new ForceCast(ownerFunction, castLiteral(literal, toType, this.sourceLocation), originToType, ForceCast.CastMode.WearClassMask).transform();
-            }
             if (literal instanceof NullLiteral n) {
-                if (toTypeKind == TypeKind.langObject || toTypeKind == TypeKind.Object || toTypeKind == TypeKind.Any || toTypeKind == TypeKind.PrimitiveBoxer) {
+                if (toTypeKind == TypeKind.langObject || toTypeKind == TypeKind.Object || toTypeKind == TypeKind.PrimitiveBoxer) {
                     throw new TypeMismatchError("cannot cast null to object", this.sourceLocation);
                 }
+            }
+            if (toType instanceof PrimitiveClassDef primitiveClassDef) {
+                return new ForceCast(ownerFunction, castLiteral(literal, primitiveClassDef, this.sourceLocation), originToType, ForceCast.CastMode.WearClassMask).transform();
             }
         }
 
@@ -356,8 +366,16 @@ public class CastStrategy {
                         castToAny(expression, fromType, originToType);
                     case langObject ->
                         boxPrimitive(expression, primitiveFromType, primitiveFromType.getBoxedType());
-                    case Object ->
+                    case Object, Null ->
                         throw new TypeMismatchError("can't convert to '%s'".formatted(toType.getFullname()), this.sourceLocation);
+                    case Union -> {
+                        if(fromType.getTypeCode() == NULL || fromType.getTypeCode() == VOID){
+                            yield new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
+                        } else {
+                            yield toNullable(castTo(expression, ((NullableClassDef) toType).getNullableBaseClass()), (NullableClassDef) toType);
+                        }
+                    }
+
                     default ->
                         throw new UnsupportedOperationException("no this type kind");
                 };
@@ -381,8 +399,11 @@ public class CastStrategy {
                     case langObject ->
                         forceBox(expression);
 
-                    case Object ->
+                    case Object, Null ->
                         throw new TypeMismatchError("can't convert to '%s'".formatted(toType.getFullname()), this.sourceLocation);
+
+                    case Union -> toNullable(castTo(expression, ((NullableClassDef) toType).getNullableBaseClass()), (NullableClassDef) toType);
+
                     default ->
                         throw new UnsupportedOperationException("no this type kind");
                 };
@@ -408,25 +429,48 @@ public class CastStrategy {
                     case Object ->
                         castObject(expression, fromType, toType);
 
+                    case Null ->
+                        throw new TypeMismatchError("can't convert to '%s'".formatted(toType.getFullname()), this.sourceLocation);
+
+                    case Union ->
+                        toNullable(castTo(expression, ((NullableClassDef)toType).getNullableBaseClass()), (NullableClassDef) toType);
+
                     default ->
                         throw new UnsupportedOperationException("no this type kind");
                 };
+
             case Any ->     castToAny(expression, fromType, originToType);
 
             case langObject ->
                 switch (toTypeKind) {
-                    case Primitive ->
-                        unboxObject(expression, toType, true);
-                    case PrimitiveGeneric ->
-                        forceUnbox(expression, toType);
+                    case Primitive -> {
+                        if(forceCast) {
+                            yield unboxObject(expression, toType, true);
+                        } else {
+                            yield throwTypeMismatchErrorExpr(fromType, originToType);
+                        }
+                    }
+                    case PrimitiveGeneric -> {
+                        if(forceCast) {
+                            yield forceUnbox(expression, toType);
+                        } else {
+                            yield throwTypeMismatchErrorExpr(fromType, originToType);
+                        }
+                    }
 
                     case PrimitiveBoxer, Enum, Object ->
-                        new ForceCast(ownerFunction, expression,toType, ForceCast.CastMode.ObjectCast);
+                        castObject(expression, fromType, toType);
 
                     case langObject ->  expression;
 
                     case Any ->
                         castToAny(expression, fromType, originToType);
+
+                    case Null ->
+                        throw new TypeMismatchError("can't convert to '%s'".formatted(toType.getFullname()), this.sourceLocation);
+
+                    case Union ->
+                        toNullable(castTo(expression, ((NullableClassDef)toType).getNullableBaseClass()), (NullableClassDef) toType);
 
                     default ->
                         throw new UnsupportedOperationException("no this type kind");
@@ -471,9 +515,59 @@ public class CastStrategy {
                     case Any ->
                         castToAny(expression, fromType, originToType);
 
+                    case Null -> throw new TypeMismatchError("can't convert '%s' to '%s'".formatted(fromType.getFullname(), toType.getFullname()), this.sourceLocation);
+
+                    case Union ->
+                        toNullable(castTo(expression, ((NullableClassDef)toType).getNullableBaseClass()), (NullableClassDef) toType);
+
                     default ->
                         throw new UnsupportedOperationException("no this type kind");
                 };
+
+            case Null -> {
+                yield switch (toTypeKind){
+                    case Primitive -> {     // there is no box type for null
+                        if(toType.getTypeCode() == CLASS_REF){
+                            yield castPrimitive(expression, (PrimitiveClassDef) fromType, (PrimitiveClassDef) originToType);
+                        } else {
+                            yield throwTypeMismatchErrorExpr(fromType, originToType);
+                        }
+                    }
+                    case Union ->
+                        toNullable(expression, (NullableClassDef) toType);
+                    default -> throwTypeMismatchErrorExpr(fromType, originToType);
+                };
+            }
+
+            case Union -> {
+                var expr = fromNullable(expression);
+                yield switch (toTypeKind){
+                    case Primitive, PrimitiveBoxer,PrimitiveGeneric, PrimitiveInterface, Enum, Any, langObject, Object  -> {
+                        if(forceCast) {
+                            yield castTo(expr, toType);
+                        } else {
+                            yield throwTypeMismatchErrorExpr(fromType, originToType);
+                        }
+                    }
+                    case Null -> throwTypeMismatchErrorExpr(fromType, originToType);
+                    case Union -> {
+                        var toBase = ((NullableClassDef)toType).getNullableBaseClass();
+                        if(toBase.getTypeCode() == OBJECT){       // type match, need cast
+                            ClassDef exprType = expr.inferType();
+                            if(toBase.isThatOrSuperOfThat(exprType)) {
+                                yield new ForceCast(ownerFunction, expression, originToType, ForceCast.CastMode.WearClassMask);
+                            } else if(forceCast && toBase.isThatOrDerivedFromThat(exprType)){
+                                yield new ForceCast(ownerFunction, expression, originToType, ForceCast.CastMode.WearClassMask);
+                            } else if(exprType.getTypeCode() == OBJECT){
+                                yield throwTypeMismatchErrorExpr(fromType, originToType);
+                            }
+                        }
+                        yield BlockCompiler.nullableIfThenExpr(ownerFunction, expression, nonNullExpression ->
+                            castTo(nonNullExpression, toBase)
+                        );
+                    }
+                };
+            }
 
             default -> throw new UnsupportedOperationException("no this type kind");
         };
@@ -487,6 +581,15 @@ public class CastStrategy {
     // and the result is Integer, Long, ...
     private Expression forceBox(Expression expression) throws CompilationError {
         return new Box(ownerFunction, expression, expression.inferType().getRoot().getObjectClass(), Box.BoxMode.ForceBox);
+    }
+
+    private Expression toNullable(Expression expression, NullableClassDef nullableClassDef) throws CompilationError {
+        return new ForceCast(ownerFunction, expression, nullableClassDef, ForceCast.CastMode.ToUnion);
+    }
+
+    private Expression fromNullable(Expression expression) throws CompilationError {
+        ClassDef type = expression.inferType();
+        return new ForceCast(ownerFunction, expression, ((NullableClassDef)type).getNullableBaseClass(), ForceCast.CastMode.FromUnion);
     }
 
     private Expression castObject(Expression expression, ClassDef fromType, ClassDef toType) throws CompilationError {
@@ -588,6 +691,11 @@ public class CastStrategy {
             if (toTypeCode == CLASS_REF || toTypeCode == VOID || toTypeCode == NULL) {      // no primitive type can cast to classref
                 throw new TypeMismatchError("'%s' can't cast to '%s'".formatted(fromType.getFullname(), toType.getFullname()), expression.getSourceLocation());
             }
+            if(!toTypeCode.isHigherThan(fromType.getTypeCode())){
+                if(!forceCast){
+                    throw new TypeMismatchError("'%s' can't cast to '%s' implicitly".formatted(fromType.getFullname(), toType.getFullname()), expression.getSourceLocation());
+                }
+            }
         }
         return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.PrimitiveCast);
     }
@@ -608,7 +716,7 @@ public class CastStrategy {
         return new ForceCast(ownerFunction, expression, originToType, ForceCast.CastMode.PrimitiveCast);
     }
 
-    public static Literal<?> castLiteral(Literal<?> literal, ClassDef toType, SourceLocation sourceLocation) throws CompilationError {
+    public static Literal<?> castLiteral(Literal<?> literal, PrimitiveClassDef toType, SourceLocation sourceLocation) throws CompilationError {
         if(toType == literal.getClassDef()) return literal;
         var toTypeCode = toType.getTypeCode();
         var root = literal.getClassDef().getRoot();
@@ -784,7 +892,6 @@ public class CastStrategy {
             if(toType.getTypeCode() == CLASS_REF){
                 return n.getClassDef().toClassRefLiteral();
             }
-            throw new TypeMismatchError("cannot cast null to object", sourceLocation);
         }
         throw new TypeMismatchError(literal.inferType().getTypeCode() + " cannot cast to " + toTypeCode, sourceLocation);
     }

@@ -128,14 +128,14 @@ public class Equals extends BiExpression{
 
         if(!nullableFound){
             if(this.left instanceof BooleanLiteral b){
-                Cast rightToBoolean = ownerFunction.cast(this.right, getRoot().BOOLEAN());
+                Cast rightToBoolean = ownerFunction.cast(this.right, getRoot().BOOLEAN(),true);
                 if((b.value && type == Type.Equals) || (!b.value && type == Type.NotEquals)){
                     return rightToBoolean;
                 } else {
                     return new Not(ownerFunction, rightToBoolean);
                 }
             } else if(this.right instanceof BooleanLiteral b){
-                Cast leftToBoolean = ownerFunction.cast(this.left, getRoot().BOOLEAN());
+                Cast leftToBoolean = ownerFunction.cast(this.left, getRoot().BOOLEAN(),true);
                 if((b.value && type == Type.Equals) || (!b.value && type == Type.NotEquals)){
                     return leftToBoolean;
                 } else {

@@ -180,7 +180,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                                 if(type.isEnum()){
                                     castedArgs.add(argument);
                                 } else {
-                                    var l = CastStrategy.castLiteral(argument, type, argument.getSourceLocation());
+                                    var l = CastStrategy.castLiteral(argument, (PrimitiveClassDef) type, argument.getSourceLocation());
                                     castedArgs.add((Literal<?>) l);
                                 }
                             } catch (CompilationError e) {

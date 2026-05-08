@@ -42,10 +42,10 @@ public class Pos extends UnaryArithmetic {
         ClassDef type = this.value.inferType();
 
         if(type.getTypeCode() == STRING){   // auto cast to double like js does
-            return ownerFunction.cast(this.value, getRoot().DOUBLE()).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
+            return ownerFunction.cast(this.value, getRoot().DOUBLE(),true).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
         }
         if(type.getTypeCode() == CHAR){     // char cast to int
-            return ownerFunction.cast(this.value, getRoot().INT()).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
+            return ownerFunction.cast(this.value, getRoot().INT(),true).setSourceLocation(this.getSourceLocation()).setParent(this.getParent());
         }
         if(type.getTypeCode() == OBJECT && type.isPrimitiveOrBoxed()){
             return ownerFunction.unbox(this.value).setParent(this.getParent()).transform();

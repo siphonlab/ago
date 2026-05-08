@@ -28,7 +28,7 @@ public abstract class ExpressionInFunctionBody extends ExpressionBase{
             blockCompiler.lockRegister(nullableValue);
             var equalsNull = new Equals(ownerFunction, nullableValue, getRoot().nullLiteral(), Equals.Type.Equals).visit(blockCompiler);
             blockCompiler.getCode().jumpIf(((Var.LocalVar)equalsNull).getVariableSlot(), nullableExit);
-            var nonNullValue = (Var.LocalVar) ownerFunction.cast(nullableValue, n.getNullableBaseClass()).transform().visit(blockCompiler);
+            var nonNullValue = (Var.LocalVar) ownerFunction.cast(nullableValue, n.getNullableBaseClass(), true).transform().visit(blockCompiler);
             nonNullValue.setSourceLocation(maybeNullableExpression.getSourceLocation());
             generateCodeForNullable.generate(nonNullValue);
             blockCompiler.releaseRegister(nullableValue);

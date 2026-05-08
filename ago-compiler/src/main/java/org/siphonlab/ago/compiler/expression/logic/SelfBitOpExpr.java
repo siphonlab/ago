@@ -53,7 +53,7 @@ public class SelfBitOpExpr extends SelfOpExpr {
     public SelfBitOpExpr(FunctionDef ownerFunction, Expression site, Expression change, Type type) throws CompilationError {
         super(ownerFunction, site, change);
         this.site = site.transform().setParent(this);
-        this.change = ownerFunction.cast(change.setParent(this), site.inferType()).transform();
+        this.change = ownerFunction.cast(change.setParent(this), site.inferType(),true).transform();
         this.type = type;
     }
 

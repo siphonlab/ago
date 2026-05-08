@@ -112,12 +112,12 @@ public class TypeCode {
     }
 
 
-    public boolean isPrimitive(){
-        return this != OBJECT && this != NULL && this != UNION;
+    public boolean isPrimitiveExcludeNull(){
+        return this != OBJECT && this != NULL && this != UNION && this != VOID;
     }
 
-    public static boolean isPrimitive(int typeCode){
-        return typeCode != OBJECT_VALUE && typeCode != NULL_VALUE && typeCode != UNION_VALUE;
+    public static boolean isPrimitiveExcludeNull(int typeCode){
+        return typeCode != OBJECT_VALUE && typeCode != NULL_VALUE && typeCode != UNION_VALUE && typeCode != VOID_VALUE;
     }
 
 

@@ -63,7 +63,7 @@ public class DynamicInvoke extends ExpressionInFunctionBody {
     protected Expression transformInner() throws CompilationError {
         this.functor = this.functor.transform();
         if(this.functor instanceof MaybeFunction maybeFunction){
-            var r = ownerFunction.cast(new Invoke(ownerFunction, invokeMode, maybeFunction, arguments, getSourceLocation()).setParent(this.getParent()).transform(), inferType());
+            var r = ownerFunction.cast(new Invoke(ownerFunction, invokeMode, maybeFunction, arguments, getSourceLocation()).setParent(this.getParent()).transform(), inferType(), true);
             return r;
         }
         List<Expression> expressions = this.arguments;
@@ -104,7 +104,7 @@ public class DynamicInvoke extends ExpressionInFunctionBody {
             Invoke.invokeCallFrame(blockCompiler, this.invokeMode, instance, r, this.forkContext);
             blockCompiler.releaseRegister(instance);
 
-            ownerFunction.cast(r, localVar.inferType()).transform().outputToLocalVar(localVar, blockCompiler);
+            ownerFunction.cast(r, localVar.inferType(),true).transform().outputToLocalVar(localVar, blockCompiler);
 
         } catch (CompilationError e) {
             throw e;

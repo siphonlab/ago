@@ -65,6 +65,7 @@ public class LangClasses {
     private final AgoClass longEnumClass;
 
     public final AgoInterface taskInterface;
+    private final AgoClass boxerClass;
 
     public LangClasses(ClassManager classManager) {
         this.objectClass = classManager.getClass("lang.Object");
@@ -78,6 +79,7 @@ public class LangClasses {
         this.throwableClass = classManager.getClass("lang.Throwable");
         this.functionClass = classManager.getClass("lang.Function");
         this.runSpaceClass = classManager.getClass("lang.RunSpace");
+        this.boxerClass = classManager.getClass("lang.Boxer");
 
         this.integerClass = classManager.getClass("lang.Integer");
         this.longClass = classManager.getClass("lang.Long");
@@ -278,5 +280,9 @@ public class LangClasses {
 
     public AgoClass getLongEnumClass() {
         return longEnumClass;
+    }
+
+    public AgoClass getBoxerClass() {
+        return boxerClass;
     }
 }

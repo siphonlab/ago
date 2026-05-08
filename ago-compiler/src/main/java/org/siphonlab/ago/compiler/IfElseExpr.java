@@ -41,7 +41,7 @@ public class IfElseExpr extends ExpressionInFunctionBody {
         super(ownerFunction);
         this.ifPart = ifPart.setParent(this).transform();
         this.condition = condition.setParent(this);
-        this.elsePart = ownerFunction.cast(elsePart, this.ifPart.inferType()).transform();
+        this.elsePart = ownerFunction.cast(elsePart, this.ifPart.inferType(), true).transform();
     }
 
     @Override

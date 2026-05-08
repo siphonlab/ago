@@ -61,7 +61,7 @@ public class SelfArithmetic extends ExpressionInFunctionBody {
     public SelfArithmetic(FunctionDef ownerFunction, Expression site, Expression change, Type type) throws CompilationError {
         super(ownerFunction);
         this.site = site.transform().setParent(this);
-        this.change = ownerFunction.cast(change.setParent(this), site.inferType()).transform();
+        this.change = ownerFunction.cast(change.setParent(this), site.inferType(),true).transform();
         this.type = type;
     }
 
@@ -89,7 +89,7 @@ public class SelfArithmetic extends ExpressionInFunctionBody {
             throw new TypeMismatchError("number required", this.getSourceLocation());
         }
         if(!type.getTypeCode().isNumber()){
-            change = ownerFunction.cast(change, siteType).transform();
+            change = ownerFunction.cast(change, siteType,true).transform();
             throw new TypeMismatchError("number required", this.change.getSourceLocation());
         }
         return this;

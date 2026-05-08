@@ -73,8 +73,8 @@ public class ComplexMapLiteral extends ExpressionInFunctionBody {
                             putAll(nonNullValue, localVar, blockCompiler, expandoDef.getKind(), expandoDef.getSourceLocation()));
 
                 } else if(element instanceof KVPairDef pair) {
-                    var key = fun.cast(pair.getKey(), this.keyType).setParent(this).transform();
-                    var value = fun.cast(pair.getValue(), this.valueType).setParent(this).transform();
+                    var key = fun.cast(pair.getKey(), this.keyType, true).setParent(this).transform();
+                    var value = fun.cast(pair.getValue(), this.valueType, true).setParent(this).transform();
 
                     var put = new MapPut(fun, localVar, key, value).setSourceLocation(this.getSourceLocation()).transform();
                     put.termVisit(blockCompiler);

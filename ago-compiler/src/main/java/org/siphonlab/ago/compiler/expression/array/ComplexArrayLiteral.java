@@ -57,7 +57,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                     throw new TypeMismatchError("lang.Collection or array expected", el.getExpression().getSourceLocation());
                 }
             }  else {
-                el.setExpression(ownerFunction.cast(el.getExpression(), arrayType.getElementType()).setParent(this).transform());
+                el.setExpression(ownerFunction.cast(el.getExpression(), arrayType.getElementType(), true).setParent(this).transform());
             }
         }
         return this;
@@ -240,7 +240,7 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
         var forEach = new ForEachStmt(ownerFunction, null, it, group.result,
                 ownerFunction.expressionStmt(
                         ownerFunction.assign(new ArrayElement(ownerFunction, destArray, new SelfArithmetic(ownerFunction, destIndex, getRoot().createIntLiteral(1), SelfArithmetic.Type.IncPost)),
-                                                ownerFunction.cast(it, arrayType.getElementType()).transform())
+                                                ownerFunction.cast(it, arrayType.getElementType(), true).transform())
                 ), mode, group.expression.getSourceLocation());
         forEach.termVisit(blockCompiler);
         blockCompiler.releaseRegister(it);
