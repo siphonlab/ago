@@ -47,7 +47,7 @@ fun main(){
 
     var c = new Calc();
     var s = 'add';
-    var r as int = c[s](1, 2)
+    var r as int = c[s](1, 2) | int
     Trace.print(r);
 
     var staff as Object = new Staff();

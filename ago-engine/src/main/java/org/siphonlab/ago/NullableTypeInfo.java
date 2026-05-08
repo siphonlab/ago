@@ -1,5 +1,6 @@
 package org.siphonlab.ago;
 
+// this can derive from parameterized info, but, it's only a flag, just leave it
 public class NullableTypeInfo extends UnionConcreteTypeInfo{
 
     private final AgoClass baseClass;

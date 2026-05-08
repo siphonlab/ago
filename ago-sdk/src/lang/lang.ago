@@ -122,6 +122,24 @@ class GenericTypeCodeAvatar{
     }
 }
 
+// type code is 0e
+class Union from Any{
+    metaclass{
+        public final classes as classref[];
+        fun new#2(class1 as classref, class2 as classref){
+            this.classes = [class1, class2];
+        }
+    }
+}
+
+class Nullable from Union{
+    metaclass{
+        fun new(baseClass as classref){
+            super(baseClass, null);
+        }
+    }
+}
+
 // class information
 class Class {
     override toString() as string{
@@ -174,6 +192,11 @@ class NullPointerException from RuntimeException{
 class IllegalAccessException from RuntimeException{
 
 }
+
+class IllegalStateException from RuntimeException{
+
+}
+
 
 class NoSuchMemberException from RuntimeException{
 

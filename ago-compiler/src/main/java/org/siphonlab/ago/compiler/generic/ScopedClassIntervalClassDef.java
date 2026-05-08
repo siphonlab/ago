@@ -30,7 +30,7 @@ public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
     public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         ScopedClassIntervalClassDef c = null;
         try {
-            c = this.getParentClass().getOrCreateScopedClassInterval(baseClass.instantiate(instantiationArguments, null),
+            c = ((ClassContainer)this.getParent()).getOrCreateScopedClassInterval(baseClass.instantiate(instantiationArguments, null),
                     constructor,
                     this.getLBoundClass().instantiate(instantiationArguments, null),
                     this.getUBoundClass().instantiate(instantiationArguments, null),

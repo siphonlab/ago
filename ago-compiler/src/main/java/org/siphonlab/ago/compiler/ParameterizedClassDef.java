@@ -180,7 +180,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                                 if(type.isEnum()){
                                     castedArgs.add(argument);
                                 } else {
-                                    var l = CastStrategy.castLiteral(argument, type, argument.getSourceLocation());
+                                    var l = CastStrategy.castLiteral(argument, (PrimitiveClassDef) type, argument.getSourceLocation());
                                     castedArgs.add((Literal<?>) l);
                                 }
                             } catch (CompilationError e) {
@@ -378,11 +378,11 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         ParameterizedClassDef c = null;
         try {
             var n = baseClass.instantiateAsReferenceClass(instantiationArguments, returnExisted);
-            c = this.getParentClass().getOrCreateParameterizedClass(n, constructor, mapArguments(instantiationArguments), returnExisted);
+            c = ((ClassContainer)this.getParent()).getOrCreateParameterizedClass(n, constructor, mapArguments(instantiationArguments), returnExisted);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }

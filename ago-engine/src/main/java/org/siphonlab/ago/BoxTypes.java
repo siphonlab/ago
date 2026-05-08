@@ -86,6 +86,8 @@ public class BoxTypes {
         if(t != null) boxTypesInterfaces.put(t, SHORT);
         t = classByName.get("lang.Boxer<classref>");
         if (t != null) boxTypesInterfaces.put(t, CLASS_REF);
+        t = classByName.get("lang.Boxer<decimal>");
+        if (t != null) boxTypesInterfaces.put(t, DECIMAL);
 
         t = classByName.get("lang.Enum<int>");
         if (t != null) boxTypesInterfaces.put(t, INT);

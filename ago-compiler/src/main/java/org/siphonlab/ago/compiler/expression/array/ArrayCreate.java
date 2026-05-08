@@ -31,7 +31,7 @@ public class ArrayCreate extends ExpressionInFunctionBody {
         super(ownerFunction);
         this.arrayType = arrayType;
         lengthExpr.setParent(this);
-        this.lengthExpr = lengthExpr == null ? null : ownerFunction.cast(lengthExpr, ownerFunction.getRoot().INT()).setSourceLocation(lengthExpr.getSourceLocation()).transform();
+        this.lengthExpr = lengthExpr == null ? null : ownerFunction.cast(lengthExpr, ownerFunction.getRoot().INT(), true).setSourceLocation(lengthExpr.getSourceLocation()).transform();
     }
 
     @Override

@@ -207,6 +207,7 @@ public class CodeTransformer {
                 case Array.array_create_f_vCv:
                 case Array.array_create_l_vCc:
                 case Array.array_create_l_vCv:
+                case Array.array_create_C_vCc:
                     updateClassId(instruction, 1); break;
 
                 case Array.array_fill_i_acL:
@@ -219,6 +220,9 @@ public class CodeTransformer {
                 case Array.array_fill_s_acL:
                 case Array.array_fill_l_acL:
                     updateBlobId(instruction, 2, header.getBlobOffset()); break;
+
+                case Array.array_put_C_acc:
+                    updateClassId(instruction, 2); break;
 
                 case IncDec.inc_D_ovc:
                 case Mod.mod_D_vvc:

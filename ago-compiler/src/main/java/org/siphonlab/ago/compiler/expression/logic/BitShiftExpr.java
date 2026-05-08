@@ -59,7 +59,7 @@ public class BitShiftExpr extends ExpressionInFunctionBody {
         super(ownerFunction);
         this.type = type;
         this.left = left.transform().setParent(this);
-        this.right = ownerFunction.cast(right, getRoot().INT()).transform().setParent(this);
+        this.right = ownerFunction.cast(right, getRoot().INT(),true).transform().setParent(this);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class BitShiftExpr extends ExpressionInFunctionBody {
         if(!right.inferType().getTypeCode().isIntFamily()){
             throw new TypeMismatchError("int family value expected", right.getSourceLocation());
         }
-        right = ownerFunction.cast(right, getRoot().INT()).transform();
+        right = ownerFunction.cast(right, getRoot().INT(),true).transform();
         if(right instanceof IntLiteral r){
             if(r.value == 0) return left;
             if(r.value < 0) throw new IllegalExpressionError("illegal bits value", right.getSourceLocation());

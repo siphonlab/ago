@@ -67,7 +67,7 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
                     throw new TypeMismatchError("array, lang.Iterable, lang.Iterator, or generator expected", el.getExpression().getSourceLocation());
                 }
             } else {
-                el.setExpression(ownerFunction.cast(el.getExpression(), elementType).setParent(this).transform());
+                el.setExpression(ownerFunction.cast(el.getExpression(), elementType,true).setParent(this).transform());
             }
         }
         return this;
@@ -179,7 +179,7 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
         var forEach = new ForEachStmt(ownerFunction, null, it, srcCollection,
                 ownerFunction.expressionStmt(
                         ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(destList, destList.inferType().findMethod("add#")),
-                                List.of(ownerFunction.cast(it, elementType)), sourceLocation)
+                                List.of(ownerFunction.cast(it, elementType,true)), sourceLocation)
                 ), mode, sourceLocation);
         forEach.termVisit(blockCompiler);
         blockCompiler.releaseRegister(it);

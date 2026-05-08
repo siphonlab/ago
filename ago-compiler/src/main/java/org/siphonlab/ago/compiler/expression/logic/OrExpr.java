@@ -76,8 +76,8 @@ public class OrExpr extends ExpressionInFunctionBody {
             if (leftType.getTypeCode() == TypeCode.BOOLEAN || rightType.getTypeCode() == TypeCode.BOOLEAN ||
                     leftType.getUnboxedTypeCode() == TypeCode.BOOLEAN || rightType.getUnboxedTypeCode() == TypeCode.BOOLEAN) {
                 Expression l, r;
-                l = ownerFunction.cast(left, getRoot().BOOLEAN()).transform();
-                r = ownerFunction.cast(right, getRoot().BOOLEAN()).transform();
+                l = ownerFunction.cast(left, getRoot().BOOLEAN(),true).transform();
+                r = ownerFunction.cast(right, getRoot().BOOLEAN(),true).transform();
                 if (l == this.left && r == this.right) {
                     resultType = this.left.inferType();
                     return this;
@@ -96,12 +96,12 @@ public class OrExpr extends ExpressionInFunctionBody {
         if(leftIsNullable || rightIsNullable) {
             finalType = ownerFunction.getOrCreateNullableType(result.resultType(), null);
             if (this.left.inferType() != finalType) {
-                this.left = ownerFunction.cast(left, result.resultType()).transform();        // maybe int? cast to double?, now the left is (double)nonNullValue
+                this.left = ownerFunction.cast(left, result.resultType(),true).transform();        // maybe int? cast to double?, now the left is (double)nonNullValue
             } else {
                 this.left = originalNullableLeft;
             }
             if(this.right.inferType() != finalType) {
-                this.right = ownerFunction.cast(right, result.resultType()).transform();
+                this.right = ownerFunction.cast(right, result.resultType(),true).transform();
             } else {
                 this.right = originalNullableRight;
             }
@@ -188,7 +188,7 @@ public class OrExpr extends ExpressionInFunctionBody {
                 var leftResult = this.left.visit(blockCompiler);
                 if(leftResult instanceof Literal<?> literal){
                     if (BooleanLiteral.isTrue(literal)) {
-                        ownerFunction.cast(literal, resultType).transform().termVisit(blockCompiler);
+                        ownerFunction.cast(literal, resultType,true).transform().termVisit(blockCompiler);
                         code.jump(exit);
                     } // otherwise decide by the right value
                 } else {
@@ -198,7 +198,7 @@ public class OrExpr extends ExpressionInFunctionBody {
                     } else if(t.isPrimitiveBoxed()){
                         throw new IllegalStateException("box type should already cast to primitive");
                     }
-                    ownerFunction.cast(leftResult, resultType).transform().termVisit(blockCompiler);
+                    ownerFunction.cast(leftResult, resultType,true).transform().termVisit(blockCompiler);
                     code.jump(exit);
                 }
             }
@@ -212,7 +212,7 @@ public class OrExpr extends ExpressionInFunctionBody {
             if(this.right.inferType() instanceof NullableClassDef) {
                 this.right.outputToLocalVar(localVar, blockCompiler);
             } else {
-                ownerFunction.cast(this.right, resultType).transform().outputToLocalVar(localVar, blockCompiler);
+                ownerFunction.cast(this.right, resultType,true).transform().outputToLocalVar(localVar, blockCompiler);
             }
             code.jump(exit);
 

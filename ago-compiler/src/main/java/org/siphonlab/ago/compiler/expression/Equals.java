@@ -128,14 +128,14 @@ public class Equals extends BiExpression{
 
         if(!nullableFound){
             if(this.left instanceof BooleanLiteral b){
-                Cast rightToBoolean = ownerFunction.cast(this.right, getRoot().BOOLEAN());
+                Cast rightToBoolean = ownerFunction.cast(this.right, getRoot().BOOLEAN(),true);
                 if((b.value && type == Type.Equals) || (!b.value && type == Type.NotEquals)){
                     return rightToBoolean;
                 } else {
                     return new Not(ownerFunction, rightToBoolean);
                 }
             } else if(this.right instanceof BooleanLiteral b){
-                Cast leftToBoolean = ownerFunction.cast(this.left, getRoot().BOOLEAN());
+                Cast leftToBoolean = ownerFunction.cast(this.left, getRoot().BOOLEAN(),true);
                 if((b.value && type == Type.Equals) || (!b.value && type == Type.NotEquals)){
                     return leftToBoolean;
                 } else {
@@ -166,7 +166,7 @@ public class Equals extends BiExpression{
         var variable = localVar.variable;
         var nullableClass = (NullableClassDef)variable.getType();
         if(narrowTyper.isCollecting()) {
-            var nonNullVar = blockCompiler.acquireNarrowTypingVar(variable, nullableClass.getBaseClass());
+            var nonNullVar = blockCompiler.acquireNarrowTypingVar(variable, nullableClass.getNullableBaseClass());
             var nullVar = blockCompiler.acquireNarrowTypingVar(variable, getRoot().NULL());
             if(type == Type.Equals && value.inferType() instanceof NullClassDef) {
                 narrowTyper.collectNarrowVar(nullVar, nonNullVar);

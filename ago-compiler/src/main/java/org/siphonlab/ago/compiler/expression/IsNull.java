@@ -37,7 +37,7 @@ public class IsNull extends Equals{
     public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
         NullableValue nullableValue = (NullableValue) this.left;
         Var.LocalVar tempVar;
-        if(nullableValue.hasReceiver() && ((NullableClassDef)nullableValue.inferType()).getBaseClass() == getRoot().BOOLEAN()){
+        if(nullableValue.hasReceiver() && ((NullableClassDef)nullableValue.inferType()).getNullableBaseClass() == getRoot().BOOLEAN()){
             blockCompiler.lockRegister(nullableValue.getNonNullValueReceiver());
             tempVar = blockCompiler.acquireTempVar(this);
             blockCompiler.releaseRegister(nullableValue.getNonNullValueReceiver());

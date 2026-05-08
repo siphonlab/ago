@@ -42,14 +42,14 @@ public class Concat extends BiExpression{
         var right = this.right;
 
         if(left.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-            left = ownerFunction.cast(this.left, getRoot().STRING());
+            left = ownerFunction.cast(this.left, getRoot().STRING(), true);
             if(right.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-                right = ownerFunction.cast(this.right, getRoot().STRING());
+                right = ownerFunction.cast(this.right, getRoot().STRING(),true);
             }
             return ownerFunction.concat(left, right).setSourceLocation(this.getSourceLocation()).transform();
         } else {
             if(right.inferType().getUnboxedTypeCode() != TypeCode.STRING){
-                right = ownerFunction.cast(right, getRoot().STRING());
+                right = ownerFunction.cast(right, getRoot().STRING(), true);
                 return ownerFunction.concat(left, right).setSourceLocation(this.getSourceLocation()).transform();
             }
         }

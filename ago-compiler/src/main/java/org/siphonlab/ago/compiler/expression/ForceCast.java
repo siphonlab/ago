@@ -103,10 +103,10 @@ public class ForceCast extends ExpressionInFunctionBody{
                     blockCompiler.getCode().assignLiteral(localVar.getVariableSlot(), literal);
                 } else {
                     NullableClassDef nullableType = (NullableClassDef) toType;
-                    var tempVar = blockCompiler.acquireTempVar(nullableType.getBaseClass());
+                    var tempVar = blockCompiler.acquireTempVar(nullableType.getNullableBaseClass());
                     blockCompiler.lockRegister(tempVar);
                     ownerFunction.assign(tempVar, literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
-                    blockCompiler.getCode().cast(nullableType.getBaseClass().getTypeCode(), tempVar.getVariableSlot(), TypeCode.UNION, localVar.getVariableSlot());
+                    blockCompiler.getCode().cast(nullableType.getNullableBaseClass().getTypeCode(), tempVar.getVariableSlot(), TypeCode.UNION, localVar.getVariableSlot());
                     blockCompiler.releaseRegister(tempVar);
                 }
                 break;

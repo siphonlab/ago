@@ -1164,7 +1164,7 @@ public class ClassDef extends ClassContainer {
         var id = this.stringTable.get(classDef.getFullname());
         if(id != null) return id;
 
-        if (classDef.isPrimitive()) throw new UnsupportedOperationException(classDef + " is primary type");
+//        if (classDef.isPrimitive()) throw new UnsupportedOperationException(classDef + " is primary type");
 
         id = idOfConstString(classDef.getFullname());
 //        if (classDef instanceof ConcreteType c) {

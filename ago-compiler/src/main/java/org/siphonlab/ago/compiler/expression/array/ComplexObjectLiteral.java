@@ -93,7 +93,7 @@ public class ComplexObjectLiteral extends ExpressionInFunctionBody {
                             assignAll(nonNullValue, localVar, blockCompiler, expandoDef.getKind(), expandoDef.getSourceLocation()));
 
                 } else if (element instanceof KVPairDef pair) {
-                    var key = fun.cast(pair.getKey(), getRoot().STRING()).setParent(this).transform();
+                    var key = fun.cast(pair.getKey(), getRoot().STRING(),true).setParent(this).transform();
                     if(key instanceof StringLiteral s){
                         String a = s.getString();
                         var attrPair = objectType.getAttribute(a);

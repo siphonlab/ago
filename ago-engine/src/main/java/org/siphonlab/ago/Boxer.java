@@ -15,10 +15,12 @@
  */
 package org.siphonlab.ago;
 
+import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.classloader.ClassRefValue;
 
 import java.math.BigDecimal;
 
+import static org.siphonlab.ago.AgoFrame.stringToChar;
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
 import static org.siphonlab.ago.TypeCode.CLASS_REF_VALUE;
@@ -79,6 +81,8 @@ public class Boxer {
     public void setEngine(AgoEngine engine) {
         this.engine = engine;
     }
+
+
 
     public Instance<?> boxInt(int i) {
         var instance = new Instance<>(INTEGER.createSlots(), INTEGER);
@@ -398,4 +402,184 @@ public class Boxer {
     public Instance<?> boxNull() {
         return new Instance<>(NULL.createSlots(), NULL);
     }
+
+    public BoxTypes getBoxTypes() {
+        return boxTypes;
+    }
+
+    public Instance<?> boxAny(Slots slots, int srcIndex, int srcTypeCode, AgoClass boxerClass, CallFrame<?> caller) {
+        var boxed = engine.createInstance(boxerClass, caller);
+        var toType = boxTypes.getUnboxType(boxerClass);
+        switch (toType.value) {
+            case INT_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setInt(0,slots.getInt(srcIndex)); break;
+                    case STRING_VALUE:  boxed.getSlots().setInt(0,Integer.parseInt(slots.getString(srcIndex))); break;
+                    case LONG_VALUE:    boxed.getSlots ().setInt(0,(int)slots.getLong(srcIndex)); break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setInt(0,slots.getBoolean(srcIndex) ? 1 : 0); break;
+                    case DOUBLE_VALUE:  boxed.getSlots ().setInt(0,(int)slots.getDouble(srcIndex)); break;
+                    case DECIMAL_VALUE: boxed.getSlots().setInt(0, slots.getDecimal(srcIndex).intValue()); break;
+                    case BYTE_VALUE:    boxed.getSlots ().setInt(0, slots.getByte(srcIndex)); break;
+                    case FLOAT_VALUE:   boxed.getSlots ().setInt(0,(int)slots.getFloat(srcIndex)); break;
+                    case CHAR_VALUE:    boxed.getSlots ().setInt(0, slots.getChar(srcIndex)); break;
+                    case SHORT_VALUE:   boxed.getSlots ().setInt(0, slots.getShort(srcIndex)); break;
+                    default: return null;
+                }
+                break;
+
+            case STRING_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setString(0, String.valueOf(slots.getInt(srcIndex))); break;
+                    case STRING_VALUE:  boxed.getSlots().setString(0, slots.getString(srcIndex)); break;
+                    case LONG_VALUE:    boxed.getSlots().setString(0, String.valueOf(slots.getLong(srcIndex))); break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setString(0, String.valueOf(slots.getBoolean(srcIndex))); break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setString(0, String.valueOf(slots.getDouble(srcIndex))); break;
+                    case DECIMAL_VALUE: boxed.getSlots().setString(0, String.valueOf(slots.getDecimal(srcIndex))); break;
+                    case BYTE_VALUE:    boxed.getSlots().setString(0, String.valueOf(slots.getByte(srcIndex))); break;
+                    case FLOAT_VALUE:   boxed.getSlots().setString(0, String.valueOf(slots.getFloat(srcIndex))); break;
+                    case CHAR_VALUE:    boxed.getSlots().setString(0, String.valueOf(slots.getChar(srcIndex))); break;
+                    case SHORT_VALUE:   boxed.getSlots().setString(0, String.valueOf(slots.getShort(srcIndex))); break;
+                    default: return null;
+                }
+                break;
+
+            case LONG_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setLong(0,(long)slots.getInt(srcIndex));   break;
+                    case STRING_VALUE:  boxed.getSlots().setLong(0, Long.parseLong(slots.getString(srcIndex))); break;
+                    case LONG_VALUE:    boxed.getSlots().setLong(0, slots.getLong(srcIndex));   break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setLong(0, slots.getBoolean(srcIndex) ? 1L : 0L);  break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setLong(0,(long)slots.getDouble(srcIndex));    break;
+                    case DECIMAL_VALUE: boxed.getSlots().setLong(0, slots.getDecimal(srcIndex).longValue());    break;
+                    case BYTE_VALUE:    boxed.getSlots().setLong(0, (long)slots.getByte(srcIndex)); break;
+                    case FLOAT_VALUE:   boxed.getSlots().setLong(0,(long)slots.getFloat(srcIndex)); break;
+                    case CHAR_VALUE:    boxed.getSlots().setLong(0, (long)slots.getChar(srcIndex)); break;
+                    case SHORT_VALUE:   boxed.getSlots().setLong(0, (long)slots.getShort(srcIndex));    break;
+                    default: return null;
+                }
+                break;
+
+            case BOOLEAN_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setBoolean(0, slots.getInt(srcIndex) != 0);    break;
+                    case STRING_VALUE:  boxed.getSlots().setBoolean(0, StringUtils.isNotEmpty(slots.getString(srcIndex)));  break;
+                    case LONG_VALUE:    boxed.getSlots().setBoolean(0, slots.getLong(srcIndex) != 0L);  break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setBoolean(0, slots.getBoolean(srcIndex)); break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setBoolean(0, slots.getDouble(srcIndex) != 0.0);   break;
+                    case DECIMAL_VALUE: boxed.getSlots().setBoolean(0, !slots.getDecimal(srcIndex).equals(BigDecimal.ZERO));    break;
+                    case BYTE_VALUE:    boxed.getSlots().setBoolean(0, slots.getByte(srcIndex) != 0);   break;
+                    case FLOAT_VALUE:   boxed.getSlots().setBoolean(0, slots.getFloat(srcIndex) != 0.0f);   break;
+                    case CHAR_VALUE:    boxed.getSlots().setBoolean(0, slots.getChar(srcIndex) != 'f'); break;
+                    case SHORT_VALUE:   boxed.getSlots().setBoolean(0, slots.getShort(srcIndex) != 0);  break;
+                    default: return null;
+                }
+                break;
+
+            case DOUBLE_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setDouble(0,(double)slots.getInt(srcIndex)); break;
+                    case STRING_VALUE:  boxed.getSlots().setDouble(0, Double.parseDouble(slots.getString(srcIndex))); break;
+                    case LONG_VALUE:    boxed.getSlots().setDouble(0,(double)slots.getLong(srcIndex)); break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setDouble(0, slots.getBoolean(srcIndex) ? 1.0 : 0.0); break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setDouble(0, slots.getDouble(srcIndex)); break;
+                    case DECIMAL_VALUE: boxed.getSlots().setDouble(0, slots.getDecimal(srcIndex).doubleValue()); break;
+                    case BYTE_VALUE:    boxed.getSlots().setDouble(0,(double)slots.getByte(srcIndex)); break;
+                    case FLOAT_VALUE:   boxed.getSlots().setDouble(0,(double)slots.getFloat(srcIndex)); break;
+                    case CHAR_VALUE:    boxed.getSlots().setDouble(0,(double)slots.getChar(srcIndex)); break;
+                    case SHORT_VALUE:   boxed.getSlots().setDouble(0,(double)slots.getShort(srcIndex)); break;
+                    default: return null;
+                }
+                break;
+
+            case DECIMAL_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setDecimal(0, new BigDecimal(slots.getInt(srcIndex))); break;
+                    case STRING_VALUE:  boxed.getSlots().setDecimal(0, new BigDecimal(slots.getString(srcIndex))); break;
+                    case LONG_VALUE:    boxed.getSlots().setDecimal(0, new BigDecimal(slots.getLong(srcIndex))); break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setDecimal(0, slots.getBoolean(srcIndex) ? BigDecimal.ONE : BigDecimal.ZERO); break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setDecimal(0, BigDecimal.valueOf(slots.getDouble(srcIndex))); break;
+                    case DECIMAL_VALUE: boxed.getSlots().setDecimal(0, slots.getDecimal(srcIndex)); break;
+                    case BYTE_VALUE:    boxed.getSlots().setDecimal(0, new BigDecimal(slots.getByte(srcIndex))); break;
+                    case FLOAT_VALUE:   boxed.getSlots().setDecimal(0, BigDecimal.valueOf(slots.getFloat(srcIndex))); break;
+                    case CHAR_VALUE:    boxed.getSlots().setDecimal(0, new BigDecimal((int)slots.getChar(srcIndex))); break;
+                    case SHORT_VALUE:   boxed.getSlots().setDecimal(0, new BigDecimal(slots.getShort(srcIndex))); break;
+                    default: return null;
+                }
+                break;
+
+            case BYTE_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setByte(0,(byte)slots.getInt(srcIndex)); break;
+                    case STRING_VALUE:  boxed.getSlots().setByte(0, Byte.parseByte(slots.getString(srcIndex))); break;
+                    case LONG_VALUE:    boxed.getSlots().setByte(0, (byte)slots.getLong(srcIndex)); break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setByte(0, slots.getBoolean(srcIndex) ? (byte)1 : (byte)0); break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setByte(0, (byte)slots.getDouble(srcIndex)); break;
+                    case DECIMAL_VALUE: boxed.getSlots().setByte(0, slots.getDecimal(srcIndex).byteValue()); break;
+                    case BYTE_VALUE:    boxed.getSlots().setByte(0, slots.getByte(srcIndex)); break;
+                    case FLOAT_VALUE:   boxed.getSlots().setByte(0, (byte)slots.getFloat(srcIndex)); break;
+                    case CHAR_VALUE:    boxed.getSlots().setByte(0, (byte)slots.getChar(srcIndex)); break;
+                    case SHORT_VALUE:   boxed.getSlots().setByte(0, (byte)slots.getShort(srcIndex)); break;
+                    default: return null;
+                }
+                break;
+
+            case FLOAT_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setFloat(0,(float)slots.getInt(srcIndex)); break;
+                    case STRING_VALUE:  boxed.getSlots().setFloat(0, Float.parseFloat(slots.getString(srcIndex))); break;
+                    case LONG_VALUE:    boxed.getSlots().setFloat(0,(float)slots.getLong(srcIndex)); break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setFloat(0, slots.getBoolean(srcIndex) ? 1.0f : 0.0f); break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setFloat(0,(float)slots.getDouble(srcIndex)); break;
+                    case DECIMAL_VALUE: boxed.getSlots().setFloat(0, slots.getDecimal(srcIndex).floatValue()); break;
+                    case BYTE_VALUE:    boxed.getSlots().setFloat(0, (float)slots.getByte(srcIndex)); break;
+                    case FLOAT_VALUE:   boxed.getSlots().setFloat(0, slots.getFloat(srcIndex)); break;
+                    case CHAR_VALUE:    boxed.getSlots().setFloat(0, (float)slots.getChar(srcIndex)); break;
+                    case SHORT_VALUE:   boxed.getSlots().setFloat(0, (float)slots.getShort(srcIndex)); break;
+                    default: return null;
+                }
+                break;
+
+            case CHAR_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setChar(0,(char)slots.getInt(srcIndex)); break;
+                    case STRING_VALUE:  boxed.getSlots().setChar(0,stringToChar(slots.getString(srcIndex))); break;
+                    case LONG_VALUE:    boxed.getSlots().setChar(0,(char)slots.getLong(srcIndex)); break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setChar(0, slots.getBoolean(srcIndex) ? 't' : 'f'); break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setChar(0,(char)slots.getDouble(srcIndex)); break;
+                    case DECIMAL_VALUE: boxed.getSlots().setChar(0,(char)slots.getDecimal(srcIndex).intValue()); break;
+                    case BYTE_VALUE:    boxed.getSlots().setChar(0,(char)slots.getByte(srcIndex)); break;
+                    case FLOAT_VALUE:   boxed.getSlots().setChar(0,(char)slots.getFloat(srcIndex)); break;
+                    case CHAR_VALUE:    boxed.getSlots().setChar(0, slots.getChar(srcIndex)); break;
+                    case SHORT_VALUE:   boxed.getSlots().setChar(0,(char)slots.getShort(srcIndex)); break;
+                    default: return null;
+                }
+                break;
+
+            case SHORT_VALUE:
+                switch(srcTypeCode){
+                    case INT_VALUE:     boxed.getSlots().setShort(0,(short)slots.getInt(srcIndex)); break;
+                    case STRING_VALUE:  boxed.getSlots().setShort(0, Short.parseShort(slots.getString(srcIndex))); break;
+                    case LONG_VALUE:    boxed.getSlots().setShort(0,(short)slots.getLong(srcIndex)); break;
+                    case BOOLEAN_VALUE: boxed.getSlots().setShort(0, slots.getBoolean(srcIndex) ? (short)1 : (short)0); break;
+                    case DOUBLE_VALUE:  boxed.getSlots().setShort(0,(short)slots.getDouble(srcIndex)); break;
+                    case DECIMAL_VALUE: boxed.getSlots().setShort(0, slots.getDecimal(srcIndex).shortValue()); break;
+                    case BYTE_VALUE:    boxed.getSlots().setShort(0, (short)slots.getByte(srcIndex)); break;
+                    case FLOAT_VALUE:   boxed.getSlots().setShort(0, (short)slots.getFloat(srcIndex)); break;
+                    case CHAR_VALUE:    boxed.getSlots().setShort(0, (short)slots.getChar(srcIndex)); break;
+                    case SHORT_VALUE:   boxed.getSlots().setShort(0, slots.getShort(srcIndex)); break;
+                    default: return null;
+                }
+                break;
+
+            case CLASS_REF_VALUE:
+                switch(srcTypeCode){
+                    case CLASS_REF_VALUE:     boxed.getSlots().setClassRef(0,slots.getClassRef(srcIndex)); break;
+                    default: return null;
+                }
+                break;
+        }
+
+        return boxed;
+    }
+
 }

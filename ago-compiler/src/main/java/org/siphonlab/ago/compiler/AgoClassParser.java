@@ -210,8 +210,7 @@ public class AgoClassParser {
         if(classDef.isInGenericInstantiation()){
             ClassDef templateClass = classDef.getTemplateClass();
             if(templateClass.getCompilingStage() == CompilingStage.ResolveHierarchicalClasses){
-                GenericArgumentsInfo argumentsInfo = (GenericArgumentsInfo) agoClass.getConcreteTypeInfo();
-                if(!resolveHierarchy(argumentsInfo.getTemplateClass(), templateClass)){
+                if(!resolveHierarchy(classLoader.getClass(templateClass.getFullname()), templateClass)){
                     return false;
                 }
             }
@@ -273,6 +272,9 @@ public class AgoClassParser {
         } else if(concreteTypeInfo instanceof NullableTypeInfo nullableTypeInfo){
             var baseClass = mapClass(nullableTypeInfo.getBaseClass());
             if(baseClass == null) return null;
+            if(root.getNullableClass().getCompilingStage() == CompilingStage.ResolveHierarchicalClasses){
+                resolveHierarchy(classLoader.getClass("lang.Nullable"), root.getNullableClass());
+            }
             r = root.getOrCreateNullableType(baseClass, null);
             classes.put(agoClass,r);
         } else if(concreteTypeInfo instanceof ParameterizedClassInfo pInfo){

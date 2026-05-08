@@ -43,6 +43,8 @@ public class Root extends Namespace<Package> {
     private ClassDef ANY_CLASS;
     private ClassDef PRIMITIVE_CLASS;
     private ClassDef OBJECT_CLASS;
+    private ClassDef UNION_CLASS;
+    private ClassDef NULLABLE_CLASS;
     private ClassDef CLASS_CLASS;
     private ClassDef PRIMITIVE_NUMBER_CLASS;
     private ClassDef THROWABLE_CLASS;
@@ -256,6 +258,17 @@ public class Root extends Namespace<Package> {
         return ANY_CLASS = findByFullname("lang.Any");
     }
 
+    public synchronized ClassDef getUnionClass(){
+        if(UNION_CLASS != null) return UNION_CLASS;
+        return UNION_CLASS = findByFullname("lang.Union");
+    }
+
+    public synchronized ClassDef getNullableClass(){
+        if(NULLABLE_CLASS != null) return NULLABLE_CLASS;
+        return NULLABLE_CLASS = findByFullname("lang.Nullable");
+    }
+
+
     public synchronized ClassDef getFunctionInterface(int parameterCount){
         var interfaceName = "lang.Function%d".formatted(parameterCount);
         return findByFullname(interfaceName);
@@ -340,7 +353,7 @@ public class Root extends Namespace<Package> {
         ArrayClassDef arrayClassDef = new ArrayClassDef(this, elementType);
         knownArrayTypes.put(name, arrayClassDef);
         if(this.getArrayClass() != null){
-            this.ARRAY_CLASS.getParent().addChild(arrayClassDef);
+            getDefaultPackage().addChild(arrayClassDef);
         }
         if (this.getCompilingStage().getValue() > arrayClassDef.getCompilingStage().getValue()) {
             Compiler.processClassTillStage(arrayClassDef, this.getCompilingStage());
@@ -770,7 +783,7 @@ public class Root extends Namespace<Package> {
             return (NullableClassDef) existed;
         }
         var n = new NullableClassDef(this, classDef);
-        classDef.getParent().addChild(n);
+        getDefaultPackage().addChild(n);
         if (this.getCompilingStage().getValue() > n.getCompilingStage().getValue()) {
             Compiler.processClassTillStage(n, this.getCompilingStage());
             Compiler.processClassTillStage(n.getMetaClassDef(), this.getCompilingStage());

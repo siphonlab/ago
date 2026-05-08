@@ -52,10 +52,10 @@ public class Neg extends UnaryArithmetic {
         ClassDef type = this.value.inferType();
 
         if(type.getTypeCode() == STRING){   // auto cast to double like js does
-            return new Neg(ownerFunction, ownerFunction.cast(this.value, getRoot().DOUBLE()).setSourceLocation(this.getSourceLocation())).setParent(this.getParent()).transform();
+            return new Neg(ownerFunction, ownerFunction.cast(this.value, getRoot().DOUBLE(),true).setSourceLocation(this.getSourceLocation())).setParent(this.getParent()).transform();
         }
         if(type.getTypeCode() == CHAR){     // char cast to int
-            return new Neg(ownerFunction, ownerFunction.cast(this.value, getRoot().INT()).setSourceLocation(this.getSourceLocation())).setParent(this).transform();
+            return new Neg(ownerFunction, ownerFunction.cast(this.value, getRoot().INT(),true).setSourceLocation(this.getSourceLocation())).setParent(this).transform();
         }
         if(type.getTypeCode() == OBJECT && type.isPrimitiveOrBoxed()){
             return new Neg(ownerFunction, ownerFunction.unbox(this.value).transform()).setParent(this).transform();

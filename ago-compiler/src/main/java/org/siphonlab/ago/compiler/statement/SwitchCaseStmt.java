@@ -124,7 +124,7 @@ public class SwitchCaseStmt extends Statement{
         if(condition.inferType() instanceof NullableClassDef n){
             this.nullableCondition = new PipeToTempVar(ownerFunction, condition, true);
             this.usingTempVariable(this.nullableCondition);
-            this.condition = ownerFunction.cast(this.nullableCondition, n.getBaseClass()).transform();
+            this.condition = ownerFunction.cast(this.nullableCondition, n.getNullableBaseClass(), true).transform();
         } else {
             this.condition = condition.setParent(this).transform();
         }

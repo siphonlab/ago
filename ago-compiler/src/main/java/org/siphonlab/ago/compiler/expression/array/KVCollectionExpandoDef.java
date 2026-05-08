@@ -16,7 +16,6 @@
 package org.siphonlab.ago.compiler.expression.array;
 
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -53,7 +52,7 @@ public final class KVCollectionExpandoDef extends ObjectLiteralKVDef {
         var root = ownerFunction.getRoot();
         var t = this.expression.inferType();
         if(t instanceof NullableClassDef nullableClassDef){
-            t = nullableClassDef.getBaseClass();
+            t = nullableClassDef.getNullableBaseClass();
         }
         var asReadonlyMap = (GenericInstantiationClassDef)root.getAnyReadonlyMap().asThatOrSuperOfThat(t);
         if(asReadonlyMap != null){

@@ -205,7 +205,7 @@ public class NullableValue extends ExpressionInFunctionBody{
         @Override
         public ClassDef inferType() throws CompilationError {
             var n = (NullableClassDef) NullableValue.this.inferType();
-            return n.getBaseClass();
+            return n.getNullableBaseClass();
         }
 
         @Override
@@ -214,11 +214,11 @@ public class NullableValue extends ExpressionInFunctionBody{
                 NullableValue.this.visit(blockCompiler);
             }
             if(nonNullValueReceiver != null){
-                ownerFunction.cast(outputted, inferType()).transform().outputToLocalVar(nonNullValueReceiver, blockCompiler);
+                ownerFunction.cast(outputted, inferType(), true).transform().outputToLocalVar(nonNullValueReceiver, blockCompiler);
                 ownerFunction.assign(localVar, nonNullValueReceiver).termVisit(blockCompiler);
             } else {
                 nonNullValueReceiver = localVar;
-                ownerFunction.cast(outputted, inferType()).transform().outputToLocalVar(localVar, blockCompiler);
+                ownerFunction.cast(outputted, inferType(), true).transform().outputToLocalVar(localVar, blockCompiler);
             }
             blockCompiler.releaseRegister(outputted);
         }
@@ -252,7 +252,7 @@ public class NullableValue extends ExpressionInFunctionBody{
         @Override
         public ClassDef inferType() throws CompilationError {
             var n = (NullableClassDef) NullableValue.this.inferType();
-            return n.getBaseClass();
+            return n.getNullableBaseClass();
         }
 
         @Override

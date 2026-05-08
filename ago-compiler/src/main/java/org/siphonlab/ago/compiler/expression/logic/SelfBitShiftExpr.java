@@ -55,7 +55,7 @@ public class SelfBitShiftExpr extends SelfOpExpr {
     public SelfBitShiftExpr(FunctionDef ownerFunction, Expression site, Expression change, Type type) throws CompilationError {
         super(ownerFunction, site, change);
         this.site = site.transform().setParent(this);
-        this.change = ownerFunction.cast(change.setParent(this), site.inferType()).transform();
+        this.change = ownerFunction.cast(change.setParent(this), site.inferType(),true).transform();
         this.type = type;
     }
 
@@ -76,7 +76,7 @@ public class SelfBitShiftExpr extends SelfOpExpr {
         if(!change.inferType().getTypeCode().isIntFamily()){
             throw new TypeMismatchError("int family value expected", change.getSourceLocation());
         }
-        change = ownerFunction.cast(change, getRoot().INT()).transform();
+        change = ownerFunction.cast(change, getRoot().INT(),true).transform();
         if(change instanceof IntLiteral r){
             if(r.value == 0) return site;
             if(r.value < 0) throw new IllegalExpressionError("illegal bits value", change.getSourceLocation());

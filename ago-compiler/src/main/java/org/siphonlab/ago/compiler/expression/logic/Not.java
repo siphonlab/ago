@@ -58,11 +58,11 @@ public class Not extends UnaryExpression {
             }
             return new Not(ownerFunction, new AndExpr(ownerFunction,
                         v.isNotNull(),
-                        ownerFunction.cast(v.nonNullValue(), getRoot().BOOLEAN()).transform()
+                        ownerFunction.cast(v.nonNullValue(), getRoot().BOOLEAN(),true).transform()
                     ));
         }
 
-        var v = ownerFunction.cast(this.value, getRoot().BOOLEAN()).transform();
+        var v = ownerFunction.cast(this.value, getRoot().BOOLEAN(),true).transform();
         if(v instanceof Literal<?> literal){
             return getRoot().createBooleanLiteral(!BooleanLiteral.isTrue(literal)).setParent(this.getParent()).setSourceLocation(this.getSourceLocation());
         }
@@ -83,7 +83,7 @@ public class Not extends UnaryExpression {
             blockCompiler.enter(this);
 
             CodeBuffer code = blockCompiler.getCode();
-            var v = ownerFunction.cast(this.value, getRoot().BOOLEAN()).transform().visit(blockCompiler);
+            var v = ownerFunction.cast(this.value, getRoot().BOOLEAN(),true).transform().visit(blockCompiler);
             if (v instanceof Literal<?> literal) {
                 code.assignLiteral(localVar.getVariableSlot(), BooleanLiteral.isFalse(literal) ? getRoot().createBooleanLiteral( true) : getRoot().createBooleanLiteral( false));
             } else {

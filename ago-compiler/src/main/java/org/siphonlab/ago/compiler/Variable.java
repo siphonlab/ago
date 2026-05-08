@@ -149,8 +149,8 @@ public class Variable {
         if(this.isFinal() && initializer instanceof AgoParser.PrimaryExprContext primaryExprContext){
             if(primaryExprContext.primaryExpression() instanceof AgoParser.LiteralExprContext literalExpr){
                 Literal<?> literalValue = Literal.parse(literalExpr.literal(), ownerClass.getRoot(), ownerClass.unit.sourceLocation(literalExpr));
-                if(this.type.isPrimitive()){
-                    var l = CastStrategy.castLiteral(literalValue, this.type, literalValue.getSourceLocation()).transform();
+                if(this.type instanceof  PrimitiveClassDef primitiveClassDef){
+                    var l = CastStrategy.castLiteral(literalValue, primitiveClassDef, literalValue.getSourceLocation()).transform();
                     if(l instanceof Literal<?> l2){
                         this.constLiteralValue = l2;
                         if(l2 instanceof StringLiteral s){

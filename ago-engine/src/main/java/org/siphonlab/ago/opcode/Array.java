@@ -85,6 +85,9 @@ public class Array implements GenericOpCode{
     public static final int array_create_S_vCc    = 0x0c_03_00_03;
     public static final int array_create_S_vCv    = 0x0c_03_01_03;
 
+    public static final int array_create_C_vCc    = 0x0c_0c_00_03;
+    public static final int array_create_C_vCv    = 0x0c_0c_01_03;
+
     // array_get_i(target, array, index)
     public static final int array_get_i_vac   = 0x0c_0a_10_03;
 
@@ -152,6 +155,13 @@ public class Array implements GenericOpCode{
     public static final int array_put_l_avc   = 0x0c_0b_22_04;
     public static final int array_put_l_avv   = 0x0c_0b_23_03;
 
+    public static final int array_get_C_vac   = 0x0c_0c_10_03;
+    public static final int array_get_C_vav   = 0x0c_0c_11_03;
+    public static final int array_put_C_acc   = 0x0c_0c_20_03;
+    public static final int array_put_C_acv   = 0x0c_0c_21_03;
+    public static final int array_put_C_avc   = 0x0c_0c_22_03;
+    public static final int array_put_C_avv   = 0x0c_0c_23_03;
+
     public static final int array_get_o_vac   = 0x0c_01_10_03;
     public static final int array_get_o_vav   = 0x0c_01_11_03;
     // put null
@@ -196,6 +206,8 @@ public class Array implements GenericOpCode{
 //    public static final int array_fill_n_ac     = 0x0c_f2_02_02;
     public static final int array_fill_S_acL    = 0x0c_f2_03_03;
 
+//    public static final int array_fill_C_acL    = 0x0c_f2_0c_03;      // TODO not implemented yet
+
     public static String getName(int code) {
         return switch (code) {
             case array_create_vCc   ->  "array_create_vCc";
@@ -232,6 +244,8 @@ public class Array implements GenericOpCode{
             case array_create_g_vCv   ->    "array_create_g_vCv";
             case array_create_S_vCc   ->    "array_create_S_vCc";
             case array_create_S_vCv   ->    "array_create_S_vCv";
+            case array_create_C_vCc -> "array_create_C_vCc";
+            case array_create_C_vCv -> "array_create_C_vCv";
             case array_get_i_vac   ->   "array_get_i_vac";
             case array_get_i_vav   ->   "array_get_i_vav";
             case array_put_i_acc   ->   "array_put_i_acc";
@@ -291,6 +305,13 @@ public class Array implements GenericOpCode{
             case array_put_o_aco   ->   "array_put_o_aco";
             case array_put_o_avo   ->   "array_put_o_avo";
 
+            case array_get_C_vac    -> "array_get_C_vac";
+            case array_get_C_vav    -> "array_get_C_vav";
+            case array_put_C_acc    -> "array_put_C_acc";
+            case array_put_C_acv    -> "array_put_C_acv";
+            case array_put_C_avc    -> "array_put_C_avc";
+            case array_put_C_avv    -> "array_put_C_avv";
+
             case array_get_u_vac    -> "array_get_u_vac";
             case array_get_u_vav    -> "array_get_u_vav";
             case array_put_u_acn    -> "array_put_u_acn";
@@ -316,6 +337,8 @@ public class Array implements GenericOpCode{
             case array_fill_l_acL   ->  "array_fill_l_acL";
             case array_fill_S_acL   ->  "array_fill_S_acL";
 
+//            case array_fill_C_acL   -> "array_fill_C_acL";
+
             default -> {
                 var t = OpCode.extractType(code);
                 if(t >= TypeCode.GENERIC_TYPE_START){
@@ -334,32 +357,6 @@ public class Array implements GenericOpCode{
                 throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
             }
         };
-    }
-
-    public static void main(String[] args) {
-        for (TypeCode typeCode : TypeCode.values()) {
-            String type = StringUtils.leftPad(Integer.toHexString(typeCode.getValue()), 2, '0');
-            int addition = 0;
-            if(typeCode == TypeCode.LONG || typeCode == TypeCode.DOUBLE){
-                addition = 1;
-            }
-            String s = MessageFormat.format("""
-            	    public static final int array_create_{0}_vc    = 0x0c_{1}_00_02;
-            	    public static final int array_create_{0}_vv    = 0x0c_{1}_01_02;
-            	""",
-            	    typeCode.toShortString(), type
-            	);
-            System.out.println(s);
-            /*
-              public static final int array_get_\{typeCode.toShortString()}_vac   = 0x0c_\{type}_10_0\{3 + addition};
-              public static final int array_get_\{typeCode.toShortString()}_vav   = 0x0c_\{type}_11_03;
-              public static final int array_put_\{typeCode.toShortString()}_acc   = 0x0c_\{type}_20_0\{3 + addition};
-              public static final int array_put_\{typeCode.toShortString()}_acv   = 0x0c_\{type}_21_0\{3 + addition};
-              public static final int array_put_\{typeCode.toShortString()}_avc   = 0x0c_\{type}_22_0\{3 + addition};
-              public static final int array_put_\{typeCode.toShortString()}_avv   = 0x0c_\{type}_23_03;
-
-             */
-        }
     }
 
 }
