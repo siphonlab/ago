@@ -287,9 +287,7 @@ public class TaskRunSpace extends SavableRunSpace {
     }
 
     public void resumeByRestore() {
-        if (this.getRunningState() == RunningState.RUNNING) {  // only works for RUNNING
-            runSpaceHost.execute(this);
-        }
+        runSpaceHost.execute(this);
     }
 
     public void restore(byte runningState, CallFrame<?> currCallFrame, RunSpace parent,
