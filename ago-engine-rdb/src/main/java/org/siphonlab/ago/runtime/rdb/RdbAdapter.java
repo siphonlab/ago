@@ -22,13 +22,14 @@ import org.agrona.concurrent.IdGenerator;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
-import org.jspecify.annotations.Nullable;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -317,7 +318,7 @@ public abstract class RdbAdapter {
         return parameterIndex + 1;
     }
 
-    protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved){
+    protected void saveInstance(@Nonnull Connection conn, Instance<?> instance, Set<Instance<?>> saved){
         saved.add(instance);
 
         if (boxTypes.isBoxType(instance.getAgoClass()) || instance instanceof AgoArrayInstance)
@@ -336,18 +337,18 @@ public abstract class RdbAdapter {
             switch (rdbSlots.getRowState()) {
                 case RowState.Added:
                     rdbSlots.setRowState(RowState.Saving);
-                    insert(instance, rdbSlots, instance.getAgoClass());
+                    this.insert(conn, instance, rdbSlots, instance.getAgoClass());
                     break;
                 case RowState.Modified:
                     rdbSlots.setRowState(RowState.Saving);
-                    update(instance, rdbSlots, instance.getAgoClass());       // need load ID
+                    update(conn, instance, rdbSlots, instance.getAgoClass());       // need load ID
                     break;
 //                    case RowState.Deleted:
 //                        delete(rdbSlots);
 //                        break;
                 default:
                     if (instance instanceof CallFrameWithRunningState<?> callFrameWithRunningState) {
-                        update(instance, rdbSlots, instance.getAgoClass());
+                        update(conn, instance, rdbSlots, instance.getAgoClass());
                     }
             }
             rdbSlots.setRowState(RowState.Unchanged);
@@ -356,13 +357,24 @@ public abstract class RdbAdapter {
             if (rdbSlots.getUsingInstances() != null) {
                 for (Instance<?> usingInstance : rdbSlots.getUsingInstances()) {
                     if (!saved.contains(usingInstance))
-                        saveInstance(usingInstance, saved);
+                        saveInstance(conn, usingInstance, saved);
                 }
             }
         }
     }
+
+    // save a instance using exists connection.
+    public void saveWithConn(@Nonnull Connection conn, Instance<?> instance) {
+        this.saveInstance(conn, instance, new HashSet<>());
+    }
+
     public void saveInstance(Instance<?> instance) {
-        saveInstance(instance, new HashSet<>());
+        try (var conn = this.dataSource.getConnection()) {
+            this.saveWithConn(conn, instance);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void saveRunSpace(SavableRunSpace runSpace) {
@@ -373,11 +385,11 @@ public abstract class RdbAdapter {
         throw new NotImplementedException("not implemented yet");
     }
 
-    public void updateCallFrameRunningState(CallFrame<?> statefulCallFrame, byte runningState, int pc) {
+    public void updateCallFrameRunningState(@Nonnull Connection conn, CallFrame<?> statefulCallFrame, byte runningState, int pc) {
         throw new NotImplementedException();
     }
 
-    protected void insert(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
+    protected void insert(@Nonnull Connection conn, Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
         var tableOfClass = tableOfClassMap.get(agoClass);
         StringBuilder sql = new StringBuilder("INSERT INTO " + tableOfClass.tableName()).append("(");
 
@@ -403,12 +415,7 @@ public abstract class RdbAdapter {
         sql.setCharAt(sql.length() - 1, ')');
         sql.append(" VALUES (").append(StringUtils.repeat("?", ",", parameterCount)).append(')');
 
-        Connection connection = null;
-        PreparedStatement ps = null;
-        try {
-            connection = dataSource.getConnection();
-            ps = connection.prepareStatement(sql.toString());
-
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int parameterIndex = 1;
             parameterIndex = this.fillId(ps, parameterIndex, rdbSlots.getId());
             for (ColumnDesc column : columns) {
@@ -421,9 +428,6 @@ public abstract class RdbAdapter {
             ps.execute();
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            closeQuietly(ps);
-            closeQuietly(connection);
         }
     }
 
@@ -438,7 +442,12 @@ public abstract class RdbAdapter {
         }
     }
 
-    protected void update(Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
+    protected void update(
+            @Nonnull Connection conn,
+            Instance<?> instance,
+            RdbSlots rdbSlots,
+            AgoClass agoClass
+    ) {
         TableOfClass tableOfClass = tableOfClassMap.get(agoClass);
         var columns = tableOfClass.columns();
 
@@ -461,12 +470,7 @@ public abstract class RdbAdapter {
         updateSql.setCharAt(updateSql.length() - 1, ' ');
         updateSql.append("WHERE id = ?");
 
-        Connection connection = null;
-        PreparedStatement ps = null;
-        try {
-            connection = dataSource.getConnection();
-            ps = connection.prepareStatement(updateSql.toString());
-
+        try (var ps = conn.prepareStatement(updateSql.toString())) {
             int parameterIndex = 1;
             for (var index : rdbSlots.getChangedSlots()) {
                 var column = tableOfClass.columnDescOfSlot(index);
@@ -476,14 +480,11 @@ public abstract class RdbAdapter {
             this.fillId(ps, parameterIndex, rdbSlots.getId());
 
             if (LOGGER.isDebugEnabled())
-                LOGGER.debug("EXECUTE INSERT %d : ".formatted(rdbSlots.getId()) + updateSql);
+                LOGGER.debug("{}{}", "EXECUTE INSERT %d : ".formatted(rdbSlots.getId()), updateSql);
 
             ps.execute();
         } catch (SQLException e) {
             throw new RuntimeException(e);
-        } finally {
-            closeQuietly(ps);
-            closeQuietly(connection);
         }
     }
 

@@ -139,7 +139,7 @@ public class RunSpaceAware {
     }
 
     public static void forkContextSample(NativeFrame nativeFrame) {
-        ((NativeInstance)nativeFrame.getParentScope()).setNativePayload(new ForkContext() {
+        nativeFrame.getParentScope().setNativePayload(new ForkContext() {
             @Override
             public String toString() {
                 return "a sample fork context";

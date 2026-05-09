@@ -15,14 +15,12 @@
  */
 package org.siphonlab.ago.test;
 
-import groovy.sql.Sql;
 import io.vertx.core.Vertx;
 import org.agrona.concurrent.SnowflakeIdGenerator;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tools.ant.Task;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.ClassDef;
@@ -44,7 +42,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.List;
 import java.util.Properties;
 import java.util.zip.ZipInputStream;
 
@@ -296,7 +293,7 @@ public class Util {
         rdbEngine.run(entrance);
     }
 
-    public static void resumeWithTask() throws IOException, CompilationError, SQLException {
+    public static void resumeWithTask() throws SQLException {
         var ds = connectDataSource();
         ds.setDefaultAutoCommit(true);
 

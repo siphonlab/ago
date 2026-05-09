@@ -46,6 +46,7 @@ import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.annotation.Nonnull
 import javax.sql.DataSource
 import java.sql.Connection
 import java.sql.SQLException
@@ -154,7 +155,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 ////        }
 //    }
 
-    void saveAgoFrame(AgoFrame agoFrame) {
+    void saveAgoFrame(@Nonnull Connection conn, AgoFrame agoFrame) {
         var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
@@ -178,6 +179,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
         ]
 
+        var sql = new Sql(conn);
         sql.executeInsert("""
             INSERT INTO ago_frame
                 (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, 
@@ -188,7 +190,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     }
 
-    void saveNativeFrame(NativeFrame agoFrame) {
+    void saveNativeFrame(@Nonnull Connection conn, NativeFrame agoFrame) {
         var slots = agoFrame.slots as JsonRefSlots;
         var parentScope = ObjectRefOwner.extractObjectRef(agoFrame.parentScope);
         ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
@@ -210,6 +212,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
         ]
 
+        var sql = new Sql(conn);
         sql.executeInsert("""INSERT INTO ago_frame
                 (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, 
                  caller_id, caller_class, pc, state, suspended, exception_id, exception_class, runspace, slots)
@@ -217,7 +220,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                     :caller_id, :caller_class, :pc, :state, :suspended, :exception_id, :exception_class, :runspace, :slots)""", params)
     }
 
-    def updateRow(String table, Map<String, Object> data, String pkName = 'id') {
+    def updateRow(@Nonnull Connection conn, String table, Map<String, Object> data, String pkName = 'id') {
         def pkValue = data[pkName]
         if (pkValue == null)
             throw new IllegalArgumentException("Missing primary key '${pkName}'")
@@ -229,12 +232,13 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         def setClause = columns.collect { k, v -> "$k = :$k" }.join(', ')
         def sqlText = "UPDATE $table SET $setClause WHERE $pkName = :$pkName"
 
+        var sql = new Sql(conn)
         return sql.executeUpdate(data, sqlText)
     }
 
 
-    void updateCallFrameRunningState(CallFrame callFrame, byte runningState, int pc = -1) {
-        var objectRef = ObjectRefOwner.extractObjectRef(callFrame);
+    void updateCallFrameRunningState(@Nonnull Connection conn, CallFrame callFrame, byte runningState, int pc = -1) {
+        var objectRef = ObjectRefOwner.extractObjectRef(callFrame)
         logger.info("UPDATE " + objectRef)
         var map = [
                 "id"       : objectRef.id() as Object,
@@ -294,13 +298,13 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         } else {
             throw new UnsupportedOperationException("unsupported frame type " + callFrame)
         }
-        updateRow("ago_frame", map, "id")
+        updateRow(conn, "ago_frame", map, "id")
         if(callFrame instanceof DeferenceObject){
             callFrame.markSaved()
         }
     }
 
-    void saveAgoClass(AgoClass agoClass) {
+    void saveAgoClass(@Nonnull Connection conn, AgoClass agoClass) {
         var slots = agoClass.slots as JsonRefSlots;
         if(logger.isDebugEnabled()) logger.debug("INSERT CLASS " + slots.objectRef.id())
 
@@ -416,7 +420,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         return ["codeOffset": sourceMapEntry.codeOffset(), "sourceLocation": toMap(sourceMapEntry.sourceLocation())]
     }
 
-    void saveAgoFunction(AgoFunction agoFunction) {
+    void saveAgoFunction(@Nonnull Connection conn, AgoFunction agoFunction) {
         var slots = agoFunction.slots as JsonRefSlots;
         if (logger.isDebugEnabled()) logger.debug("INSERT Function " + slots.objectRef.id())
 
@@ -432,6 +436,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         m["native_function_entrance"] = agoFunction instanceof AgoNativeFunction? agoFunction.nativeEntrance : null
         m["native_function_result_slot"] = agoFunction instanceof AgoNativeFunction ? agoFunction.resultSlot : null
 
+        var sql = new Sql(conn);
         sql.executeInsert("INSERT INTO ago_function (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots, fullname, modifiers, super_class, " +
                         'interfaces, children, methods, parent, permit_class, parameterized_base_class, "name", fields, slotdefs, concrete_type_info, source_location, ' +
                         'variables,parameters,switch_tables,try_catch_items,source_map_entries, native_function_entrance, native_function_result_slot, has_slots_creator, code, result_type) ' +
@@ -558,7 +563,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 """);
     }
 
-    void updateRunSpace(SavableRunSpace runSpace){
+    void updateRunSpace(SavableRunSpace runSpace) {
         sql.executeUpdate(toUpdateMap(runSpace),
             """UPDATE ago_runspace
                 SET
@@ -593,7 +598,6 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         RdbEngine rdbEngine = this.classManager as RdbEngine
 
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
-        def x = currFrameRef?.className() ?: "_____"
         return [
                 "id"               : (Object) runSpace.id,
                 "curr_frame_table" : currFrameRef?.className(),
@@ -601,8 +605,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
-                "pausing_parents"  : runSpace.pausingParents.collect { ((RdbRunSpace) it).id}.toArray(new Long[0]),
-                "forked_runspaces" : runSpace.forkedSpaces.collect { ((RdbRunSpace) it).id}.toArray(new Long[0]),
+                "pausing_parents"  : runSpace.pausingParents.collect { ((SavableRunSpace) it).id}.toArray(new Long[0]),
+                "forked_runspaces" : runSpace.forkedSpaces.collect { ((SavableRunSpace) it).id}.toArray(new Long[0]),
         ];
     }
 
@@ -668,7 +672,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         return r;
     }
 
-    static int[] loadPgLongArray(PgArray array) throws SQLException {
+    static long[] loadPgLongArray(PgArray array) throws SQLException {
         if (array == null) return null;
         Long[] integers = (Long[]) array.getArray();
         long[] r = new long[integers.length];
@@ -703,7 +707,17 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         for(var row : rows){
             var r = runspaceDescById[row['id'] as Long]
             r.pausingParents = row['pausing_parents'] == null ? null : loadPgLongArray(row['pausing_parents'] as PgArray).collect { runspaceDescById[it as Long] }.toList()
-            r.forkedRunSpaces = row['forked_runspaces'] == null ? null : loadPgLongArray(row['forked_runspaces'] as PgArray).collect { runspaceDescById[it as Long] }.toList()
+
+            r.forkedRunSpaces = null
+            var forkedRunspaces = row['forked_runspaces']
+            if (forkedRunspaces != null) {
+                var ids = loadPgLongArray(forkedRunspaces as PgArray)
+                var rs = ids.collect {
+                    runspaceDescById[it as Long]
+                }.toList()
+                r.forkedRunSpaces = rs
+            }
+
             r.parentRunSpace = row['parent_runspace'] == null ? null : runspaceDescById[row['parent_runspace'] as Long]
         }
 

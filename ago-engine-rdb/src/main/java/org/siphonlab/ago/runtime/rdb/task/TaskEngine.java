@@ -63,7 +63,8 @@ public class TaskEngine extends LazyJsonAgoEngine {
         }
 
         for (var runSpace : runspaces.values()) {
-            if(runSpace.getRunningState() == RunSpace.RunningState.RUNNING){
+            var state = runSpace.getRunningState();
+            if(state == RunSpace.RunningState.RUNNING || state == RunSpace.RunningState.PENDING) {
                 runSpace.resumeByRestore();
             }
         }
