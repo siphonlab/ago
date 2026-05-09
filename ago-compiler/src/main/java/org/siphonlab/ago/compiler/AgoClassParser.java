@@ -23,6 +23,7 @@ import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.collection.DuplicatedKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -427,7 +428,11 @@ public class AgoClassParser {
                 classDef.addField(f);
                 f.setSlotIndex(field.getSlotIndex());
                 if(field.getConstLiteralValue() != null) {
-                    f.setConstLiteralValue(objectToLiteral(field.getConstLiteralValue(), field.getTypeCode()));
+                    if(field.getAgoClass() instanceof AgoEnum agoEnum){
+                        f.setConstLiteralValue(objectToLiteral(field.getConstLiteralValue(), agoEnum.getBasePrimitiveType()));
+                    } else {
+                        f.setConstLiteralValue(objectToLiteral(field.getConstLiteralValue(), field.getTypeCode()));
+                    }
                 }
             }
         }
@@ -448,6 +453,9 @@ public class AgoClassParser {
                     p.setSourceLocation(agoParameter.getSourceLocation());
                     functionDef.addParameter(p);
                     p.setSlotIndex(agoParameter.getSlotIndex());
+                    if(p.isReceiverParameter()){
+                        p.getType().addExtensionMethod(functionDef);
+                    }
                 }
             }
             if(fun.getVariables() != null) {
@@ -559,7 +567,9 @@ public class AgoClassParser {
             } else if(agoClass instanceof AgoEnum agoEnum){
                 classDef.setClassType(AgoClass.TYPE_ENUM);
                 TypeCode primitiveType = agoEnum.getBasePrimitiveType();
-                classDef.setEnumBasePrimitiveType(root.fromPrimitiveTypeCode(primitiveType));
+                PrimitiveClassDef enumBasePrimitiveType = root.fromPrimitiveTypeCode(primitiveType);
+                if(enumBasePrimitiveType == null) return null;
+                classDef.setEnumBasePrimitiveType(enumBasePrimitiveType);
                 var values = new LinkedHashMap<String, Literal<?>>();
                 for (Map.Entry<String, Object> entry : agoEnum.getEnumValues().entrySet()) {
                     values.put(entry.getKey(), objectToLiteral(entry.getValue(),primitiveType));  // TODO source location

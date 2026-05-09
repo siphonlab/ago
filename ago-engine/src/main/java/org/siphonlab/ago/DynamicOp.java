@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import org.siphonlab.ago.native_.NativeFrame;
+
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
 import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
@@ -31,6 +33,12 @@ import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 import static org.siphonlab.ago.TypeCode.UNION_VALUE;
 
 public class DynamicOp {
+
+    public static final int RESULT_OK = 0;
+    public static final int RESULT_EXCEPTION = 1;
+    public static final int WRITE_RESULT_WITH_SETTER = 2;
+    public static final int RESULT_WITH_GETTER = 3;
+
     private final AgoFrame frame;
     private final AgoEngine engine;
 
@@ -51,30 +59,25 @@ public class DynamicOp {
             this.result = RESULT_EXCEPTION;
             return null;
         }
-        AgoClass agoClass = object.getAgoClass();
         String possibleError = null;
-        var fld = agoClass.findField(memberName);
-        if(fld != null){
-            if(Modifier.isPublic(fld.getModifiers())) {
-                switch (fld.getTypeCode().value) {
-                    case INT_VALUE: return engine.getBoxer().boxInt(object.getSlots().getInt(fld.getSlotIndex()));
-                    case LONG_VALUE: return engine.getBoxer().boxLong(object.getSlots().getLong(fld.getSlotIndex()));
-                    case DOUBLE_VALUE: return engine.getBoxer().boxDouble(object.getSlots().getDouble(fld.getSlotIndex()));
-                    case DECIMAL_VALUE: return engine.getBoxer().boxDecimal(object.getSlots().getDecimal(fld.getSlotIndex()));
-                    case BOOLEAN_VALUE: return engine.getBoxer().boxBoolean(object.getSlots().getBoolean(fld.getSlotIndex()));
-                    case STRING_VALUE: return engine.getBoxer().boxString(object.getSlots().getString(fld.getSlotIndex()));
-                    case CHAR_VALUE: return engine.getBoxer().boxChar(object.getSlots().getChar(fld.getSlotIndex()));
-                    case SHORT_VALUE: return engine.getBoxer().boxShort(object.getSlots().getShort(fld.getSlotIndex()));
-                    case BYTE_VALUE: return engine.getBoxer().boxByte(object.getSlots().getByte(fld.getSlotIndex()));
-                    case FLOAT_VALUE: return engine.getBoxer().boxFloat(object.getSlots().getFloat(fld.getSlotIndex()));
-                    case CLASS_REF_VALUE: return engine.getBoxer().boxClassRef(object.getSlots().getClassRef(fld.getSlotIndex()));
-                    case OBJECT_VALUE: return object.getSlots().getObject(fld.getSlotIndex());
-                    case UNION_VALUE: {
-                        return engine.getBoxer().unionToObject(object.getSlots().getUnion(fld.getSlotIndex()));
-                    }
+        AgoClass agoClass = object.getAgoClass();
+        var property = agoClass.getPropertyMap().get(memberName);
+        if(property != null){
+            if(property.isReadable() && property.getVisibilityForRead() == Visibility.Public) {
+                if(property instanceof Property.FieldProperty fieldProperty){
+                    AgoField agoField = fieldProperty.getAgoField();
+                    this.result = RESULT_OK;
+                    return engine.getBoxer().boxAny(object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value);
+                } else if(property instanceof Property.AttributeProperty attributeProperty){
+                    // invoke getter
+                    object.invokeMethod(self, AgoFrame.REENTER_INVOKE_GETTER, dest, attributeProperty.getGetter());
+                    this.result = RESULT_WITH_GETTER;
+                    return null;
+                } else {
+                    throw new IllegalStateException("only these too properties");
                 }
             } else {
-                possibleError = "field '%s' is not visible for '%s'".formatted(fld.getName(), frame.getAgoClass().getFullname());
+                possibleError = "property '%s' is not visible or readable for '%s'".formatted(property.getName(), frame.getAgoClass().getFullname());
             }
         }
         AgoFunction method;
@@ -82,23 +85,15 @@ public class DynamicOp {
             method = agoClass.findMethod(memberName);
         } else {
             method = agoClass.findMethod(memberName + '#');
-            if(method == null){
-                method = agoClass.findMethod(memberName + "#get");
-                if(method != null){
-                    // invoke getter
-                    object.invokeMethod(self, AgoFrame.REENTER_INVOKE_GETTER, dest, method);
-                    this.result = RESULT_WITH_GETTER;
-                    return null;
-                }
-            }
         }
-        if(method != null){     // TODO maybe visible to current frame
+        if(method != null){
             if(Modifier.isPublic(method.getModifiers())) {
-                return engine.createScopedClass(self, method.getClassId(), object);     // to create ScopedClassInterval need a parameterized ClassInterval class
+                return engine.createScopedClass(self, method.getClassId(), object);
             } else {
                 possibleError = "method '%s' is not visible for '%s'".formatted(method.getName(), frame.getAgoClass().getFullname());
             }
         }
+
         var child = agoClass.findChild(memberName);
         if(child != null){
             if(Modifier.isPublic(child.getModifiers())) {
@@ -118,9 +113,9 @@ public class DynamicOp {
 
     boolean containsMember(Instance<?> object, String memberName) {
         AgoClass agoClass = object.getAgoClass();
-        var fld = agoClass.findField(memberName);
-        if(fld != null){
-            if(Modifier.isPublic(fld.getModifiers())) {
+        var prop = agoClass.getPropertyMap().get(memberName);
+        if(prop != null){
+            if(prop.getVisibilityForRead() == Visibility.Public || prop.getVisibilityForWrite() == Visibility.Public) {
                 return true;
             }
         }
@@ -129,9 +124,6 @@ public class DynamicOp {
             method = agoClass.findMethod(memberName);
         } else {
             method = agoClass.findMethod(memberName + '#');
-            if(method == null){
-                method = agoClass.findMethod(memberName + "#get");
-            }
         }
         if(method != null){
             if(Modifier.isPublic(method.getModifiers())) {
@@ -140,17 +132,10 @@ public class DynamicOp {
         }
         var child = agoClass.findChild(memberName);
         if(child != null){
-            if(Modifier.isPublic(child.getModifiers())) {
-                return true;
-            }
+            return Modifier.isPublic(child.getModifiers());
         }
         return false;
     }
-
-    public static final int WRITE_RESULT_OK = 0;
-    public static final int RESULT_EXCEPTION = 1;
-    public static final int WRITE_RESULT_WITH_SETTER = 2;
-    public static final int RESULT_WITH_GETTER = 3;
 
     public int writeMember(CallFrame<?> self, Instance<?> object, String memberName, Instance<?> value){
         if(object == null) {
@@ -159,31 +144,26 @@ public class DynamicOp {
         }
         AgoClass agoClass = object.getAgoClass();
         String possibleError = null;
-        var fld = agoClass.findField(memberName);
-        if(fld != null){
-            if(Modifier.isPublic(fld.getModifiers())) {
-                if(setSlot(self, object, value, fld, agoClass)){
-                    return WRITE_RESULT_OK;
-                } else {
-                    return RESULT_EXCEPTION;
+        var property = agoClass.getPropertyMap().get(memberName);
+        if(property != null){
+            if(property.isWritable() && property.getVisibilityForWrite() == Visibility.Public) {
+                if(property instanceof Property.FieldProperty fieldProperty){
+                    if(setSlot(frame, self, object, value, fieldProperty.getAgoField(), agoClass)){
+                        return RESULT_OK;
+                    } else {
+                        return RESULT_EXCEPTION;
+                    }
+                } else if(property instanceof Property.AttributeProperty attributeProperty){
+                    var setter = engine.createFunctionInstance(object, attributeProperty.getSetter(), self, self);
+                    if(setSlot(frame, self, setter, value, setter.getAgoClass().getParameters()[0], setter.getAgoClass())){
+                        setter.setRunSpace(frame.getRunSpace());
+                        setter.setCaller(frame);
+                        frame.getRunSpace().setCurrCallFrame(setter);
+                        return WRITE_RESULT_WITH_SETTER;
+                    }
                 }
             } else {
-                possibleError = "field '%s' is not visible for '%s'".formatted(fld.getName(), frame.getAgoClass().getFullname());
-            }
-        }
-        AgoFunction method = agoClass.findMethod(memberName + "#set");
-        if(method != null){     // TODO maybe visible to current frame
-            if(Modifier.isPublic(method.getModifiers())) {
-                var setter = engine.createFunctionInstance(object, method, self, self);
-                if(setSlot(self, setter, value, setter.getAgoClass().getParameters()[0], setter.getAgoClass())){
-                    setter.setRunSpace(frame.getRunSpace());
-                    setter.setCaller(frame);
-                    frame.getRunSpace().setCurrCallFrame(setter);
-                    return WRITE_RESULT_WITH_SETTER;
-                }
-                return RESULT_EXCEPTION;
-            } else {
-                possibleError = "method '%s' is not visible for '%s'".formatted(method.getName(), frame.getAgoClass().getFullname());
+                possibleError = "property '%s' is not visible or not writable for '%s'".formatted(property.getName(), frame.getAgoClass().getFullname());
             }
         }
         if(possibleError != null){
@@ -194,7 +174,8 @@ public class DynamicOp {
         return RESULT_EXCEPTION;
     }
 
-    private boolean setSlot(CallFrame<?> self, Instance<?> object, Instance<?> value, AgoVariable fld, AgoClass agoClass) {
+    public static boolean setSlot(CallFrame<?> frame, CallFrame<?> self, Instance<?> object, Instance<?> value, AgoVariable fld, AgoClass agoClass) {
+        AgoEngine engine = frame.getAgoEngine();
         switch (fld.getTypeCode().value) {
             case INT_VALUE:
             case LONG_VALUE:
@@ -222,6 +203,32 @@ public class DynamicOp {
                 break;
             }
         }
+        return true;
+    }
+
+    public static boolean setSlot(CallFrame<?> frame, CallFrame<?> self, Instance<?> object, Object unionValue, AgoVariable fld, AgoClass agoClass) {
+        if(unionValue instanceof Instance<?> instance){
+            return setSlot(frame, self, object, instance, fld, agoClass);
+        } else {
+            var index = fld.getSlotIndex();
+            var engine = frame.getAgoEngine();
+            switch (fld.getTypeCode().value){
+                case INT_VALUE: object.getSlots().setInt(index, Union.unionToInt(unionValue, engine)); break;
+                case LONG_VALUE: object.getSlots().setLong(index, Union.unionToLong(unionValue, engine)); break;
+                case DOUBLE_VALUE: object.getSlots().setDouble(index, Union.unionToDouble(unionValue, engine)); break;
+                case DECIMAL_VALUE: object.getSlots().setDecimal(index, Union.unionToDecimal(unionValue, engine)); break;
+                case BOOLEAN_VALUE: object.getSlots().setBoolean(index, Union.unionToBoolean(unionValue, engine)); break;
+                case STRING_VALUE: object.getSlots().setString(index, Union.unionToString(unionValue, engine)); break;
+                case CHAR_VALUE: object.getSlots().setChar(index, Union.unionToChar(unionValue, engine)); break;
+                case SHORT_VALUE: object.getSlots().setShort(index, Union.unionToShort(unionValue, engine)); break;
+                case BYTE_VALUE: object.getSlots().setByte(index, Union.unionToByte(unionValue, engine)); break;
+                case FLOAT_VALUE: object.getSlots().setFloat(index, Union.unionToFloat(unionValue, engine)); break;
+                case CLASS_REF_VALUE: object.getSlots().setClassRef(index, Union.unionToClassRef(unionValue, engine)); break;
+                case OBJECT_VALUE: object.getSlots().setObject(index, engine.getBoxer().unionToObject(unionValue)); break;
+                case UNION_VALUE: object.getSlots().setUnion(index, object); break;     //TODO safe assign
+            }
+        }
+
         return true;
     }
 

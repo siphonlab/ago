@@ -43,7 +43,7 @@ public class Conversion {
     }
 
 
-    // only support Primitive(-Null) -> Primitive(-Null), Primitive(-Null) -> Boxer Object, Primitive -> Union
+    // support Primitive(-Null) -> Primitive(-Null), Primitive(-Null) -> Boxer Object, Primitive -> Union
     // Boxer -> Primitive(-Null), Object -> Object(assignable)
     // Boxer -> Union, Object -> Union
     public static boolean castToAny(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass,

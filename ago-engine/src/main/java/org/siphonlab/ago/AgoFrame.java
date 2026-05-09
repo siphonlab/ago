@@ -996,7 +996,12 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             break;
 
             case Box.box_o_vv:              {
-                slots.setObject(code[pc++], engine.getBoxer().boxAny(agoClass.getSlotDefs()[code[pc]], slots, code[pc++] ));
+                Instance<?> instance = engine.getBoxer().boxAny(agoClass.getSlotDefs()[code[pc]], slots, code[pc++]);
+                if(instance == null) {
+                    raiseException(self, "lang.NullPointerException", "cannot box null");
+                    return -1;
+                }
+                slots.setObject(code[pc++], instance);
             }
             break;
 
@@ -1641,24 +1646,23 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 var dest = code[pc++];
                 DynamicOp dynamicOp = new DynamicOp(this);
                 var member = dynamicOp.readMember(self, (Instance<?>)slots.getUnion(code[pc++]), slots.getString(code[pc++]), dest);
-                if(member == null) {
-                    if(dynamicOp.getResult() == DynamicOp.RESULT_WITH_GETTER){
-                        this.pc = pc;       // wait getter callback, it will reenter REENTER_INVOKE_GETTER
-                    }
-                    return -1;
+                switch (dynamicOp.getResult()){
+                    case DynamicOp.RESULT_OK :  slots.setUnion(dest, member); break;
+                    case DynamicOp.RESULT_WITH_GETTER:
+                        this.pc = pc;       // wait getter callback, it will reenter REENTER_INVOKE_GETTER, fall through
+                    case DynamicOp.RESULT_EXCEPTION:
+                        return -1;
                 }
-                slots.setUnion(dest, member);
                 break;
             }
             case Dynamic.dyn_set_member_uSv:{
                 var v = new DynamicOp(this).writeMember(self, (Instance<?>)slots.getUnion(code[pc++]), slots.getString(code[pc++]), (Instance<?>) slots.getUnion(code[pc++]));
-                if(v == DynamicOp.RESULT_EXCEPTION) {
-                    return -1;
-                } else if(v == DynamicOp.WRITE_RESULT_OK){
-                    return pc;
-                } else if(v == DynamicOp.WRITE_RESULT_WITH_SETTER){
-                    this.pc = pc;
-                    return -1;
+                switch (v) {
+                    case DynamicOp.RESULT_OK: break;
+                    case DynamicOp.WRITE_RESULT_WITH_SETTER:
+                        this.pc = pc;       // fall through
+                    case DynamicOp.RESULT_EXCEPTION:
+                        return -1;
                 }
                 break;
             }
@@ -2014,12 +2018,6 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             return false;
         }
         return true;
-    }
-
-    public void raiseException(CallFrame<?> self, String exceptionClassName, String message){
-        var ExceptionClass = engine.getClass(exceptionClassName);
-        var exception = engine.createInstance(null, ExceptionClass, this );
-        exception.invokeMethod(self, REENTER_RAISE_EXCEPTION, 0, ExceptionClass.findMethod("new#message"), message);
     }
 
     public static char stringToChar(String s){

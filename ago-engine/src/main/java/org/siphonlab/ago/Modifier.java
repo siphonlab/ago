@@ -47,10 +47,22 @@ public class Modifier {
     public static boolean isPublic(int modifiers){
         return (modifiers & AgoClass.PUBLIC) == AgoClass.PUBLIC;
     }
+
+    public static boolean isFinal(int modifiers){
+        return (modifiers & AgoClass.FINAL) == AgoClass.FINAL;
+    }
+
     public static boolean isPrivate(int modifiers){
         return (modifiers & AgoClass.PRIVATE) == AgoClass.PRIVATE;
     }
     public static boolean isProtected(int modifiers){
         return (modifiers & AgoClass.PROTECTED) == AgoClass.PROTECTED;
+    }
+
+    public static Visibility getVisibility(int modifiers) {
+        if((modifiers & AgoClass.PUBLIC) == AgoClass.PUBLIC)  return Visibility.Public;
+        if((modifiers & AgoClass.PRIVATE) == AgoClass.PRIVATE)  return Visibility.Private;
+        if((modifiers & AgoClass.PROTECTED) == AgoClass.PROTECTED)  return Visibility.Protected;
+        return Visibility.Private;
     }
 }
