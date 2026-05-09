@@ -8,16 +8,31 @@ fun nosave(n as int) as string {
     return "String: " + n;
 }
 
+fun runf() {
+    Trace.print("~~~hello running~~~");
+    sleep(500);
+    Trace.print("~~~hello fork~~~");
+}
+
+fun rnd() as boolean native "org.siphonlab.ago.test.TestFunctions.rnd";
+
 fun main() {
     var n = 10;
     Trace.print("======");
     var x = save(n);
     Trace.print(x);
 
+    fork runf();
+    if (rnd()) {
+        fail();
+    }
+    Trace.print("fork it!");
+    sleep(1500);
+
     var s = nosave(x);
     Trace.print(s);
 
-    fail();
+    // fail();
 
     var y = save(x);
     Trace.print(y);
