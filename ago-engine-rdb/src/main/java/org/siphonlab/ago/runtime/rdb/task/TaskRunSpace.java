@@ -231,8 +231,8 @@ public class TaskRunSpace extends SavableRunSpace {
 
         try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
             conn.setAutoCommit(false);
-            this.rdbAdapter.saveRunspaceWithTx(conn, curRunSpace);
-            this.rdbAdapter.saveRunspaceWithTx(conn, nextRunSpace);
+            this.rdbAdapter.saveRunspaceWithTx(conn, curRunSpace, curRunSpace.getCurrentCallFrame());
+            this.rdbAdapter.saveRunspaceWithTx(conn, nextRunSpace, frame);
             this.rdbAdapter.saveWithConn(conn, frame);
             this.rdbAdapter.updateCallFrameRunningState(
                     conn,

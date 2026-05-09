@@ -23,10 +23,11 @@ fun main() {
     Trace.print(x);
 
     fork runf();
-    Trace.print("fork it!");
     if (rnd()) {
         fail();
     }
+    Trace.print("fork it!");
+    sleep(1500);
 
     var s = nosave(x);
     Trace.print(s);
