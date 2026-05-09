@@ -1,0 +1,68 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+class Animal{
+    metaclass{
+        fun foo(){
+            Trace.print("Animal.foo")
+        }
+    }
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    metaclass{
+        override foo(){
+            Trace.print("Cat.foo")
+        }
+    }
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Calc{
+    fun add(a as int, b as int) as int{
+        return a + b
+    }
+    fun subtract(a as int, b as int) as int{
+        return a - b
+    }
+}
+
+class Staff{
+    public name as string;
+    age as int {public get; public set;}
+
+    fun work(title as string, duration as int){
+        Trace.print($"name: ${name} do ${title}, already ${duration} min"$)
+    }
+}
+
+fun main(){
+    var calc = new Calc();
+    var method = calc.getClass().getMethod('add#');
+    Trace.print(method);        // class add#
+    var r = calc.invoke(method!, 1, 2);
+    Trace.print(r);
+
+    var b = calc.invoke('subtract#', 8, 4)
+    Trace.print(b);
+}

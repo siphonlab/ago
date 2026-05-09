@@ -184,6 +184,11 @@ class Class {
     fun getProperty(name as string, includePrivate as boolean) as PropertyDesc? native "org.siphonlab.ago.lang.Reflect.getProperty";
     fun getMethod(name as string, includePrivate as boolean) as Class? native "org.siphonlab.ago.lang.Reflect.getMethod";
     fun getChild(name as string, includePrivate as boolean) as Class? native "org.siphonlab.ago.lang.Reflect.getChild";
+
+    fun createInstance#0() as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+    fun createInstance#1(scope as Object) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+    fun createInstance#2(constructor as Class, arguments as Object? ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+    fun createInstance#3(scope as Object, constructor as Class, arguments as Object? ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
 }
 
 class Throwable {
@@ -237,6 +242,10 @@ class NoSuchMemberException from RuntimeException{
 }
 
 class NoSuchPropertyException from RuntimeException{
+
+}
+
+class NoSuchMethodException from RuntimeException{
 
 }
 

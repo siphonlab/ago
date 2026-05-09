@@ -17,6 +17,7 @@ package org.siphonlab.ago.lang;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.runtime.UnionArrayInstance;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -246,4 +247,78 @@ public class Reflect {
             throw new IllegalStateException("unknown property type " + property);
         }
     }
+
+    // arguments type is Object? ..., values are boxed as Instance
+    public static void Method_invoke(NativeFrame frame, Instance<?> object, Instance<?> method, Instance<?> arguments){
+        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_FUNCTION){
+            var inst = frame.getRunSpace().getResultSlots().castAnyToObject(frame.getAgoEngine().getBoxer());
+            frame.finishUnion(inst);
+            return;
+        }
+
+        AgoEngine engine = frame.getAgoEngine();
+        UnionArrayInstance arr = (UnionArrayInstance) arguments;
+        AgoFunction fun = (AgoFunction) method;
+        var toInvoke = engine.createFunctionInstance(object, fun, frame.self(), frame.self());
+        AgoParameter[] parameters = fun.getParameters();
+        for (int i = 0; i < parameters.length; i++) {
+            AgoParameter parameter = parameters[i];
+            DynamicOp.setSlot(frame, frame.self(), toInvoke, arr.value[i], parameter, fun);
+        }
+        frame.invokeFrame(toInvoke, NativeFrame.REENTER_INVOKE_FUNCTION);
+    }
+
+    public static void Method_invoke(NativeFrame frame, Instance<?> object, String method, Instance<?> arguments){
+        var fun = object.getAgoClass().findMethod(method);
+        if(fun == null){
+            frame.raiseException(frame.self(), "NoSuchMethodException", "'%s' not found in '%s'".formatted(method, object.getAgoClass().getFullname()));
+            return;
+        }
+        Method_invoke(frame, object, fun, arguments);
+    }
+
+    public static void createInstance(NativeFrame frame){
+        createInstance(frame, null, null, null);
+    }
+
+    public static void createInstance(NativeFrame frame, Instance<?> scope){
+        createInstance(frame, scope, null, null);
+    }
+
+    public static void createInstance(NativeFrame frame, Instance<?> constructor, Instance<?> arguments){
+        createInstance(frame, null, constructor, arguments);
+    }
+
+    public static void createInstance(NativeFrame frame, Instance<?> scope, Instance<?> constructor, Instance<?> arguments){
+        if(frame.getReenterState() == NativeFrame.REENTER_CREATE_INSTANCE){
+            Object nativePayload = frame.getNativePayload();
+            frame.finishObject((Instance<?>) nativePayload);
+            return;
+        }
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = (AgoClass) frame.getParentScope();
+
+        Instance<?> result;
+        if(agoClass.isNative()) {
+            result = engine.createNativeInstance(scope, agoClass, frame.self());
+        } else {
+            result = engine.createInstance(scope, agoClass, frame.self());
+        }
+        if(constructor != null){
+            AgoFunction fun = (AgoFunction) constructor;
+            var toInvoke = engine.createFunctionInstance(result, fun, frame.self(), frame.self());
+            UnionArrayInstance arr = (UnionArrayInstance) arguments;
+            AgoParameter[] parameters = fun.getParameters();
+            for (int i = 0; i < parameters.length; i++) {
+                AgoParameter parameter = parameters[i];
+                DynamicOp.setSlot(frame, frame.self(), toInvoke, arr.value[i], parameter, fun);
+            }
+            frame.setNativePayload(result);
+            frame.invokeFrame(toInvoke, NativeFrame.REENTER_CREATE_INSTANCE);
+        } else {
+            frame.finishObject(result);
+        }
+    }
+
+
 }

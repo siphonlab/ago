@@ -36,4 +36,6 @@ fun prop#get_prop_desc(this as Object, propertyDesc as PropertyDesc) as Object? 
 
 fun prop#set_prop_desc(this as Object, propertyDesc as PropertyDesc, value as Object?) native "org.siphonlab.ago.lang.Reflect.Property_setValue";
 
+fun invoke#method(this as Object, method as Class, arguments as Object? ...) as Object? native "org.siphonlab.ago.lang.Reflect.Method_invoke";
 
+fun invoke#method_name(this as Object, methodName as string, arguments as Object? ...) as Object? native "org.siphonlab.ago.lang.Reflect.Method_invoke";

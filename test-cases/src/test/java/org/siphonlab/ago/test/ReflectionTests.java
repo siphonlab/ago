@@ -33,4 +33,17 @@ public class ReflectionTests {
         assertTrue(Trace.outputted("name", "age", "Tom", "20", "John", "22"));
     }
 
+    @Test
+    public void method() throws CompilationError, IOException {
+        run("reflection/method.ago");
+        Trace.printOutput();
+    }
+
+    @Test
+    public void creation() throws CompilationError, IOException {
+        run("reflection/creation.ago");
+        Trace.printOutput();
+    }
+
+
 }
