@@ -67,4 +67,7 @@ fun main(){
 
     staff.prop('name', "John")
     staff.prop('age', 22)
+
+    Trace.print(staff.prop('name'))
+    Trace.print(staff.prop('age'))
 }

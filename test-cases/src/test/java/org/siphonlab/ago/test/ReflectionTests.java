@@ -30,6 +30,7 @@ public class ReflectionTests {
     public void property() throws CompilationError, IOException {
         run("reflection/property.ago");
         Trace.printOutput();
+        assertTrue(Trace.outputted("name", "age", "Tom", "20", "John", "22"));
     }
 
 }

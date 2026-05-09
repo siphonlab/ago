@@ -241,10 +241,7 @@ public class Reflect {
             var setter = engine.createFunctionInstance(object, method, frame.self(), frame.self());
             DynamicOp.setSlot(frame, frame.self(), setter, value, setter.getAgoClass().getParameters()[0], setter.getAgoClass());
 
-            setter.setCaller(frame.self());
-            setter.setRunSpace(frame.getRunSpace());
-            frame.setReenterState(NativeFrame.REENTER_INVOKE_SETTER);
-            frame.getRunSpace().setCurrCallFrame(setter);
+            frame.invokeFrame(setter, NativeFrame.REENTER_INVOKE_SETTER);
         } else {
             throw new IllegalStateException("unknown property type " + property);
         }

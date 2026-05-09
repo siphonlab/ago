@@ -117,12 +117,12 @@ public abstract class Property {
 
         @Override
         public Visibility getVisibilityForRead() {
-            return Modifier.getVisibility(getter.getModifiers());
+            return getter == null ? Visibility.Private : Modifier.getVisibility(getter.getModifiers());
         }
 
         @Override
         public Visibility getVisibilityForWrite() {
-            return Modifier.getVisibility(setter.getModifiers());
+            return setter == null ? Visibility.Private : Modifier.getVisibility(setter.getModifiers());
         }
 
         public AgoFunction getGetter() {

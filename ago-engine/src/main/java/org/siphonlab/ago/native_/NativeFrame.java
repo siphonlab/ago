@@ -38,10 +38,10 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void run(CallFrame<?> self){
         if (this.debugger != null) this.debugger.enterFrame(this);
+        this.self = self;
         this.setRunSpace(runSpace);
         // the native function f(NativeFrame frame, param1, param2), end with `frame.finish(result)`
         nativeFunctionCaller.invoke(this, this.slots);
-        this.self = self;
     }
 
     public void beginAsync(){
@@ -215,5 +215,12 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public void setReenterState(int reenterState) {
         this.reenterState = reenterState;
+    }
+
+    public void invokeFrame(CallFrame<?> toInvoke, int reenterState){
+        toInvoke.setCaller(self);
+        toInvoke.setRunSpace(this.getRunSpace());
+        this.setReenterState(reenterState);
+        this.getRunSpace().setCurrCallFrame(toInvoke);
     }
 }
