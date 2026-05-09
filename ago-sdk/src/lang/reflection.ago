@@ -1,0 +1,39 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+enum PropertyKind{
+    Field,
+    Attribute
+}
+
+native class PropertyDesc{
+    fun name#get() as string native "org.siphonlab.ago.lang.Reflect.Property_getName";
+    fun readable#get() as boolean native "org.siphonlab.ago.lang.Reflect.Property_isReadable";
+    fun writable#get() as boolean native "org.siphonlab.ago.lang.Reflect.Property_isWritable";
+    fun kind#get() as PropertyKind native "org.siphonlab.ago.lang.Reflect.Property_getKind";
+    fun type#get() as Class native "org.siphonlab.ago.lang.Reflect.Property_getType";
+}
+
+fun prop#get_name(this as Object, propName as string) as Object? native "org.siphonlab.ago.lang.Reflect.Property_getValue";
+
+fun prop#set_name(this as Object, propName as string, value as Object?) native "org.siphonlab.ago.lang.Reflect.Property_setValue";
+
+fun prop#get_prop_desc(this as Object, propertyDesc as PropertyDesc) as Object? native "org.siphonlab.ago.lang.Reflect.Property_getValue";
+
+fun prop#set_prop_desc(this as Object, propertyDesc as PropertyDesc, value as Object?) native "org.siphonlab.ago.lang.Reflect.Property_setValue";
+
+

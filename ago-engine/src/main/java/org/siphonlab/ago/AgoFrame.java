@@ -996,7 +996,12 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             break;
 
             case Box.box_o_vv:              {
-                slots.setObject(code[pc++], engine.getBoxer().boxAny(agoClass.getSlotDefs()[code[pc]], slots, code[pc++] ));
+                Instance<?> instance = engine.getBoxer().boxAny(agoClass.getSlotDefs()[code[pc]], slots, code[pc++]);
+                if(instance == null) {
+                    raiseException(self, "lang.NullPointerException", "cannot box null");
+                    return -1;
+                }
+                slots.setObject(code[pc++], instance);
             }
             break;
 
@@ -2014,12 +2019,6 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             return false;
         }
         return true;
-    }
-
-    public void raiseException(CallFrame<?> self, String exceptionClassName, String message){
-        var ExceptionClass = engine.getClass(exceptionClassName);
-        var exception = engine.createInstance(null, ExceptionClass, this );
-        exception.invokeMethod(self, REENTER_RAISE_EXCEPTION, 0, ExceptionClass.findMethod("new#message"), message);
     }
 
     public static char stringToChar(String s){

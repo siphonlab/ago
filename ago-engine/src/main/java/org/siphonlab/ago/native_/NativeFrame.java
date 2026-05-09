@@ -23,9 +23,12 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     protected NativeFunctionCaller nativeFunctionCaller;
     protected final AgoEngine engine;
-    private CallFrame<?> entrance;
+    private CallFrame<?> self;
     private Object payload;
     private int reenterState = 0;
+
+    public static final int REENTER_INVOKE_GETTER = 2;
+    public static final int REENTER_INVOKE_SETTER = 3;
 
     public NativeFrame(AgoEngine engine, Slots slots, AgoNativeFunction agoClass) {
         super(slots, agoClass);
@@ -38,7 +41,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         this.setRunSpace(runSpace);
         // the native function f(NativeFrame frame, param1, param2), end with `frame.finish(result)`
         nativeFunctionCaller.invoke(this, this.slots);
-        this.entrance = self;
+        this.self = self;
     }
 
     public void beginAsync(){
@@ -204,5 +207,13 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public int getReenterState() {
         return reenterState;
+    }
+
+    public CallFrame<?> self() {
+        return self;
+    }
+
+    public void setReenterState(int reenterState) {
+        this.reenterState = reenterState;
     }
 }

@@ -143,4 +143,13 @@ public class AgoFunction extends AgoClass{
         copy.setSourceMap(this.getSourceMap());
         copy.parameterByName = this.parameterByName;
     }
+
+    public String getCommonName(){
+        var p = this.name.lastIndexOf('#');
+        if(p == -1){
+            return this.name;
+        } else {
+            return this.name.substring(0, p);
+        }
+    }
 }

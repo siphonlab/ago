@@ -1,0 +1,252 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.siphonlab.ago.lang;
+
+import org.siphonlab.ago.*;
+import org.siphonlab.ago.native_.NativeFrame;
+
+import java.util.Arrays;
+import java.util.Collection;
+
+public class Reflect {
+
+
+    public static void Class_forName(NativeFrame frame, String name){
+        frame.finishUnion(frame.getAgoEngine().getClass(name));
+    }
+
+    public static void getProperties(NativeFrame frame, boolean includePrivate){
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = (AgoClass) frame.getParentScope();
+
+        Collection<Property> properties = agoClass.getPropertyMap().values();
+        if(!includePrivate) {
+            properties = properties.stream().filter(p -> (p.isReadable() && p.getVisibilityForRead() == Visibility.Public) || p.getVisibilityForWrite() == Visibility.Public).toList();
+        }
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), properties.size());
+        int i = 0;
+        for (Property property : properties) {
+            var inst = engine.createNativeInstance(null, engine.getClass("lang.PropertyDesc"), frame);
+            inst.setNativePayload(property);
+            arr.value[i++] = inst;
+        }
+        frame.finishObject(arr);
+    }
+
+    public static void getMethods(NativeFrame frame, boolean includePrivate){
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = (AgoClass) frame.getParentScope();
+
+        var methods = agoClass.getMethods();
+        if(includePrivate){
+            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), methods.length);
+            System.arraycopy(methods, 0, arr.value, 0, methods.length);
+            frame.finishObject(arr);
+        } else {
+            var ls = Arrays.stream(methods).filter(AgoClass::isPublic).toList();
+            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size());
+            ls.toArray(arr.value);
+            frame.finishObject(arr);
+        }
+    }
+
+    public static void getChildren(NativeFrame frame, boolean includePrivate){
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = (AgoClass) frame.getParentScope();
+
+        var children = agoClass.getChildren();
+        if(includePrivate){
+            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), children.length);
+            System.arraycopy(children, 0, arr.value, 0, children.length);
+            frame.finishObject(arr);
+        } else {
+            var ls = Arrays.stream(children).filter(AgoClass::isPublic).toList();
+            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size());
+            ls.toArray(arr.value);
+            frame.finishObject(arr);
+        }
+    }
+
+    public static void getProperty(NativeFrame frame, String name, boolean includePrivate){
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = (AgoClass) frame.getParentScope();
+
+        var prop = agoClass.getPropertyMap().get(name);
+        if(prop == null) {
+            frame.finishUnion(null);
+            return;
+        }
+        if(!includePrivate && prop.getVisibilityForRead() != Visibility.Public){
+            frame.finishUnion(null);
+            return;
+        }
+
+        var inst = engine.createNativeInstance(null, engine.getClass("lang.PropertyDesc"), frame);
+        inst.setNativePayload(prop);
+        frame.finishUnion(inst);
+    }
+
+    public static void getMethod(NativeFrame frame, String name, boolean includePrivate){
+        AgoClass agoClass = (AgoClass) frame.getParentScope();
+
+        var method = agoClass.findMethod(name);
+        if(method == null) {
+            frame.finishUnion(null);
+            return;
+        }
+        if(!includePrivate && !method.isPublic()){
+            frame.finishUnion(null);
+            return;
+        }
+
+        frame.finishUnion(method);
+    }
+
+    public static void getChild(NativeFrame frame, String name, boolean includePrivate){
+        AgoClass agoClass = (AgoClass) frame.getParentScope();
+
+        var method = agoClass.findChild(name);
+        if(method == null) {
+            frame.finishUnion(null);
+            return;
+        }
+        if(!includePrivate && !method.isPublic()){
+            frame.finishUnion(null);
+            return;
+        }
+
+        frame.finishUnion(method);
+    }
+
+    public static void Property_getName(NativeFrame frame){
+        Property propertyDesc = (Property) frame.getParentScope().getNativePayload();
+        frame.finishString(propertyDesc.getName());
+    }
+
+    public static void Property_isReadable(NativeFrame frame){
+        Property propertyDesc = (Property) frame.getParentScope().getNativePayload();
+        frame.finishBoolean(propertyDesc.isReadable());
+    }
+
+    public static void Property_isWritable(NativeFrame frame){
+        Property propertyDesc = (Property) frame.getParentScope().getNativePayload();
+        frame.finishBoolean(propertyDesc.isWritable());
+    }
+
+    public static void Property_getKind(NativeFrame frame){
+        Property propertyDesc = (Property) frame.getParentScope().getNativePayload();
+
+        AgoEngine engine = frame.getAgoEngine();
+        AgoEnum propertyKindEnum = (AgoEnum) engine.getClass("lang.PropertyKind");
+        if(propertyDesc instanceof Property.FieldProperty){
+            frame.finishObject(propertyKindEnum.findMember("Field"));
+        } else {
+            frame.finishObject(propertyKindEnum.findMember("Attribute"));
+        }
+    }
+
+    public static void Property_getType(NativeFrame frame){
+        Property propertyDesc = (Property) frame.getParentScope().getNativePayload();
+        frame.finishObject(propertyDesc.getType());
+    }
+
+    public static void Property_getValue(NativeFrame frame, Instance<?> object, String propName){
+        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_GETTER){
+            var inst = frame.getRunSpace().getResultSlots().castAnyToObject(frame.getAgoEngine().getBoxer());
+            frame.finishUnion(inst);
+            return;
+        }
+        var property = object.getAgoClass().getPropertyMap().get(propName);
+        if(property == null){
+            frame.raiseException(frame.self(), "NoSuchPropertyException", "'%s' not found in '%s'".formatted(propName, object.getAgoClass().getFullname()));
+            return;
+        }
+        getPropertyValue(frame, object, property);
+    }
+
+    public static void Property_getValue(NativeFrame frame, Instance<?> object, Instance<?> propertyInst){
+        Property property = (Property) propertyInst.getNativePayload();
+        if(property.getOwnerClass() != object.getAgoClass()){
+            frame.raiseException(frame.self(), "NoSuchPropertyException", "the owner of '%s' is not '%s'".formatted(property.getName(), object.getAgoClass().getFullname()));
+            return;
+        }
+        getPropertyValue(frame, object, property);
+    }
+
+    public static void getPropertyValue(NativeFrame frame, Instance<?> object, Property property){
+        if(!property.isReadable()){
+            frame.raiseException(frame.self(), "IllegalAccessException", "'%s' is not readable".formatted(property.getName()));
+            return;
+        }
+        var engine = frame.getAgoEngine();
+        if(property instanceof Property.FieldProperty fieldProperty){
+            AgoField agoField = fieldProperty.getAgoField();
+            var r = engine.getBoxer().boxAny(object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value);
+            frame.finishUnion(r);
+        } else if(property instanceof Property.AttributeProperty attributeProperty){
+            var getter = attributeProperty.getGetter();
+            object.invokeMethod(frame, NativeFrame.REENTER_INVOKE_GETTER, 0, getter);
+        } else {
+            throw new IllegalStateException("unknown property type " + property);
+        }
+    }
+
+    public static void Property_setValue(NativeFrame frame, Instance<?> object, String propName, Object value){
+        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_SETTER){
+            frame.finishVoid();
+            return;
+        }
+        var property = object.getAgoClass().getPropertyMap().get(propName);
+        if(property == null){
+            frame.raiseException(frame.self(), "NoSuchPropertyException", "'%s' not found in '%s'".formatted(propName, object.getAgoClass().getFullname()));
+            return;
+        }
+        setPropertyValue(frame, object, property, value);
+    }
+
+    public static void Property_setValue(NativeFrame frame, Instance<?> object, Instance<?> propertyInst, Object value){
+        Property property = (Property) propertyInst.getNativePayload();
+        if(property.getOwnerClass() != object.getAgoClass()){
+            frame.raiseException(frame.self(), "NoSuchPropertyException", "the owner of '%s' is not '%s'".formatted(property.getName(), object.getAgoClass().getFullname()));
+            return;
+        }
+        setPropertyValue(frame, object, property, value);
+    }
+
+    public static void setPropertyValue(NativeFrame frame, Instance<?> object, Property property, Object value){
+        if(!property.isWritable()){
+            frame.raiseException(frame.self(), "IllegalAccessException", "'%s' is not writable".formatted(property.getName()));
+            return;
+        }
+        var engine = frame.getAgoEngine();
+        if(property instanceof Property.FieldProperty fieldProperty){
+            AgoField agoField = fieldProperty.getAgoField();
+            DynamicOp.setSlot(frame, frame.self(), object, value, agoField, object.getAgoClass());
+            frame.finishVoid();
+        } else if(property instanceof Property.AttributeProperty attributeProperty){
+            var method = attributeProperty.getSetter();
+            var setter = engine.createFunctionInstance(object, method, frame.self(), frame.self());
+            DynamicOp.setSlot(frame, frame.self(), setter, value, setter.getAgoClass().getParameters()[0], setter.getAgoClass());
+
+            setter.setCaller(frame.self());
+            setter.setRunSpace(frame.getRunSpace());
+            frame.setReenterState(NativeFrame.REENTER_INVOKE_SETTER);
+            frame.getRunSpace().setCurrCallFrame(setter);
+        } else {
+            throw new IllegalStateException("unknown property type " + property);
+        }
+    }
+}

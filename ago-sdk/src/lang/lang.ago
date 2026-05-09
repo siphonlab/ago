@@ -140,16 +140,50 @@ class Nullable from Union{
     }
 }
 
-// class information
+// class information, a presentation of AgoClass
 class Class {
+//    metaclass{
+//        fun forName(name as string) as Class? native "org.siphonlab.ago.lang.Reflect.Class_forName"
+//    }
+
     override toString() as string{
-        //var kind = isInterface() ? "interface " : isPrimitive() ? "" : "class ";
-        //return kind.concat(getName());
         return "class " + this.getName();
     }
 
     fun getName() as string
         native "org.siphonlab.ago.lang.Lang.Class_getName";
+
+    fun properties#get() as PropertyDesc[]{
+        return getProperties(false);
+    }
+
+    fun methods#get() as Class[]{
+        return getMethods(false);
+    }
+
+    fun children#get() as Class[]{
+        return getChildren(false);
+    }
+
+    fun getProperties(includePrivate as boolean) as PropertyDesc[] native "org.siphonlab.ago.lang.Reflect.getProperties";
+    fun getMethods(includePrivate as boolean) as Class[] native "org.siphonlab.ago.lang.Reflect.getMethods";
+    fun getChildren(includePrivate as boolean) as Class[] native "org.siphonlab.ago.lang.Reflect.getChildren";
+
+    fun getProperty#pub(name as string) as PropertyDesc?{
+        return getProperty(name, false);
+    }
+
+    fun getMethod#pub(name as string) as Class?{
+        return getMethod(name, false)
+    }
+
+    fun getChild#pub(name as string) as Class?{
+        return getChild(name, false)
+    }
+
+    fun getProperty(name as string, includePrivate as boolean) as PropertyDesc? native "org.siphonlab.ago.lang.Reflect.getProperty";
+    fun getMethod(name as string, includePrivate as boolean) as Class? native "org.siphonlab.ago.lang.Reflect.getMethod";
+    fun getChild(name as string, includePrivate as boolean) as Class? native "org.siphonlab.ago.lang.Reflect.getChild";
 }
 
 class Throwable {
@@ -202,6 +236,9 @@ class NoSuchMemberException from RuntimeException{
 
 }
 
+class NoSuchPropertyException from RuntimeException{
+
+}
 
 class Function<+R>{
     fun runspace#get() as RunSpace native "org.siphonlab.ago.lang.RunSpaceAware.getRunSpace";

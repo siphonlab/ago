@@ -1620,6 +1620,9 @@ public class ClassDef extends ClassContainer {
         MetaClassDef metaClass = getMetaClassDef();
         if (metaClass == null) {
             if (this.getSuperClass() != null && this.getSuperClass() != this) {
+                if(this.getSuperClass().getCompilingStage() == CompilingStage.ResolveHierarchicalClasses){
+                    this.getSuperClass().resolveHierarchicalClasses();
+                }
                 var superMeta = this.superClass.resolveMetaclass();
                 if( superMeta != null) {
                     MetaClassDef mockMeta = new MetaClassDef(root, this, superMeta.getMetaLevel(), null);

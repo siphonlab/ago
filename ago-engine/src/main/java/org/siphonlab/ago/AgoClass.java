@@ -23,6 +23,18 @@ import org.siphonlab.ago.classloader.GenericTypeCodeAvatarInfo;
 
 import java.util.*;
 
+import static org.siphonlab.ago.TypeCode.*;
+import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
+import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
+import static org.siphonlab.ago.TypeCode.CHAR_VALUE;
+import static org.siphonlab.ago.TypeCode.CLASS_REF_VALUE;
+import static org.siphonlab.ago.TypeCode.DECIMAL_VALUE;
+import static org.siphonlab.ago.TypeCode.FLOAT_VALUE;
+import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
+import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
+import static org.siphonlab.ago.TypeCode.STRING_VALUE;
+import static org.siphonlab.ago.TypeCode.UNION_VALUE;
+
 public class AgoClass extends Instance<MetaClass>{
 
     public static final byte TYPE_METACLASS = 1;
@@ -88,6 +100,8 @@ public class AgoClass extends Instance<MetaClass>{
     private SourceLocation sourceLocation;
 
     private AgoClassLoader classLoader;
+
+    private Map<String, Property> propertyMap;
 
     public void setSuperClass(AgoClass superClass) {
         this.superClass = superClass;
@@ -442,6 +456,17 @@ public class AgoClass extends Instance<MetaClass>{
     public boolean isFinal() {
         return (this.modifiers & AgoClass.FINAL) !=0;
     }
+    public boolean isGetter() {
+        return (this.modifiers & AgoClass.GETTER) !=0;
+    }
+    public boolean isSetter() {
+        return (this.modifiers & AgoClass.SETTER) !=0;
+    }
+
+    public boolean isGenerator(){
+        return (this.modifiers & AgoClass.GENERATOR) != 0;
+    }
+
     public int getVisibility() {
         return this.modifiers & 0b111;
     }
@@ -583,5 +608,47 @@ public class AgoClass extends Instance<MetaClass>{
         }
 
         return TypeCode.OBJECT;
+    }
+
+    public synchronized Map<String, Property> getPropertyMap() {
+        if(propertyMap == null){
+            buildPropertyMap();
+        }
+        return propertyMap;
+    }
+
+    private void buildPropertyMap() {
+        var r = new HashMap<String, Property>();
+        if(this.getFields() != null) {
+            for (AgoField field : this.getFields()) {
+                r.put(field.getName(), new Property.FieldProperty(this, field));
+            }
+        }
+
+        // collect attributes
+        if(this.getMethods() != null) {
+            for (var child : this.getChildren()) {
+                if(child instanceof AgoFunction method){
+                    String commonName = method.getCommonName();
+                    if (method.isGetter()) {
+                        var exists = r.get(method.getName());
+                        if (exists instanceof Property.AttributeProperty setter) {
+                            r.put(commonName, new Property.AttributeProperty(this, method, setter.getSetter()));
+                        } else {
+                            r.put(commonName, new Property.AttributeProperty(this, method, null));
+                        }
+                    } else if (method.isSetter()) {
+                        var exists = r.get(commonName);
+                        if (exists instanceof Property.AttributeProperty getter) {
+                            r.put(commonName, new Property.AttributeProperty(this, getter.getGetter(), method));
+                        } else {
+                            r.put(commonName, new Property.AttributeProperty(this, null, method));
+                        }
+                    }
+                }
+            }
+        }
+
+        this.propertyMap = r;
     }
 }

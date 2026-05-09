@@ -225,10 +225,10 @@ public class Boxer {
     }
 
 
-    private boolean validateBoxType(AgoFrame agoFrame, CallFrame<?> self, AgoClass agoClass, int typeCode){
+    private boolean validateBoxType(CallFrame<?> agoFrame, CallFrame<?> self, AgoClass agoClass, int typeCode){
         if(agoClass instanceof AgoEnum agoEnum){
             if(agoEnum.getBasePrimitiveType().value != typeCode){
-                agoFrame.raiseException(agoFrame, "lang.ClassCastException", "illegal cast from '%s' to '%s'".formatted(of(typeCode), agoClass.getFullname()));
+                agoFrame.raiseException(self, "lang.ClassCastException", "illegal cast from '%s' to '%s'".formatted(of(typeCode), agoClass.getFullname()));
                 return false;
             }
             return true;
@@ -249,9 +249,9 @@ public class Boxer {
         };
     }
 
-    public boolean forceUnbox(AgoFrame agoFrame, Slots slots, CallFrame<?> self, int receiverIndex, Instance<?> object, int typeCode) {
+    public boolean forceUnbox(CallFrame<?> agoFrame, Slots slots, CallFrame<?> self, int receiverIndex, Instance<?> object, int typeCode) {
         if(object == null) {
-            agoFrame.raiseException(agoFrame, "lang.NullPointerException","unbox to '%s' meet null".formatted(TypeCode.of(typeCode)));
+            agoFrame.raiseException(self, "lang.NullPointerException","unbox to '%s' meet null".formatted(TypeCode.of(typeCode)));
             return false;
         }
         if(!validateBoxType(agoFrame, self, object.getAgoClass(), typeCode)){
@@ -325,6 +325,8 @@ public class Boxer {
                 return boxShort(slots.getShort(slotIndex));
             case CLASS_REF_VALUE:
                 return boxClassRef(slots.getClassRef(slotIndex));
+            case UNION_VALUE:
+                return unionToObject(slots.getUnion(slotIndex));
         }
         return null;
     }
@@ -400,7 +402,7 @@ public class Boxer {
     }
 
     public Instance<?> boxNull() {
-        return new Instance<>(NULL.createSlots(), NULL);
+        return null;
     }
 
     public BoxTypes getBoxTypes() {
