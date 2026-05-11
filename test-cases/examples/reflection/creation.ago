@@ -13,40 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-class Animal{
-    metaclass{
-        fun foo(){
-            Trace.print("Animal.foo")
-        }
-    }
-    fun bark(){
-    }
-}
-class Cat from Animal{
-    metaclass{
-        override foo(){
-            Trace.print("Cat.foo")
-        }
-    }
-    override bark(){
-        Trace.print("meow")
-    }
-}
-class Dog from Animal{
-    override bark(){
-        Trace.print("woof")
-    }
-}
-
-class Calc{
-    fun add(a as int, b as int) as int{
-        return a + b
-    }
-    fun subtract(a as int, b as int) as int{
-        return a - b
-    }
-}
-
 class Staff{
     public name as string;
     age as int {public get; public set;}
@@ -56,13 +22,34 @@ class Staff{
     }
 }
 
+class A{
+    private text as string = "I am A"
+
+    class B{
+        fun test(){
+            Trace.print(text);
+        }
+    }
+
+    class C{
+        fun new(field foo as string){ }
+        fun test(){
+            Trace.print(text + foo)
+        }
+    }
+}
+
 fun main(){
     var staff = new Staff() with {.name = 'Tom'; .age = 20};
 
-    var staff2 = staff.getClass().createInstance() | Staff;
+    var staff2 = Staff.createInstance() | Staff;
     staff2.name = "Jack"
     staff2.age = 22;
 
     Trace.print(staff2.name)
     Trace.print(staff2.age)
+
+//    var a = new A();
+//    var b = A.getChild('B').createInstance(a);
+//    b.invoke('test');
 }
