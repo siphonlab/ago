@@ -301,12 +301,14 @@ public class Compiler {
     }
 
     static void validateFunction(ClassDef classDef) throws CompilationError {
-        for (ClassDef child : classDef.getDirectChildren()) {
-            if (child instanceof FunctionDef functionDef) {
-                classDef.validateNewFunction(functionDef);
+        if(classDef.getCompilingStage() == CompilingStage.ValidateNewFunctions) {
+            classDef.nextCompilingStage(CompilingStage.InheritsInnerClasses);
+            for (ClassDef child : classDef.getDirectChildren()) {
+                if (child instanceof FunctionDef functionDef) {
+                    classDef.validateNewFunction(functionDef);
+                }
             }
         }
-        classDef.nextCompilingStage(CompilingStage.InheritsInnerClasses);
     }
 
     void inheritsChildClasses() throws CompilationError {
