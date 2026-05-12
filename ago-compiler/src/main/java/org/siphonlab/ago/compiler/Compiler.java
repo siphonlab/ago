@@ -300,7 +300,7 @@ public class Compiler {
         }
     }
 
-    private static void validateFunction(ClassDef classDef) throws CompilationError {
+    static void validateFunction(ClassDef classDef) throws CompilationError {
         for (ClassDef child : classDef.getDirectChildren()) {
             if (child instanceof FunctionDef functionDef) {
                 classDef.validateNewFunction(functionDef);

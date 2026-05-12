@@ -394,14 +394,21 @@ public class ClassDef extends ClassContainer {
 
         var superClass = this.superClass;
         if(superClass != null && this.superClass != this) {
-            if(superClass.compilingStage == CompilingStage.InheritsInnerClasses)
+            if (superClass.getCompilingStage() == CompilingStage.ValidateNewFunctions) {
+                Compiler.validateFunction(superClass);
+            }
+            if(superClass.compilingStage == CompilingStage.InheritsInnerClasses) {
                 superClass.inheritsChildClasses();
+            }
 
             var classes = superClass.getUniqueChildren();
             inheritsChildClasses(classes);
         }
 
         for (ClassDef implementedInterface : this.implementedInterfaces) {
+            if (implementedInterface.getCompilingStage() == CompilingStage.ValidateNewFunctions) {
+                Compiler.validateFunction(implementedInterface);
+            }
             if(implementedInterface.compilingStage == CompilingStage.InheritsInnerClasses){
                 implementedInterface.inheritsChildClasses();
             }
