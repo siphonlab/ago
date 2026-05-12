@@ -17,10 +17,11 @@ package org.siphonlab.ago.lang;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.opcode.Box;
 import org.siphonlab.ago.runtime.UnionArrayInstance;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 public class Reflect {
 
@@ -29,9 +30,13 @@ public class Reflect {
         frame.finishUnion(frame.getAgoEngine().getClass(name));
     }
 
+    private static AgoClass getClassFromClassRef(NativeFrame frame) {
+        return Boxer.getClassFromClassRef(frame.getParentScope());
+    }
+
     public static void getProperties(NativeFrame frame, boolean includePrivate){
         AgoEngine engine = frame.getAgoEngine();
-        AgoClass agoClass = (AgoClass) frame.getParentScope();
+        AgoClass agoClass = getClassFromClassRef(frame);
 
         Collection<Property> properties = agoClass.getPropertyMap().values();
         if(!includePrivate) {
@@ -49,41 +54,39 @@ public class Reflect {
 
     public static void getMethods(NativeFrame frame, boolean includePrivate){
         AgoEngine engine = frame.getAgoEngine();
-        AgoClass agoClass = (AgoClass) frame.getParentScope();
+        AgoClass agoClass = getClassFromClassRef(frame);
 
         var methods = agoClass.getMethods();
-        if(includePrivate){
-            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), methods.length);
-            System.arraycopy(methods, 0, arr.value, 0, methods.length);
-            frame.finishObject(arr);
-        } else {
-            var ls = Arrays.stream(methods).filter(AgoClass::isPublic).toList();
-            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size());
-            ls.toArray(arr.value);
-            frame.finishObject(arr);
+        List<Instance<?>> ls = new java.util.ArrayList<>(methods.length);
+        for (AgoFunction method : methods) {
+            if(method != null && (includePrivate || method.isPublic())){
+                ls.add(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), method));
+            }
         }
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size());
+        ls.toArray(arr.value);
+        frame.finishObject(arr);
     }
 
     public static void getChildren(NativeFrame frame, boolean includePrivate){
         AgoEngine engine = frame.getAgoEngine();
-        AgoClass agoClass = (AgoClass) frame.getParentScope();
+        AgoClass agoClass = getClassFromClassRef(frame);
 
         var children = agoClass.getChildren();
-        if(includePrivate){
-            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), children.length);
-            System.arraycopy(children, 0, arr.value, 0, children.length);
-            frame.finishObject(arr);
-        } else {
-            var ls = Arrays.stream(children).filter(AgoClass::isPublic).toList();
-            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size());
-            ls.toArray(arr.value);
-            frame.finishObject(arr);
+        List<Instance<?>> ls = new java.util.ArrayList<>(children.length);
+        for (var child : children) {
+            if(child != null && (includePrivate || child.isPublic())){
+                ls.add(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), child));
+            }
         }
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size());
+        ls.toArray(arr.value);
+        frame.finishObject(arr);
     }
 
     public static void getProperty(NativeFrame frame, String name, boolean includePrivate){
         AgoEngine engine = frame.getAgoEngine();
-        AgoClass agoClass = (AgoClass) frame.getParentScope();
+        AgoClass agoClass = getClassFromClassRef(frame);
 
         var prop = agoClass.getPropertyMap().get(name);
         if(prop == null) {
@@ -101,7 +104,7 @@ public class Reflect {
     }
 
     public static void getMethod(NativeFrame frame, String name, boolean includePrivate){
-        AgoClass agoClass = (AgoClass) frame.getParentScope();
+        AgoClass agoClass = getClassFromClassRef(frame);
 
         var method = agoClass.findMethod(name);
         if(method == null) {
@@ -113,23 +116,25 @@ public class Reflect {
             return;
         }
 
-        frame.finishUnion(method);
+        AgoEngine engine = frame.getAgoEngine();
+        frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getScopedClassRefClass(), method));
     }
 
     public static void getChild(NativeFrame frame, String name, boolean includePrivate){
-        AgoClass agoClass = (AgoClass) frame.getParentScope();
+        AgoClass agoClass = getClassFromClassRef(frame);
 
-        var method = agoClass.findChild(name);
-        if(method == null) {
+        var child = agoClass.findChild(name);
+        if(child == null) {
             frame.finishUnion(null);
             return;
         }
-        if(!includePrivate && !method.isPublic()){
+        if(!includePrivate && !child.isPublic()){
             frame.finishUnion(null);
             return;
         }
 
-        frame.finishUnion(method);
+        AgoEngine engine = frame.getAgoEngine();
+        frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getScopedClassRefClass(), child));
     }
 
     public static void Property_getName(NativeFrame frame){
@@ -161,7 +166,8 @@ public class Reflect {
 
     public static void Property_getType(NativeFrame frame){
         Property propertyDesc = (Property) frame.getParentScope().getNativePayload();
-        frame.finishObject(propertyDesc.getType());
+        AgoEngine engine = frame.getAgoEngine();
+        frame.finishObject(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), propertyDesc.getType()));
     }
 
     public static void Property_getValue(NativeFrame frame, Instance<?> object, String propName){
@@ -249,6 +255,7 @@ public class Reflect {
     }
 
     // arguments type is Object? ..., values are boxed as Instance
+    // method is a ClassRef object
     public static void Method_invoke(NativeFrame frame, Instance<?> object, Instance<?> method, Instance<?> arguments){
         if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_FUNCTION){
             var inst = frame.getRunSpace().getResultSlots().castAnyToObject(frame.getAgoEngine().getBoxer());
@@ -258,7 +265,7 @@ public class Reflect {
 
         AgoEngine engine = frame.getAgoEngine();
         UnionArrayInstance arr = (UnionArrayInstance) arguments;
-        AgoFunction fun = (AgoFunction) method;
+        AgoFunction fun = method instanceof AgoFunction f ? f : (AgoFunction) Boxer.getClassFromClassRef(method);
         var toInvoke = engine.createFunctionInstance(object, fun, frame.self(), frame.self());
         AgoParameter[] parameters = fun.getParameters();
         for (int i = 0; i < parameters.length; i++) {
@@ -296,7 +303,7 @@ public class Reflect {
             return;
         }
         AgoEngine engine = frame.getAgoEngine();
-        AgoClass agoClass = (AgoClass) frame.getParentScope();
+        AgoClass agoClass = getClassFromClassRef(frame);
 
         Instance<?> result;
         if(agoClass.isNative()) {
@@ -305,7 +312,7 @@ public class Reflect {
             result = engine.createInstance(scope, agoClass, frame.self());
         }
         if(constructor != null){
-            AgoFunction fun = (AgoFunction) constructor;
+            AgoFunction fun = constructor instanceof AgoFunction f ? f : (AgoFunction) Boxer.getClassFromClassRef(constructor);
             var toInvoke = engine.createFunctionInstance(result, fun, frame.self(), frame.self());
             UnionArrayInstance arr = (UnionArrayInstance) arguments;
             AgoParameter[] parameters = fun.getParameters();

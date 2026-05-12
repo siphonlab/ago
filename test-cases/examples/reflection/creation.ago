@@ -25,14 +25,19 @@ class Staff{
 class A{
     private text as string = "I am A"
 
-    class B{
+    public class B{
         fun test(){
             Trace.print(text);
         }
     }
 
-    class C{
-        fun new(field foo as string){ }
+    public class C{
+        f as string
+        fun new#1(field foo as string){ }
+        fun new#2(foo as string, f as string){
+            this.f = f;
+            this.foo = foo + f;
+        }
         fun test(){
             Trace.print(text + foo)
         }
@@ -42,14 +47,17 @@ class A{
 fun main(){
     var staff = new Staff() with {.name = 'Tom'; .age = 20};
 
-    var staff2 = Staff.createInstance() | Staff;
+    var staff2 = Staff.class.createInstance() | Staff;
     staff2.name = "Jack"
     staff2.age = 22;
 
     Trace.print(staff2.name)
     Trace.print(staff2.age)
 
-//    var a = new A();
-//    var b = A.getChild('B').createInstance(a);
-//    b.invoke('test');
+    var a = new A();
+    var b = A.class.getChild('B')!.createInstance(a);
+    b.invoke('test#');
+
+    var c = A.class.getChild('C')!.createInstance(a, A.C.class.getMethod('new#2')!, ' foo', "bar");
+    c.invoke('test#');
 }

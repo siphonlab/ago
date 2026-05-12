@@ -58,7 +58,7 @@ class Staff{
 
 fun main(){
     var calc = new Calc();
-    var method = calc.getClass().getMethod('add#');
+    var method = Calc.class.getMethod('add#');
     Trace.print(method);        // class add#
     var r = calc.invoke(method!, 1, 2);
     Trace.print(r);

@@ -47,18 +47,25 @@ public class Lang {
 
 
     public static void ClassRef_toString(NativeFrame frame) {
-        int classRef = frame.getParentScope().getSlots().getClassRef(0);
-        frame.finishString(frame.getAgoEngine().getClass(classRef).getFullname());
+        AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
+        frame.finishString(agoClass.getFullname());
     }
 
     public static void Class_getName( NativeFrame frame){
         var scope = frame.getParentScope();
-        if(scope == null) frame.finishNull();
         frame.finishString(((AgoClass) scope).getName());
     }
 
+    public static void ClassRef_getName(NativeFrame frame){
+        AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
+        frame.finishString(agoClass.getFullname());
+    }
+
     public static void Object_getClass( NativeFrame frame){
-        frame.finishObject(frame.getParentScope().getAgoClass());
+        Instance<?> object = frame.getParentScope();
+        AgoEngine engine = frame.getAgoEngine();
+        var scopedClassRef = engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getScopedClassRefClass(), object.getAgoClass(), object.getParentScope());
+        frame.finishObject(scopedClassRef);
     }
 
     public static void Throwable_fillStackTrace(NativeFrame callFrame){

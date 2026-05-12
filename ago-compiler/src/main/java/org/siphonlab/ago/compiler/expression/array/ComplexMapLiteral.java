@@ -42,7 +42,7 @@ public class ComplexMapLiteral extends ExpressionInFunctionBody {
         this.valueType = valueType;
         this.kvDefs = kvDefs;
 
-        Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(mapTypeExpr, this.getSourceLocation());
+        Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(mapTypeExpr, this.getSourceLocation(), true);
         this.mapType = pair.getRight();
     }
 

@@ -17,6 +17,7 @@ package org.siphonlab.ago;
 
 import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.classloader.ClassRefValue;
+import org.siphonlab.ago.native_.NativeFrame;
 
 import java.math.BigDecimal;
 
@@ -63,6 +64,10 @@ public class Boxer {
         this.DOUBLE = langClasses.getDoubleClass();
         this.DECIMAL = langClasses.getDecimalClass();
         this.NULL = langClasses.getNullClass();
+    }
+
+    public static AgoClass getClassFromClassRef(Instance<?> classRefInstance) {
+        return (AgoClass) classRefInstance.getSlots().getObject(1);
     }
 
     public boolean isNarrowBoxType(AgoClass agoClass){
@@ -391,9 +396,22 @@ public class Boxer {
         return instance;
     }
 
-    public Instance<?> boxClassRef(CallFrame<?> callFrame, AgoClass agoClass, AgoClass value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
-        instance.slots.setClassRef(0, value.classId);
+    public Instance<?> boxClassRef(CallFrame<?> callFrame, AgoClass boxType, AgoClass value) {
+        Instance<?> instance = engine.createInstance(boxType,callFrame);
+        Slots slots = instance.slots;
+        slots.setClassRef(0, value.classId);
+        slots.setObject(1, value);
+        return instance;
+    }
+
+    public Instance<?> boxClassRef(CallFrame<?> callFrame, AgoClass boxType, AgoClass value, Instance<?> scope) {
+        Instance<?> instance = engine.createInstance(boxType,callFrame);
+        Slots slots = instance.slots;
+        slots.setClassRef(0, value.classId);
+        slots.setObject(1, value);
+        if(scope != null) {
+            slots.setObject(2, scope);
+        }
         return instance;
     }
 

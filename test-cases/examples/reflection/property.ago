@@ -58,7 +58,7 @@ class Staff{
 
 fun main(){
     var staff = new Staff() with { .name = 'Tom'; .age = 20};
-    var properties = staff.getClass().properties;
+    var properties = Staff.class.properties;        // or staff.getClass()
     for(var p in properties){
         Trace.print(p.name)
     }

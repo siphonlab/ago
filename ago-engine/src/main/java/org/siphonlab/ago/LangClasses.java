@@ -21,6 +21,7 @@ public class LangClasses {
     private final AgoClass objectClass;
     private final AgoClass classClass;        //lang.Class
     private final AgoClass classRefClass;
+    private final AgoClass scopedClassRefClass;
     private final AgoClass classIntervalClass;
     private final AgoClass scopedClassIntervalClass;
     private final AgoClass genericTypeParameterClass;
@@ -72,6 +73,7 @@ public class LangClasses {
         this.classClass = classManager.getClass("lang.Class");
         this.anyClass = classManager.getClass("lang.Any");
         this.classRefClass = classManager.getClass("lang.ClassRef");
+        this.scopedClassRefClass = classManager.getClass("lang.ScopedClassRef");
         this.classIntervalClass = classManager.getClass("lang.ClassInterval");
         this.scopedClassIntervalClass = classManager.getClass("lang.ScopedClassInterval");
         this.genericTypeParameterClass = classManager.getClass("lang.GenericTypeParameter");
@@ -132,6 +134,10 @@ public class LangClasses {
 
     public AgoClass getClassRefClass() {
         return classRefClass;
+    }
+
+    public AgoClass getScopedClassRefClass() {
+        return scopedClassRefClass;
     }
 
     public AgoClass getClassIntervalClass() {

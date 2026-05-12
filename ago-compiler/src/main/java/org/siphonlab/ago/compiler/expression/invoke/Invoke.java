@@ -131,7 +131,7 @@ public class Invoke extends ExpressionInFunctionBody {
         this.arguments = transformedArguments;
         List<Expression> expressions = this.arguments;
         List<Parameter> parameters = resolvedFunctionDef.getParameters();
-        for (int i = 0; i < expressions.size(); i++) {
+        for (int i = 0; i < parameters.size(); i++) {
             var parameter = parameters.get(i);
             Expression arg;
             if (parameter.isVarArgs()) {
@@ -140,7 +140,13 @@ public class Invoke extends ExpressionInFunctionBody {
                     elements.add(expressions.get(j));
                 }
                 arg = new ArrayLiteral(ownerFunction, (ArrayClassDef) parameter.getType(),elements).transform();
-                arguments.set(i, arg);
+                if(i < arguments.size()) {
+                    arguments.set(i, arg);
+                } else if(i == arguments.size()){
+                    arguments.add(arg);
+                } else {
+                    throw new IllegalStateException("unexpected arguments size '%d' for parameter size '%d'".formatted(arguments.size(), parameters.size()));
+                }
                 this.arguments = arguments.subList(0,i + 1);
                 break;
             } else{

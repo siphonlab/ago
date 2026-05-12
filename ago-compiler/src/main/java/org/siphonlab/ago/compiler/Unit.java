@@ -266,7 +266,7 @@ public class Unit {
         instanceClass.setMetaClassDef(metaclass);
         metaclass.setUnit(this);
         metaclass.setSourceLocation(sourceLocation(metaclassDecl));
-        metaclass.setSuperClass(root.getClassClass());  // let the super class of MetaClass be lang.Class
+//        metaclass.setSuperClass();       // meta class needn't superclass by default, the super class of a metaclass is the metaclass of superclass of its instance class
         metaclass.setCompilingStage(CompilingStage.ParseFields);      // direct jump to parse fields for metaclass
         instanceClass.getPackage().addChild(metaclass);
         classes.add(metaclass);

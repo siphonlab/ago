@@ -69,7 +69,7 @@ public class Creator extends ExpressionInFunctionBody{
             classDef = lBoundClass;
             scope = null;
         } else {
-            var p = extractScopeAndClass(typeExpr, sourceLocation);
+            var p = extractScopeAndClass(typeExpr, sourceLocation, true);
             scope = p.getLeft();
             classDef = p.getRight();
             this.typeExpr = typeExpr.transform().setParent(this);
@@ -105,13 +105,13 @@ public class Creator extends ExpressionInFunctionBody{
         }
     }
 
-    public static Pair<Expression, ClassDef> extractScopeAndClass(Expression typeExpr, SourceLocation sourceLocation) throws SyntaxError {
+    public static Pair<Expression, ClassDef> extractScopeAndClass(Expression typeExpr, SourceLocation sourceLocation, boolean forCreation) throws SyntaxError {
         Expression scope;
         ClassDef classDef;
         if(typeExpr instanceof ConstClass constClass){
             scope = null;
             classDef = constClass.getClassDef();
-            if(!classDef.isTop()){
+            if(forCreation && !classDef.isTop()){
                 throw new SyntaxError("'%s' is not allowed to create in current scope".formatted(classDef.getFullname()), sourceLocation);
             }
         } else if(typeExpr instanceof ClassOf.ClassOfScope classOfScope){

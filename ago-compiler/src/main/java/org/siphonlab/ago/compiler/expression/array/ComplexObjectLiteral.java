@@ -40,7 +40,7 @@ public class ComplexObjectLiteral extends ExpressionInFunctionBody {
         super(ownerFunction);
         this.objectTypeExpr = objectTypeExpr;
         this.kvDefs = kvDefs;
-        Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(objectTypeExpr, this.getSourceLocation());
+        Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(objectTypeExpr, this.getSourceLocation(), true);
         this.objectType = pair.getRight();
     }
 
