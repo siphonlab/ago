@@ -27,7 +27,13 @@ public class Reflect {
 
 
     public static void Class_forName(NativeFrame frame, String name){
-        frame.finishUnion(frame.getAgoEngine().getClass(name));
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = engine.getClass(name);
+        if(agoClass == null){
+            frame.finishUnion(null);
+        } else {
+            frame.finishUnion(engine.getBoxer().boxClassRef(agoClass.getClassId()));
+        }
     }
 
     private static AgoClass getClassFromClassRef(NativeFrame frame) {

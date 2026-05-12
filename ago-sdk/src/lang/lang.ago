@@ -184,9 +184,9 @@ class Nullable from Union{
 
 // class information, a presentation of AgoClass
 class Class {
-//    metaclass{
-//        fun forName(name as string) as Class? native "org.siphonlab.ago.lang.Reflect.Class_forName"
-//    }
+    metaclass{
+        fun forName(name as string) as ClassRef? native "org.siphonlab.ago.lang.Reflect.Class_forName"
+    }
     override toString() as string{
         return "class " + this.getName();
     }

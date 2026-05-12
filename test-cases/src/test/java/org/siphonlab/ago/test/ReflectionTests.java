@@ -47,5 +47,12 @@ public class ReflectionTests {
         assertTrue(Trace.outputted("Jack", "22", "I am A", "I am A foobar"));
     }
 
+    @Test
+    public void class_for_name() throws CompilationError, IOException {
+        run("reflection/class_for_name.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("Jack", "22"));
+    }
+
 
 }
