@@ -18,13 +18,10 @@ package org.siphonlab.ago.lang;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.native_.NativeFrame;
 
 import java.io.StringReader;
-import java.math.BigDecimal;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -142,4 +139,7 @@ public class Trace {
         return true;
     }
 
+    public static void clear() {
+        lines.clear();
+    }
 }
