@@ -27,6 +27,7 @@ class A{
 fun main(args as string){
     var a = new A(10);
     Trace.print(a.getClass());                // class A
+    // now the meta won't expose to ago program, only prefer `lang.ScopedClassRef`
     Trace.print(a.getClass().getClass());     // meta of A
     Trace.print(a.getClass().getClass().getClass());  // meta of meta
     Trace.print(a.getClass().getClass().getClass().getClass());   // always be itself

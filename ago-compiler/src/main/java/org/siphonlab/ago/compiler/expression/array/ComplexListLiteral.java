@@ -53,7 +53,7 @@ public class ComplexListLiteral extends ExpressionInFunctionBody {
 
     @Override
     protected Expression transformInner() throws CompilationError {
-        Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(listTypeExpr, this.getSourceLocation());
+        Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(listTypeExpr, this.getSourceLocation(), true);
         this.listType = pair.getRight();
         Root root = ownerFunction.getRoot();
         for(var el : elements) {

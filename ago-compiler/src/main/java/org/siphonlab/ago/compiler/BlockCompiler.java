@@ -390,7 +390,7 @@ public class BlockCompiler {
                     .setSourceLocation(unit.sourceLocation(expression));
         } else if (expression instanceof PrimaryExprContext primaryExprContext){
             if(primaryExprContext.primaryExpression() instanceof LiteralExprContext literalExpr) {
-                return literalExpr(literalExpr);
+                return literalExpr(literalExpr).setSourceLocation(unit.sourceLocation(literalExpr));
             } else if(primaryExprContext.primaryExpression() instanceof NamePathExprContext namePath){
                 return unit.resolveNamePath(this.functionDef, this.functionDef, namePath.namePath(), NamePathResolver.ResolveMode.ForValue);
             }
@@ -404,7 +404,7 @@ public class BlockCompiler {
         } else if(expression instanceof MemberAccessExprContext memberAccessExpr){
             return memberAccessExpr(memberAccessExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof QuotedExprContext quotedExpr){
-            return expression(quotedExpr.expression());
+            return expression(quotedExpr.expression()).setSourceLocation(unit.sourceLocation(quotedExpr));
         } else if(expression instanceof EqualsExprContext equalsExpr){
             return this.equalsExpr(equalsExpr).setSourceLocation(unit.sourceLocation(expression));
         } else if(expression instanceof CreatorExprContext creatorExpr) {
@@ -431,9 +431,9 @@ public class BlockCompiler {
         } else if(expression instanceof ElementExprContext elementExpr){
             var obj = expression(elementExpr.expression(0));
             var index = expression(elementExpr.expression(1));
-            return elementAt(expression, obj, index);
+            return elementAt(expression, obj, index).setSourceLocation(unit.sourceLocation(elementExpr));
         } else if(expression instanceof ClassExprContext classExpr){
-            //TODO
+            return classExpr(classExpr);
         } else if(expression instanceof WithMemberAccessExprContext withMemberAccessExprContext){
             var left = this.getCurrentWithExpr();
             NamePathContext namePathContext = withMemberAccessExprContext.namePath();
@@ -443,7 +443,7 @@ public class BlockCompiler {
                 return namePathResolver.resolve();
             } else {
                 MethodCallContext methodCallContext = withMemberAccessExprContext.methodCall();
-                return methodCall(left, methodCallContext);
+                return methodCall(left, methodCallContext).setSourceLocation(unit.sourceLocation(withMemberAccessExprContext));
             }
         } else if(expression instanceof SwitchExprContext switchExprContext){
             //TODO
@@ -490,9 +490,17 @@ public class BlockCompiler {
         } else if(expression instanceof AwaitFunctorContext invokeFunctorContext) {
             return invokeFunctor(invokeFunctorContext);
         } else if(expression instanceof ValueFromNullableContext valueFromNullableContext){
-            return valueFromNullable(valueFromNullableContext);
+            return valueFromNullable(valueFromNullableContext).setSourceLocation(unit.sourceLocation(valueFromNullableContext));
         }
         throw new UnsupportedOperationException(expression.getText());
+    }
+
+    private Expression classExpr(ClassExprContext classExpr) throws CompilationError {
+        var expr = expression(classExpr.expression());
+        if (!(expr instanceof ClassOf) && !(expr instanceof ClassUnder) && !(expr instanceof ConstClass)) {
+            expr = ClassOf.create(expr);
+        }
+        return processBoundClass(functionDef, getRoot().getScopedClassRefClass(), expr, unit.sourceLocation(classExpr));
     }
 
     private ExpressionInFunctionBody elementAt(ExpressionContext expression, Expression obj, Expression index) throws CompilationError {
@@ -1004,7 +1012,7 @@ public class BlockCompiler {
             if(arrayType != null) {
                 element = arrayElement(arrayElementContext, (ArrayClassDef) arrayType, eleType);
             } else {
-                element = listElement(arrayElementContext, Creator.extractScopeAndClass(listTypeExpr, listTypeExpr.getSourceLocation()).getValue(), eleType);
+                element = listElement(arrayElementContext, Creator.extractScopeAndClass(listTypeExpr, listTypeExpr.getSourceLocation(), false).getValue(), eleType);
             }
             elements.add(element);
             if(!hasExpando && element.isExpando()) hasExpando = true;

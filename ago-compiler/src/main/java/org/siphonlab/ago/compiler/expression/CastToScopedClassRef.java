@@ -47,19 +47,19 @@ public class CastToScopedClassRef extends ExpressionInFunctionBody{
         try {
             blockCompiler.enter(this);
 
-            Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(this.expression, this.getSourceLocation());
+            Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(this.expression, this.getSourceLocation(), false);
             Expression scope = pair.getLeft();
             ClassDef classDef = pair.getRight();
 
             blockCompiler.lockRegister(localVar);
             ownerFunction.box(classDef.toClassRefLiteral(), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);
 
-            ClassDef classInterval = blockCompiler.getFunctionDef().getRoot().getScopedClassInterval();
-            if (!localVar.inferType().isDeriveFrom(classInterval)) {
-                throw new TypeMismatchError("a ScopedClassInterval expression expected", this.getSourceLocation());
+            ClassDef varType = localVar.inferType();
+            if (!varType.isThatOrDerivedFromThat(getRoot().getScopedClassInterval()) && !varType.isThatOrDerivedFromThat(getRoot().getScopedClassRefClass())) {
+                throw new TypeMismatchError("a ScopedClassRef or ScopedClassInterval expression expected", this.getSourceLocation());
             }
 
-            var fld = new Var.Field(ownerFunction, localVar, classInterval.getVariable("scope"));
+            var fld = new Var.Field(ownerFunction, localVar, varType.getVariable("scope"));
 
             if(scope != null) {
                 Assign.to(ownerFunction, fld, scope, false).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);

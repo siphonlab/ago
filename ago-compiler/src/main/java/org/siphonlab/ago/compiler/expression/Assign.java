@@ -23,7 +23,6 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.dynamic.ObjectMember;
 import org.siphonlab.ago.compiler.expression.dynamic.SetObjectMember;
-import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 
 import java.util.Objects;
 
@@ -100,10 +99,10 @@ public abstract class Assign extends ExpressionInFunctionBody {
     public static Expression processBoundClass(FunctionDef ownerFunction, ClassDef classRefType, Expression expression, SourceLocation classRefSourceLocation) throws CompilationError {
         if (expression instanceof ClassOf || expression instanceof ClassUnder || expression instanceof ConstClass) {
             Root root = classRefType.getRoot();
-            if (classRefType.isThatOrDerivedFromThat(root.getScopedClassInterval())) {
+            if (classRefType.isThatOrDerivedFromThat(root.getScopedClassInterval()) || classRefType.isThatOrDerivedFromThat(root.getScopedClassRefClass())) {
                 return new CastToScopedClassRef(ownerFunction, expression, classRefType).transform();
             } else if (root.getScopedClassInterval().isDeriveFrom(classRefType)) {
-                var p = Creator.extractScopeAndClass(expression, expression.getSourceLocation());
+                var p = Creator.extractScopeAndClass(expression, expression.getSourceLocation(), false);
                 var t = root.getOrCreateScopedClassInterval(p.getRight(), p.getRight(), null);
                 //TODO register concrete type
                 return new ForceCast(ownerFunction, new CastToScopedClassRef(ownerFunction, expression, t).transform(), classRefType, ForceCast.CastMode.WearClassMask);

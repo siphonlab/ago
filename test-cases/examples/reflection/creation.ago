@@ -1,0 +1,63 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+class Staff{
+    public name as string;
+    age as int {public get; public set;}
+
+    fun work(title as string, duration as int){
+        Trace.print($"name: ${name} do ${title}, already ${duration} min"$)
+    }
+}
+
+class A{
+    private text as string = "I am A"
+
+    public class B{
+        fun test(){
+            Trace.print(text);
+        }
+    }
+
+    public class C{
+        f as string
+        fun new#1(field foo as string){ }
+        fun new#2(foo as string, f as string){
+            this.f = f;
+            this.foo = foo + f;
+        }
+        fun test(){
+            Trace.print(text + foo)
+        }
+    }
+}
+
+fun main(){
+    var staff = new Staff() with {.name = 'Tom'; .age = 20};
+
+    var staff2 = Staff.class.createInstance() | Staff;
+    staff2.name = "Jack"
+    staff2.age = 22;
+
+    Trace.print(staff2.name)
+    Trace.print(staff2.age)
+
+    var a = new A();
+    var b = A.class.getChild('B')!.createInstance(a);
+    b.invoke('test#');
+
+    var c = A.class.getChild('C')!.createInstance(a, A.C.class.getMethod('new#2')!, ' foo', "bar");
+    c.invoke('test#');
+}

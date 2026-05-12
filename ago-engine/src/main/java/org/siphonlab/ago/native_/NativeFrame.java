@@ -29,6 +29,8 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
     public static final int REENTER_INVOKE_GETTER = 2;
     public static final int REENTER_INVOKE_SETTER = 3;
+    public static final int REENTER_INVOKE_FUNCTION = 4;
+    public static final int REENTER_CREATE_INSTANCE = 5;
 
     public NativeFrame(AgoEngine engine, Slots slots, AgoNativeFunction agoClass) {
         super(slots, agoClass);

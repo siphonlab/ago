@@ -33,4 +33,26 @@ public class ReflectionTests {
         assertTrue(Trace.outputted("name", "age", "Tom", "20", "John", "22"));
     }
 
+    @Test
+    public void method() throws CompilationError, IOException {
+        run("reflection/method.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("Calc.add#", "3", "4"));
+    }
+
+    @Test
+    public void creation() throws CompilationError, IOException {
+        run("reflection/creation.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("Jack", "22", "I am A", "I am A foobar"));
+    }
+
+    @Test
+    public void class_for_name() throws CompilationError, IOException {
+        run("reflection/class_for_name.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("Jack", "22"));
+    }
+
+
 }

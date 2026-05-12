@@ -80,6 +80,7 @@ public class Root extends Namespace<Package> {
     private ClassDef ARRAY_CLASS;
     private ClassDef ANY_ARRAY_CLASS;
     private ClassDef CLASS_REF_CLASS;
+    private ClassDef SCOPED_CLASS_REF_CLASS;
     private ClassDef CLASS_INTERVAL_CLASS;
     private ClassDef SCOPED_CLASS_INTERVAL_CLASS;
     private ClassDef GENERIC_TYPE_PARAMETER_CLASS;
@@ -232,6 +233,11 @@ public class Root extends Namespace<Package> {
     public synchronized ClassDef getClassRefClass(){
         if(CLASS_REF_CLASS != null) return CLASS_REF_CLASS;
         return CLASS_REF_CLASS = findByFullname("lang.ClassRef");
+    }
+
+    public synchronized ClassDef getScopedClassRefClass(){
+        if(SCOPED_CLASS_REF_CLASS != null) return SCOPED_CLASS_REF_CLASS;
+        return SCOPED_CLASS_REF_CLASS = findByFullname("lang.ScopedClassRef");
     }
 
     public synchronized ClassDef getClassInterval(){

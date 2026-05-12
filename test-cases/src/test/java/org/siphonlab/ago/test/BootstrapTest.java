@@ -43,7 +43,8 @@ public class BootstrapTest {
     public void Object_getClass() throws CompilationError, IOException {
         Util.run("bootstrap/base_types.ago", "Meta@<Test>.main#");
 //        Util.run("bootstrap/base_types.ago", "main#");
-        assertTrue(Trace.startsWith("Object@"));        // Object@hashCode
+        Trace.printOutput();
+        assertTrue(Trace.startsWith("lang.Object@"));        // Object@hashCode
     }
 
     @Test
@@ -82,7 +83,8 @@ public class BootstrapTest {
     @Test
     public void metaclass() throws CompilationError, IOException {
         Util.run("bootstrap/5.metaclass.ago");
-        assertTrue(Trace.outputted("class A", "class Meta@<A>", "class <Meta>", "class <Meta>"));
+        Trace.printOutput();
+        assertTrue(Trace.outputted("A", "lang.ScopedClassRef", "lang.ScopedClassRef", "lang.ScopedClassRef"));
     }
 
     @Test

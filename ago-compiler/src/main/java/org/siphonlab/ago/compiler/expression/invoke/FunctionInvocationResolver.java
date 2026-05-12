@@ -102,8 +102,10 @@ public class FunctionInvocationResolver {
     private ResolveResult resolve(FunctionDef functionDef, List<Expression> arguments) {
         var resolveResult = new ResolveResult(functionDef);
         if(functionDef.getParameters().size() > arguments.size()){
-            resolveResult.error = new ResolveError("arguments count mismatch, %d expected, but only pass %d".formatted(functionDef.getParameters().size(), arguments.size()), sourceLocation);
-            return resolveResult;
+            if (!functionDef.getParameters().getLast().isVarArgs() || functionDef.getParameters().size() - 1 != arguments.size()) {
+                resolveResult.error = new ResolveError("arguments count mismatch, %d expected, but only pass %d".formatted(functionDef.getParameters().size(), arguments.size()), sourceLocation);
+                return resolveResult;
+            }
         }
         List<Parameter> parameters = functionDef.getParameters();
         ClassDef[] parameterTypes = parameters.stream().map(p -> {
@@ -118,44 +120,52 @@ public class FunctionInvocationResolver {
         List<ClassDef> argTypes = new ArrayList<>();
         List<ClassDef> argTypesPreserveVarArgs = new ArrayList<>();
         int argPos = 0;
-        for (int i = 0; i < parameterTypes.length; i++) {
-            var parameterType = parameterTypes[i];
-            if(i >= arguments.size()){
-                resolveResult.error = new ResolveError("arguments count mismatch", sourceLocation);
-                return resolveResult;
+        for (int p = 0; p < parameterTypes.length; p++) {
+            var parameterType = parameterTypes[p];
+            if(p >= arguments.size()){
+                if(parameters.getLast().isVarArgs() && p == arguments.size()){
+                    //
+                } else {
+                    resolveResult.error = new ResolveError("arguments count mismatch", sourceLocation);
+                    return resolveResult;
+                }
             }
             ClassDef argType = null;
             try {
                 if(parameterType instanceof ClassIntervalClassDef) {     // cast class to ScopedClassInterval
-                    argType = new Cast(ownerFunction, arguments.get(i), parameterType).transform().inferType();
+                    argType = new Cast(ownerFunction, arguments.get(p), parameterType).transform().inferType();
                     argTypesPreserveVarArgs.add(argType);
                     argPos++;
                 } else if(parameterType instanceof VarArgs varArgs){
                     // fold rest arguments to array
                     ClassDef eleType = null;
-                    for(var j = i; j<arguments.size(); j++){
-                        Expression arg = arguments.get(j);
-                        ClassDef t = arg.inferType();
-                        if(eleType == null){
-                            eleType = indicateGenericType(varArgs.getElementType(),t, resolveResult);
-                        } else {
-                            try {
-                                new CastStrategy(ownerFunction, arg.getSourceLocation(), false).castTo(arg, eleType);
-                            } catch (TypeMismatchError e){
-                                resolveResult.error = e;
-                                return resolveResult;
+                    if(p >= arguments.size()){
+                        eleType = varArgs.getElementType();
+                    } else {
+                        for (var j = p; j < arguments.size(); j++) {
+                            Expression arg = arguments.get(j);
+                            ClassDef t = arg.inferType();
+                            if (eleType == null) {
+                                eleType = indicateGenericType(varArgs.getElementType(), t, resolveResult);
+                            } else {
+                                try {
+                                    new CastStrategy(ownerFunction, arg.getSourceLocation(), false).castTo(arg, eleType);
+                                } catch (TypeMismatchError e) {
+                                    resolveResult.error = e;
+                                    return resolveResult;
+                                }
                             }
+                            argTypesPreserveVarArgs.add(t);
+                            argPos++;
                         }
-                        argTypesPreserveVarArgs.add(t);
-                        argPos++;
                     }
                     if(eleType == null || eleType.getTypeCode() == TypeCode.VOID){
                         resolveResult.error = new ResolveError("common type of params array not found", sourceLocation);
                         return resolveResult;
                     }
-                    parameterTypes[i] = argType = new VarArgs(functionDef.getRoot(), eleType);
+                    parameterTypes[p] = argType = new VarArgs(functionDef.getRoot(), eleType);
                 } else {
-                    argType = arguments.get(i).inferType();
+                    argType = arguments.get(p).inferType();
                     argPos++;
                     argTypesPreserveVarArgs.add(argType);
                 }
@@ -165,7 +175,7 @@ public class FunctionInvocationResolver {
             }
             if(argType != null) {
                 if(!(argType instanceof VarArgs)) {
-                    parameterTypes[i] = indicateGenericType(parameterType, argType, resolveResult);
+                    parameterTypes[p] = indicateGenericType(parameterType, argType, resolveResult);
                 }
                 if (!resolveResult.providedArguments.isEmpty()) {
                     // only constructor of template or template function can indicate generic type
@@ -174,12 +184,12 @@ public class FunctionInvocationResolver {
                     } else if (functionDef.isGenericTemplate()) {
                         //
                     } else {
-                        resolveResult.error = new TypeMismatchError("generic type not allowed here '%s'".formatted(parameters.get(i).getName()), sourceLocation);
+                        resolveResult.error = new TypeMismatchError("generic type not allowed here '%s'".formatted(parameters.get(p).getName()), sourceLocation);
                     }
                 }
             }
             if(resolveResult.error != null) {
-                resolveResult.paramIndex = i;
+                resolveResult.paramIndex = p;
                 return resolveResult;
             }
         }
@@ -265,19 +275,23 @@ public class FunctionInvocationResolver {
         double r = 0;
         for (int i = 0; i < parameters.length; i++) {
             var p = parameters[i];
-            var v = arguments.get(i);
             if (p instanceof VarArgs ar) {    // must be the last parameter
                 var eleType = ar.getElementType();
                 double varArgsScore = 0;
                 int count = 0;
                 for(; i< arguments.size(); i++){
-                    v = arguments.get(i);
+                    var v = arguments.get(i);
                     varArgsScore += evaluateScoreOfOneArgument(eleType,v);
                     count ++;
                 }
-                r += (varArgsScore * .98) / count;        // let int... always littler than int, int, int
+                if(count == 0){
+                    r += 1;
+                } else {
+                    r += (varArgsScore * .98) / count;        // let int... always littler than int, int, int
+                }
                 break;
             } else {
+                var v = arguments.get(i);
                 r += evaluateScoreOfOneArgument(p, v);
             }
         }

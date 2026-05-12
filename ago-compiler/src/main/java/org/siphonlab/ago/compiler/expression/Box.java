@@ -97,7 +97,8 @@ public class Box extends ExpressionInFunctionBody{
                     case Box:
                         if (literal instanceof ClassRefLiteral classRefLiteral && this.boxType != getRoot().CLASSREF().getBoxedType()) {
                             Var.LocalVar scopeVar = null;
-                            if(boxType.isThatOrDerivedFromThat(boxType.getRoot().getScopedClassInterval())){
+                            if(boxType.isThatOrDerivedFromThat(boxType.getRoot().getScopedClassInterval()) ||
+                                    boxType.isThatOrDerivedFromThat(boxType.getRoot().getScopedClassRefClass())){
                                 if(classRefLiteral.getScope() != null){
                                     Expression scope = classRefLiteral.getScope();
                                     scopeVar = (Var.LocalVar) scope.visit(blockCompiler);

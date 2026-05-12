@@ -28,6 +28,7 @@ import org.siphonlab.ago.compiler.ClassFile;
 import org.siphonlab.ago.compiler.Compiler;
 import org.siphonlab.ago.compiler.Unit;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.lang.Trace;
 import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
@@ -155,6 +156,7 @@ public class Util {
     }
 
     public static void run(String filename, String entrance) throws CompilationError, IOException {
+        Trace.clear();
         var selectedEngine = parseEngine();
         switch (selectedEngine){
             case NettyEngine:

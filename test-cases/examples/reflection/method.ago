@@ -57,17 +57,12 @@ class Staff{
 }
 
 fun main(){
-    var staff = new Staff() with { .name = 'Tom'; .age = 20};
-    var properties = Staff.class.properties;        // or staff.getClass()
-    for(var p in properties){
-        Trace.print(p.name)
-    }
-    Trace.print(staff.prop('name'))
-    Trace.print(staff.prop('age'))
+    var calc = new Calc();
+    var method = Calc.class.getMethod('add#');
+    Trace.print(method);        // class add#
+    var r = calc.invoke(method!, 1, 2);
+    Trace.print(r);
 
-    staff.prop('name', "John")
-    staff.prop('age', 22)
-
-    Trace.print(staff.prop('name'))
-    Trace.print(staff.prop('age'))
+    var b = calc.invoke('subtract#', 8, 4)
+    Trace.print(b);
 }

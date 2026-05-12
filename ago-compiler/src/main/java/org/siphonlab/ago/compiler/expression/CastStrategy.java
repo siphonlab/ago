@@ -457,7 +457,7 @@ public class CastStrategy {
                 switch (toTypeKind) {
                     case Primitive ->{
                         if(toType.getTypeCode() == CLASS_REF && fromType instanceof MetaClassDef metaClassDef){
-                            Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(expression, this.sourceLocation);
+                            Pair<Expression, ClassDef> pair = Creator.extractScopeAndClass(expression, this.sourceLocation, false);
                             if(pair == null){
                                 throw new TypeMismatchError("'%s' is not a class expression", this.sourceLocation);
                             }

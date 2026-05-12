@@ -35,7 +35,7 @@ class Object from Any{
 
     fun new() {}
 
-    final fun getClass() as Class
+    final fun getClass() as ScopedClassRef
         native "org.siphonlab.ago.lang.Lang.Object_getClass";
 
     fun toString() as string{
@@ -65,6 +65,48 @@ class ClassRef from Boxer<classref>{
 
     public override toString() as string native "org.siphonlab.ago.lang.Lang.ClassRef_toString"
 
+    fun properties#get() as PropertyDesc[]{
+        return getProperties(false);
+    }
+
+    fun methods#get() as ClassRef[]{
+        return getMethods(false);
+    }
+
+    fun children#get() as ClassRef[]{
+        return getChildren(false);
+    }
+
+    fun getName() as string native "org.siphonlab.ago.lang.Lang.ClassRef_getName";
+
+    fun getProperties(includePrivate as boolean) as PropertyDesc[] native "org.siphonlab.ago.lang.Reflect.getProperties";
+    fun getMethods(includePrivate as boolean) as ClassRef[] native "org.siphonlab.ago.lang.Reflect.getMethods";
+    fun getChildren(includePrivate as boolean) as ClassRef[] native "org.siphonlab.ago.lang.Reflect.getChildren";
+
+    fun getProperty#pub(name as string) as PropertyDesc?{
+        return getProperty(name, false);
+    }
+
+    fun getMethod#pub(name as string) as ClassRef?{
+        return getMethod(name, false)
+    }
+
+    fun getChild#pub(name as string) as ClassRef?{
+        return getChild(name, false)
+    }
+
+    fun getProperty(name as string, includePrivate as boolean) as PropertyDesc? native "org.siphonlab.ago.lang.Reflect.getProperty";
+    fun getMethod(name as string, includePrivate as boolean) as ClassRef? native "org.siphonlab.ago.lang.Reflect.getMethod";
+    fun getChild(name as string, includePrivate as boolean) as ClassRef? native "org.siphonlab.ago.lang.Reflect.getChild";
+
+    fun createInstance#0() as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+    fun createInstance#1(scope as Object) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+    fun createInstance#2(constructor as ClassRef, arguments as Object? ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+    fun createInstance#3(scope as Object, constructor as ClassRef, arguments as Object? ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+}
+
+class ScopedClassRef from ClassRef{
+    public final scope as Object
 }
 
 class ClassInterval from ClassRef{
@@ -89,7 +131,7 @@ class ScopedClassInterval from ClassInterval{
             super(lBound, uBound)
         }
     }
-    public final scope as Object   // assigned by opcode
+    public final scope as Object   // assigned by opcode C2sbr_oCC
 }
 
 // for G<T>, i.e. G<+T as [Animal to _], -T2 as [_ to Cat]>
@@ -142,48 +184,15 @@ class Nullable from Union{
 
 // class information, a presentation of AgoClass
 class Class {
-//    metaclass{
-//        fun forName(name as string) as Class? native "org.siphonlab.ago.lang.Reflect.Class_forName"
-//    }
-
+    metaclass{
+        fun forName(name as string) as ClassRef? native "org.siphonlab.ago.lang.Reflect.Class_forName"
+    }
     override toString() as string{
         return "class " + this.getName();
     }
 
     fun getName() as string
         native "org.siphonlab.ago.lang.Lang.Class_getName";
-
-    fun properties#get() as PropertyDesc[]{
-        return getProperties(false);
-    }
-
-    fun methods#get() as Class[]{
-        return getMethods(false);
-    }
-
-    fun children#get() as Class[]{
-        return getChildren(false);
-    }
-
-    fun getProperties(includePrivate as boolean) as PropertyDesc[] native "org.siphonlab.ago.lang.Reflect.getProperties";
-    fun getMethods(includePrivate as boolean) as Class[] native "org.siphonlab.ago.lang.Reflect.getMethods";
-    fun getChildren(includePrivate as boolean) as Class[] native "org.siphonlab.ago.lang.Reflect.getChildren";
-
-    fun getProperty#pub(name as string) as PropertyDesc?{
-        return getProperty(name, false);
-    }
-
-    fun getMethod#pub(name as string) as Class?{
-        return getMethod(name, false)
-    }
-
-    fun getChild#pub(name as string) as Class?{
-        return getChild(name, false)
-    }
-
-    fun getProperty(name as string, includePrivate as boolean) as PropertyDesc? native "org.siphonlab.ago.lang.Reflect.getProperty";
-    fun getMethod(name as string, includePrivate as boolean) as Class? native "org.siphonlab.ago.lang.Reflect.getMethod";
-    fun getChild(name as string, includePrivate as boolean) as Class? native "org.siphonlab.ago.lang.Reflect.getChild";
 }
 
 class Throwable {
@@ -237,6 +246,10 @@ class NoSuchMemberException from RuntimeException{
 }
 
 class NoSuchPropertyException from RuntimeException{
+
+}
+
+class NoSuchMethodException from RuntimeException{
 
 }
 

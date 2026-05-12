@@ -36,7 +36,7 @@ public class LiteralTests {
     public void list_op() throws CompilationError, IOException {
         run("literal/list_op.ago");
 //        Trace.printOutput();
-        assertTrue(Trace.outputted("[1,8,7,4]", "[ArrayList<int>|1,8,7,4,9,8,7,6]", "[1,8,7,4,9,8,7,6]", "[LinkedList<int>|1,8,7,4,9,8,7,6,1,8,7,4,9,8,7,6]", "[0,0,1,8,7,0,0,0,0,0]", "[0,0,1,8,7,1,8,7,4,9]", "[1,8,7,4,9,8,7,6,4,9]"));
+        assertTrue(Trace.outputted("[1,8,7,4]", "[lang.ArrayList<int>|1,8,7,4,9,8,7,6]", "[1,8,7,4,9,8,7,6]", "[lang.LinkedList<int>|1,8,7,4,9,8,7,6,1,8,7,4,9,8,7,6]", "[0,0,1,8,7,0,0,0,0,0]", "[0,0,1,8,7,1,8,7,4,9]", "[1,8,7,4,9,8,7,6,4,9]"));
     }
 
     @Test
@@ -48,15 +48,15 @@ public class LiteralTests {
     @Test
     public void map() throws CompilationError, IOException {
         run("literal/map.ago");
-//        Trace.printOutput();
-        assertTrue(Trace.outputted("HashMap<string,lang.Object>", "Tom", "Jenny", "Jenny", "42", "M", "51888222"));
+        Trace.printOutput();
+        assertTrue(Trace.outputted("lang.HashMap<string,lang.Object>", "Tom", "Jenny", "Jenny", "42", "M", "51888222"));
     }
 
     @Test
     public void list_expando() throws CompilationError, IOException {
         run("literal/list_expando.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("[1,2,3]", "[4,5,6]", "[4,5,6,10,11,12,4,5,6,3,2,5,6,7,1,2,3]", "[ArrayList<int>|1,2,3]", "[ArrayList<int>|1,2,3]", "[ArrayList<int>|3,2,5,1,2,3,4,5,6,2]"));
+        assertTrue(Trace.outputted("[1,2,3]", "[4,5,6]", "[4,5,6,10,11,12,4,5,6,3,2,5,6,7,1,2,3]", "[lang.ArrayList<int>|1,2,3]", "[lang.ArrayList<int>|1,2,3]", "[lang.ArrayList<int>|3,2,5,1,2,3,4,5,6,2]"));
     }
 
     @Test
@@ -71,7 +71,7 @@ public class LiteralTests {
     public void list_expando_generator() throws CompilationError, IOException {
         run("literal/list_expando_generator.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("done", "[ArrayList<int>|1,2,3,0,2,4,6]"));
+        assertTrue(Trace.outputted("done", "[lang.ArrayList<int>|1,2,3,0,2,4,6]"));
     }
 
 

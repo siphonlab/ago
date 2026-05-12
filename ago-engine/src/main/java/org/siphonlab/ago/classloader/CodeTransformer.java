@@ -189,6 +189,8 @@ public class CodeTransformer {
                 case Array.array_create_i_vCv:
                 case Array.array_create_o_vCc:
                 case Array.array_create_o_vCv:
+                case Array.array_create_u_vCc:
+                case Array.array_create_u_vCv:
                 case Array.array_create_b_vCc:
                 case Array.array_create_b_vCv:
                 case Array.array_create_B_vCc:
