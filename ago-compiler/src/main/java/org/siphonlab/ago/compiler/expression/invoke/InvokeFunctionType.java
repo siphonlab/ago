@@ -101,9 +101,6 @@ public class InvokeFunctionType extends ExpressionInFunctionBody {
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        if(localVar.inferType().getTypeCode() == TypeCode.VOID){
-            throw new SyntaxError("'void' variable not allowed", localVar.getSourceLocation());
-        }
         try {
             blockCompiler.enter(this);
 

@@ -111,7 +111,7 @@ public class BoxTypes {
     public boolean isBoxType(AgoClass agoClass) {
         if(agoClass == null || agoClass instanceof MetaClass) return false;
         TypeCode unboxType = getUnboxType(agoClass);
-        return unboxType != null && unboxType != VOID;
+        return unboxType != null && unboxType != NULL;
     }
 
     public boolean isBoxTypeOrWithin(AgoClass agoClass){
@@ -126,7 +126,7 @@ public class BoxTypes {
     public TypeCode getUnboxType(AgoClass agoClass) {
         TypeCode typeCode = cache.get(agoClass);
         if (typeCode != null) {
-            if(typeCode == VOID) return null;
+            if(typeCode == NULL) return null;
             return typeCode;
         }
 
@@ -156,7 +156,7 @@ public class BoxTypes {
                 return t;
             }
         }
-        cache.put(agoClass, VOID);
+        cache.put(agoClass, NULL);
         return null;
     }
 
@@ -171,7 +171,6 @@ public class BoxTypes {
 
         Slots slots = instance.getSlots();
         switch (unboxType.getValue()) {
-            case VOID_VALUE:
             case NULL_VALUE:
                 return null;
             case OBJECT_VALUE:

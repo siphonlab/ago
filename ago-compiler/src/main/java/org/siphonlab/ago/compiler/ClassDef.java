@@ -689,7 +689,7 @@ public class ClassDef extends ClassContainer {
     }
 
 
-    public boolean isVoid(){return this.getTypeCode() == TypeCode.VOID;}
+    public boolean isVoid(){return this.getTypeCode() == TypeCode.NULL;}
     public boolean isNull(){return this.getTypeCode() == TypeCode.NULL;}
     public boolean isBoolean(){return this.getTypeCode() == TypeCode.BOOLEAN;}
     public boolean isClassRef(){return this.getTypeCode() == TypeCode.CLASS_REF;}

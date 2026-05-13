@@ -652,7 +652,7 @@ public class Compiler {
             case AgoLexer.FLOAT -> TypeCode.FLOAT;
             case AgoLexer.STRING -> TypeCode.STRING;
             case AgoLexer.BYTE -> TypeCode.BYTE;
-            case AgoLexer.VOID -> TypeCode.VOID;
+            case AgoLexer.VOID -> TypeCode.NULL;
             case AgoLexer.CLASSREF -> TypeCode.CLASS_REF;
             case AgoLexer.NULL_LITERAL -> TypeCode.NULL;
             default -> throw new RuntimeException("not supported type " + primitiveType.getText());

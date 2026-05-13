@@ -36,7 +36,6 @@ import static org.siphonlab.ago.TypeCode.FLOAT_VALUE;
 import static org.siphonlab.ago.TypeCode.LONG_VALUE;
 import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
 import static org.siphonlab.ago.TypeCode.STRING_VALUE;
-import static org.siphonlab.ago.TypeCode.VOID_VALUE;
 
 public class Root extends Namespace<Package> {
 
@@ -51,7 +50,6 @@ public class Root extends Namespace<Package> {
     private ClassDef EXCEPTION_CLASS;
     private ClassDef RUNTIME_EXCEPTION_CLASS;
 
-    private PrimitiveClassDef VOID;
     private PrimitiveClassDef BOOLEAN;
     private PrimitiveClassDef CHAR;
     private PrimitiveClassDef FLOAT;
@@ -633,7 +631,6 @@ public class Root extends Namespace<Package> {
 
         if(this.PRIMITIVE_CLASS == null) this.PRIMITIVE_CLASS = findByFullname("lang.Primitive");
         if(this.PRIMITIVE_NUMBER_CLASS == null) this.PRIMITIVE_NUMBER_CLASS = findByFullname("lang.PrimitiveNumber");
-        if(this.VOID == null) this.VOID = findByFullname("void");
         if(this.CHAR == null) this.CHAR = findByFullname("char");
         if(this.INT == null) this.INT = findByFullname("int");
         if(this.LONG == null) this.LONG = findByFullname("long");
@@ -672,10 +669,6 @@ public class Root extends Namespace<Package> {
 
     }
 
-    public PrimitiveClassDef VOID() {
-        return VOID;
-    }
-
     public PrimitiveClassDef INT() {
         return INT;
     }
@@ -705,7 +698,6 @@ public class Root extends Namespace<Package> {
             case DOUBLE_VALUE -> DOUBLE;
             case DECIMAL_VALUE -> DECIMAL;
             case CHAR_VALUE -> CHAR;
-            case VOID_VALUE -> VOID;
             case BOOLEAN_VALUE -> BOOLEAN;
             case OBJECT_VALUE, UNION_VALUE -> throw new IllegalArgumentException("this class only handle primary type");
             case STRING_VALUE -> STRING;
@@ -722,10 +714,6 @@ public class Root extends Namespace<Package> {
 
     public LongLiteral createLongLiteral(Long value) {
         return new LongLiteral(this.LONG, value);
-    }
-
-    public VoidLiteral createVoidLiteral() {
-        return new VoidLiteral(this.VOID);
     }
 
     public BooleanLiteral createBooleanLiteral(Boolean value) {

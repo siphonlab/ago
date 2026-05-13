@@ -71,7 +71,7 @@ public class ReentrantProxyFrame<T extends AgoFunction> extends CallFrame<T>{
 
     public void finishVoid() {
         getRunSpace().acceptVoid(null);
-        this.resultType = TypeCode.VOID;
+        this.resultType = TypeCode.NULL;
         caller.reenter(this, state, additionalState);
     }
 

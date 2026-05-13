@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-final class void from Primitive::(0){}
+final class null from Primitive::(2){}
 
 final class string from Primitive::(3){}
 
@@ -36,5 +36,3 @@ final class long from PrimitiveNumber::(11){}
 final class decimal from PrimitiveNumber::(0x0d){}
 
 final class classref from Primitive::(12){}
-
-final class null from Primitive::(2){}

@@ -67,7 +67,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
                 var caseSlot = cases.get(i);
                 casesInts[i] = caseSlot.getIndex();
             }
-            if(typeCode != VOID && typeCode != NULL) {
+            if(typeCode != NULL) {
                 MethodMaker getter = clsCM.addMethod(typeOf(typeCode), "get" + slotFunctionName(typeCode), int.class).public_().override();
                 Label defaultBranch = getter.label();
                 Label[] entrances = new Label[cases.size()];
@@ -84,7 +84,7 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
                 }
             }
 
-            if (typeCode != VOID && typeCode != NULL) {
+            if (typeCode != NULL) {
                 MethodMaker setter = clsCM.addMethod(void.class, "set" + slotFunctionName(typeCode), int.class, typeOf(typeCode)).public_().override();
                 Label defaultBranch = setter.label();
                 Label[] entrances = new Label[cases.size()];
@@ -204,7 +204,6 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
 
     public static Class<?> typeOf(TypeCode typeCode) {
         return switch (typeCode.value) {
-            case VOID_VALUE -> Object.class;
             case BOOLEAN_VALUE -> boolean.class;
             case CHAR_VALUE -> char.class;
             case FLOAT_VALUE -> float.class;
@@ -225,7 +224,6 @@ public class DefaultSlotsCreatorFactory implements SlotsCreatorFactory {
 
     public static String slotFunctionName(TypeCode typeCode) {
         return switch (typeCode.value) {
-            case VOID_VALUE -> "Void";
             case BOOLEAN_VALUE -> "Boolean";
             case CHAR_VALUE -> "Char";
             case FLOAT_VALUE -> "Float";

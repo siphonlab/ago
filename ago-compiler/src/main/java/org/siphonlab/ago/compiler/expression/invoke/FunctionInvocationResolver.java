@@ -159,7 +159,7 @@ public class FunctionInvocationResolver {
                             argPos++;
                         }
                     }
-                    if(eleType == null || eleType.getTypeCode() == TypeCode.VOID){
+                    if(eleType == null || eleType.getTypeCode() == TypeCode.NULL){
                         resolveResult.error = new ResolveError("common type of params array not found", sourceLocation);
                         return resolveResult;
                     }

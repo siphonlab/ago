@@ -181,10 +181,6 @@ public class Invoke extends ExpressionInFunctionBody {
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        if(localVar.inferType().getTypeCode() == TypeCode.VOID){
-            throw new SyntaxError("'void' variable not allowed", localVar.getSourceLocation());
-        }
-
         if(preparedVisitorForNullable != null) {
             preparedVisitorForNullable.outputToLocalVar(localVar, blockCompiler);       //TODO it will spend a register for temp result, not the best performance way
             return;
@@ -327,7 +323,7 @@ public class Invoke extends ExpressionInFunctionBody {
 
         if(this.inferType().isVoid()){
             this.termVisit(blockCompiler);
-            return getRoot().createVoidLiteral().setSourceLocation(this.getSourceLocation());
+            return getRoot().nullLiteral().setSourceLocation(this.getSourceLocation());
         } else {
             return super.visit(blockCompiler);
         }

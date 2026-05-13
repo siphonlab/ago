@@ -18,7 +18,6 @@ package org.siphonlab.ago;
 import java.math.BigDecimal;
 
 public class TypeCode {
-    public static final int VOID_VALUE = 0;      // -1 in java
     public static final int OBJECT_VALUE = 1;  // -1 in java
     public static final int NULL_VALUE = 2;
     public static final int STRING_VALUE = 3;
@@ -37,7 +36,6 @@ public class TypeCode {
     public static final int MAX_VALUE = 0x0f;   // 0 - 0x0f, from 0x10 it's generic type variable index (n-0x10)
     public static final int GENERIC_TYPE_START = 0x10;
 
-    public static final TypeCode VOID = new TypeCode(VOID_VALUE, "void");
     public static final TypeCode BOOLEAN = new TypeCode(BOOLEAN_VALUE, "boolean");
     public static final TypeCode CHAR = new TypeCode(CHAR_VALUE, "char");
     public static final TypeCode FLOAT = new TypeCode(FLOAT_VALUE, "float");
@@ -63,7 +61,7 @@ public class TypeCode {
 
     public static TypeCode of(int value) {
         return switch (value) {
-            case 0 -> VOID;
+            case 2 -> NULL;
             case 4 -> BOOLEAN;
             case 5 -> CHAR;
             case 6 -> FLOAT;
@@ -73,7 +71,6 @@ public class TypeCode {
             case 10 -> INT;
             case 11 -> LONG;
             case 1 -> OBJECT;
-            case 2 -> NULL;
             case 3 -> STRING;
             case 12 -> CLASS_REF;
             case 13 -> DECIMAL;
@@ -84,7 +81,6 @@ public class TypeCode {
 
     public static TypeCode fromString(String value) {
         return switch (value) {
-            case "void" -> VOID;
             case "boolean" -> BOOLEAN;
             case "char" -> CHAR;
             case "float" -> FLOAT;
@@ -104,7 +100,7 @@ public class TypeCode {
     }
 
     public static TypeCode[] values() {
-        return new TypeCode[]{VOID, BOOLEAN, CHAR, FLOAT, DOUBLE, BYTE, SHORT, INT, LONG, OBJECT, NULL, STRING, CLASS_REF };
+        return new TypeCode[]{BOOLEAN, CHAR, FLOAT, DOUBLE, BYTE, SHORT, INT, LONG, OBJECT, NULL, STRING, CLASS_REF };
     }
 
     public int getValue() {
@@ -113,18 +109,16 @@ public class TypeCode {
 
 
     public boolean isPrimitiveExcludeNull(){
-        return this != OBJECT && this != NULL && this != UNION && this != VOID;
+        return this != OBJECT && this != NULL && this != UNION;
     }
 
     public static boolean isPrimitiveExcludeNull(int typeCode){
-        return typeCode != OBJECT_VALUE && typeCode != NULL_VALUE && typeCode != UNION_VALUE && typeCode != VOID_VALUE;
+        return typeCode != OBJECT_VALUE && typeCode != NULL_VALUE && typeCode != UNION_VALUE;
     }
 
 
     public String toShortString(){
-        if (this == VOID) {
-            return "V";
-        } else if (this == BOOLEAN) {
+        if (this == BOOLEAN) {
             return "B";
         } else if (this == CHAR) {
             return "c";

@@ -54,7 +54,7 @@ public class ResultSlots {
     }
 
     public void setVoidValue() {    // should be null
-        dataType = TypeCode.VOID_VALUE;
+        dataType = NULL_VALUE;
     }
 
     public boolean getBooleanValue() {
@@ -202,7 +202,7 @@ public class ResultSlots {
 
     private Instance<? extends AgoClass> castAnyToObject(Boxer boxer, int type) {
         return switch (type) {
-            case VOID_VALUE, NULL_VALUE -> null;
+            case NULL_VALUE -> null;
             case OBJECT_VALUE -> getObjectValue();
             case INT_VALUE -> boxer.boxInt(getIntValue());
             case BYTE_VALUE -> boxer.boxByte(getByteValue());
@@ -222,7 +222,6 @@ public class ResultSlots {
 
     public Object takeResultAsUnion(){
         switch (this.getDataType()) {
-            case VOID_VALUE:
             case NULL_VALUE:
                 return null;
             case OBJECT_VALUE:
@@ -264,7 +263,6 @@ public class ResultSlots {
 
     public Object getResultAsJavaObject() {
         switch (this.getDataType()) {
-            case VOID_VALUE:
             case NULL_VALUE:
                 return null;
             case OBJECT_VALUE:
@@ -300,7 +298,6 @@ public class ResultSlots {
 
     public Object getResultAsJavaObject(BoxTypes boxTypes, ClassManager classManager) {
         switch (this.getDataType()) {
-            case VOID_VALUE:
             case NULL_VALUE:
                 return null;
             case OBJECT_VALUE: {

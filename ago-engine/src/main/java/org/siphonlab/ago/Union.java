@@ -362,7 +362,7 @@ public interface Union {
                 return slots.getObject(slotIndex);
             case UNION_VALUE:
                 return slots.getUnion(slotIndex);
-            case NULL_VALUE, VOID_VALUE:
+            case NULL_VALUE:
                 return null;
             default:
                 return null;

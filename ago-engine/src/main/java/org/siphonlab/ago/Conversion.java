@@ -98,7 +98,7 @@ public class Conversion {
         if(isPrimitiveExcludeNull(targetTypeCode)){
             if(isPrimitiveExcludeNull(srcTypeOfUnionValue)){
                 castPrimitiveToPrimitive(slots, targetIndex, targetTypeCode, unionValue, agoFrame);
-            } else if(srcTypeOfUnionValue == NULL_VALUE || srcTypeOfUnionValue == VOID_VALUE){
+            } else if(srcTypeOfUnionValue == NULL_VALUE){
                 agoFrame.raiseException(self, "lang.ClassCastException", "can't cast null to '%s'".formatted(of(targetTypeCode)));
                 return false;
             } else {
@@ -110,8 +110,8 @@ public class Conversion {
                     return false;
                 }
             }
-        } else if(targetTypeCode == NULL_VALUE || targetTypeCode == VOID_VALUE){
-            if(srcTypeOfUnionValue == NULL_VALUE || srcTypeOfUnionValue == VOID_VALUE){
+        } else if(targetTypeCode == NULL_VALUE){
+            if(srcTypeOfUnionValue == NULL_VALUE){
                 // skip
             } else {
                 agoFrame.raiseException(self, "lang.ClassCastException", "'%s' can't cast to '%s'".formatted(srcClass.getFullname(), targetClass.getFullname()));
@@ -122,7 +122,7 @@ public class Conversion {
             if(isPrimitiveExcludeNull(srcTypeOfUnionValue)){
                 var instance = boxer.unionToObject(unionValue);
                 castObject(agoFrame, self, slots, targetIndex, instance, srcTypeOfUnionValue, targetClass);
-            } else if(srcTypeOfUnionValue == NULL_VALUE || srcTypeOfUnionValue == VOID_VALUE){
+            } else if(srcTypeOfUnionValue == NULL_VALUE){
                 agoFrame.raiseException(self, "lang.ClassCastException", "can't cast null to '%s'".formatted(of(targetTypeCode)));
                 return false;
             } else {
@@ -186,7 +186,7 @@ public class Conversion {
                     return false;
                 }
                 slots.setUnion(targetIndex, value);
-            } else if(srcTypeCode == NULL_VALUE || srcTypeCode == VOID_VALUE){
+            } else if(srcTypeCode == NULL_VALUE){
                 slots.setUnion(targetIndex, null);
             } else if(srcTypeCode == UNION_VALUE){
                 var srcBaseClass = ((NullableTypeInfo)srcClass.getConcreteTypeInfo()).getBaseClass();
@@ -236,8 +236,8 @@ public class Conversion {
                 }
                 slots.setUnion(targetIndex, unboxed);
             }
-        } else if(unionBaseTypeCode == NULL_VALUE || unionBaseTypeCode == VOID_VALUE){
-            if(srcTypeCode == NULL_VALUE || srcTypeCode == VOID_VALUE){
+        } else if(unionBaseTypeCode == NULL_VALUE){
+            if(srcTypeCode == NULL_VALUE){
                 slots.setUnion(targetIndex, null);
                 return true;
             } else if(srcTypeCode == UNION_VALUE){
@@ -251,7 +251,7 @@ public class Conversion {
             return false;
         } else {
             assert unionBaseTypeCode == OBJECT_VALUE;
-            if(srcTypeCode == NULL_VALUE || srcTypeCode == VOID_VALUE) {
+            if(srcTypeCode == NULL_VALUE) {
                 slots.setUnion(targetIndex, null);
                 return true;
             } else if(TypeCode.isPrimitiveExcludeNull(srcTypeCode)) {
@@ -272,7 +272,7 @@ public class Conversion {
                 }
                 var srcBaseClass = ((NullableTypeInfo)srcClass.getConcreteTypeInfo()).getBaseClass();
                 var typeCodeOfSrcBase = srcBaseClass.getTypeCode().value;
-                if(typeCodeOfSrcBase == NULL_VALUE || typeCodeOfSrcBase == VOID_VALUE) {
+                if(typeCodeOfSrcBase == NULL_VALUE) {
                     slots.setUnion(targetIndex, null);
                     return true;
                 } else if(TypeCode.isPrimitiveExcludeNull(typeCodeOfSrcBase)) {

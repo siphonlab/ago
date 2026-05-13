@@ -217,7 +217,7 @@ public class Unit {
                 case AgoLexer.FLOAT -> new PrimitiveClassDef(root, TypeCode.FLOAT);
                 case AgoLexer.STRING -> new PrimitiveClassDef(root, TypeCode.STRING);
                 case AgoLexer.BYTE -> new PrimitiveClassDef(root, TypeCode.BYTE);
-                case AgoLexer.VOID -> new PrimitiveClassDef(root, TypeCode.VOID);
+                case AgoLexer.VOID -> new PrimitiveClassDef(root, TypeCode.NULL);
                 case AgoLexer.CLASSREF -> new PrimitiveClassDef(root, TypeCode.CLASS_REF);
                 case AgoLexer.NULL_LITERAL -> new NullClassDef(root);
                 default -> throw new RuntimeException("not supported type " + primitiveType.getText());

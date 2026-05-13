@@ -139,9 +139,9 @@ public class FunctionDef extends ClassDef {
                 ClassDef r = unit.parseType(this, typeOfFunction);
                 this.setResultType(r);
             } else {
-                this.setResultType(root.VOID());
+                this.setResultType(root.NULL());
             }
-            if (this.resultType.getTypeCode() == TypeCode.VOID && this.isGenerator()) {
+            if (this.resultType.getTypeCode() == TypeCode.NULL && this.isGenerator()) {
                 throw unit.typeError(methodDecl, "generator function cannot be void");
             }
             resolveSuperClass();
@@ -328,7 +328,7 @@ public class FunctionDef extends ClassDef {
         }
 
         if(this.isNative()){
-            if(this.resultType.getTypeCode() != TypeCode.VOID) {
+            if(!this.resultType.isVoid()) {
                 var slot = this.getSlotsAllocator().allocateRegisterSlot(this.resultType);
                 this.setNativeResultSlot(slot.getIndex());
             }
@@ -554,7 +554,7 @@ public class FunctionDef extends ClassDef {
         } else if (body instanceof AgoParser.MBEmptyContext || body == null) {
             if (this.isAbstract()) {
                 //
-            } else if(this.resultType == null || this.resultType.getTypeCode() == TypeCode.VOID) {
+            } else if(this.resultType == null || this.resultType.isVoid()) {
                 new BlockCompiler(this.unit, this, new ArrayList<>()).compile();
             } else {
                 throw new UnsupportedOperationException("TODO");        //TODO

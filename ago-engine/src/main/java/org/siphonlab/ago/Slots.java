@@ -183,7 +183,7 @@ public interface Slots {
 
     default Object getVoid(int slot){return null;}
 
-    default void setVoid(int slot, Object value){return;}
+    default void setVoid(int slot, Object value){}
 
 }
 

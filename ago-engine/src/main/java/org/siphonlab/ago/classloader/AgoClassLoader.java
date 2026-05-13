@@ -629,7 +629,6 @@ public class AgoClassLoader implements ClassManager{
     public Object readLiteral(IoBuffer buffer, String[] strings){
         var typeCode = of(buffer.getInt());
         return switch (typeCode.value){
-                    case VOID_VALUE -> null;
                     case BOOLEAN_VALUE -> (buffer.get() == 1);
                     case CHAR_VALUE -> buffer.getChar();
                     case FLOAT_VALUE -> buffer.getFloat();

@@ -96,7 +96,7 @@ public class CodeBuffer {
             additionSize = 1;
         } else if(typeCode == DECIMAL) {
             additionSize = 0;       // blob index, an integer
-        } else if (typeCode == TypeCode.VOID || typeCode == TypeCode.NULL) {
+        } else if (typeCode == TypeCode.NULL) {
             additionSize = -1;
         } else {
             additionSize = 0;
@@ -152,8 +152,6 @@ public class CodeBuffer {
     private void literal(Literal<?> literal){
         TypeCode typeCode = literal.inferType().getTypeCode();
         switch (typeCode.value){
-            case VOID_VALUE:
-                break;
             case NULL_VALUE:
                 throw new RuntimeException("void or null should not enter here");
             case CHAR_VALUE:

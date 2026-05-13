@@ -126,7 +126,7 @@ public class BlockCompiler {
             if (LOGGER.isDebugEnabled()) LOGGER.debug("\t" + stmt);
         }
         // default return statement for `void`
-        if(functionDef.getResultType() == null || functionDef.getResultType().getTypeCode() == TypeCode.VOID || functionDef.isGenerator()){
+        if(functionDef.getResultType() == null || functionDef.getResultType().getTypeCode() == TypeCode.NULL || functionDef.isGenerator()){
             if(compiledStatements.isEmpty() || !(compiledStatements.getLast() instanceof Return)){
                 compiledStatements.add(functionDef.return_());
             }

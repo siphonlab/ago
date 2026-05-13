@@ -357,7 +357,7 @@ public class CastStrategy {
                     case Object, Null ->
                         throw new TypeMismatchError("can't convert to '%s'".formatted(toType.getFullname()), this.sourceLocation);
                     case Union -> {
-                        if(fromType.getTypeCode() == NULL || fromType.getTypeCode() == VOID){
+                        if(fromType.getTypeCode() == NULL){
                             yield new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.ToUnion);
                         } else {
                             yield toNullable(castTo(expression, ((NullableClassDef) toType).getNullableBaseClass()), (NullableClassDef) toType);
@@ -677,7 +677,7 @@ public class CastStrategy {
                     throw new TypeMismatchError("'%s' can't cast to '%s'".formatted(fromType.getFullname(), toType.getFullname()), expression.getSourceLocation());
                 }
             }
-            if (toTypeCode == CLASS_REF || toTypeCode == VOID || toTypeCode == NULL) {      // no primitive type can cast to classref
+            if (toTypeCode == CLASS_REF || toTypeCode == NULL) {      // no primitive type can cast to classref
                 throw new TypeMismatchError("'%s' can't cast to '%s'".formatted(fromType.getFullname(), toType.getFullname()), expression.getSourceLocation());
             }
             if(!toTypeCode.isHigherThan(fromType.getTypeCode())){
