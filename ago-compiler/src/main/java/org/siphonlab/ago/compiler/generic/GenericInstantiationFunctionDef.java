@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.generic;
 
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
@@ -63,12 +64,6 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
 
     public ClassRefLiteral[] getTypeArguments() {
         return this.instantiationArguments.takeFor(this.templateClass);
-    }
-
-    @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
-//        return (ClassDef) this.findAssignableGenericInstantiationClass(anotherClass, visited);
-        return super.asThatOrSuperOfThat(anotherClass, visited);
     }
 
     @Override

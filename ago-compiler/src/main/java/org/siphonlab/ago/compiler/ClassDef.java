@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler;
 
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.expression.Equals;
@@ -922,24 +923,13 @@ public class ClassDef extends ClassContainer {
     }
 
     // to tell the distance from function's owner to function's real owner
-    // it not need support PermitClass, Parameterized class and Generic Variance
     public int distanceToSuperClass(ClassDef superClass) {
         if(this == superClass) return 0;
 
-        int distance = 0;
-        for(var c = this; c != null; c = c.superClass, distance++){
-            if(c != this){
-                if(c == superClass) return distance;
-            }
-            if(superClass.isInterfaceOrTrait()) {
-                for (ClassDef implementedInterface : c.implementedInterfaces) {
-                    var d = implementedInterface.distanceToSuperClass(superClass);
-                    if (d != -1) return distance + d + 1;
-                }
-            }
-            if(c == c.superClass) return distance;
-        }
-        return -1;
+        MutableInt depth = new MutableInt();
+        var r = superClass.asThatOrSuperOfThat(this, null, depth);
+        if(r == null) return -1;
+        return depth.get().intValue();
     }
 
     /**
@@ -954,14 +944,14 @@ public class ClassDef extends ClassContainer {
     }
 
     public ClassDef asThatOrSuperOfThat(ClassDef anotherClass){
-        return asThatOrSuperOfThat(anotherClass, null);
+        return asThatOrSuperOfThat(anotherClass, null, null);
     }
 
     public boolean isThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
-        return asThatOrSuperOfThat(anotherClass, visited) != null;
+        return asThatOrSuperOfThat(anotherClass, visited, null) != null;
     }
 
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited){
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth){
         if(this == anotherClass) {
             return this;
         }
@@ -972,8 +962,9 @@ public class ClassDef extends ClassContainer {
             }
             visited.add(anotherClass);
         }
+        if(depth != null) depth.increment();
 
-        if(this == getRoot().getAnyClass()) return this;
+        if(this == getRoot().getAnyClass() && depth == null) return this;
 
         if((anotherClass instanceof GenericConcreteType || anotherClass.isGenericTemplate())
                 && (this instanceof GenericConcreteType || this.isGenericTemplate())){        // Template is some kind Generic concrete type too
@@ -994,29 +985,31 @@ public class ClassDef extends ClassContainer {
 //        }
         if(anotherClass instanceof ParameterizedClassDef p){
             // if this is ParameterizedClassDef too, see ParameterizedClassDef.asAssignableFrom
-            var r = this.asThatOrSuperOfThat(p.baseClass, visited);
+            var r = this.asThatOrSuperOfThat(p.baseClass, visited, depth);
             if(r != null){
                 return r;
             }
         }
 
         if(anotherClass.superClass != null && anotherClass.superClass != anotherClass){    // solve derived class in recursive
-            var sp = this.asThatOrSuperOfThat(anotherClass.superClass, visited);
+            var sp = this.asThatOrSuperOfThat(anotherClass.superClass, visited, depth);
             if(sp != null) return sp;
         }
         if(anotherClass.isInterfaceOrTrait()){
             var permitClass = anotherClass.getPermitClass();
-            var t = this.asThatOrSuperOfThat(permitClass, visited == null ? new LinkedHashSet<>() : visited);
+            var t = this.asThatOrSuperOfThat(permitClass, visited == null ? new LinkedHashSet<>() : visited, depth);
             if(t != null) return t;
         }
         if(this.isInterfaceOrTrait()) {
             for (ClassDef implementedInterface : anotherClass.implementedInterfaces) {
-                ClassDef i = this.asThatOrSuperOfThat(implementedInterface, visited == null ? new LinkedHashSet<>() : visited);
+                ClassDef i = this.asThatOrSuperOfThat(implementedInterface, visited == null ? new LinkedHashSet<>() : visited, depth);
                 if(i != null){
                     return i;
                 }
             }
         }
+
+        if(depth != null) depth.decrement();
         return null;
     }
 

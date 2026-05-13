@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
@@ -46,7 +47,10 @@ public class AnyClassDef extends ClassDef{
     }
 
     @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth) {
+        if(depth != null){      // to cal depth, don't report match immediately
+            return super.asThatOrSuperOfThat(anotherClass, visited, depth);
+        }
         if (visited != null) {
             if (visited.contains(anotherClass)) {
                 return null;

@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler;
 
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
@@ -257,7 +258,9 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
             }
         }
 
-        if(baseClass.getCompilingStage().getValue() >= CompilingStage.InheritsFields.getValue())
+        if(baseClass.getCompilingStage() == CompilingStage.ResolveHierarchicalClasses){
+            this.compilingStage = CompilingStage.ResolveHierarchicalClasses;
+        } else if(baseClass.getCompilingStage().getValue() >= CompilingStage.InheritsFields.getValue())
             this.compilingStage = CompilingStage.ParseFields;
         else
             this.compilingStage = CompilingStage.InheritsFields;
@@ -416,7 +419,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth) {
         if(anotherClass == this) return this;
         if(anotherClass instanceof ParameterizedClassDef anotherParameterizedClassDef){
             if(anotherParameterizedClassDef.baseClass == this.baseClass){
@@ -424,6 +427,6 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
             }
         }
         // my base class is super of another class means nothing, i.e. VarChar::(200) and NVarChar::(200)
-        return super.asThatOrSuperOfThat(anotherClass, visited);
+        return super.asThatOrSuperOfThat(anotherClass, visited, depth);
     }
 }

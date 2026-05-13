@@ -16,12 +16,12 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
-import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.Arrays;
 import java.util.List;
@@ -99,7 +99,7 @@ public class UnionClassDef extends ParameterizedClassDef {
     }
 
     @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth) {
         if(this ==  anotherClass) return this;
 
         if (visited != null) {
@@ -108,6 +108,7 @@ public class UnionClassDef extends ParameterizedClassDef {
             }
             visited.add(anotherClass);
         }
+        if(depth != null) depth.increment();
 
         if(anotherClass instanceof UnionClassDef another){
             for(ClassDef b : another.classes) {
@@ -128,6 +129,7 @@ public class UnionClassDef extends ParameterizedClassDef {
             }
         }
 
+        if(depth != null) depth.decrement();
         return null;
     }
 

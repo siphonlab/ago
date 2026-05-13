@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.generic;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.ClassContainer;
 import org.siphonlab.ago.compiler.ClassDef;
@@ -90,8 +91,4 @@ public class SharedGenericTypeParameterClassDef extends ClassIntervalClassDef{
         return false;
     }
 
-    @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
-        return super.asThatOrSuperOfThat(anotherClass, visited);
-    }
 }

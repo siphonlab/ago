@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler;
 
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationClassDef;
@@ -127,12 +128,14 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth) {
+        if(depth != null) depth.increment();
         if(anotherClass instanceof ArrayClassDef another){
             if(another.getElementType() == this.elementType){
                 return anotherClass;
             }
         }
+        if(depth != null) depth.decrement();
         return null;
     }
 

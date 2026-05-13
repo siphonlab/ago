@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.generic;
 
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
@@ -67,7 +68,7 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
 
     // only accept another ClassInterval as value
     @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth) {
         if(this == anotherClass) return anotherClass;
 
         ClassDef lBound = this.getLBoundClass();
@@ -78,10 +79,10 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
         if(anotherClass instanceof ClassBound another){
             var l2 = another.getLBoundClass();
             var u2 = another.getUBoundClass();
-            return  (uBound == any || u2.isThatOrSuperOfThat(uBound, visited)) ? (lBound == any ? anotherClass : lBound.asThatOrSuperOfThat(l2,visited)) : null;
+            return  (uBound == any || u2.isThatOrSuperOfThat(uBound, visited)) ? (lBound == any ? anotherClass : lBound.asThatOrSuperOfThat(l2,visited, depth)) : null;
         }
 
-        return (uBound == any || anotherClass.isThatOrSuperOfThat(uBound, visited)) ? (lBound == any ? anotherClass : lBound.asThatOrSuperOfThat(anotherClass, visited)) : null;
+        return (uBound == any || anotherClass.isThatOrSuperOfThat(uBound, visited)) ? (lBound == any ? anotherClass : lBound.asThatOrSuperOfThat(anotherClass, visited, depth)) : null;
 
     }
 
