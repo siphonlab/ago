@@ -28,8 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 import static org.siphonlab.ago.AgoClass.*;
-import static org.siphonlab.ago.TypeCode.NULL;
-import static org.siphonlab.ago.TypeCode.OBJECT;
+import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.classloader.LoadingStage.*;
 
 public class ClassHeader {
@@ -188,6 +187,7 @@ public class ClassHeader {
     }
 
     public TypeCode getTypeCode(){
+        if(this.type == TYPE_ANY_CLASS) return UNION;
         return OBJECT;
     }
 
@@ -683,7 +683,7 @@ public class ClassHeader {
     }
 
     public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments){
-        if(this.type == TYPE_PRIMITIVE_CLASS) return false;
+        if(this.type == TYPE_PRIMITIVE_CLASS || this.type == TYPE_ANY_CLASS) return false;
 
         for(var p = this; p != null; p = p.parent){
             if(p.isGenericTemplate()){
@@ -957,6 +957,9 @@ public class ClassHeader {
                 } else {
                     agoClass = new AgoFunction(classLoader, metaClass, this.fullname, this.name);
                 }
+                break;
+            case TYPE_ANY_CLASS:
+                agoClass = new AgoAnyClass(classLoader, metaClass, this.fullname, this.name);
                 break;
             default:
                 throw new UnsupportedOperationException();

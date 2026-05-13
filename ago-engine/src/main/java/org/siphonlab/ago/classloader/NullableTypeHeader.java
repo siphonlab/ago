@@ -108,7 +108,7 @@ public class NullableTypeHeader extends UnionTypeHeader {
         if(nullHeader.getLoadingStage() == BuildClass){
             nullHeader.buildClass();
         }
-        var anyHeader = classLoader.getClassHeader("lang.Any");
+        var anyHeader = classLoader.getClassHeader("lang.any");
         if(anyHeader.getLoadingStage() == BuildClass){
             anyHeader.buildClass();
         }

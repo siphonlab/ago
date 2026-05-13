@@ -224,6 +224,8 @@ public class Unit {
             };
             type.setClassDeclaration(classDeclaration);
             classDef = type;
+        } else if(classDeclaration.className.ANY() != null){
+            classDef = new AnyClassDef(root, classDeclaration.className.getText(), classDeclaration);
         } else {
             throw new UnsupportedOperationException("unsupported type " + classDeclaration.className.getText());
         }
@@ -232,7 +234,7 @@ public class Unit {
         classDef.setUnit(this);
         classDef.setSourceLocation(this.sourceLocation(classDeclaration));
         classDef.setModifiers(Compiler.classModifiers(this, classDeclaration.classModifier()));
-        if(!(classDef instanceof PrimitiveClassDef || classDef instanceof NullClassDef)) {
+        if(!(classDef instanceof PrimitiveClassDef || classDef instanceof AnyClassDef)) {
             classDef.nextCompilingStage(CompilingStage.ParseGenericParams);
         }
         addChildClasses(classDef, classDeclaration.classBody());
@@ -289,8 +291,8 @@ public class Unit {
             classDef.setSuperClass(superClass);
         } else {
             if (!classDef.isInterfaceOrTrait() && !classDef.isFunction()) {     // the superclass of Function is lang.Function
-                if(classDef == root.getAnyClass()){
-                    classDef.setSuperClass(root.getAnyClass());
+                if(classDef instanceof AnyClassDef){
+                    classDef.setSuperClass(classDef);
                 } else {
                     classDef.setSuperClass(root.getObjectClass());
                 }
@@ -382,7 +384,7 @@ public class Unit {
         }
         for(var sp = classDef.getSuperClass(); sp != null; sp = sp.getSuperClass()){
             if(sp.isThatOrDerivedFromThat(classDef)){
-                if(!classDef.getFullname().equals("lang.Any"))
+                if(!classDef.getFullname().equals("lang.any"))
                     throw resolveError(classDef.getBaseTypeDecl(), "recursive superclass '%s'".formatted(sp.getFullname()));
             }
             if(sp == sp.getSuperClass()) break;
@@ -390,7 +392,7 @@ public class Unit {
         ClassDef superClass = classDef.getSuperClass();
         if(superClass != null && classDef.getBaseTypeDecl() != null) {
             if(classDef.getClassType() == AgoClass.TYPE_CLASS || classDef.getClassType() == AgoClass.TYPE_TRAIT || classDef.getClassType() == AgoClass.TYPE_PRIMITIVE_CLASS) {
-                if (superClass.getClassType() != classDef.getClassType()) {
+                if (superClass.getClassType() != classDef.getClassType() && superClass.getClassType() != AgoClass.TYPE_ANY_CLASS) {
                     throw resolveError(classDef.getBaseTypeDecl(), "'%s' is not a %s".formatted(superClass.getFullname(), classDef.isClass() ? "class" : "trait"));
                 }
                 if (superClass.isFinal()) {

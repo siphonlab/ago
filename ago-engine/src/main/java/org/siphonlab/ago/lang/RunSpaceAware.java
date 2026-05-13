@@ -83,8 +83,8 @@ public class RunSpaceAware {
         frame.beginAsync();
         runSpace.addCompleteListener(()-> {
             ResultSlots resultSlots = runSpace.getResultSlots();
-            if(frame.getAgoClass().getResultClass() == runSpace.getAgoEngine().getClass("lang.Any")){
-                frame.finishObject(resultSlots.castAnyToObject(runSpace.getAgoEngine().getBoxer()));
+            if(frame.getAgoClass().getResultClass() instanceof AgoAnyClass){
+                frame.finishUnion(resultSlots.takeResultAsUnion());
             }
             switch (resultSlots.getDataType()){
                 case VOID_VALUE:    frame.finishVoidAsync(); break;

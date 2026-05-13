@@ -262,7 +262,7 @@ public class RunSpace implements Runnable{
             throw new RuntimeException(e);
         }
         throwUnhandledException();
-        return space.getResultSlots().getResultAsObject();
+        return space.getResultSlots().getResultAsJavaObject();
     }
 
     private void throwUnhandledException() {

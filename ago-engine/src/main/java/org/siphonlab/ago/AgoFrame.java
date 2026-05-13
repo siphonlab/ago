@@ -1505,7 +1505,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Accept.accept_i_v :  slots.setInt(code[pc++], runSpace.getResultSlots().getIntValue()); break;
             case Accept.accept_l_v :  slots.setLong(code[pc++], runSpace.getResultSlots().getLongValue()); break;
             case Accept.accept_C_v :  slots.setClassRef(code[pc++], runSpace.getResultSlots().getClassRefValue().getClassId()); break;
-            case Accept.accept_any_v:  slots.setObject(code[pc++], runSpace.getResultSlots().castAnyToObject(engine.getBoxer())); break;
+            case Accept.accept_any_v:  slots.setUnion(code[pc++], runSpace.getResultSlots().takeResultAsUnion()); break;
         }
         return pc;
     }
@@ -1656,7 +1656,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 break;
             }
             case Dynamic.dyn_set_member_uSv:{
-                var v = new DynamicOp(this).writeMember(self, (Instance<?>)slots.getUnion(code[pc++]), slots.getString(code[pc++]), (Instance<?>) slots.getUnion(code[pc++]));
+                var v = new DynamicOp(this).writeMember(self, (Instance<?>)slots.getUnion(code[pc++]), slots.getString(code[pc++]), slots.getUnion(code[pc++]));
                 switch (v) {
                     case DynamicOp.RESULT_OK: break;
                     case DynamicOp.WRITE_RESULT_WITH_SETTER:
@@ -2114,7 +2114,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 } else {
                     agoFrame = (AgoFrame) caller;
                 }
-                agoFrame.getSlots().setUnion(additionalState, runSpace.getResultSlots().castAnyToObject(engine.getBoxer()));
+                agoFrame.getSlots().setUnion(additionalState, runSpace.getResultSlots().takeResultAsUnion());
                 agoFrame.getRunSpace().setCurrCallFrame(caller);
                 break;
             }

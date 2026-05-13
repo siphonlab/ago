@@ -79,4 +79,9 @@ public class SlotDef {
     public void setLocked(boolean locked) {
         this.locked = locked;
     }
+
+    @Override
+    public String toString() {
+        return "(Slot %s %s %s)".formatted(name, index, classDef.getFullnameWithoutPackage());
+    }
 }

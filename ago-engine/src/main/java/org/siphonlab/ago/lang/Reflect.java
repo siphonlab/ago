@@ -178,7 +178,7 @@ public class Reflect {
 
     public static void Property_getValue(NativeFrame frame, Instance<?> object, String propName){
         if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_GETTER){
-            var inst = frame.getRunSpace().getResultSlots().castAnyToObject(frame.getAgoEngine().getBoxer());
+            var inst = frame.getRunSpace().getResultSlots().takeResultAsUnion();
             frame.finishUnion(inst);
             return;
         }
@@ -264,7 +264,7 @@ public class Reflect {
     // method is a ClassRef object
     public static void Method_invoke(NativeFrame frame, Instance<?> object, Instance<?> method, Instance<?> arguments){
         if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_FUNCTION){
-            var inst = frame.getRunSpace().getResultSlots().castAnyToObject(frame.getAgoEngine().getBoxer());
+            var inst = frame.getRunSpace().getResultSlots().takeResultAsUnion();
             frame.finishUnion(inst);
             return;
         }

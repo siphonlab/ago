@@ -15,11 +15,12 @@
  */
 package lang;
 
-class Any{      // root of all Primitive and Object
+// root of all Primitive and Object, the type code is 0e, UNION
+class any{
 
 }
 
-class Primitive from Any{
+class Primitive from any{
     metaclass{
         final typeCode as int
         fun new(typeCode as int){
@@ -31,7 +32,7 @@ class PrimitiveNumber from Primitive{
 
 }
 
-class Object from Any{
+class Object from any{
 
     fun new() {}
 
@@ -165,7 +166,7 @@ class GenericTypeCodeAvatar{
 }
 
 // type code is 0e
-class Union from Any{
+class Union from any{
     metaclass{
         public final classes as classref[];
         fun new#2(class1 as classref, class2 as classref){
@@ -429,5 +430,3 @@ class Trace{
         }
     }
 }
-
-interface Task {}

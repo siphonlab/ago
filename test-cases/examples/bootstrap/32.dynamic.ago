@@ -56,7 +56,7 @@ fun main(){
 
     staff['name'] = 'John'
     staff['age'] = 20
-    Trace.print(staff['name'])
-    Trace.print(staff['age'])
+    Trace.print(staff['name'] | string)
+    Trace.print(staff['age'] | int)
     staff['work']('coding', 60)
 }

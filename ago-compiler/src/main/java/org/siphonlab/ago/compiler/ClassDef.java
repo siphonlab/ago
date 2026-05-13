@@ -1546,7 +1546,7 @@ public class ClassDef extends ClassContainer {
     }
 
     public boolean isClass() {
-        return this.classType == AgoClass.TYPE_CLASS || this.classType == TYPE_METACLASS || this.classType == TYPE_PRIMITIVE_CLASS;
+        return this.classType == AgoClass.TYPE_CLASS || this.classType == TYPE_METACLASS || this.classType == TYPE_PRIMITIVE_CLASS || this.classType == TYPE_ANY_CLASS;
     }
 
     public boolean isMetaClass(){

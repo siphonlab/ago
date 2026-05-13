@@ -71,7 +71,7 @@ public class LangClasses {
     public LangClasses(ClassManager classManager) {
         this.objectClass = classManager.getClass("lang.Object");
         this.classClass = classManager.getClass("lang.Class");
-        this.anyClass = classManager.getClass("lang.Any");
+        this.anyClass = classManager.getClass("lang.any");
         this.classRefClass = classManager.getClass("lang.ClassRef");
         this.scopedClassRefClass = classManager.getClass("lang.ScopedClassRef");
         this.classIntervalClass = classManager.getClass("lang.ClassInterval");

@@ -261,7 +261,7 @@ public class Root extends Namespace<Package> {
 
     public synchronized ClassDef getAnyClass(){
         if(ANY_CLASS != null) return ANY_CLASS;
-        return ANY_CLASS = findByFullname("lang.Any");
+        return ANY_CLASS = findByFullname("lang.any");
     }
 
     public synchronized ClassDef getUnionClass(){
@@ -628,7 +628,7 @@ public class Root extends Namespace<Package> {
     }
 
     public void resolveLangClasses() {
-        if(this.ANY_CLASS == null) this.ANY_CLASS = findByFullname("lang.Any");
+        if(this.ANY_CLASS == null) this.ANY_CLASS = findByFullname("lang.any");
         if(this.OBJECT_CLASS == null) this.OBJECT_CLASS = findByFullname("lang.Object");
 
         if(this.PRIMITIVE_CLASS == null) this.PRIMITIVE_CLASS = findByFullname("lang.Primitive");

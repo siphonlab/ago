@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago;
 
+import org.siphonlab.ago.classloader.ClassRefValue;
+
 import java.math.BigDecimal;
 
 import static org.siphonlab.ago.TypeCode.*;
@@ -218,7 +220,49 @@ public class ResultSlots {
         };
     }
 
-    public Object getResultAsObject() {
+    public Object takeResultAsUnion(){
+        switch (this.getDataType()) {
+            case VOID_VALUE:
+            case NULL_VALUE:
+                return null;
+            case OBJECT_VALUE:
+                return this.takeObjectValue();
+            case INT_VALUE:
+                return this.getIntValue();
+            case BYTE_VALUE:
+                return (this.getByteValue());
+            case SHORT_VALUE:
+                return (this.getShortValue());
+            case LONG_VALUE:
+                return (this.getLongValue());
+            case FLOAT_VALUE:
+                return (this.getFloatValue());
+            case DOUBLE_VALUE:
+                return (this.getDoubleValue());
+            case DECIMAL_VALUE:
+                return (this.getDecimalValue());
+            case BOOLEAN_VALUE:
+                return (this.getBooleanValue());
+            case CHAR_VALUE:
+                return (this.getCharValue());
+            case STRING_VALUE:
+                return (this.getStringValue());
+            case CLASS_REF_VALUE:
+                return new ClassRefValue(this.getClassRefValue().getFullname());
+            case UNION_VALUE:
+                if(this.unionValue instanceof Instance<?>){
+                    var r = this.unionValue;
+                    this.unionValue = null;
+                    return r;
+                }
+                return this.unionValue;
+            default:
+                throw new UnsupportedOperationException("unexpected data type " + this.getDataType());
+        }
+
+    }
+
+    public Object getResultAsJavaObject() {
         switch (this.getDataType()) {
             case VOID_VALUE:
             case NULL_VALUE:
@@ -254,7 +298,7 @@ public class ResultSlots {
         }
     }
 
-    public Object getResultAsObject(BoxTypes boxTypes, ClassManager classManager) {
+    public Object getResultAsJavaObject(BoxTypes boxTypes, ClassManager classManager) {
         switch (this.getDataType()) {
             case VOID_VALUE:
             case NULL_VALUE:

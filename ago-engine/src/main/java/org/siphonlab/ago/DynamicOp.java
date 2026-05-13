@@ -137,9 +137,9 @@ public class DynamicOp {
         return false;
     }
 
-    public int writeMember(CallFrame<?> self, Instance<?> object, String memberName, Instance<?> value){
+    public int writeMember(CallFrame<?> self, Instance<?> object, String memberName, Object value){
         if(object == null) {
-            frame.raiseException(self, "lang.NullPointerException", "read '%s' from null".formatted(memberName));
+            frame.raiseException(self, "lang.NullPointerException", "set '%s' of null".formatted(memberName));
             return RESULT_EXCEPTION;
         }
         AgoClass agoClass = object.getAgoClass();

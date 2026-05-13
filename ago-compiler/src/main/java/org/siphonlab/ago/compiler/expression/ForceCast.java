@@ -90,7 +90,7 @@ public class ForceCast extends ExpressionInFunctionBody{
                 ownerFunction.assign(localVar, getRoot().createBooleanLiteral( BooleanLiteral.isTrue(literal)).setSourceLocation(expression.getSourceLocation()).transform()).termVisit(blockCompiler);
                 break;
             case CastToAny: {
-                var tempVar = blockCompiler.acquireTempVar(this);
+                var tempVar = blockCompiler.acquireTempVar(literal.classDef);
                 blockCompiler.lockRegister(tempVar);
                 ownerFunction.assign(tempVar, literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                 blockCompiler.getCode().cast_to_any(tempVar.getVariableSlot(), literal.getTypeCode(), -1, localVar.getVariableSlot(),
@@ -156,7 +156,7 @@ public class ForceCast extends ExpressionInFunctionBody{
 
             if (expression instanceof LiteralResultExpression literalResultExpression) {
                 var literal = literalResultExpression.visit(blockCompiler);
-                if(this.castMode == CastMode.ToUnion){
+                if(this.castMode == CastMode.ToUnion || this.castMode == CastMode.CastToAny){
                     if(literal instanceof NullLiteral) return literal;
 
                     var temp = blockCompiler.acquireTempVar(toType);
