@@ -57,6 +57,9 @@ public class ForceCast extends ExpressionInFunctionBody{
     @Override
     protected Expression transformInner() throws CompilationError {
         if(toType == expression.inferType()) return expression;
+        if(castMode == CastMode.CastToAny && toType instanceof AnyClassDef){
+            return new ForceCast(ownerFunction,expression, toType, CastMode.ToUnion);
+        }
         return this;
     }
 
@@ -101,13 +104,19 @@ public class ForceCast extends ExpressionInFunctionBody{
             case ToUnion: {
                 if(literal instanceof NullLiteral){
                     blockCompiler.getCode().assignLiteral(localVar.getVariableSlot(), literal);
-                } else {
-                    NullableClassDef nullableType = (NullableClassDef) toType;
+                } else if(toType instanceof NullableClassDef nullableType){
                     var tempVar = blockCompiler.acquireTempVar(nullableType.getNullableBaseClass());
                     blockCompiler.lockRegister(tempVar);
                     ownerFunction.assign(tempVar, literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
                     blockCompiler.getCode().cast(nullableType.getNullableBaseClass().getTypeCode(), tempVar.getVariableSlot(), TypeCode.UNION, localVar.getVariableSlot());
                     blockCompiler.releaseRegister(tempVar);
+                } else if(toType instanceof AnyClassDef){
+                    var tempVar = blockCompiler.acquireTempVar(literal.inferType());
+                    blockCompiler.lockRegister(tempVar);
+                    ownerFunction.assign(tempVar, literal).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                    blockCompiler.getCode().cast(literal.getTypeCode(), tempVar.getVariableSlot(), TypeCode.UNION, localVar.getVariableSlot());
+                    blockCompiler.releaseRegister(tempVar);
+                    break;
                 }
                 break;
             }

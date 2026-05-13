@@ -203,8 +203,7 @@ public class AgoClass extends Instance<MetaClass>{
     public AgoClass asThatOrSuperOfThat(AgoClass anotherClass, Set<AgoClass> visited){
         if(this.equals(anotherClass)) return anotherClass;
 
-//        ClassDef anyClass = getRoot().getAnyClass();      // any class only works in ClassBound
-        if(Objects.equals(this.getSuperClass(), this)) return anotherClass;       // lang.Object
+        if(Objects.equals(this.getSuperClass(), this)) return anotherClass;       // lang.any
 
         if (visited != null) {
             if (visited.contains(anotherClass)) {

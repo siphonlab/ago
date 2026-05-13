@@ -53,7 +53,7 @@ public class DynamicOp {
         return result;
     }
 
-    public Instance<?> readMember(CallFrame<?> self, Instance<?> object, String memberName, int dest){
+    public Object readMember(CallFrame<?> self, Instance<?> object, String memberName, int dest){
         if(object == null) {
             frame.raiseException(self, "lang.NullPointerException", "read '%s' from null".formatted(memberName));
             this.result = RESULT_EXCEPTION;
@@ -67,7 +67,7 @@ public class DynamicOp {
                 if(property instanceof Property.FieldProperty fieldProperty){
                     AgoField agoField = fieldProperty.getAgoField();
                     this.result = RESULT_OK;
-                    return engine.getBoxer().boxAny(object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value);
+                    return Union.toUnionValue(self.getAgoEngine(), object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value);
                 } else if(property instanceof Property.AttributeProperty attributeProperty){
                     // invoke getter
                     object.invokeMethod(self, AgoFrame.REENTER_INVOKE_GETTER, dest, attributeProperty.getGetter());

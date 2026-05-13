@@ -101,6 +101,12 @@ public class Trace {
         frame.finishVoid();
     }
 
+    public static void print_any(NativeFrame frame, Object value){
+        lines.add(String.valueOf(value));
+        System.err.println(value);
+        frame.finishVoid();
+    }
+
     public static boolean outputted(String... expected){
         if(lines.size() == expected.length){
             for (int i = 0; i < expected.length; i++) {

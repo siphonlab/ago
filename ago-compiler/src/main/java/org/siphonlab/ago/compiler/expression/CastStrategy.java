@@ -208,6 +208,16 @@ public class CastStrategy {
                     default -> throwTypeMismatchError(originLeftType, originRightType);
                 };
 
+            case Union, Any ->
+                new UnifyTypeResult(left, right, originLeftType, false);
+
+            case Null ->
+                switch (rightTypeKind){
+                    case Union, Any, Null ->
+                        new UnifyTypeResult(left, right, originLeftType, false);
+                    default ->
+                        throwTypeMismatchError(originLeftType, originRightType);
+                };
             default -> throwTypeMismatchError(originLeftType,originRightType);
         };
     }
@@ -502,8 +512,8 @@ public class CastStrategy {
                         throw new UnsupportedOperationException("no this type kind");
                 };
 
-            case Null -> {
-                yield switch (toTypeKind){
+            case Null ->
+                switch (toTypeKind){
                     case Primitive -> {     // there is no box type for null
                         if(toType.getTypeCode() == CLASS_REF){
                             yield castPrimitive(expression, (PrimitiveClassDef) fromType, (PrimitiveClassDef) originToType);
@@ -515,12 +525,11 @@ public class CastStrategy {
                         toNullable(expression, (NullableClassDef) toType);
                     default -> throwTypeMismatchErrorExpr(fromType, originToType);
                 };
-            }
 
             case Union -> {
                 var expr = fromNullable(expression);
                 yield switch (toTypeKind){
-                    case Primitive, PrimitiveBoxer,PrimitiveGeneric, PrimitiveInterface, Enum, Any, langObject, Object  -> {
+                    case Primitive, PrimitiveBoxer,PrimitiveGeneric, PrimitiveInterface, Enum, langObject, Object  -> {
                         if(forceCast) {
                             yield castTo(expr, toType);
                         } else {
@@ -544,6 +553,8 @@ public class CastStrategy {
                             castTo(nonNullExpression, toBase)
                         );
                     }
+                    case Any ->
+                        new ForceCast(ownerFunction, expression, originToType, ForceCast.CastMode.WearClassMask);
                 };
             }
 

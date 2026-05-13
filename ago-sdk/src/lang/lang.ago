@@ -102,8 +102,8 @@ class ClassRef from Boxer<classref>{
 
     fun createInstance#0() as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
     fun createInstance#1(scope as Object) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
-    fun createInstance#2(constructor as ClassRef, arguments as Object? ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
-    fun createInstance#3(scope as Object, constructor as ClassRef, arguments as Object? ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+    fun createInstance#2(constructor as ClassRef, arguments as any ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+    fun createInstance#3(scope as Object, constructor as ClassRef, arguments as any ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
 }
 
 class ScopedClassRef from ClassRef{
@@ -414,6 +414,8 @@ class Trace{
 
         final fun print#float(number as float?) native "org.siphonlab.ago.lang.Trace.print_float";
 
+        private final fun printAnyNative(a as any) native "org.siphonlab.ago.lang.Trace.print_any";
+
         final fun print#obj(obj as Object?){
             if(obj == null){
                 print#str("null");
@@ -427,6 +429,15 @@ class Trace{
                 print#str("null");
             else
                 print#str("true" if v else "false")
+        }
+
+        final fun print#any(v as any){
+            if(v == null)
+                print#str("null");
+            else if(v instanceof Object)
+                print#obj((v|Object).toString())
+            else
+                printAnyNative(v)
         }
     }
 }
