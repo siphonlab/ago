@@ -28,14 +28,14 @@ native class PropertyDesc{
     fun type#get() as ClassRef native "org.siphonlab.ago.lang.Reflect.Property_getType";
 }
 
-fun prop#get_name(this as Object, propName as string) as Object? native "org.siphonlab.ago.lang.Reflect.Property_getValue";
+fun prop#get_name(this as Object, propName as string) as any native "org.siphonlab.ago.lang.Reflect.Property_getValue";
 
-fun prop#set_name(this as Object, propName as string, value as Object?) native "org.siphonlab.ago.lang.Reflect.Property_setValue";
+fun prop#set_name(this as Object, propName as string, value as any) native "org.siphonlab.ago.lang.Reflect.Property_setValue";
 
-fun prop#get_prop_desc(this as Object, propertyDesc as PropertyDesc) as Object? native "org.siphonlab.ago.lang.Reflect.Property_getValue";
+fun prop#get_prop_desc(this as Object, propertyDesc as PropertyDesc) as any native "org.siphonlab.ago.lang.Reflect.Property_getValue";
 
-fun prop#set_prop_desc(this as Object, propertyDesc as PropertyDesc, value as Object?) native "org.siphonlab.ago.lang.Reflect.Property_setValue";
+fun prop#set_prop_desc(this as Object, propertyDesc as PropertyDesc, value as any) native "org.siphonlab.ago.lang.Reflect.Property_setValue";
 
-fun invoke#method(this as Object, method as ClassRef, arguments as Object? ...) as Object? native "org.siphonlab.ago.lang.Reflect.Method_invoke";
+fun invoke#method(this as Object, method as ClassRef, arguments as any ...) as any native "org.siphonlab.ago.lang.Reflect.Method_invoke";
 
-fun invoke#method_name(this as Object, methodName as string, arguments as Object? ...) as Object? native "org.siphonlab.ago.lang.Reflect.Method_invoke";
+fun invoke#method_name(this as Object, methodName as string, arguments as any ...) as any native "org.siphonlab.ago.lang.Reflect.Method_invoke";

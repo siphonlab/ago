@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -126,9 +127,9 @@ public class TraitDefInScope extends TraitDef{
     }
 
     @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth) {
         if(this.baseTrait == anotherClass) return this;
-        return super.asThatOrSuperOfThat(anotherClass, visited);
+        return super.asThatOrSuperOfThat(anotherClass, visited, depth);
     }
 
     @Override

@@ -332,8 +332,12 @@ public class FunctionInvocationResolver {
                     }
                 } else {
                     // v as Primitive, can only box to Object/Primitive
-                    if(p == p.getRoot().getObjectClass() || p == p.getRoot().getPrimitiveType()) {
+                    if (p == p.getRoot().getObjectClass()) {
                         return 0.8;
+                    } else if (p == p.getRoot().getPrimitiveType()) {
+                        return 0.81;
+                    } else if (p == p.getRoot().getAnyClass()) {
+                        return 0.7;
                     } else {
                         // r += 0;
                     }
@@ -341,10 +345,14 @@ public class FunctionInvocationResolver {
             } else if (v.getTypeCode() == TypeCode.NULL) {
                 return 0.9;
             } else if (v.getTypeCode() == TypeCode.OBJECT || v.getTypeCode() == TypeCode.UNION) {
-                if(p == p.getRoot().getObjectClass()){
+                if(p == p.getRoot().getAnyClass()) {
+                    return 0.70;
+                } else if(p == p.getRoot().getObjectClass()){
                     return 0.75;
                 } else if(v.isDeriveFrom(p)) {
-                    return Math.pow(0.999, v.distanceToSuperClass(p));
+                    int d = v.distanceToSuperClass(p);
+                    if(d == -1) return 0.75;
+                    return Math.pow(0.999, d);
                 } else if(p.isThatOrSuperOfThat(v)){
                     return 0.8;
                 }
@@ -353,7 +361,9 @@ public class FunctionInvocationResolver {
             }
         }
         if(p.isThatOrSuperOfThat(v)) {
-            return 0.75;    // other match case, i.e. nullable
+            int d = v.distanceToSuperClass(p);
+            if(d == -1) return 0.75;
+            return Math.pow(0.999, d);
         }
         return 0;
     }

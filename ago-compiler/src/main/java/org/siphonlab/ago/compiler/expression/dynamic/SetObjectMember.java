@@ -45,7 +45,7 @@ public class SetObjectMember extends ExpressionInFunctionBody {
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return ownerFunction.getOrCreateNullableType(getRoot().getObjectClass(), null);
+        return getRoot().getAnyClass();
     }
 
     @Override

@@ -178,7 +178,7 @@ public class Reflect {
 
     public static void Property_getValue(NativeFrame frame, Instance<?> object, String propName){
         if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_GETTER){
-            var inst = frame.getRunSpace().getResultSlots().castAnyToObject(frame.getAgoEngine().getBoxer());
+            var inst = frame.getRunSpace().getResultSlots().takeResultAsUnion();
             frame.finishUnion(inst);
             return;
         }
@@ -207,8 +207,7 @@ public class Reflect {
         var engine = frame.getAgoEngine();
         if(property instanceof Property.FieldProperty fieldProperty){
             AgoField agoField = fieldProperty.getAgoField();
-            var r = engine.getBoxer().boxAny(object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value);
-            frame.finishUnion(r);
+            frame.finishUnion(Union.toUnionValue(engine, object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value));
         } else if(property instanceof Property.AttributeProperty attributeProperty){
             var getter = attributeProperty.getGetter();
             object.invokeMethod(frame, NativeFrame.REENTER_INVOKE_GETTER, 0, getter);
@@ -260,11 +259,11 @@ public class Reflect {
         }
     }
 
-    // arguments type is Object? ..., values are boxed as Instance
+    // arguments type is any..., values are boxed as Instance
     // method is a ClassRef object
     public static void Method_invoke(NativeFrame frame, Instance<?> object, Instance<?> method, Instance<?> arguments){
         if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_FUNCTION){
-            var inst = frame.getRunSpace().getResultSlots().castAnyToObject(frame.getAgoEngine().getBoxer());
+            var inst = frame.getRunSpace().getResultSlots().takeResultAsUnion();
             frame.finishUnion(inst);
             return;
         }

@@ -55,7 +55,7 @@ public class DynamicInvoke extends ExpressionInFunctionBody {
         if (invokeMode.isAsync()) {
             return getRoot().getFunctionBaseOfAnyClass();
         } else {
-            return ownerFunction.getOrCreateNullableType(getRoot().getObjectClass(), null);
+            return getRoot().getAnyClass();
         }
     }
 

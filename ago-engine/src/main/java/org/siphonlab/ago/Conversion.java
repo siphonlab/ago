@@ -49,9 +49,9 @@ public class Conversion {
     public static boolean castToAny(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass,
                               int srcSlotIndex, int srcTypeCode, AgoClass srcClass) {
         if(targetTypeCode == UNION_VALUE){
-            return castToUnion(self, agoFrame, slots, targetIndex, targetTypeCode, targetClass, srcSlotIndex, srcTypeCode, srcClass);
+            return castToUnion(self, agoFrame, slots, targetIndex, targetClass, srcSlotIndex, srcTypeCode, srcClass);
         } else if(srcTypeCode == UNION_VALUE){
-            return castFromUnion(self, agoFrame, slots, targetIndex, targetTypeCode, targetClass, srcSlotIndex, srcTypeCode, srcClass);
+            return castFromUnion(self, agoFrame, slots, targetIndex, targetTypeCode, targetClass, srcSlotIndex, srcClass);
         }
         if(isPrimitiveExcludeNull(srcTypeCode)) {   // primitive src
             if (isPrimitiveExcludeNull(targetTypeCode)) {
@@ -91,7 +91,7 @@ public class Conversion {
         return true;
     }
 
-    private static boolean castFromUnion(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass, int srcSlotIndex, int srcTypeCode, AgoClass srcClass) {
+    private static boolean castFromUnion(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass, int srcSlotIndex, AgoClass srcClass) {
         var unionValue = slots.getUnion(srcSlotIndex);
         var srcTypeOfUnionValue = Union.extractUnionType(unionValue).value;
         var boxer = agoFrame.getAgoEngine().getBoxer();
@@ -102,7 +102,6 @@ public class Conversion {
                 agoFrame.raiseException(self, "lang.ClassCastException", "can't cast null to '%s'".formatted(of(targetTypeCode)));
                 return false;
             } else {
-                assert srcTypeCode == OBJECT_VALUE;
                 var unboxed = boxer.unbox((Instance<?>) unionValue);
                 if(unboxed != unionValue && unboxed != null){
                     castPrimitiveToPrimitive(slots, targetIndex, targetTypeCode, unboxed, agoFrame);
@@ -127,7 +126,6 @@ public class Conversion {
                 agoFrame.raiseException(self, "lang.ClassCastException", "can't cast null to '%s'".formatted(of(targetTypeCode)));
                 return false;
             } else {
-                assert srcTypeCode == OBJECT_VALUE;
                 castObject(agoFrame, self, slots, targetIndex, (Instance<?>) unionValue, srcTypeOfUnionValue, targetClass);
             }
         }
@@ -172,7 +170,11 @@ public class Conversion {
         return true;
     }
 
-    private static boolean castToUnion(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass, int srcSlotIndex, int srcTypeCode, AgoClass srcClass) {
+    private static boolean castToUnion(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, AgoClass targetClass, int srcSlotIndex, int srcTypeCode, AgoClass srcClass) {
+        if(targetClass.type == AgoClass.TYPE_ANY_CLASS){
+            slots.setUnion(targetIndex, Union.toUnionValue(agoFrame.getAgoEngine(), slots, srcSlotIndex, srcTypeCode));
+            return true;
+        }
         var toBaseClassOfUnion = ((NullableTypeInfo) targetClass.getConcreteTypeInfo()).getBaseClass();
         Boxer boxer = agoFrame.getAgoEngine().getBoxer();
         int unionBaseTypeCode = toBaseClassOfUnion.getTypeCode().value;
@@ -810,7 +812,5 @@ public class Conversion {
 
         return null;
     }
-
-
 
 }

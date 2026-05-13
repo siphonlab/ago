@@ -48,7 +48,7 @@ public class InspectUtil {
         StringBuilder sb = new StringBuilder();
         sb.append("\t".repeat(tabDepth)).append(Modifier.toString(classDef.modifiers)).append(' ');
         sb.append(switch (classDef.getClassType()){
-            case AgoClass.TYPE_CLASS, AgoClass.TYPE_PRIMITIVE_CLASS -> "class";
+            case AgoClass.TYPE_CLASS, AgoClass.TYPE_PRIMITIVE_CLASS, AgoClass.TYPE_ANY_CLASS -> "class";
             case AgoClass.TYPE_FUNCTION -> "function";
             case AgoClass.TYPE_INTERFACE -> "interface";
             case AgoClass.TYPE_METACLASS -> "metaclass";

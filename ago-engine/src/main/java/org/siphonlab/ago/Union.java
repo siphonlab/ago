@@ -4,6 +4,8 @@ import org.siphonlab.ago.classloader.ClassRefValue;
 
 import java.math.BigDecimal;
 
+import static org.siphonlab.ago.TypeCode.*;
+
 public interface Union {
     static TypeCode extractUnionType(Object union){
         return switch (union) {
@@ -329,6 +331,41 @@ public interface Union {
                 throw new ClassCastException("cannot to classref");
             default:
                 throw new IllegalArgumentException("unknown union type: " + union.getClass());
+        }
+    }
+
+    static Object toUnionValue(AgoEngine engine, Slots slots, int slotIndex, int typeCode) {
+        switch(typeCode){
+            case INT_VALUE:
+                return slots.getInt(slotIndex);
+            case STRING_VALUE:
+                return slots.getString(slotIndex);
+            case LONG_VALUE:
+                return slots.getLong(slotIndex);
+            case BOOLEAN_VALUE:
+                return slots.getBoolean(slotIndex);
+            case DOUBLE_VALUE:
+                return slots.getDouble(slotIndex);
+            case DECIMAL_VALUE:
+                return slots.getDecimal(slotIndex);
+            case BYTE_VALUE:
+                return slots.getByte(slotIndex);
+            case FLOAT_VALUE:
+                return slots.getFloat(slotIndex);
+            case CHAR_VALUE:
+                return slots.getChar(slotIndex);
+            case SHORT_VALUE:
+                return slots.getShort(slotIndex);
+            case CLASS_REF_VALUE:
+                return new ClassRefValue(engine.getClass(slots.getClassRef(slotIndex)).getFullname());
+            case OBJECT_VALUE:
+                return slots.getObject(slotIndex);
+            case UNION_VALUE:
+                return slots.getUnion(slotIndex);
+            case NULL_VALUE, VOID_VALUE:
+                return null;
+            default:
+                return null;
         }
     }
 }

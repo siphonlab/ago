@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.generic;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.ClassContainer;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.ConcreteType;
@@ -145,8 +146,8 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
     }
 
     @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
-        return this.getSharedGenericTypeParameterClassDef().asThatOrSuperOfThat(anotherClass, visited);
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth) {
+        return this.getSharedGenericTypeParameterClassDef().asThatOrSuperOfThat(anotherClass, visited, depth);
     }
 
     @Override

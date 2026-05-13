@@ -115,7 +115,7 @@ classDeclaration
         classBody
     ;
 
-classId : identifier | primitiveType;
+classId : identifier | primitiveType | ANY;
 
 traitDeclaration
     : classModifier* TRAIT className=identifier genericTypeParameters? extendsPhrase? implementsPhrase? permitsType?
@@ -673,6 +673,7 @@ possibleName
     | identifier                #NameIdentifier
     | pronoun                   #NamePronoun
     | primitiveType             #NamePrimitive
+    | ANY                       #NameAny
 ;
 
 primitiveType: BOOLEAN    | CHAR    | BYTE    | SHORT    | INT    | LONG    | FLOAT    | DOUBLE    | STRING     | VOID  | CLASSREF | DECIMAL    | NULL_LITERAL;
@@ -692,7 +693,7 @@ parameterizedType: typeIdentifier typeArguments? classCreatorArguments?;
 
 typeRange:    '[' from=typeOrAny (TO to=typeOrAny)? ']';
 
-typeOrAny:  '_' | variableType;      // _  not works, for it already ate in token IDENTIFIER
+typeOrAny:  variableType;      // _  not works, for it already ate in token IDENTIFIER
 
 typeArguments:
         '<' '>'                                         #EmptyTypeArgs

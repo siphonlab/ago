@@ -44,6 +44,7 @@ public class AgoClass extends Instance<MetaClass>{
     public static final byte TYPE_FUNCTION = 5;
     public static final byte TYPE_TRAIT = 6;
     public static final byte TYPE_PRIMITIVE_CLASS = 7;
+    public static final byte TYPE_ANY_CLASS = 8;
 
     public static final int VISIBILITY_MASK  = 0x0000_0004;
     public static final int PUBLIC           = 0x0000_0001;
@@ -202,8 +203,7 @@ public class AgoClass extends Instance<MetaClass>{
     public AgoClass asThatOrSuperOfThat(AgoClass anotherClass, Set<AgoClass> visited){
         if(this.equals(anotherClass)) return anotherClass;
 
-//        ClassDef anyClass = getRoot().getAnyClass();      // any class only works in ClassBound
-        if(Objects.equals(this.getSuperClass(), this)) return anotherClass;       // lang.Object
+        if(Objects.equals(this.getSuperClass(), this)) return anotherClass;       // lang.any
 
         if (visited != null) {
             if (visited.contains(anotherClass)) {

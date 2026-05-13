@@ -231,6 +231,9 @@ public class JsonAgoClassLoader extends AgoClassLoader {
                 agoClass = new AgoPrimitiveClass(this, metaClass, fullname, typeCode.value);
             }
             break;
+        case AgoClass.TYPE_ANY_CLASS:
+            agoClass = new AgoAnyClass(this, metaClass, fullname, name);
+            break;
         default:
             throw new IllegalArgumentException("illegal type " + row.get("class_type"));
         }

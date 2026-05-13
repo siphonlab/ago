@@ -239,7 +239,7 @@ public class Invoke extends ExpressionInFunctionBody {
                 code.invoke(invokeMode, callFrameInstance.getVariableSlot());
             }
 
-            if (result.getVariableSlot().getClassDef() == root.getAnyClass()) {
+            if (result.getVariableSlot().getClassDef() instanceof AnyClassDef) {
                 code.acceptAny(result.getVariableSlot());
             } else {
                 code.accept(result.getVariableSlot());

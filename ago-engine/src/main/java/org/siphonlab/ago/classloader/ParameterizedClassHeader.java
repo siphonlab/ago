@@ -241,7 +241,7 @@ public class ParameterizedClassHeader extends ClassHeader {
     }
 
     public static String composeNameOfClassInClassInterval(String className){
-        if(className.equals("lang.Any")){
+        if(className.equals("lang.any")){
             return "_";
         } else {
             return className.replace('.', '/');

@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
@@ -89,7 +90,7 @@ public class NullableClassDef extends UnionClassDef {
     }
 
     @Override
-    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited) {
+    public ClassDef asThatOrSuperOfThat(ClassDef anotherClass, Set<ClassDef> visited, MutableInt depth) {
         if(this == anotherClass) return this;
 
         if (visited != null) {
@@ -98,6 +99,7 @@ public class NullableClassDef extends UnionClassDef {
             }
             visited.add(anotherClass);
         }
+        if(depth != null) depth.increment();
 
         if(anotherClass instanceof NullableClassDef another){
             if(nullableBaseClass.isThatOrSuperOfThat(another.nullableBaseClass, visited)){
@@ -108,6 +110,7 @@ public class NullableClassDef extends UnionClassDef {
         if(nullableBaseClass.isThatOrSuperOfThat(anotherClass, visited) || anotherClass instanceof NullClassDef)
             return this;
 
+        if(depth != null) depth.decrement();
         return null;
     }
 

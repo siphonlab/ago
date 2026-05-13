@@ -46,7 +46,7 @@ public class ObjectMember extends ExpressionInFunctionBody implements Assign.Ass
 
     @Override
     public ClassDef inferType() throws CompilationError {
-        return ownerFunction.getOrCreateNullableType(getRoot().getObjectClass(), null);
+        return getRoot().getAnyClass();
     }
 
     @Override

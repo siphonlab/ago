@@ -43,7 +43,7 @@ class Staff{
 
 fun main(){
     var a as Animal = new Cat();
-    a['bark']()     // it can located to ClassUnder(a, Animal.bark), however, the result type is still Object?, for unify the result type
+    a['bark']()     // it can located to ClassUnder(a, Animal.bark), however, the result type is still `any`, for unify the result type
 
     var c = new Calc();
     var s = 'add';
@@ -56,7 +56,7 @@ fun main(){
 
     staff['name'] = 'John'
     staff['age'] = 20
-    Trace.print(staff['name'])
-    Trace.print(staff['age'])
+    Trace.print(staff['name'] | string)
+    Trace.print(staff['age'] | int)
     staff['work']('coding', 60)
 }

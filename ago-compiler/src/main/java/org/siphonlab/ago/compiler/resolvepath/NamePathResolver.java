@@ -217,6 +217,8 @@ public class NamePathResolver {
                 }
             } else if(possibleName instanceof AgoParser.NameIdentifierContext nameIdentifier){
                 ids.add(new Id(nameIdentifier.identifier(), unit.sourceLocation(nameIdentifier)));
+            } else if(possibleName instanceof AgoParser.NameAnyContext any){
+                ids.add(new Id(any.getText(), unit.sourceLocation(any)));
             } else if(possibleName instanceof AgoParser.NamePronounContext namePronounContext){
                 AgoParser.PronounContext pronoun = namePronounContext.pronoun();
                 ids.add(new Pronoun(namePronounContext, pronounType(pronoun), unit.sourceLocation(pronoun)));

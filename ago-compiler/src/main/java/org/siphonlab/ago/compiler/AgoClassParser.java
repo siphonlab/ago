@@ -558,6 +558,8 @@ public class AgoClassParser {
             if(agoFunction instanceof AgoNativeFunction agoNativeFunction){
                 ((FunctionDef)classDef).setNativeEntrance(agoNativeFunction.getNativeEntrance());
             }
+        } else if(agoClass instanceof AgoAnyClass) {
+            classDef = new AnyClassDef(root, agoClass.getName());
         } else {
             classDef = new ClassDef(root, agoClass.getName());
             if(agoClass instanceof AgoInterface){

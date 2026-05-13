@@ -53,6 +53,7 @@ options {
 // Keywords
 
 ABSTRACT     : 'abstract';
+ANY          : 'any';
 ASSERT       : 'assert';
 BOOLEAN      : 'boolean';
 BREAK        : 'break';

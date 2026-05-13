@@ -208,7 +208,7 @@ fun main(){
     var t as classref = Cat
     Trace.print(t)
     
-    var T as [Animal to _]      // ScopedClassInterval::(Animal, Any), a boxing class of classref
+    var T as [Animal to _]      // ScopedClassInterval::(Animal, any), a boxing class of classref
     T = Cat     
     T.foo()     
 
@@ -247,7 +247,7 @@ fun main(){
     test(c.add2, 1, 2)  // 106
 }
 ```
-`like Class` is syntactic sugar for `as [Class to Any]`.  
+`like Class` is syntactic sugar for `as [Class to any]`.  
 For functions, the ago compiler generates an interface `FunctionN<Arg1,Arg2,...>` corresponding to parameter lists and result types. The `like` always gets a ScopedClassInterval starting from this interface.  
 Thus `like add` is equivalent to `as [Function2<int,int,int> to _]`, which can match the above `add`, `add2`, etc., even with scope.
 
