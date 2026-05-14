@@ -1,0 +1,42 @@
+class Staff{
+    public name as string;
+    gender as char {get; set;}
+    public workNo as string;
+    public age as int
+
+    override toString() as string{
+        return $"name: ${name}  gender: ${gender}  workNo: ${workNo}"$
+    }
+}
+
+class Contact{
+    name as string{get;set;}
+    phone as string;
+}
+
+fun main(){
+    var map = {name: "Tom"|Object, gender: 'M', workNo : '1234', age : 44};
+    var staff = new Staff();
+    staff o= map;
+
+    Trace.print(staff)
+
+    var m2 = new HashMap<string, Object>();
+    m2 o= staff
+    Trace.print(m2)
+
+    var m3 = new HashMap<string, Object>();
+    m3 o= map;
+    Trace.print(m3);
+
+    var staff2 = new Staff();
+    staff2 o= staff;
+    Trace.print(staff2)
+
+    var staff3 = {Staff| name: "Jenny", gender: 'F', workNo: '1002'}
+    var contact = new Contact();
+    contact o= staff3;
+    Trace.print(contact.name)
+}
+
+

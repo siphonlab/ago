@@ -106,7 +106,7 @@ public class Char from Boxer<char>{
     }
 
     override toString() as string{
-        return this.value|String;
+        return this.value|string;
     }
 
     override hashCode() as int{

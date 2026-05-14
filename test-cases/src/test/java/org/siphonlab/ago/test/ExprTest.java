@@ -191,4 +191,11 @@ public class ExprTest {
         Trace.printOutput();
     }
 
+    @Test
+    public void copy_assign() throws CompilationError, IOException {
+        run("expr/copy_assign.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("name: Tom  gender: M  workNo: 1234", "{lang.HashMap<string,lang.Object>|workNo=1234,gender=M,name=Tom,age=44}", "{lang.HashMap<string,lang.Object>|workNo=1234,name=Tom,gender=M,age=44}", "name: Tom  gender: M  workNo: 1234", "Jenny"));
+    }
+
 }

@@ -106,9 +106,6 @@ public class GenericVMCodeTransformer {
                                 }
                                 break;
                             }
-                            case Move.move_copy_ooC:
-                                instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
-                                break;
                         }
                     }
                 }

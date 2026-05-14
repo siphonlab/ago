@@ -204,6 +204,10 @@ native class ArrayList<E> from List<E>{
 class KeyValuePair<Key, Value>{
     key as Key {public get;}
     value as Value {public get;}
+
+    override toString() as string{
+        return key + "=" + value;
+    }
 }
 
 interface ReadWriteMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
@@ -233,6 +237,16 @@ interface ReadOnlyMap<Key,Value> from Iterable<KeyValuePair<Key, Value>>{
 
 abstract class Map<Key, Value> with ReadWriteMap<Key, Value>, ReadOnlyMap<Key, Value>{
 
+    override toString() as string{
+        var s = '{' + this.getClass().getName() + '|';
+        var cnt = this.size;
+        for(var el in this){
+            s += el;
+            cnt --;
+            if(cnt > 0) s += ','
+        }
+        return s + '}';
+    }
 }
 
 /**

@@ -52,6 +52,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     private final static int REENTER_CREATE_SCOPED_CLASS = 2;
     final static int REENTER_INVOKE_GETTER = 3;
+    final static int REENTER_INVOKE_TO_STRING = 4;
 
     public AgoFrame(Slots slots, AgoFunction agoFunction, AgoEngine engine) {
         super(slots, agoFunction );
@@ -115,7 +116,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 }
                 case Cast.OP: {
                     var p = evaluateCast(self, slots,pc, instruction);
-                    if(p != -1) pc = p; else return;
+                    if(p < 0) return; else pc = p;
                 } break;
                 case Load.OP: {
                     var p = evaluateLoad(self, slots, pc, instruction);
@@ -1567,36 +1568,9 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Move.move_V_vv :   slots.setVoid(code[pc++], slots.getVoid(code[pc++])); break;
             case Move.move_fld_V_ovv:   slots.getObject(code[pc++]).getSlots().setVoid(code[pc++], slots.getVoid(code[pc++])); break;
             case Move.move_fld_V_vov:   slots.setVoid(code[pc++], slots.getObject(code[pc++]).getSlots().getVoid(code[pc++]));break;
-
-            case Move.move_copy_ooC:    copyAssign(slots.getObject(code[pc++]), slots.getObject(code[pc++]), engine.getClass(code[pc++])); break;
         }
         return pc;
     }
-    protected void copyAssign(Instance<?> dest, Instance<?> src, AgoClass commonClass) {
-        if(src == null || dest == null) return;
-        Slots targetSlots = dest.getSlots();
-        Slots srcSlots = src.getSlots();
-        for (AgoSlotDef slotDef : commonClass.getSlotDefs()) {
-            switch (slotDef.getTypeCode().value){
-                case INT_VALUE: targetSlots.setInt(slotDef.getIndex(), srcSlots.getInt(slotDef.getIndex())); break;
-                case LONG_VALUE: targetSlots.setLong(slotDef.getIndex(), srcSlots.getLong(slotDef.getIndex())); break;
-                case DOUBLE_VALUE: targetSlots.setDouble(slotDef.getIndex(), srcSlots.getDouble(slotDef.getIndex())); break;
-                case DECIMAL_VALUE: targetSlots.setDecimal(slotDef.getIndex(), srcSlots.getDecimal(slotDef.getIndex())); break;
-                case BOOLEAN_VALUE: targetSlots.setBoolean(slotDef.getIndex(), srcSlots.getBoolean(slotDef.getIndex())); break;
-                case STRING_VALUE: targetSlots.setString(slotDef.getIndex(), srcSlots.getString(slotDef.getIndex())); break;
-                case CHAR_VALUE: targetSlots.setChar(slotDef.getIndex(), srcSlots.getChar(slotDef.getIndex())); break;
-                case SHORT_VALUE: targetSlots.setShort(slotDef.getIndex(), srcSlots.getShort(slotDef.getIndex())); break;
-                case BYTE_VALUE: targetSlots.setByte(slotDef.getIndex(), srcSlots.getByte(slotDef.getIndex())); break;
-                case FLOAT_VALUE: targetSlots.setFloat(slotDef.getIndex(), srcSlots.getFloat(slotDef.getIndex())); break;
-                case CLASS_REF_VALUE: targetSlots.setClassRef(slotDef.getIndex(), srcSlots.getClassRef(slotDef.getIndex())); break;
-                case OBJECT_VALUE: targetSlots.setObject(slotDef.getIndex(), srcSlots.getObject(slotDef.getIndex())); break;
-                case UNION_VALUE: targetSlots.setUnion(slotDef.getIndex(), srcSlots.getUnion(slotDef.getIndex())); break;
-
-                default: throw new IllegalArgumentException("Unknown type code: " + slotDef.getTypeCode());
-            }
-        }
-    }
-
     protected int evaluateConst(Slots slots, int pc, int instruction) {
         switch (instruction){
             case Const.const_i_vc:  slots.setInt(code[pc++], code[pc++]); break;
@@ -1830,8 +1804,14 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 }
                 break;
             case Cast.cast_to_any_vtCvtC:
-                if(!Conversion.castToAny(self,this, slots, code[pc++], code[pc++], getClass(code[pc++]), code[pc++], code[pc++], getClass(code[pc++]))){
-                    return -1;
+                var r = Conversion.castToAny(self,this, slots, code[pc++], code[pc++], getClass(code[pc++]), code[pc++], code[pc++], getClass(code[pc++]));
+                switch (r) {
+                    case Conversion.CAST_TO_ANY_SUCCESS:
+                        break;
+                    case Conversion.CAST_TO_ANY_WAIT_RESULT:
+                        this.pc = pc;
+                    case Conversion.CAST_TO_ANY_FAILED:
+                        return r;
                 }
                 break;
 
@@ -2011,9 +1991,9 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     }
 
     // ensure within family, not assignable
-    public boolean validateClassInheritance(AgoClass sampleClass, AgoClass relatedClass) {
+    public static boolean validateClassInheritance(CallFrame<?> callFrame, CallFrame<?> self,  AgoClass sampleClass, AgoClass relatedClass) {
         if (!sampleClass.isThatOrDerivedFrom(relatedClass) && ! relatedClass.isThatOrDerivedFrom(sampleClass)) {
-            raiseException(this, "lang.ClassCastException",
+            callFrame.raiseException(self, "lang.ClassCastException",
                     "illegal cast from '%s' to '%s'".formatted(relatedClass.getFullname(), sampleClass.getFullname()));
             return false;
         }
@@ -2115,6 +2095,18 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     agoFrame = (AgoFrame) caller;
                 }
                 agoFrame.getSlots().setUnion(additionalState, runSpace.getResultSlots().takeResultAsUnion());
+                agoFrame.getRunSpace().setCurrCallFrame(caller);
+                break;
+            }
+            case REENTER_INVOKE_TO_STRING:{
+                var caller = reentrantProxyFrame.getCaller();       // it's self
+                AgoFrame agoFrame;
+                if(caller instanceof EntranceCallFrame<?> entranceCallFrame){
+                    agoFrame = (AgoFrame) entranceCallFrame.getInner();
+                } else {
+                    agoFrame = (AgoFrame) caller;
+                }
+                agoFrame.getSlots().setString(additionalState, runSpace.getResultSlots().getStringValue());
                 agoFrame.getRunSpace().setCurrCallFrame(caller);
                 break;
             }

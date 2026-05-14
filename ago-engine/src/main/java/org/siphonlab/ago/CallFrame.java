@@ -27,7 +27,7 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     private final static Logger logger = LoggerFactory.getLogger(CallFrame.class);
 
-    protected final static int REENTER_RAISE_EXCEPTION = 1;
+    public final static int REENTER_RAISE_EXCEPTION = 1;
 
     protected CallFrame<?> caller;
 

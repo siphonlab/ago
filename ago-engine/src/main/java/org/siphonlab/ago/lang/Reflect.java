@@ -17,7 +17,6 @@ package org.siphonlab.ago.lang;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
-import org.siphonlab.ago.opcode.Box;
 import org.siphonlab.ago.runtime.UnionArrayInstance;
 
 import java.util.Collection;
@@ -191,6 +190,11 @@ public class Reflect {
     }
 
     public static void Property_getValue(NativeFrame frame, Instance<?> object, Instance<?> propertyInst){
+        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_GETTER){
+            var inst = frame.getRunSpace().getResultSlots().takeResultAsUnion();
+            frame.finishUnion(inst);
+            return;
+        }
         Property property = (Property) propertyInst.getNativePayload();
         if(property.getOwnerClass() != object.getAgoClass()){
             frame.raiseException(frame.self(), "NoSuchPropertyException", "the owner of '%s' is not '%s'".formatted(property.getName(), object.getAgoClass().getFullname()));
@@ -230,6 +234,10 @@ public class Reflect {
     }
 
     public static void Property_setValue(NativeFrame frame, Instance<?> object, Instance<?> propertyInst, Object value){
+        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_SETTER){
+            frame.finishVoid();
+            return;
+        }
         Property property = (Property) propertyInst.getNativePayload();
         if(property.getOwnerClass() != object.getAgoClass()){
             frame.raiseException(frame.self(), "NoSuchPropertyException", "the owner of '%s' is not '%s'".formatted(property.getName(), object.getAgoClass().getFullname()));
@@ -246,12 +254,23 @@ public class Reflect {
         var engine = frame.getAgoEngine();
         if(property instanceof Property.FieldProperty fieldProperty){
             AgoField agoField = fieldProperty.getAgoField();
-            DynamicOp.setSlot(frame, frame.self(), object, value, agoField, object.getAgoClass());
+            CallFrame<?> self = frame.self();
+            AgoClass targetType = object.getAgoClass();
+            AgoClass unionClass = frame.getAgoEngine().getLangClasses().getAnyClass();
+            if(!Conversion.castFromUnion(self, frame, object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value, targetType, value, unionClass)){
+                return;
+            }
             frame.finishVoid();
         } else if(property instanceof Property.AttributeProperty attributeProperty){
             var method = attributeProperty.getSetter();
             var setter = engine.createFunctionInstance(object, method, frame.self(), frame.self());
-            DynamicOp.setSlot(frame, frame.self(), setter, value, setter.getAgoClass().getParameters()[0], setter.getAgoClass());
+            CallFrame<?> self = frame.self();
+            AgoClass targetType = setter.getAgoClass();
+            AgoVariable fld = setter.getAgoClass().getParameters()[0];
+            AgoClass unionClass = frame.getAgoEngine().getLangClasses().getAnyClass();
+            if(!Conversion.castFromUnion(self, frame, setter.getSlots(), fld.getSlotIndex(), fld.getTypeCode().value, targetType, value, unionClass)){
+                return;
+            }
 
             frame.invokeFrame(setter, NativeFrame.REENTER_INVOKE_SETTER);
         } else {
@@ -275,7 +294,11 @@ public class Reflect {
         AgoParameter[] parameters = fun.getParameters();
         for (int i = 0; i < parameters.length; i++) {
             AgoParameter parameter = parameters[i];
-            DynamicOp.setSlot(frame, frame.self(), toInvoke, arr.value[i], parameter, fun);
+            CallFrame<?> self = frame.self();
+            AgoClass unionClass = frame.getAgoEngine().getLangClasses().getAnyClass();
+            if(!Conversion.castFromUnion(self, frame, toInvoke.getSlots(), parameter.getSlotIndex(), parameter.getTypeCode().value, fun, arr.value[i], unionClass)){
+                return;
+            }
         }
         frame.invokeFrame(toInvoke, NativeFrame.REENTER_INVOKE_FUNCTION);
     }
@@ -323,7 +346,11 @@ public class Reflect {
             AgoParameter[] parameters = fun.getParameters();
             for (int i = 0; i < parameters.length; i++) {
                 AgoParameter parameter = parameters[i];
-                DynamicOp.setSlot(frame, frame.self(), toInvoke, arr.value[i], parameter, fun);
+                CallFrame<?> self = frame.self();
+                AgoClass unionClass = frame.getAgoEngine().getLangClasses().getAnyClass();
+                if(!Conversion.castFromUnion(self, frame, toInvoke.getSlots(), parameter.getSlotIndex(), parameter.getTypeCode().value, fun, arr.value[i], unionClass)){
+                    return;
+                }
             }
             frame.setNativePayload(result);
             frame.invokeFrame(toInvoke, NativeFrame.REENTER_CREATE_INSTANCE);

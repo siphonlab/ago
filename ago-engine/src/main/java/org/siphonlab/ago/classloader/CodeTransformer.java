@@ -282,10 +282,6 @@ public class CodeTransformer {
 
                 case Debug.print_S_c:           updateStringId(instruction, 0); break;
 
-                case Move.move_copy_ooC:
-                    updateClassId(instruction, 2);
-                    break;
-
                 default:
                     codeBuffer.skip( (OpCode.SIZE_MASK & instruction) * 4);
             }
