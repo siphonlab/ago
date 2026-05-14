@@ -336,16 +336,6 @@ public class RunSpace implements Runnable{
         resumeByAcceptResult();
     }
 
-    public void acceptNull(CallFrame<?> caller) {
-        resultSlots.setUnionValue(null);
-        this.setCurrCallFrame(caller);
-    }
-
-    public void acceptNullByAsync() {
-        resultSlots.setUnionValue(null);
-        resumeByAcceptResult();
-    }
-
     public void acceptIntByAsync(int result) {
         resultSlots.setIntValue(result);
         resumeByAcceptResult();

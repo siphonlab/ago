@@ -88,7 +88,6 @@ public class Move implements GenericOpCode{     // 30
     public static final int move_fld_S_ovv = 0x02_03_02_03;
     public static final int move_fld_S_vov = 0x02_03_03_03;
 
-    public static final int move_copy_ooC = 0x02_01_04_03;
     // move_af(object, string key, value)
 //    public static final int move_af_ovv = 0x02_01_05_03;    // attribute or field assign
 
@@ -140,7 +139,6 @@ public class Move implements GenericOpCode{     // 30
             case 0x02_0c_01_02 -> "move_i_vv";
             case 0x02_0c_02_03 -> "move_fld_i_ovv";
             case 0x02_0c_03_03 -> "move_fld_i_vov";
-            case move_copy_ooC -> "move_copy_ooC";
 //            case move_af_ovv    -> "move_af_ovv";
             default -> {
                 var t = OpCode.extractType(code);

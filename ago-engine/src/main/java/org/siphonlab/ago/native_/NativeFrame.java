@@ -65,13 +65,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         callerRunSpace.acceptVoidByAsync();
     }
 
-    public void finishNullAsync() {
-        if (this.debugger != null) this.debugger.leaveFrame(this);
-
-        RunSpace callerRunSpace = resumeCallerRunSpace();
-        callerRunSpace.acceptNullByAsync();;
-    }
-
     public void finishIntAsync(int result) {
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
@@ -225,4 +218,140 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         this.setReenterState(reenterState);
         this.getRunSpace().setCurrCallFrame(toInvoke);
     }
+
+    @Override
+    public void finishString(String result) {
+        if(self != this) {
+            self.finishString(result);
+        } else {
+            super.finishString(result);
+        }
+    }
+
+    @Override
+    public void finishVoid() {
+        if(self != this) {
+            self.finishVoid();
+        } else {
+            super.finishVoid();
+        }
+    }
+
+    @Override
+    public void finishBoolean(boolean result) {
+        if(self != this) {
+            self.finishBoolean(result);
+        } else {
+            super.finishBoolean(result);
+        }
+    }
+
+    @Override
+    public void finishByte(byte result) {
+        if(self != this) {
+            self.finishByte(result);
+        } else {
+            super.finishByte(result);
+        }
+    }
+
+    @Override
+    public void finishShort(short result) {
+        if(self != this) {
+            self.finishShort(result);
+        } else {
+            super.finishShort(result);
+        }
+    }
+
+    @Override
+    public void finishInt(int result) {
+        if(self != this) {
+            self.finishInt(result);
+        } else {
+            super.finishInt(result);
+        }
+    }
+
+    @Override
+    public void finishLong(long result) {
+        if(self != this) {
+            self.finishLong(result);
+        } else {
+            super.finishLong(result);
+        }
+    }
+
+    @Override
+    public void finishFloat(float result) {
+        if(self != this) {
+            self.finishFloat(result);
+        } else {
+            super.finishFloat(result);
+        }
+    }
+
+    @Override
+    public void finishDouble(double result) {
+        if(self != this) {
+            self.finishDouble(result);
+        } else {
+            super.finishDouble(result);
+        }
+    }
+
+    @Override
+    public void finishDecimal(BigDecimal result) {
+        if(self != this) {
+            self.finishDecimal(result);
+        } else {
+            super.finishDecimal(result);
+        }
+    }
+
+    @Override
+    public void finishChar(char result) {
+        if(self != this) {
+            self.finishChar(result);
+        } else {
+            super.finishChar(result);
+        }
+    }
+
+    @Override
+    public void finishObject(Instance<?> result) {
+        if(self != this) {
+            self.finishObject(result);
+        } else {
+            super.finishObject(result);
+        }
+    }
+
+    @Override
+    public void finishUnion(Object result) {
+        if(self != this) {
+            self.finishUnion(result);
+        } else {
+            super.finishUnion(result);
+        }
+    }
+
+    @Override
+    public void finishClassRef(AgoClass result) {
+        if(self != this) {
+            self.finishClassRef(result);
+        } else {
+            super.finishClassRef(result);
+        }
+    }
+
+    @Override
+    public void finishException(Instance<?> exception) {
+        if(self != this) {
+            self.finishException(exception);
+        } else {
+            super.finishException(exception);
+        }
+    }
+
 }

@@ -21,6 +21,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.*;
+import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.*;
 
@@ -174,5 +175,14 @@ public class ClassContainer extends Namespace<ClassDef>{
         return templateClass.instantiate(args, returnExisted);
     }
 
+    public ClassDef getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, AgoParser.TypeArgsListContext typeArgsListContext, MutableBoolean returnExisted) throws CompilationError {
+        // template class is not intermediate template class
+        InstantiationArguments args = new InstantiationArguments(templateClass.isGenericTemplate() ? templateClass.getTypeParamsContext() : templateClass.getGenericSource().originalTemplate().getTypeParamsContext(), typeArguments);
+        var r = templateClass.instantiate(args, returnExisted);
+        if(r instanceof GenericConcreteType g){
+            g.setTypeArgsListAst(typeArgsListContext);
+        }
+        return r;
+    }
 
 }

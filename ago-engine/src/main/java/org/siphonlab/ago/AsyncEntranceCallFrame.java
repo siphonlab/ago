@@ -89,11 +89,6 @@ public class AsyncEntranceCallFrame<T extends AgoFunction> extends EntranceCallF
         getCaller().getRunSpace().acceptStringByAsync(result);
     }
 
-    public void finishNull() {
-        this.getRunSpace().setCurrCallFrame(null);
-        getCaller().getRunSpace().acceptNullByAsync();
-    }
-
     public void finishClassRef(AgoClass result) {
         this.getRunSpace().setCurrCallFrame(null);
         getCaller().getRunSpace().acceptClassRefByAsync(result);
@@ -167,11 +162,6 @@ public class AsyncEntranceCallFrame<T extends AgoFunction> extends EntranceCallF
     public void yieldString(String value) {
         this.setSuspended(true);
         getCaller().getRunSpace().acceptStringByAsync(value);
-    }
-
-    public void yieldNull() {
-        this.setSuspended(true);
-        getCaller().getRunSpace().acceptNullByAsync();
     }
 
     public void yieldClassRef(AgoClass value) {

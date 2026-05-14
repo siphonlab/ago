@@ -121,27 +121,8 @@ public class ComplexMapLiteral extends ExpressionInFunctionBody {
         }
 
         case Object: {
-            Set<String> visited = new HashSet<>();
             var obj = (Var.LocalVar) expando.visit(blockCompiler);
-            blockCompiler.lockRegister(obj);
-            if (objectType.getAttributes() != null) {
-                for (var k : objectType.getAttributes().keySet()) {
-                    GetterSetterPair attribute = objectType.getAttribute(k);
-                    var attr = new Attribute(functionDef, obj, attribute.getGetter(), attribute.getSetter());
-                    var put = new MapPut(functionDef, mapInstance, getRoot().createStringLiteral(k), attr).setSourceLocation(sourceLocation).transform();
-                    put.termVisit(blockCompiler);
-                    visited.add(k);
-                }
-            }
-            Map<String, Field> fields = objectType.getFields();
-            for (var k : fields.keySet()) {
-                var fld = fields.get(k);
-                if (fld.isPublic() && !visited.contains(k)) {
-                    var put = new MapPut(functionDef, mapInstance, getRoot().createStringLiteral(k), functionDef.field(obj, fld)).setSourceLocation(sourceLocation).transform();
-                    put.termVisit(blockCompiler);
-                    visited.add(k);
-                }
-            }
+            new CopyAssign(functionDef, mapInstance, obj).transform().termVisit(blockCompiler);
             break;
         }
 

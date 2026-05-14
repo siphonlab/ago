@@ -170,7 +170,7 @@ public class TraitDef extends ClassDef{
         var instantiationArguments = this.getGenericSource().instantiationArguments();
         this.setPermitClass(templ.getPermitClass().instantiateAsReferenceClass(instantiationArguments, null));
 
-        this.setCompilingStage(CompilingStage.ParseFields);     // bypass ValidateHierarchy
+        this.setCompilingStage(CompilingStage.ParseFields);
     }
 
 

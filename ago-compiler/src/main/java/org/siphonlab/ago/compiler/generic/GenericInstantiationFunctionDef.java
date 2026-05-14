@@ -17,7 +17,6 @@ package org.siphonlab.ago.compiler.generic;
 
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
@@ -28,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.Stack;
 
 import static org.siphonlab.ago.compiler.generic.GenericInstantiate.composeName;
@@ -38,6 +36,8 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
 
     private final FunctionDef templateClass;
     private final InstantiationArguments instantiationArguments;
+
+    private AgoParser.TypeArgsListContext typeArgsListContext;
 
     public GenericInstantiationFunctionDef(FunctionDef templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
         super(templateClass.getRoot(), composeName(templateClass, instantiationArguments.takeFor(templateClass)), templateClass.getMethodDecl());
@@ -64,6 +64,16 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
 
     public ClassRefLiteral[] getTypeArguments() {
         return this.instantiationArguments.takeFor(this.templateClass);
+    }
+
+    @Override
+    public void setTypeArgsListAst(AgoParser.TypeArgsListContext typeArguments) {
+        this.typeArgsListContext = typeArguments;
+    }
+
+    @Override
+    public AgoParser.TypeArgsListContext getTypeArgsListAst() {
+        return this.typeArgsListContext;
     }
 
     @Override

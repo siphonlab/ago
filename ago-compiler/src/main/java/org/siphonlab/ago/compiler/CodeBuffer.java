@@ -405,13 +405,6 @@ public class CodeBuffer {
         slot(srcSlot);
     }
 
-    public void copyAssign(SlotDef destObject, SlotDef srcObject, int className){
-        ls.addInt(Move.move_copy_ooC);
-        slot(destObject);
-        slot(srcObject);
-        ls.addInt(className);
-    }
-
     public void invokeAsync(InvokeMode mode, SlotDef functionInstanceSlot, SlotDef resultSlot) {
         var op = switch (mode){
             case Spawn -> Invoke.spawn_vv;

@@ -17,8 +17,14 @@ package org.siphonlab.ago.compiler.generic;
 
 import org.siphonlab.ago.compiler.ConcreteType;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.parser.AgoParser;
 
 public interface GenericConcreteType extends ConcreteType {
 
     ClassRefLiteral[] getTypeArguments();
+
+    // original type arguments, carrying the source location of classref value
+    void setTypeArgsListAst(AgoParser.TypeArgsListContext typeArguments);
+
+    AgoParser.TypeArgsListContext getTypeArgsListAst();
 }

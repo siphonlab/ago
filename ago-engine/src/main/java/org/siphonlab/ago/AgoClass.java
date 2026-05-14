@@ -625,25 +625,24 @@ public class AgoClass extends Instance<MetaClass>{
             }
         }
 
-        // collect attributes
+        // collect attributes, inherited children not put into getChildren(), use getMethods instead
         if(this.getMethods() != null) {
-            for (var child : this.getChildren()) {
-                if(child instanceof AgoFunction method){
-                    String commonName = method.getCommonName();
-                    if (method.isGetter()) {
-                        var exists = r.get(method.getName());
-                        if (exists instanceof Property.AttributeProperty setter) {
-                            r.put(commonName, new Property.AttributeProperty(this, method, setter.getSetter()));
-                        } else {
-                            r.put(commonName, new Property.AttributeProperty(this, method, null));
-                        }
-                    } else if (method.isSetter()) {
-                        var exists = r.get(commonName);
-                        if (exists instanceof Property.AttributeProperty getter) {
-                            r.put(commonName, new Property.AttributeProperty(this, getter.getGetter(), method));
-                        } else {
-                            r.put(commonName, new Property.AttributeProperty(this, null, method));
-                        }
+            for (var method : this.getMethods()) {
+                if(method == null) continue;
+                String commonName = method.getCommonName();
+                if (method.isGetter()) {
+                    var exists = r.get(method.getName());
+                    if (exists instanceof Property.AttributeProperty setter) {
+                        r.put(commonName, new Property.AttributeProperty(this, method, setter.getSetter()));
+                    } else {
+                        r.put(commonName, new Property.AttributeProperty(this, method, null));
+                    }
+                } else if (method.isSetter()) {
+                    var exists = r.get(commonName);
+                    if (exists instanceof Property.AttributeProperty getter) {
+                        r.put(commonName, new Property.AttributeProperty(this, getter.getGetter(), method));
+                    } else {
+                        r.put(commonName, new Property.AttributeProperty(this, null, method));
                     }
                 }
             }

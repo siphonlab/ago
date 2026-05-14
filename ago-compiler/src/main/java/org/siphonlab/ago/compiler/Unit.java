@@ -20,6 +20,8 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -31,6 +33,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.expression.*;
+import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -104,6 +107,12 @@ public class Unit {
         pkg = root.getChild(packageName);
         if (pkg == null) {
             pkg = root.createPackage(packageName);
+        }
+    }
+
+    public void validateVariableType(ClassDef varType, org.siphonlab.ago.SourceLocation sourceLocation) throws TypeMismatchError {
+        if(varType instanceof NullClassDef || varType == getRoot().getPrimitiveType() || varType == getRoot().getPrimitiveNumberType()){
+            throw new TypeMismatchError("variable type cannot be null, lang.Primitive, lang.PrimitiveNumber", sourceLocation);
         }
     }
 
@@ -382,6 +391,9 @@ public class Unit {
         } else {
             validateClassMatchPermitClass(classDef);
         }
+        if(classDef instanceof GenericConcreteType){
+            validateTypeArgs(classDef);
+        }
         for(var sp = classDef.getSuperClass(); sp != null; sp = sp.getSuperClass()){
             if(sp.isThatOrDerivedFromThat(classDef)){
                 if(!classDef.getFullname().equals("lang.any"))
@@ -429,6 +441,22 @@ public class Unit {
             }
         }
         classDef.nextCompilingStage(CompilingStage.InheritsFields);
+    }
+
+    private void validateTypeArgs(ClassDef classDef) throws TypeMismatchError {
+        AgoParser.TypeArgsListContext typeArgsListAst = ((GenericConcreteType) classDef).getTypeArgsListAst();
+        if(typeArgsListAst != null) {
+            var args = classDef.getGenericSource().typeArguments();
+            var templateClass = classDef.getGenericSource().originalTemplate();
+            for (int i = 0; i < args.length; i++) {
+                ClassRefLiteral typeArg = args[i];
+                SourceLocation sourceLocation = sourceLocation(typeArgsListAst.typeArgument(i));
+                GenericTypeCodeAvatarClassDef param = templateClass.getTypeParamsContext().getGenericTypeParams().get(i);
+                if(!typeArg.getClassDefValue().isThatOrDerivedFromThat(param)){
+                    throw new TypeMismatchError("'%s' not accept for '%s'".formatted(typeArg.getClassDefValue().getFullname(), param.getFullname()), sourceLocation);
+                }
+            }
+        }
     }
 
     private void validateClassMatchPermitClass(ClassDef classDef) throws SyntaxError {
@@ -784,6 +812,7 @@ public class Unit {
             return parseType(scopeClass, varTypeNormal.declarationType(), acceptTypeExpr, allowGenericPlaceHolder);
         } else if (variableType instanceof AgoParser.VarTypeArrayContext varTypeArray) {
             var elementType = extractType(parseType(scopeClass, varTypeArray.variableType(), acceptTypeExpr, allowGenericPlaceHolder));
+            validateVariableType(elementType, sourceLocation(varTypeArray.variableType()));
             var dimension = varTypeArray.LBRACK().size();
             ArrayClassDef lastArrayType = null;
             for (var i = 0; i < dimension; i++) {
@@ -792,6 +821,7 @@ public class Unit {
             return new ConstClass(lastArrayType).setSourceLocation(SourceLocation.UNKNOWN);
         } else if(variableType instanceof AgoParser.VarTypeNullableContext varTypeNullable) {
             var t = extractType(parseType(scopeClass, varTypeNullable.variableType(), acceptTypeExpr, allowGenericPlaceHolder));
+            validateVariableType(t, sourceLocation(varTypeNullable.variableType()));
             var n = scopeClass.getOrCreateNullableType(t, null);
             return new ConstClass(n);
         } else {

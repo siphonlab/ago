@@ -798,6 +798,16 @@ public class ClassDef extends ClassContainer {
         throw new UnsupportedOperationException("'%s' is not a boxer type".formatted(this.getFullname()));
     }
 
+    public boolean isThatOrBoxOfThat(PrimitiveClassDef primitiveClassDef){
+        if(this instanceof PrimitiveClassDef && this == primitiveClassDef){
+            return true;
+        }
+        if(this.getTypeCode() == TypeCode.OBJECT){
+            if(primitiveClassDef.isThatOrSuperOfThat(this)) return true;
+            return this.getUnboxedTypeCode() == primitiveClassDef.getTypeCode();
+        }
+        return false;
+    }
 
     public void setPermitClass(ClassDef permitClass) {
         assert this.isInterfaceOrTrait();
@@ -986,9 +996,10 @@ public class ClassDef extends ClassContainer {
         if(anotherClass instanceof ParameterizedClassDef p){
             // if this is ParameterizedClassDef too, see ParameterizedClassDef.asAssignableFrom
             var r = this.asThatOrSuperOfThat(p.baseClass, visited, depth);
-            if(r != null){
-                return r;
-            }
+            if(r != null) return r;
+        } else if(anotherClass instanceof ParameterizedClassDef.PlaceHolder p){
+            var r = this.asThatOrSuperOfThat(p.getBaseClassDef(), visited, depth);
+            if(r != null) return r;
         }
 
         if(anotherClass.superClass != null && anotherClass.superClass != anotherClass){    // solve derived class in recursive
@@ -1248,6 +1259,11 @@ public class ClassDef extends ClassContainer {
     }
 
     public TypeParamsContext getTypeParamsContext() {
+        if(typeParamsContext == null){
+            if(this.getGenericSource() != null){
+                return this.genericSource.originalTemplate().getTypeParamsContext();
+            }
+        }
         return typeParamsContext;
     }
 
@@ -1610,7 +1626,7 @@ public class ClassDef extends ClassContainer {
 
         this.instantiateMetaClass();
 
-        this.setCompilingStage(CompilingStage.ParseFields);     // bypass ValidateHierarchy
+        this.setCompilingStage(CompilingStage.ParseFields);
     }
 
     public MetaClassDef resolveMetaclass() throws CompilationError {       // in ResolveHierarchicalClasses

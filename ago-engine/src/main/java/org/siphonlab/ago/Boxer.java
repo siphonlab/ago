@@ -230,28 +230,32 @@ public class Boxer {
     }
 
 
-    private boolean validateBoxType(CallFrame<?> agoFrame, CallFrame<?> self, AgoClass agoClass, int typeCode){
-        if(agoClass instanceof AgoEnum agoEnum){
-            if(agoEnum.getBasePrimitiveType().value != typeCode){
-                agoFrame.raiseException(self, "lang.ClassCastException", "illegal cast from '%s' to '%s'".formatted(of(typeCode), agoClass.getFullname()));
+    private boolean validateBoxType(CallFrame<?> agoFrame, CallFrame<?> self, AgoClass fromClass, int toPrimitiveTypeCode){
+        if(fromClass instanceof AgoEnum agoEnum){
+            if(agoEnum.getBasePrimitiveType().value != toPrimitiveTypeCode){
+                agoFrame.raiseException(self, "lang.ClassCastException", "illegal cast from '%s' to '%s'".formatted(fromClass.getFullname(), of(toPrimitiveTypeCode)));
                 return false;
             }
             return true;
         }
-        return switch (typeCode) {
-            case INT_VALUE -> agoClass.isThatOrDerivedFrom(this.INTEGER);
-            case STRING_VALUE -> agoClass.isThatOrDerivedFrom(this.STRING);
-            case LONG_VALUE -> agoClass.isThatOrDerivedFrom(this.LONG);
-            case BOOLEAN_VALUE -> agoClass.isThatOrDerivedFrom(this.BOOLEAN);
-            case DOUBLE_VALUE -> agoClass.isThatOrDerivedFrom(this.DOUBLE);
-            case DECIMAL_VALUE -> agoClass.isThatOrDerivedFrom(this.DECIMAL);
-            case BYTE_VALUE -> agoClass.isThatOrDerivedFrom(this.BYTE);
-            case FLOAT_VALUE -> agoClass.isThatOrDerivedFrom(this.FLOAT);
-            case CHAR_VALUE -> agoClass.isThatOrDerivedFrom(this.CHAR);
-            case SHORT_VALUE -> agoClass.isThatOrDerivedFrom(this.SHORT);
-            case CLASS_REF_VALUE -> agoClass.isThatOrDerivedFrom(this.CLASS_REF);
+        var r = switch (toPrimitiveTypeCode) {
+            case INT_VALUE -> fromClass.isThatOrDerivedFrom(this.INTEGER);
+            case STRING_VALUE -> fromClass.isThatOrDerivedFrom(this.STRING);
+            case LONG_VALUE -> fromClass.isThatOrDerivedFrom(this.LONG);
+            case BOOLEAN_VALUE -> fromClass.isThatOrDerivedFrom(this.BOOLEAN);
+            case DOUBLE_VALUE -> fromClass.isThatOrDerivedFrom(this.DOUBLE);
+            case DECIMAL_VALUE -> fromClass.isThatOrDerivedFrom(this.DECIMAL);
+            case BYTE_VALUE -> fromClass.isThatOrDerivedFrom(this.BYTE);
+            case FLOAT_VALUE -> fromClass.isThatOrDerivedFrom(this.FLOAT);
+            case CHAR_VALUE -> fromClass.isThatOrDerivedFrom(this.CHAR);
+            case SHORT_VALUE -> fromClass.isThatOrDerivedFrom(this.SHORT);
+            case CLASS_REF_VALUE -> fromClass.isThatOrDerivedFrom(this.CLASS_REF);
             default -> false;
         };
+        if(!r){
+            agoFrame.raiseException(self, "lang.ClassCastException", "illegal cast from '%s' to '%s'".formatted(fromClass.getFullname(), of(toPrimitiveTypeCode)));
+        }
+        return r;
     }
 
     public boolean forceUnbox(CallFrame<?> agoFrame, Slots slots, CallFrame<?> self, int receiverIndex, Instance<?> object, int typeCode) {

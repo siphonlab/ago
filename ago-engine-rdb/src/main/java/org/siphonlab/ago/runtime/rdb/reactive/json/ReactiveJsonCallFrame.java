@@ -59,32 +59,21 @@ public class ReactiveJsonCallFrame extends AgoFrame {
     }
 
     protected int evaluateMove(Slots slots, int pc, int instruction) {
-        if(instruction == Move.move_copy_ooC){
-            ReactiveJsonRefSlots dest = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
-            ReactiveJsonRefSlots src = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
-            AgoClass byClass = engine.getClass(code[pc++]);
-            List<String> fields = new ArrayList<>();
-            for (AgoSlotDef slotDef : byClass.getSlotDefs()) {
-                fields.add(dest.getFieldName(slotDef.getIndex()));
+        ReactiveJsonRefSlots reactiveJsonRefSlots = (ReactiveJsonRefSlots) slots;
+        switch ((instruction & DTYPE_MASK_NEG)){
+            case Move.move_vv:
+                adapter.move(reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(code[pc++]), reactiveJsonRefSlots.getFieldName(code[pc++])); break;
+            case Move.move_fld_ovv: {
+                ReactiveJsonRefSlots obj = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
+                adapter.move(obj.getObjectRef(), obj.getFieldName(code[pc++]), reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(code[pc++]));
             }
-            adapter.copyAssign(dest.getObjectRef(), src.getObjectRef(), fields);
-        } else {
-            ReactiveJsonRefSlots reactiveJsonRefSlots = (ReactiveJsonRefSlots) slots;
-            switch ((instruction & DTYPE_MASK_NEG)){
-                case Move.move_vv:
-                    adapter.move(reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(code[pc++]), reactiveJsonRefSlots.getFieldName(code[pc++])); break;
-                case Move.move_fld_ovv: {
-                    ReactiveJsonRefSlots obj = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
-                    adapter.move(obj.getObjectRef(), obj.getFieldName(code[pc++]), reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(code[pc++]));
-                }
-                break;
-                case Move.move_fld_vov: {
-                    var slot = code[pc++];
-                    ReactiveJsonRefSlots obj = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
-                    adapter.move(reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(slot), obj.getObjectRef(), obj.getFieldName(code[pc++]));
-                }
-                break;
+            break;
+            case Move.move_fld_vov: {
+                var slot = code[pc++];
+                ReactiveJsonRefSlots obj = (ReactiveJsonRefSlots) slots.getObject(code[pc++]).getSlots();
+                adapter.move(reactiveJsonRefSlots.getObjectRef(), reactiveJsonRefSlots.getFieldName(slot), obj.getObjectRef(), obj.getFieldName(code[pc++]));
             }
+            break;
         }
         return pc;
     }

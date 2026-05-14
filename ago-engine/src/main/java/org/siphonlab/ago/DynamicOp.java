@@ -15,9 +15,6 @@
  */
 package org.siphonlab.ago;
 
-import org.siphonlab.ago.native_.NativeFrame;
-
-import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
 import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
 import static org.siphonlab.ago.TypeCode.CHAR_VALUE;
@@ -148,14 +145,19 @@ public class DynamicOp {
         if(property != null){
             if(property.isWritable() && property.getVisibilityForWrite() == Visibility.Public) {
                 if(property instanceof Property.FieldProperty fieldProperty){
-                    if(setSlot(frame, self, object, value, fieldProperty.getAgoField(), agoClass)){
+                    AgoVariable fld = fieldProperty.getAgoField();
+                    AgoClass unionClass = frame.getAgoEngine().getLangClasses().getAnyClass();
+                    if(Conversion.castFromUnion(self, frame, object.getSlots(), fld.getSlotIndex(), fld.getTypeCode().value, agoClass, value, unionClass)){
                         return RESULT_OK;
                     } else {
                         return RESULT_EXCEPTION;
                     }
                 } else if(property instanceof Property.AttributeProperty attributeProperty){
                     var setter = engine.createFunctionInstance(object, attributeProperty.getSetter(), self, self);
-                    if(setSlot(frame, self, setter, value, setter.getAgoClass().getParameters()[0], setter.getAgoClass())){
+                    AgoClass targetType = setter.getAgoClass();
+                    AgoVariable fld = setter.getAgoClass().getParameters()[0];
+                    AgoClass unionClass = frame.getAgoEngine().getLangClasses().getAnyClass();
+                    if(Conversion.castFromUnion(self, frame, setter.getSlots(), fld.getSlotIndex(), fld.getTypeCode().value, targetType, value, unionClass)){
                         setter.setRunSpace(frame.getRunSpace());
                         setter.setCaller(frame);
                         frame.getRunSpace().setCurrCallFrame(setter);
@@ -172,64 +174,6 @@ public class DynamicOp {
             frame.raiseException(self, "lang.NoSuchMemberException", "'%s' not found in '%s'".formatted(memberName, agoClass.getFullname()));
         }
         return RESULT_EXCEPTION;
-    }
-
-    public static boolean setSlot(CallFrame<?> frame, CallFrame<?> self, Instance<?> object, Instance<?> value, AgoVariable fld, AgoClass agoClass) {
-        AgoEngine engine = frame.getAgoEngine();
-        switch (fld.getTypeCode().value) {
-            case INT_VALUE:
-            case LONG_VALUE:
-            case DOUBLE_VALUE:
-            case DECIMAL_VALUE:
-            case BOOLEAN_VALUE:
-            case STRING_VALUE:
-            case CHAR_VALUE:
-            case SHORT_VALUE:
-            case BYTE_VALUE:
-            case FLOAT_VALUE:
-            case CLASS_REF_VALUE:
-                return engine.getBoxer().forceUnbox(frame, object.getSlots(), self, fld.getSlotIndex(), value, fld.getTypeCode().value);
-            case OBJECT_VALUE:
-                object.getSlots().setObject(fld.getSlotIndex(), value);
-                break;
-            case UNION_VALUE: {
-                var slotDef = agoClass.getSlotDefs()[fld.getSlotIndex()];
-                NullableTypeInfo nullableTypeInfo = (NullableTypeInfo) slotDef.getAgoClass().getConcreteTypeInfo();
-                if(nullableTypeInfo.getBaseClass().getTypeCode() == OBJECT){
-                    object.getSlots().setUnion(fld.getSlotIndex(), value);
-                } else {
-                    object.getSlots().setUnion(fld.getSlotIndex(), engine.getBoxer().unbox(value));
-                }
-                break;
-            }
-        }
-        return true;
-    }
-
-    public static boolean setSlot(CallFrame<?> frame, CallFrame<?> self, Instance<?> object, Object unionValue, AgoVariable fld, AgoClass agoClass) {
-        if(unionValue instanceof Instance<?> instance){
-            return setSlot(frame, self, object, instance, fld, agoClass);
-        } else {
-            var index = fld.getSlotIndex();
-            var engine = frame.getAgoEngine();
-            switch (fld.getTypeCode().value){
-                case INT_VALUE: object.getSlots().setInt(index, Union.unionToInt(unionValue, engine)); break;
-                case LONG_VALUE: object.getSlots().setLong(index, Union.unionToLong(unionValue, engine)); break;
-                case DOUBLE_VALUE: object.getSlots().setDouble(index, Union.unionToDouble(unionValue, engine)); break;
-                case DECIMAL_VALUE: object.getSlots().setDecimal(index, Union.unionToDecimal(unionValue, engine)); break;
-                case BOOLEAN_VALUE: object.getSlots().setBoolean(index, Union.unionToBoolean(unionValue, engine)); break;
-                case STRING_VALUE: object.getSlots().setString(index, Union.unionToString(unionValue, engine)); break;
-                case CHAR_VALUE: object.getSlots().setChar(index, Union.unionToChar(unionValue, engine)); break;
-                case SHORT_VALUE: object.getSlots().setShort(index, Union.unionToShort(unionValue, engine)); break;
-                case BYTE_VALUE: object.getSlots().setByte(index, Union.unionToByte(unionValue, engine)); break;
-                case FLOAT_VALUE: object.getSlots().setFloat(index, Union.unionToFloat(unionValue, engine)); break;
-                case CLASS_REF_VALUE: object.getSlots().setClassRef(index, Union.unionToClassRef(unionValue, engine)); break;
-                case OBJECT_VALUE: object.getSlots().setObject(index, engine.getBoxer().unionToObject(unionValue)); break;
-                case UNION_VALUE: object.getSlots().setUnion(index, object); break;     //TODO safe assign
-            }
-        }
-
-        return true;
     }
 
     CallFrame<?> createOrGetDynamicCallFrame(CallFrame<?> self, Instance<?> obj){

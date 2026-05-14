@@ -22,6 +22,8 @@ fun main(){
     var staff = {Staff| ...tom, workNo: '1001', salary: 10200}
     Trace.print(staff)
 
-    var mike as Staff = {...staff, name: 'Mike', workNo: '1003', salary: 13332}
+    var map = {HashMap<string, Object> | workNo: '1003', salary: 13332};
+
+    var mike as Staff = {...staff, name: 'Mike', ... map}
     Trace.print(mike)
 }

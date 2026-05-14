@@ -57,8 +57,8 @@ public class ComplexObjectLiteral extends ExpressionInFunctionBody {
             if (kvDef instanceof KVCollectionExpandoDef expandoDef) {
                 Expression expr = expandoDef.getExpression();
                 var t = expr.inferType();
-                if (root.getAnyMapClass().isThatOrSuperOfThat(t)) {
-                    throw new TypeMismatchError("cannot copy a Map to an object", expr.getSourceLocation());
+                if (root.getAnyReadonlyMap().isThatOrSuperOfThat(t)) {
+                    // allow now
                 } else {
                     if (objectType.isThatOrSuperOfThat(t) || t.isThatOrSuperOfThat(objectType)) {
                         //
@@ -131,13 +131,14 @@ public class ComplexObjectLiteral extends ExpressionInFunctionBody {
         var root = blockCompiler.getRoot();
         switch (kind) {
             case ReadOnlyMap:
-                throw new TypeMismatchError("cannot copy a Map to attributes of an object", sourceLocation);
+                new CopyAssign(functionDef, instance, expression).transform().termVisit(blockCompiler);
+                break;
+
             case KeyValuePairIterable, KeyValuePairIterator:
                 throw new TypeMismatchError("cannot copy Iterable/Iterator to attributes of an object", sourceLocation);
 
             case Object:
-                var assign = new CopyAssign(functionDef, instance, expression, findCommonType(objectType, objectType));
-                assign.termVisit(blockCompiler);
+                new CopyAssign(functionDef, instance, expression).transform().termVisit(blockCompiler);
                 break;
 
             default:

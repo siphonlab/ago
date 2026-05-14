@@ -122,10 +122,6 @@ public class EntranceCallFrame<T extends AgoFunction> extends CallFrame<T> {
         getRunSpace().acceptString(result, null);
     }
 
-    public void finishNull() {
-        getRunSpace().acceptNull(null);
-    }
-
     public void finishClassRef(AgoClass result) {
         getRunSpace().acceptClassRef(result, null);
     }
