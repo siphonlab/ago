@@ -11,10 +11,6 @@
     <option name="MAIN_CLASS_NAME" value="org.siphonlab.ago.test.NullableTests" />
     <option name="METHOD_NAME" value="" />
     <option name="TEST_OBJECT" value="class" />
-<<<<<<< HEAD
-=======
-    <fork_mode value="method" />
->>>>>>> 9475e94 (restore .run files)
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
