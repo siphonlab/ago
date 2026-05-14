@@ -59,17 +59,11 @@
             <artifactId>reactor-core</artifactId>
             <version>3.8.0-M4</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/com.rabbitmq/amqp-client -->
-        <dependency>
-            <groupId>com.rabbitmq</groupId>
-            <artifactId>amqp-client</artifactId>
-            <version>5.26.0</version>
-        </dependency>
 
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-core</artifactId>
-            <version>5.0.1</version>
+            <version>5.0.12</version>
             <scope>compile</scope>
         </dependency>
 
