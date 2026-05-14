@@ -17,7 +17,6 @@ package org.siphonlab.ago.compiler.generic;
 
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
@@ -37,6 +36,7 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
 
     private final ClassDef templateClass;
     private final InstantiationArguments instantiationArguments;
+    private AgoParser.TypeArgsListContext typeArgsListContext;
 
     public GenericInstantiationClassDef(ClassDef templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
         super(templateClass.getRoot(), composeName(templateClass, instantiationArguments.takeFor(templateClass)));
@@ -63,7 +63,7 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
             var instantiationArguments = this.getGenericSource().instantiationArguments();
             this.setPermitClass(templ.getPermitClass().instantiateAsReferenceClass(instantiationArguments, null));
 
-            this.setCompilingStage(CompilingStage.ParseFields);     // bypass ValidateHierarchy
+            this.setCompilingStage(CompilingStage.ParseFields);
         }
     }
 
@@ -96,6 +96,16 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
 
     public ClassRefLiteral[] getTypeArguments() {
         return this.instantiationArguments.takeFor(this.templateClass);
+    }
+
+    @Override
+    public void setTypeArgsListAst(AgoParser.TypeArgsListContext typeArguments) {
+        this.typeArgsListContext = typeArguments;
+    }
+
+    @Override
+    public AgoParser.TypeArgsListContext getTypeArgsListAst() {
+        return typeArgsListContext;
     }
 
     @Override

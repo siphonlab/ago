@@ -17,7 +17,6 @@ package org.siphonlab.ago.compiler.generic;
 
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
@@ -27,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Set;
 import java.util.Stack;
 
 public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunctionWrapper implements GenericConcreteType {
@@ -35,6 +33,7 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
 
     private final InterfaceFunctionWrapper templateClass;
     private final InstantiationArguments instantiationArguments;
+    private AgoParser.TypeArgsListContext typeArgsListContext;
 
     public GenericInstantiationInterfaceFunctionWrapper(InterfaceFunctionWrapper templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
         super(templateClass.getRoot(), parent, (FunctionDef) templateClass.getInterfaceFun().instantiateAsReferenceClass(instantiationArguments,null), templateClass.getWrapperField(), templateClass.getIdentifierContext());
@@ -64,6 +63,16 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
 
     public ClassRefLiteral[] getTypeArguments() {
         return this.instantiationArguments.takeFor(this.templateClass);
+    }
+
+    @Override
+    public void setTypeArgsListAst(AgoParser.TypeArgsListContext typeArguments) {
+        this.typeArgsListContext = typeArguments;
+    }
+
+    @Override
+    public AgoParser.TypeArgsListContext getTypeArgsListAst() {
+        return typeArgsListContext;
     }
 
     @Override

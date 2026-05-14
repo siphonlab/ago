@@ -345,6 +345,7 @@ public class BlockCompiler {
             Compiler.processClassTillStage(type,CompilingStage.AllocateSlots);
             variable.setType(type);
             if(type.getTypeCode() == TypeCode.OBJECT) functionDef.idOfConstString(type.getFullname());
+            unit.validateVariableType(type, unit.sourceLocation(localVariableDeclaration.typeOfVariable()));
         } else {
             if(initializer == null){
                 throw unit.syntaxError(localVariableDeclaration, "variable declaration has no variable type nor initializer");
@@ -371,6 +372,7 @@ public class BlockCompiler {
                     }
                 }
                 variable.setType(inferred);
+                unit.validateVariableType(inferred, unit.sourceLocation(initializer));
             } else {
                 initializerExpr = new Cast(functionDef, initializerExpr, type).setSourceLocation(initializerExpr.getSourceLocation()).transform();
             }
@@ -688,8 +690,14 @@ public class BlockCompiler {
 
     private Expression assign(AssignExprContext assignExpr) throws CompilationError {
         var assignee = assignee(assignExpr.expression(0));
-        var value = assigner(assignExpr.expression(1), assignee, assignee.inferType());
         int bopType = assignExpr.bop.getType();
+        Expression value;
+        if(bopType == COPY_ASSIGN) {
+            value = expression(assignExpr.expression(1));
+        } else {
+            value = assigner(assignExpr.expression(1), assignee, assignee.inferType());
+        }
+
         SourceLocation sourceLocation = unit.sourceLocation(assignExpr);
         switch (bopType) {
             case ASSIGN:
@@ -726,23 +734,7 @@ public class BlockCompiler {
             case URSHIFT_ASSIGN:
                 return new SelfBitShiftExpr(functionDef, assignee,value, SelfBitShiftExpr.Type.URShift).setSourceLocation(unit.sourceLocation(assignExpr));
             case COPY_ASSIGN:
-                ClassDef assigneeType = assignee.inferType();
-                ClassDef valueType = value.inferType();
-                if(assigneeType.getTypeCode() != TypeCode.OBJECT && !assigneeType.isClass()){
-                    throw unit.syntaxError(assignExpr, "object type expected");
-                }
-                if (valueType.getTypeCode() != TypeCode.OBJECT && !valueType.isClass()) {
-                    throw new TypeMismatchError("object type expected", value.getSourceLocation());
-                }
-                ClassDef commonType;
-                if(assigneeType.isThatOrDerivedFromThat(valueType)){
-                    commonType = valueType;
-                } else if(assigneeType.isThatOrSuperOfThat(valueType)){
-                    commonType = assigneeType;
-                } else {
-                    throw new TypeMismatchError("'%s' and '%s' has no explicit relation".formatted(assigneeType.getFullname(), valueType.getFullname()), value.getSourceLocation());
-                }
-                return new CopyAssign(functionDef, assignee, value, commonType).setSourceLocation(unit.sourceLocation(assignExpr));
+                return new CopyAssign(functionDef, assignee, value).setSourceLocation(unit.sourceLocation(assignExpr));
             case SET_VALUE:
 //TODO
             default:
@@ -811,6 +803,7 @@ public class BlockCompiler {
             }
         } else if(creator instanceof ArrayCreatorContext arrayCreator) {
             var elementType = unit.parseTypeName(functionDef, arrayCreator.declarationType().namePath(), false);
+            unit.validateVariableType(elementType, unit.sourceLocation(arrayCreator.declarationType()));
             Compiler.processClassTillStage(elementType, CompilingStage.AllocateSlots);
             var dimension = arrayCreator.LBRACK().size();
             var expressions = arrayCreator.expression();
@@ -982,6 +975,7 @@ public class BlockCompiler {
         } else if(!arrayLiteral.elementList().isEmpty()){
             var first = arrayLiteral.elementList().arrayElement(0);
             var el = arrayElement(first, null, null);
+            unit.validateVariableType(el.elementType(), el.getExpression().getSourceLocation());
             arrayType = functionDef.getOrCreateArrayType(el.elementType(), null);
         } else {
             throw unit.syntaxError(lArrayContext, "cannot predict array type");

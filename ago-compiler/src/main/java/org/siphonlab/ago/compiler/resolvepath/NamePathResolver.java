@@ -941,13 +941,15 @@ public class NamePathResolver {
             for (int i = 0; i < argument.size(); i++) {
                 AgoParser.TypeArgumentContext typeArgument = argument.get(i);
                 var cls = unit.parseType(scopeClass, typeArgument.variableType(), false, true);
-                args[i] = Unit.extractType(cls).toClassRefLiteral();
+                args[i] = Unit.extractType(cls).toClassRefLiteral().withSourceLocation(unit.sourceLocation(typeArgument));
             }
-            //TODO validation arguments
-//            if(templateClass.getGenericTypeParams().size() != args.length){
-//                //throw new CompilationError("")
-//            }
-            var pc = ((ClassContainer) templateClass.getParent()).getOrCreateGenericInstantiationClassDef(templateClass, args, null);
+
+            // validate type arguments when ValidateHierarchy
+            if(templateClass.getTypeParamsContext().getGenericTypeParams().size() != args.length){
+                throw unit.syntaxError(typeArgs, "type argument size mismatch, expected '%d', pass '%d'".formatted(templateClass.getTypeParamsContext().getGenericTypeParams().size(), args.length));
+            }
+
+            var pc = ((ClassContainer) templateClass.getParent()).getOrCreateGenericInstantiationClassDef(templateClass, args, typeArgs, null);
             if(pc instanceof ConcreteType c) scopeClass.registerConcreteType(c);
             scopeClass.idOfClass(templateClass);
             Compiler.processClassTillStage((ClassDef) pc,scopeClass.getCompilingStage());

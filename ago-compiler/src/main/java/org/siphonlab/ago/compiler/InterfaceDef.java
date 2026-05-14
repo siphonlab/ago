@@ -161,7 +161,7 @@ public class InterfaceDef extends ClassDef{
 
         this.resolveMetaclass();
 
-        this.setCompilingStage(CompilingStage.ParseFields);     // bypass ValidateHierarchy
+        this.setCompilingStage(CompilingStage.ParseFields);
     }
 
     @Override
