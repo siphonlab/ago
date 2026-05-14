@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="NullableTests" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
+  <configuration default="false" name="ReflectionTests" type="JUnit" factoryName="JUnit" nameIsGenerated="true">
     <module name="test-cases" />
     <extension name="coverage">
       <pattern>
@@ -8,13 +8,9 @@
       </pattern>
     </extension>
     <option name="PACKAGE_NAME" value="org.siphonlab.ago.test" />
-    <option name="MAIN_CLASS_NAME" value="org.siphonlab.ago.test.NullableTests" />
+    <option name="MAIN_CLASS_NAME" value="org.siphonlab.ago.test.ReflectionTests" />
     <option name="METHOD_NAME" value="" />
     <option name="TEST_OBJECT" value="class" />
-<<<<<<< HEAD
-=======
-    <fork_mode value="method" />
->>>>>>> 9475e94 (restore .run files)
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
