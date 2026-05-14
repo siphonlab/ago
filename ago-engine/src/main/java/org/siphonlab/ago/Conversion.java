@@ -5,7 +5,7 @@ import org.siphonlab.ago.classloader.ClassRefValue;
 
 import java.math.BigDecimal;
 
-import static org.siphonlab.ago.AgoFrame.stringToChar;
+import static org.siphonlab.ago.AgoFrame.*;
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
 import static org.siphonlab.ago.TypeCode.CHAR_VALUE;
@@ -16,6 +16,11 @@ import static org.siphonlab.ago.TypeCode.LONG_VALUE;
 import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 
 public class Conversion {
+
+    public final static int CAST_TO_ANY_SUCCESS = 0;
+    public final static int CAST_TO_ANY_FAILED = -1;
+    public final static int CAST_TO_ANY_WAIT_RESULT = -2;
+
     public static Instance<?> boxEnum(Slots slots, AgoEnum agoEnum, int srcIndex, int srcTypeCode) {
         switch (srcTypeCode) {
             case INT_VALUE:
@@ -46,12 +51,12 @@ public class Conversion {
     // support Primitive(-Null) -> Primitive(-Null), Primitive(-Null) -> Boxer Object, Primitive -> Union
     // Boxer -> Primitive(-Null), Object -> Object(assignable)
     // Boxer -> Union, Object -> Union
-    public static boolean castToAny(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass,
+    public static int castToAny(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass,
                               int srcSlotIndex, int srcTypeCode, AgoClass srcClass) {
         if(targetTypeCode == UNION_VALUE){
-            return castToUnion(self, agoFrame, slots, targetIndex, targetClass, srcSlotIndex, srcTypeCode, srcClass);
+            return castToUnion(self, agoFrame, slots, targetIndex, targetClass, srcSlotIndex, srcTypeCode, srcClass) ? CAST_TO_ANY_SUCCESS : CAST_TO_ANY_FAILED;
         } else if(srcTypeCode == UNION_VALUE){
-            return castFromUnion(self, agoFrame, slots, targetIndex, targetTypeCode, targetClass, srcSlotIndex, srcClass);
+            return castFromUnion(self, agoFrame, slots, targetIndex, targetTypeCode, targetClass, slots.getUnion(srcSlotIndex), srcClass) ? CAST_TO_ANY_SUCCESS : CAST_TO_ANY_FAILED;
         }
         if(isPrimitiveExcludeNull(srcTypeCode)) {   // primitive src
             if (isPrimitiveExcludeNull(targetTypeCode)) {
@@ -63,13 +68,13 @@ public class Conversion {
                     var instance = boxEnum(slots, agoEnum, srcSlotIndex, srcTypeCode);
                     if (instance == null) {
                         agoFrame.raiseException(self, "lang.ClassCastException", "'%s' can't cast to '%s'".formatted(of(srcTypeCode), agoEnum.getFullname()));
-                        return false;
+                        return CAST_TO_ANY_FAILED;
                     }
                     slots.setObject(targetIndex, instance);
                 } else {
                     var instance = agoFrame.getAgoEngine().getBoxer().boxAny(slots, srcSlotIndex, srcTypeCode);
-                    if (!agoFrame.validateClassInheritance(instance.getAgoClass(), targetClass)) {
-                        return false;
+                    if (!validateClassInheritance(agoFrame, self, instance.getAgoClass(), targetClass)) {
+                        return CAST_TO_ANY_FAILED;
                     }
                     slots.setObject(targetIndex, instance);
                 }
@@ -79,20 +84,29 @@ public class Conversion {
                 slots.setVoid(targetIndex, null);
             } else {
                 agoFrame.raiseException(self, "lang.ClassCastException", "can't cast null to '%s'".formatted(of(targetTypeCode)));
-                return false;
+                return CAST_TO_ANY_FAILED;
             }
         } else {
-            if(isPrimitiveExcludeNull(targetTypeCode)){       //TODO for union, take primitive value
-                return agoFrame.getAgoEngine().getBoxer().forceUnbox(agoFrame, agoFrame.getSlots(), self, targetIndex,slots.getObject(srcSlotIndex),targetTypeCode);
+            Instance<?> object = slots.getObject(srcSlotIndex);
+            if(isPrimitiveExcludeNull(targetTypeCode)){
+                if(targetTypeCode == STRING_VALUE){     // obj.toString()
+                    object.invokeMethod(self, REENTER_INVOKE_TO_STRING, targetIndex, object.getAgoClass().findMethod("toString#"));
+                    return CAST_TO_ANY_WAIT_RESULT;
+                } else if(targetTypeCode == BOOLEAN_VALUE){
+                    var v = agoFrame.getAgoEngine().getBoxer().unbox(object);
+                    var r = Union.unionToBoolean(v, agoFrame.getAgoEngine());
+                    slots.setBoolean(targetIndex, r);
+                } else {
+                    return agoFrame.getAgoEngine().getBoxer().forceUnbox(agoFrame, agoFrame.getSlots(), self, targetIndex, object,targetTypeCode) ? CAST_TO_ANY_SUCCESS : CAST_TO_ANY_FAILED;
+                }
             } else {
-                return castObject(agoFrame, self, slots, targetIndex,slots.getObject(srcSlotIndex),targetTypeCode,targetClass);
+                return castObject(agoFrame, self, slots, targetIndex, object,targetTypeCode,targetClass) ? CAST_TO_ANY_SUCCESS : CAST_TO_ANY_FAILED;
             }
         }
-        return true;
+        return CAST_TO_ANY_SUCCESS;
     }
 
-    private static boolean castFromUnion(CallFrame<?> self, AgoFrame agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass, int srcSlotIndex, AgoClass srcClass) {
-        var unionValue = slots.getUnion(srcSlotIndex);
+    public static boolean castFromUnion(CallFrame<?> self, CallFrame<?> agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass, Object unionValue, AgoClass srcClass) {
         var srcTypeOfUnionValue = Union.extractUnionType(unionValue).value;
         var boxer = agoFrame.getAgoEngine().getBoxer();
         if(isPrimitiveExcludeNull(targetTypeCode)){
@@ -132,7 +146,7 @@ public class Conversion {
         return true;
     }
 
-    private static boolean castPrimitiveToPrimitive(Slots slots, int targetIndex, int targetTypeCode, Object srcUnionValue, AgoFrame agoFrame) {
+    private static boolean castPrimitiveToPrimitive(Slots slots, int targetIndex, int targetTypeCode, Object srcUnionValue, CallFrame<?> agoFrame) {
         switch (targetTypeCode){
             case INT_VALUE:     slots.setInt(targetIndex, Union.unionToInt(srcUnionValue, agoFrame.getAgoEngine()));
                 break;
@@ -262,7 +276,7 @@ public class Conversion {
                 var value = boxer.boxAny(slots, srcSlotIndex, srcTypeCode, toBaseClassOfUnion, self);
                 slots.setUnion(targetIndex, value);
             } else if(srcTypeCode == OBJECT_VALUE){
-                if(!agoFrame.validateClassInheritance(srcClass, toBaseClassOfUnion)) return false;
+                if(!validateClassInheritance(agoFrame, self, srcClass, toBaseClassOfUnion)) return false;
                 slots.setUnion(targetIndex, slots.getObject(srcSlotIndex));
             } else if(srcTypeCode == UNION_VALUE){
                 var srcUnionValue = slots.getUnion(srcSlotIndex);
@@ -286,7 +300,7 @@ public class Conversion {
                     var value = boxer.boxAny(((Instance<?>)srcUnionValue).getSlots(), 0, typeCodeOfSrcBase, toBaseClassOfUnion, self);
                     slots.setUnion(targetIndex, value);
                 } else if(typeCodeOfSrcBase == OBJECT_VALUE) {
-                    if (!agoFrame.validateClassInheritance(srcClass, toBaseClassOfUnion)) return false;
+                    if (!validateClassInheritance(agoFrame, self, srcClass, toBaseClassOfUnion)) return false;
                     slots.setUnion(targetIndex, (Instance<?>)srcUnionValue);
                 }
             }
@@ -639,12 +653,12 @@ public class Conversion {
         }
     }
 
-    public static boolean castObject(AgoFrame agoFrame, CallFrame<?> self, Slots slots, int index, Instance<?> object, int typeCode, AgoClass expectedClass) {
+    public static boolean castObject(CallFrame<?> agoFrame, CallFrame<?> self, Slots slots, int index, Instance<?> object, int typeCode, AgoClass expectedClass) {
         if(object == null){
             agoFrame.raiseException(self, "lang.ClassCastException", "can't cast null to '%s'".formatted(expectedClass.getFullname()));
             return true;
         }
-        if(!agoFrame.validateClassInheritance(object.getAgoClass(), expectedClass)) return false;
+        if(!validateClassInheritance(agoFrame, self, object.getAgoClass(), expectedClass)) return false;
         slots.setObject(index, object);
         return true;
     }
