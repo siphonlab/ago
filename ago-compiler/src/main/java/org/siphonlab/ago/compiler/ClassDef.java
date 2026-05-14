@@ -1259,6 +1259,11 @@ public class ClassDef extends ClassContainer {
     }
 
     public TypeParamsContext getTypeParamsContext() {
+        if(typeParamsContext == null){
+            if(this.getGenericSource() != null){
+                return this.genericSource.originalTemplate().getTypeParamsContext();
+            }
+        }
         return typeParamsContext;
     }
 
