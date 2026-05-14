@@ -1248,7 +1248,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Return.return_l_c:     {self.finishLong(toLong(code[pc++], code[pc++])); break;}
             case Return.return_l_v:     {self.finishLong(slots.getLong(code[pc++])); break;}
             case Return.return_o_v:     {self.finishObject(slots.getObject(code[pc++])); break;}
-            case Return.return_n:       {self.finishNull(); break;}
+            case Return.return_n:       {self.finishUnion(null); break;}
             case Return.return_S_c:     {self.finishString(engine.toString(code[pc++])); break;}
             case Return.return_S_v:     {self.finishString(slots.getString(code[pc++])); break;}
 
@@ -1284,7 +1284,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Yield.yield_l_c:     {self.yieldLong(toLong(code[pc++], code[pc++])); break;}
             case Yield.yield_l_v:     {self.yieldLong(slots.getLong(code[pc++])); break;}
             case Yield.yield_o_v:     {self.yieldObject(slots.getObject(code[pc++])); break;}
-            case Yield.yield_n:       {self.yieldNull(); break;}
+            case Yield.yield_n:       {self.yieldUnion(null); break;}
             case Yield.yield_S_c:     {self.yieldString(engine.toString(code[pc++])); break;}
             case Yield.yield_S_v:     {self.yieldString(slots.getString(code[pc++])); break;}
 

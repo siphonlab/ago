@@ -258,18 +258,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         }
     }
 
-    public void finishNull() {
-        CallFrame<?> caller = getCaller();
-        RunSpace runSpace = getRunSpace();
-        if(caller != null) {
-            RunSpace callerRunSpace = caller.getRunSpace();
-            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
-            if (callerRunSpace != null) callerRunSpace.acceptNull(caller);
-        } else {
-            runSpace.setCurrCallFrame(null);
-        }
-    }
-
     public void finishClassRef(AgoClass result){
         CallFrame<?> caller = getCaller();
         RunSpace runSpace = getRunSpace();
@@ -388,10 +376,6 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     public void yieldString(String value) {
         finishString(value);
-    }
-
-    public void yieldNull() {
-        finishNull();
     }
 
     public void yieldClassRef(AgoClass value) {

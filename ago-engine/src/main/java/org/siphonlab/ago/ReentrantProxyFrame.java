@@ -141,12 +141,6 @@ public class ReentrantProxyFrame<T extends AgoFunction> extends CallFrame<T>{
         caller.reenter(this, state, additionalState);
     }
 
-    public void finishNull() {
-        getRunSpace().acceptNull(null);
-        this.resultType = TypeCode.NULL;
-        caller.reenter(this, state, additionalState);
-    }
-
     public void finishClassRef(AgoClass result) {
         getRunSpace().acceptClassRef(result, null);
         this.resultType = TypeCode.CLASS_REF;

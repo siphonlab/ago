@@ -65,13 +65,6 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         callerRunSpace.acceptVoidByAsync();
     }
 
-    public void finishNullAsync() {
-        if (this.debugger != null) this.debugger.leaveFrame(this);
-
-        RunSpace callerRunSpace = resumeCallerRunSpace();
-        callerRunSpace.acceptNullByAsync();;
-    }
-
     public void finishIntAsync(int result) {
         if (this.debugger != null) this.debugger.leaveFrame(this);
 
