@@ -321,11 +321,6 @@ public abstract class RdbAdapter {
     protected void saveInstance(@Nonnull Connection conn, Instance<?> instance, Set<Instance<?>> saved){
         saved.add(instance);
 
-        if (boxTypes.isBoxType(instance.getAgoClass()) || instance instanceof AgoArrayInstance)
-            return;
-        if(instance instanceof MetaClass && ((MetaClass) instance).getName().equals("<Meta>"))
-            return;
-
         if (instance.getSlots() instanceof RdbSlots rdbSlots) {
             if(rdbSlots.getUsingInstances() != null) {
                 rdbSlots.getUsingInstances().removeIf(

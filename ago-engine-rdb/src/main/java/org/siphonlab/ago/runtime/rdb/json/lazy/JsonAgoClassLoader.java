@@ -68,7 +68,6 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         }
         this.classes = new ArrayList<>();
         this.classByName.put(this.getTheMeta().getFullname(), this.getTheMeta());
-        this.langClasses = new LangClasses(this);
 
         // stage 1, names
         for(var row : allRows){
@@ -80,6 +79,9 @@ public class JsonAgoClassLoader extends AgoClassLoader {
         for (GroovyRowResult row : allRows) {
             loadAgoClass(row, rowsByClassName);
         }
+
+        this.langClasses = new LangClasses(this);
+
         // stage2, resolve hierarchy
         for (AgoClass agoClass : classes) {
             GroovyRowResult row = rowsByClassName.get(agoClass.getFullname());
@@ -258,7 +260,9 @@ public class JsonAgoClassLoader extends AgoClassLoader {
     private SwitchTable loadSwitchTable(Map<String, Object> json) {
         var type = (String) json.get("type");
         if("DenseSwitchTable".equals(type)){
-            return new DenseSwitchTable((int[])json.get("data"));
+            var rawlist = (java.util.ArrayList<?>) json.get("data");
+            int[] tables = rawlist.stream().mapToInt(x -> (int)x).toArray();
+            return new DenseSwitchTable(tables);
         } else {
             assert "SparseSwitchTable".equals(type);
             return new SparseSwitchTable((int[]) json.get("data"));
@@ -325,6 +329,8 @@ public class JsonAgoClassLoader extends AgoClassLoader {
             case TypeCode.DECIMAL_VALUE -> ((BigDecimal) constLiteralValue);
             case TypeCode.STRING_VALUE -> (String)constLiteralValue;
             case TypeCode.CLASS_REF_VALUE -> classes.get(((Number)constLiteralValue).intValue());
+            // it is an enum value
+            case TypeCode.OBJECT_VALUE -> constLiteralValue;
             default -> throw new IllegalStateException("Unexpected value: " + typeCode.value);
         };
     }
