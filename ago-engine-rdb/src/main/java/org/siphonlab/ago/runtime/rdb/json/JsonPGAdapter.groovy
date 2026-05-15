@@ -308,6 +308,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var slots = agoClass.slots as JsonRefSlots;
         if(logger.isDebugEnabled()) logger.debug("INSERT CLASS " + slots.objectRef.id())
 
+        var sql = new Sql(conn)
         sql.executeInsert(toMap(agoClass, applicationId),
             """INSERT INTO ago_class (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, 
                         creator_id, creator_class, slots, fullname, modifiers, super_class, interfaces, children, methods, parent,
