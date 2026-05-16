@@ -147,12 +147,12 @@ public class AgoClassLoader implements ClassManager{
         theMeta.setSuperClass(langClasses.getClassClass());
         theMeta.setMethods(langClasses.getClassClass().getMethods());
 
-        // EnqueueParameterizingClassTask
-        enqueueParameterizingClassTasks();
         //
         for (ClassHeader header : headers.values()) {
             buildVariablesAndFunctionBody(header);
         }
+        // EnqueueParameterizingClassTask
+        enqueueParameterizingClassTasks();
 
         classes = classByName.values().stream().sorted((c1, c2) -> {
             var id1 = headers.get(c1.getFullname()).getClassId();
@@ -225,7 +225,7 @@ public class AgoClassLoader implements ClassManager{
             MetaClass metaClass = agoClass.getAgoClass();
 
             if(agoClass.isGenericTemplate() || agoClass.isInGenericTemplate()){
-                classHeader.setLoadingStage(LoadingStage.BuildVariablesAndFunctionBody);
+                classHeader.setLoadingStage(LoadingStage.Done);
                 continue;
             }
             if(classHeader instanceof ParameterizedClassHeader parameterizedClassHeader) {
@@ -248,7 +248,7 @@ public class AgoClassLoader implements ClassManager{
                     }
                 }
             }
-            classHeader.setLoadingStage(LoadingStage.BuildVariablesAndFunctionBody);
+            classHeader.setLoadingStage(LoadingStage.Done);
         }
 
     }

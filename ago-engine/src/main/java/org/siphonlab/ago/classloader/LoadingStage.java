@@ -32,9 +32,9 @@ public enum LoadingStage {
 
     CollectMethods(7),
 
-    EnqueueParameterizingClassTask(8),
+    BuildVariablesAndFunctionBody(8),
 
-    BuildVariablesAndFunctionBody(9),
+    EnqueueParameterizingClassTask(9),
 
     Done(10);
 
@@ -58,8 +58,8 @@ public enum LoadingStage {
             case 5 -> BuildClass;
             case 6 -> ResolveFunctionIndex;
             case 7 -> CollectMethods;
-            case 8 -> EnqueueParameterizingClassTask;
-            case 9 -> BuildVariablesAndFunctionBody;
+            case 8 -> BuildVariablesAndFunctionBody;
+            case 9 -> EnqueueParameterizingClassTask;
             case 10 -> Done;
             default -> throw new IllegalStateException("illegal state %d".formatted(value));
         };

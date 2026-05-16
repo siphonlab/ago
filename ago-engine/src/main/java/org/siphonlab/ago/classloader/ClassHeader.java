@@ -1051,7 +1051,7 @@ public class ClassHeader {
         }
         this.agoClass.setMethods(methods.toArray(new AgoFunction[0]));
 
-        this.setLoadingStage(EnqueueParameterizingClassTask);
+        this.setLoadingStage(BuildVariablesAndFunctionBody);
     }
 
     void setConcreteTypeInfo(){
