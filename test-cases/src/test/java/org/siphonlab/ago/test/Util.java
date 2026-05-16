@@ -94,15 +94,14 @@ public class Util {
 
     public static BasicDataSource connectDataSource() {
         var props = new Properties();
-        var url = ClassLoader.getSystemResource("database.properties");
-
         try {
+            var url = ClassLoader.getSystemResource("database.properties");
+            if(url == null) return new TestDatabaseConfig().createDataSource();
             props.load(url.openStream());
             var config = new TestDatabaseConfig(props);
             return config.createDataSource();
         } catch (IOException e) {
-            var config = new TestDatabaseConfig();
-            return config.createDataSource();
+            return new TestDatabaseConfig().createDataSource();
         }
     }
 
