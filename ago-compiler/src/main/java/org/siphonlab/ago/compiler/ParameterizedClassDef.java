@@ -104,7 +104,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
             this.scopeClass = scopeClass;
 
             this.setClassType(baseClassDef.getClassType());
-            this.setUnit(baseClassDef.getUnit());
+            this.setUnit(scopeClass.getUnit());
             this.setModifiers(baseClassDef.getModifiers());
             this.setSuperClass(baseClassDef.getSuperClass());
             this.setInterfaces(baseClassDef.getInterfaces());
