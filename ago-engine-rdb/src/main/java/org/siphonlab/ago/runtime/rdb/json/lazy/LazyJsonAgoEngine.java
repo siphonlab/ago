@@ -63,24 +63,30 @@ public class LazyJsonAgoEngine extends PersistentRdbEngine {
             Map<String, Object> enumValues = new HashMap<>();
             for (AgoField field : enumClass.getAgoClass().getFields()) {
                 if(field.getAgoClass() == enumClass){
-                    var enumValue = agoClass.getSlots().getObject(field.getSlotIndex());
+                    var enumValue = createInstance(enumClass,null);
                     Slots enumValueSlots = enumValue.getSlots();
-                    switch (enumClass.getBasePrimitiveType().value){
+                    enumValueSlots.setString( 1, field.getName());
+                    switch (enumClass.getBasePrimitiveType().value) {
                         case TypeCode.INT_VALUE:
-                            enumValues.put(enumValueSlots.getString(1), enumValueSlots.getInt(0));
+                            enumValueSlots.setInt(0, (Integer) field.getConstLiteralValue());
+                            enumValues.put(enumValueSlots.getString(1),enumValueSlots.getInt(0));
                             break;
                         case TypeCode.BYTE_VALUE:
-                            enumValues.put(enumValueSlots.getString(1), enumValueSlots.getByte(0));
+                            enumValueSlots.setByte(0, (Byte) field.getConstLiteralValue());
+                            enumValues.put(enumValueSlots.getString(1),enumValueSlots.getByte(0));
                             break;
                         case TypeCode.SHORT_VALUE:
-                            enumValues.put(enumValueSlots.getString(1), enumValueSlots.getShort(0));
+                            enumValueSlots.setShort(0, (Short) field.getConstLiteralValue());
+                            enumValues.put(enumValueSlots.getString(1),enumValueSlots.getShort(0));
                             break;
                         case TypeCode.LONG_VALUE:
-                            enumValues.put(enumValueSlots.getString(1), enumValueSlots.getLong(0));
+                            enumValueSlots.setLong(0, (Long) field.getConstLiteralValue());
+                            enumValues.put(enumValueSlots.getString(1),enumValueSlots.getLong(0));
                             break;
                     }
                 }
             }
+            enumClass.setEnumValues(enumValues);
         }
     }
 
