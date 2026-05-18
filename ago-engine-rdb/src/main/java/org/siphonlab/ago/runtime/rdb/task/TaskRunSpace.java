@@ -78,7 +78,8 @@ public class TaskRunSpace extends SavableRunSpace {
         }
 
         this.setRunningState(RunningState.RUNNING);
-        CallFrame<?> cf;
+        CallFrame<?> cf = null;
+        boolean isSaveEnd = false;
         while (this.currCallFrame != null && !RunningState.isPausingOrWaitingResult(this.getRunningState())) {
             cf = currCallFrame;
 
@@ -89,8 +90,15 @@ public class TaskRunSpace extends SavableRunSpace {
             }
 
             this.currCallFrame.run();
+
+            if (this.currCallFrame == null) {
+                isSaveEnd = true;
+            }
         }
         tryComplete();
+        if (isSaveEnd && isRefCallFrame(cf)) {
+            this.rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, runningState));
+        }
     }
 
     static void runRealease(CallFrame<?> caller) {

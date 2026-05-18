@@ -291,7 +291,7 @@ public class Util {
         var rdbEngine = new TaskEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
         slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
-        rdbEngine.run(entrance);
+        // rdbEngine.run(entrance);
     }
 
     public static void resumeWithTask() throws SQLException {
