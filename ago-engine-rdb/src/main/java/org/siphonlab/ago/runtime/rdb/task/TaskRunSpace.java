@@ -23,6 +23,8 @@ import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
@@ -35,7 +37,7 @@ import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseCaller;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseRef;
 
 public class TaskRunSpace extends SavableRunSpace {
-    private final TaskAdapter rdbAdapter;
+    protected final TaskAdapter rdbAdapter;
     private final static Logger logger = LoggerFactory.getLogger(TaskRunSpace.class);
 
     private static boolean isEntranceOrTask(CallFrame<?> frame) {
@@ -67,7 +69,7 @@ public class TaskRunSpace extends SavableRunSpace {
         this.rdbAdapter = rdbAdapter;
     }
 
-    HashSet<CallFrame<?>> callFrames = new HashSet<>();
+    protected HashSet<CallFrame<?>> callFrames = new HashSet<>();
 
     @Override
     public void run() {
@@ -139,7 +141,7 @@ public class TaskRunSpace extends SavableRunSpace {
         runRealease(caller);
     }
 
-    private static boolean isRefCallFrame(CallFrame<?> currCallFrame) {
+    protected static boolean isRefCallFrame(CallFrame<?> currCallFrame) {
         if(currCallFrame instanceof EntranceCallFrame<?> entranceCallFrame){
             currCallFrame = entranceCallFrame.getInner();
         }
@@ -264,8 +266,11 @@ public class TaskRunSpace extends SavableRunSpace {
         // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
     }
 
-    @Override
-    public Future<?> startAsync(CallFrame<?> frame) {
+    protected void saveFrameAndRunspace(@Nullable CallFrame<?> frame) {
+        if (frame == null) {
+            return ;
+        }
+
         if (frame instanceof ObjectRefCallFrame<?> objectRefCallFrame) {
             frame = objectRefCallFrame.expandFor(objectRefCallFrame, false);
         }
@@ -288,7 +293,11 @@ public class TaskRunSpace extends SavableRunSpace {
         catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
 
+    @Override
+    public Future<?> startAsync(CallFrame<?> frame) {
+        this.saveFrameAndRunspace(frame);
         return super.startAsync(frame);
     }
 
