@@ -229,7 +229,9 @@ public class AgoClass extends Instance<MetaClass>{
 //        }
 
         if(anotherClass.concreteTypeInfo instanceof ParameterizedClassInfo p){
-            return this.asThatOrSuperOfThat(p.getParameterizedBaseClass(), visited);
+            AgoClass baseClass = p.getParameterizedBaseClass();
+            if(this == baseClass) return anotherClass;
+            return this.asThatOrSuperOfThat(baseClass, visited);
         }
 
         // org.siphonlab.ago.compile.ArrayClassDef.asThatOrSuperOfThat

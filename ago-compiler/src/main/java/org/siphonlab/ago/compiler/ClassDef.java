@@ -995,6 +995,7 @@ public class ClassDef extends ClassContainer {
 //        }
         if(anotherClass instanceof ParameterizedClassDef p){
             // if this is ParameterizedClassDef too, see ParameterizedClassDef.asAssignableFrom
+            if(this == p.baseClass) return p;
             var r = this.asThatOrSuperOfThat(p.baseClass, visited, depth);
             if(r != null) return r;
         } else if(anotherClass instanceof ParameterizedClassDef.PlaceHolder p){
