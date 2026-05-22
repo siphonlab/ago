@@ -261,7 +261,7 @@ public class LinkedList {
     }
 
     public static void getAtIndex(NativeFrame callFrame, int index) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         Object ls = instance.getNativePayload();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
         var typeInfo = genericArgumentsInfo.getArguments()[0];
