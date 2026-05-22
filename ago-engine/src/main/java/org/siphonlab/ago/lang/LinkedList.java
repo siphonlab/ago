@@ -48,7 +48,7 @@ public class LinkedList {
     }
 
     public static void getSize(NativeFrame callFrame) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         var ls = (java.util.LinkedList<?>) instance.getNativePayload();
         callFrame.finishInt(ls.size());
     }
