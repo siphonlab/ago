@@ -30,13 +30,13 @@ import static org.siphonlab.ago.TypeCode.*;
 public class LinkedList {
 
     public static void create(NativeFrame callFrame) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         instance.setNativePayload(new java.util.LinkedList<>());
         callFrame.finishVoid();
     }
 
     public static void create(NativeFrame callFrame, Instance<?> array) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Object> nativePayload = new java.util.LinkedList<>();
         AgoArrayInstance arrayInstance = (AgoArrayInstance) array;
         for (int i = 0; i < arrayInstance.getLength(); i++) {
@@ -107,7 +107,7 @@ public class LinkedList {
     }
 
     public static void add(NativeFrame callFrame, String item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         ls.add(item);
         callFrame.finishVoid();

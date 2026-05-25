@@ -117,7 +117,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             return;     // for folded Instance, it must be already saved or never touch its Slots, needn't save
         } else if(instance instanceof ExpandableObject){
             if(instance.isExpanded()){
-                saved.add((Instance) instance);
+                saved.add((Instance) instance)
                 saveInstance(conn, instance.getExpandedInstance(), saved)
             }
             return      // ignore folded Instance
@@ -128,9 +128,12 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             if(instance.isSaveRequired()){
                 if(instance instanceof CallFrame) {
                     updateCallFrameRunningState(conn, instance, (byte) -1)
-                } else {
+                }
+                /*
+                else {
                     this.update(conn, (Instance)instance, (RdbSlots)null, instance.getAgoClass() as AgoClass);
                 }
+                */
             }
         }
     }

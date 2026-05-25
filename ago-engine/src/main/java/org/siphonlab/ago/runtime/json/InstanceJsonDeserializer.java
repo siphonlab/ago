@@ -147,7 +147,14 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                         return deserializeObjectRef(ajp, ctxt);
                     } else if(fieldName.equals("@classref")){
                         return deserializeClassRef(ajp, ctxt, creator);
-                    } else if(fieldName.equals("@collection") || fieldName.equals("@elements")) {
+                    }
+                    else if (fieldName.equals("@linkedlist")) {
+                        ajp.nextToken();
+                        var klassName = ajp.getValueAsString();
+                        var klass = this.agoEngine.getClass(klassName);
+                        System.out.println(klass);
+                    }
+                    else if(fieldName.equals("@collection") || fieldName.equals("@elements")) {
                         AgoClass collectionType = expectedClass;
                         if (fieldName.equals("@collection")) {
                             collectionType = deserializeClass(ajp, ctxt, creator);
