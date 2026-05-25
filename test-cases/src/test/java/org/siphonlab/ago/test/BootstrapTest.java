@@ -90,7 +90,8 @@ public class BootstrapTest {
     @Test
     public void array_sample() throws CompilationError, IOException {
         Util.run("bootstrap/6.array.ago");
-        assertTrue(Trace.outputted("arr1.length: 10", "1", "3", "6", "115", "1", "2", "3", "4", "5"));
+        Trace.printOutput();
+        assertTrue(Trace.outputted("arr1.length: 10", "1", "3", "6", "115", "1", "2", "3", "4", "5", "a", "b"));
     }
 
     @Test

@@ -19,4 +19,10 @@ fun main(){
     for(var i in arr2){
         Trace.print(i)
     }
+
+    var arr3 as string[] = ["a", "b"]
+    for(var i in arr3){
+        Trace.print(i)
+    }
+
 }
