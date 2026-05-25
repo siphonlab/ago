@@ -158,6 +158,22 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             return;
         }
 
+        if (agoClass.getFullname().matches("^lang.LinkedList<[a-zA-Z0-9]+>$")) {
+            // serialize LinkedList into JSON's array
+            // { @linkedlist: "type", @elements: [] }
+            gen.writeStartObject();
+
+            writeClass(gen, "@linkedlist", agoClass);
+
+            var iter = (java.util.List<?>) instance.getNativePayload();
+            var innerAry = iter.toArray();
+            gen.writeFieldName("@elements");
+            gen.writeObject(innerAry);
+
+            gen.writeEndObject();
+            return ;
+        }
+
         if(instance instanceof AgoArrayInstance arrayInstance){
             if(config.getWriteType() == AgoJsonConfig.WriteTypeMode.OnDemand && ag.getDepth() == 0){
                 writeType = true;
