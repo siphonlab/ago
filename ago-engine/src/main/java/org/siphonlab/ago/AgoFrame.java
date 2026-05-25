@@ -1111,7 +1111,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
             case Array.array_create_S_vCc:   slots.setObject(code[pc++], engine.createStringArray(engine.getClass(code[pc++]), code[pc++])); break;
             case Array.array_create_S_vCv:   slots.setObject(code[pc++], engine.createStringArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
-            case Array.array_fill_S_acL:     ((StringArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
+            case Array.array_fill_S_acL:     ((StringArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++]), engine); break;
             case Array.array_get_S_vac:     slots.setString(code[pc++], ((StringArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_S_vav:     slots.setString(code[pc++], ((StringArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
             case Array.array_put_S_acc:     ((StringArrayInstance)slots.getObject(code[pc++])).value[code[pc++]] = engine.toString(code[pc++]); break;
