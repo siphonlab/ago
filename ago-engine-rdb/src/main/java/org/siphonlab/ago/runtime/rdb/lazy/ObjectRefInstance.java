@@ -147,5 +147,14 @@ public class ObjectRefInstance<T extends AgoClass> extends Instance<T> implement
     public boolean equals(Object obj) {
         return ObjectRefOwner.equals(this, (Instance<?>) obj);
     }
+
+    @Override
+    public Object getNativePayload() {
+        if (this.deferencedInstance == null) {
+            this.deference();
+        }
+
+        return this.deferencedInstance.getNativePayload();
+    }
 }
 
