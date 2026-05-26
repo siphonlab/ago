@@ -100,7 +100,12 @@ public class ResultSlotsDeserializer extends JsonDeserializer<ResultSlots> {
                 break;
 
             case TypeCode.OBJECT_VALUE:
-                resultSlots.setObjectValue(ctxt.readValue(p, Instance.class));
+                if (p.currentToken() == JsonToken.VALUE_NULL) {
+                    resultSlots.setObjectValue(null);
+                }
+                else {
+                    resultSlots.setObjectValue(ctxt.readValue(p, Instance.class));
+                }
                 break;
 
             case TypeCode.UNION_VALUE:
