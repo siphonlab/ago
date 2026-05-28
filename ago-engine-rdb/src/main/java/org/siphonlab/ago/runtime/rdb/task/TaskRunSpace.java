@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.runtime.rdb.task;
 
+import org.jspecify.annotations.NonNull;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
@@ -23,7 +24,6 @@ import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -340,6 +340,23 @@ public class TaskRunSpace extends SavableRunSpace {
         if(resultSlots != null) this.resultSlots = resultSlots;
     }
 
+    protected void saveCurrentAndAncestorsCallingPoint(@NonNull CallFrame<?> frame) {
+        try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
+            conn.setAutoCommit(false);
+            var parent = frame.getCaller();
+            while (parent != null) {
+                this.rdbAdapter.saveInstance(new CallFrameWithRunningState<>(parent, parent.getRunSpace().getRunningState()));
+                parent = parent.getCaller();
+            }
+            this.save(frame);
+            this.rdbAdapter.updateRunSpace((SavableRunSpace) frame.getRunSpace());
+            conn.commit();
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void saveTask(CallFrame<?> prev, CallFrame<?> cur, int pc) {
         if (cur == null) {
             return ;
@@ -347,7 +364,7 @@ public class TaskRunSpace extends SavableRunSpace {
         if (isEntranceOrTask(cur)) {
             try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
                 logger.debug("saving task instances {}", prev);
-                this.save(prev);
+                this.saveCurrentAndAncestorsCallingPoint(prev);
                 this.rdbAdapter.updateCallFrameRunningState(conn, prev, prev.getRunSpace().getRunningState(), pc);
             }
             catch (SQLException e) {

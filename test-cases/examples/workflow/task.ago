@@ -1,5 +1,7 @@
 fun fail() native "org.siphonlab.ago.test.TestFunctions.quitNow";
 
+fun rnd() as boolean native "org.siphonlab.ago.test.TestFunctions.rnd";
+
 fun save(n as int) as int with Task {
     return n + 1;
 }
@@ -8,32 +10,20 @@ fun nosave(n as int) as string {
     return "String: " + n;
 }
 
-fun runf() {
-    Trace.print("~~~hello running~~~");
-    sleep(500);
-    Trace.print("~~~hello fork~~~");
+fun showf(n as int) {
+    var s = nosave(n);
+    Trace.print(s);
 }
 
-fun rnd() as boolean native "org.siphonlab.ago.test.TestFunctions.rnd";
-
-fun main() {
+fun runf() {
     var n = 10;
-    Trace.print("======");
+    showf(n);
     var x = save(n);
-    Trace.print(x);
-
-    fork runf();
     if (rnd()) {
         fail();
     }
-    Trace.print("fork it!");
-    sleep(1500);
-
-    var s = nosave(x);
-    Trace.print(s);
-
-    // fail();
-
-    var y = save(x);
-    Trace.print(y);
+    Trace.print(x);
+}
+fun main() {
+    runf();
 }
