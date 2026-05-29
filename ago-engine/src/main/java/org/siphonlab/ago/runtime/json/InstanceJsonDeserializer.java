@@ -148,31 +148,25 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     } else if(fieldName.equals("@classref")){
                         return deserializeClassRef(ajp, ctxt, creator);
                     }
-                    else if (fieldName.equals("@linkedlist")) {
-                        ajp.nextToken(); // skip current @linkedlist field
-
-                        assert ajp.currentToken() == JsonToken.VALUE_STRING;
-                        var klassName = ajp.getValueAsString();
-                        var klass = this.agoEngine.getClass(klassName);
-                        var genericParameter = klass.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
-
-                        ajp.nextToken(); // skip field @elements
-                        assert ajp.currentToken() == JsonToken.FIELD_NAME;
-
-                        ajp.nextToken(); // begin array [
-                        var innerAry = this.collecionFromValue(ajp, ctxt, genericParameter, creator);
-                        ajp.nextToken(); // end object }
-
-                        var instance = this.agoEngine.createNativeInstance(creator, klass, creator);
-                        var iter = new LinkedList<>(Arrays.asList(innerAry));
-                        instance.setNativePayload(iter);
-
-                        return instance;
-                    }
                     else if(fieldName.equals("@collection") || fieldName.equals("@elements")) {
                         AgoClass collectionType = expectedClass;
                         if (fieldName.equals("@collection")) {
                             collectionType = deserializeClass(ajp, ctxt, creator);
+
+                            // deserilize value into LinkedList<T>
+                            if (collectionType.getFullname().matches("^lang.LinkedList<[a-zA-Z0-9]+>$")) {
+                                var genericParameter = collectionType.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+
+                                ajp.nextToken(); // begin array [
+                                var innerAry = this.collecionFromValue(ajp, ctxt, genericParameter, creator);
+                                ajp.nextToken(); // end object }
+
+                                var instance = this.agoEngine.createNativeInstance(creator, collectionType, creator);
+                                var iter = new LinkedList<>(Arrays.asList(innerAry));
+                                instance.setNativePayload(iter);
+
+                                return instance;
+                            }
 
                             assert ajp.currentToken() == JsonToken.FIELD_NAME;
                             fieldName = ajp.getValueAsString();
