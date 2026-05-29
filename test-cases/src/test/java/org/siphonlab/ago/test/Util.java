@@ -104,8 +104,7 @@ public class Util {
             var config = new TestDatabaseConfig(props);
             return config.createDataSource();
         } catch (IOException e) {
-            var config = new TestDatabaseConfig();
-            return config.createDataSource();
+            return new TestDatabaseConfig().createDataSource();
         }
     }
 

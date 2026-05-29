@@ -20,6 +20,8 @@ import org.siphonlab.ago.opcode.*;
 import org.siphonlab.ago.opcode.arithmetic.*;
 import org.siphonlab.ago.opcode.compare.*;
 
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 
@@ -58,6 +60,26 @@ public class CodeTransformer {
         int blobId = codeBuffer.getInt();
         int v = blobId + blobOffset;
         codeBuffer.skip(-4).putInt(v);
+        codeBuffer.position(pos + size * 4);
+    }
+
+    private void updateStringArrayBlobId(int instruction, int offset, int blobOffset){
+        assert blobOffset >= 0;
+        int size = OpCode.SIZE_MASK & instruction;
+        int pos = codeBuffer.position();
+        codeBuffer.skip(offset * 4);
+        int blobId = codeBuffer.getInt();
+        int v = blobId + blobOffset;
+        codeBuffer.skip(-4).putInt(v);
+        // update string id
+        var blob = classLoader.getBlobs().get(v);
+        var buffer = IoBuffer.wrap(blob);
+        while (buffer.hasRemaining()) {
+            int stringId = buffer.getInt();
+            String s = strings[stringId];
+            int mapped = classLoader.idOfString(s);
+            buffer.putInt(buffer.position()- 4, mapped);
+        }
         codeBuffer.position(pos + size * 4);
     }
 
@@ -222,6 +244,9 @@ public class CodeTransformer {
                 case Array.array_fill_s_acL:
                 case Array.array_fill_l_acL:
                     updateBlobId(instruction, 2, header.getBlobOffset()); break;
+                case Array.array_fill_S_acL:
+                    updateStringArrayBlobId(instruction, 2, header.getBlobOffset());
+                    break;
 
                 case Array.array_put_C_acc:
                     updateClassId(instruction, 2); break;

@@ -147,7 +147,29 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                         return deserializeObjectRef(ajp, ctxt);
                     } else if(fieldName.equals("@classref")){
                         return deserializeClassRef(ajp, ctxt, creator);
-                    } else if(fieldName.equals("@collection") || fieldName.equals("@elements")) {
+                    }
+                    else if (fieldName.equals("@linkedlist")) {
+                        ajp.nextToken(); // skip current @linkedlist field
+
+                        assert ajp.currentToken() == JsonToken.VALUE_STRING;
+                        var klassName = ajp.getValueAsString();
+                        var klass = this.agoEngine.getClass(klassName);
+                        var genericParameter = klass.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+
+                        ajp.nextToken(); // skip field @elements
+                        assert ajp.currentToken() == JsonToken.FIELD_NAME;
+
+                        ajp.nextToken(); // begin array [
+                        var innerAry = this.collecionFromValue(ajp, ctxt, genericParameter, creator);
+                        ajp.nextToken(); // end object }
+
+                        var instance = this.agoEngine.createNativeInstance(creator, klass, creator);
+                        var iter = new LinkedList<>(Arrays.asList(innerAry));
+                        instance.setNativePayload(iter);
+
+                        return instance;
+                    }
+                    else if(fieldName.equals("@collection") || fieldName.equals("@elements")) {
                         AgoClass collectionType = expectedClass;
                         if (fieldName.equals("@collection")) {
                             collectionType = deserializeClass(ajp, ctxt, creator);
@@ -462,6 +484,89 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
 
     protected AgoClass deserializeClassRef(AgoClass baseClass, long id) {
         throw new UnsupportedOperationException();
+    }
+
+    private Object[] collecionFromValue(
+            AgoJsonParser ajp,
+            DeserializationContext ctxt,
+            AgoClass collectionClass,
+            CallFrame<?> creator
+    ) throws IOException {
+        return switch (collectionClass.getTypeCode().getValue()) {
+            case INT_VALUE -> {
+                IntArrayList list = new IntArrayList();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.addInt(ajp.getIntValue());
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            case DOUBLE_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getDoubleValue());
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            case DECIMAL_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getDecimalValue());
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            case BOOLEAN_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getValueAsBoolean());
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            case STRING_VALUE -> {
+                List<String> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getValueAsString());
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            case CHAR_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getValueAsString().charAt(0));
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            case SHORT_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getIntValue());
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            case FLOAT_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getFloatValue());
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            case OBJECT_VALUE, UNION_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.currentToken()) { // getInt stay at original pos, need nextToken to advance, but `deserializeAny` moves the pos
+                    list.add(deserializeAny(ajp, ctxt, null, creator, null, null));
+                }
+                ajp.nextToken();
+                yield list.toArray();
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + collectionClass.getTypeCode().getValue());
+        };
     }
 
     private Instance<?> deserializeCollection(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass collectionClass, CallFrame<?> creator) throws IOException {

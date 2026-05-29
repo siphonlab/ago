@@ -30,13 +30,13 @@ import static org.siphonlab.ago.TypeCode.*;
 public class LinkedList {
 
     public static void create(NativeFrame callFrame) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         instance.setNativePayload(new java.util.LinkedList<>());
         callFrame.finishVoid();
     }
 
     public static void create(NativeFrame callFrame, Instance<?> array) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Object> nativePayload = new java.util.LinkedList<>();
         AgoArrayInstance arrayInstance = (AgoArrayInstance) array;
         for (int i = 0; i < arrayInstance.getLength(); i++) {
@@ -48,7 +48,7 @@ public class LinkedList {
     }
 
     public static void getSize(NativeFrame callFrame) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         var ls = (java.util.LinkedList<?>) instance.getNativePayload();
         callFrame.finishInt(ls.size());
     }
@@ -107,91 +107,104 @@ public class LinkedList {
     }
 
     public static void add(NativeFrame callFrame, String item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         ls.add(item);
         callFrame.finishVoid();
     }
 
     public static void add(NativeFrame callFrame, short item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         ls.add(item);
         callFrame.finishVoid();
     }
 
     public static void add(NativeFrame callFrame, byte item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         ls.add(item);
         callFrame.finishVoid();
     }
 
     public static void add(NativeFrame callFrame, char item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         ls.add(item);
         callFrame.finishVoid();
     }
 
+    public static void add(NativeFrame callframe, Object union) {
+        var instance = callframe.getParentScope();
+        var ls = (java.util.LinkedList<Object>) instance.getNativePayload();
+        ls.add(union);
+        callframe.finishVoid();
+    }
+
     public static void contains(NativeFrame callFrame, Instance<?> item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Instance> ls = (java.util.LinkedList<Instance>) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, int item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, long item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, float item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, double item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, boolean item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, String item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, short item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, byte item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
     }
 
     public static void contains(NativeFrame callFrame, char item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         callFrame.finishBoolean(ls.contains(item));
+    }
+
+    public static void contains(NativeFrame frame, Object union) {
+        var instance = frame.getParentScope();
+        var ls = (java.util.LinkedList<Object>) instance.getNativePayload();
+        frame.finishBoolean(ls.contains(union));
     }
 
     public static void copyTo(NativeFrame callFrame, Instance<?> array, int arrayIndex) {
@@ -201,67 +214,73 @@ public class LinkedList {
     }
 
     public static void remove(NativeFrame callFrame, int item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance =  callFrame.getParentScope();
         java.util.LinkedList<Integer> ls = (java.util.LinkedList<Integer>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(Integer.valueOf(item)));
     }
 
     public static void remove(NativeFrame callFrame, long item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Long> ls = (java.util.LinkedList<Long>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(Long.valueOf(item)));
     }
 
     public static void remove(NativeFrame callFrame, float item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Float> ls = (java.util.LinkedList<Float>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(Float.valueOf(item)));
     }
 
     public static void remove(NativeFrame callFrame, double item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Double> ls = (java.util.LinkedList<Double>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(Double.valueOf(item)));
     }
 
     public static void remove(NativeFrame callFrame, boolean item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Boolean> ls = (java.util.LinkedList<Boolean>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(Boolean.valueOf(item)));
     }
 
     public static void remove(NativeFrame callFrame, String item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<String> ls = (java.util.LinkedList<String>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(item));
     }
 
     public static void remove(NativeFrame callFrame, short item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Short> ls = (java.util.LinkedList<Short>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(Short.valueOf(item)));
     }
 
     public static void remove(NativeFrame callFrame, byte item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Byte> ls = (java.util.LinkedList<Byte>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(Byte.valueOf(item)));
     }
 
     public static void remove(NativeFrame callFrame, char item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Character> ls = (java.util.LinkedList<Character>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(Character.valueOf(item)));
     }
 
     public static void remove(NativeFrame callFrame, Instance<?> item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Instance> ls = (java.util.LinkedList<Instance>) instance.getNativePayload();
         callFrame.finishBoolean(ls.remove(item));
     }
 
+    public static void remove(NativeFrame frame, Object union) {
+        var instance = frame.getParentScope();
+        var ls = (java.util.LinkedList<Object>) instance.getNativePayload();
+        frame.finishBoolean(ls.remove(union));
+    }
+
     public static void getAtIndex(NativeFrame callFrame, int index) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         Object ls = instance.getNativePayload();
         GenericArgumentsInfo genericArgumentsInfo = (GenericArgumentsInfo) instance.getAgoClass().getConcreteTypeInfo();
         var typeInfo = genericArgumentsInfo.getArguments()[0];
@@ -311,73 +330,80 @@ public class LinkedList {
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, Instance<?> item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Instance> ls = (java.util.LinkedList<Instance>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, int item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Integer> ls = (java.util.LinkedList<Integer>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, long item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Long> ls = (java.util.LinkedList<Long>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, float item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Float> ls = (java.util.LinkedList<Float>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, double item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Double> ls = (java.util.LinkedList<Double>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, boolean item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Boolean> ls = (java.util.LinkedList<Boolean>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, String item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<String> ls = (java.util.LinkedList<String>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, short item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Short> ls = (java.util.LinkedList<Short>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, byte item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Byte> ls = (java.util.LinkedList<Byte>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
     }
 
     public static void setAtIndex(NativeFrame callFrame, int index, char item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Character> ls = (java.util.LinkedList<Character>) instance.getNativePayload();
         ls.set(index, item);
         callFrame.finishVoid();
+    }
+
+    public static void setAtIndex(NativeFrame frame, int index, Object union) {
+        var instance = frame.getParentScope();
+        var ls = (java.util.LinkedList<Object>) instance.getNativePayload();
+        ls.set(index, union);
+        frame.finishVoid();
     }
 
     public static void Iterator_create(NativeFrame callFrame) {

@@ -17,6 +17,7 @@ package org.siphonlab.ago.runtime;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.AgoClass;
+import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.Slots;
 
 import java.nio.charset.CharacterCodingException;
@@ -34,14 +35,10 @@ public class StringArrayInstance extends AgoArrayInstance{
         this.value = new String[length];
     }
 
-    public void fillBytes(int count, byte[] blob) {
+    public void fillBytes(int count, byte[] blob, AgoEngine engine) {
         IoBuffer buffer = IoBuffer.wrap(blob);
         for (int i = 0; i < count; i++) {
-            try {
-                value[i] = buffer.getString(count, StandardCharsets.UTF_8.newDecoder());
-            } catch (CharacterCodingException e) {
-                throw new RuntimeException(e);
-            }
+            value[i] = engine.toString(buffer.getInt());
         }
     }
 

@@ -41,7 +41,7 @@ public class ReentrantProxyFrame<T extends AgoFunction> extends CallFrame<T>{
 
     @Override
     public SourceLocation resolveSourceLocation() {
-        return callee.resolveSourceLocation();
+        return caller.resolveSourceLocation();
     }
 
     @Override

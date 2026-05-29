@@ -133,7 +133,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
             Map<String, Object>[] variables = loadPgJsonArrayAsList((PgArray) row.get("variables"));
             var resultType = getClass((String)row.get("result_type"));
 
-            agoFunction.setResultType(resultType.getTypeCode(), resultType.getAgoClass());
+            agoFunction.setResultType(resultType.getTypeCode(), resultType);
 
             if (variables != null)
                 agoFunction.setVariables(Arrays.stream(variables).map(this::loadVariable).toArray(AgoVariable[]::new));
