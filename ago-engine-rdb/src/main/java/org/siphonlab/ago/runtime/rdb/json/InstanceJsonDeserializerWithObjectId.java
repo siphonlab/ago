@@ -17,15 +17,13 @@ package org.siphonlab.ago.runtime.rdb.json;
 
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
-import org.agrona.collections.Int2ObjectHashMap;
 import org.apache.commons.lang3.mutable.MutableObject;
-import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.json.AgoJsonParser;
 import org.siphonlab.ago.runtime.json.InstanceJsonDeserializer;
-import org.siphonlab.ago.runtime.rdb.ObjectRef;
-import org.siphonlab.ago.runtime.rdb.RdbEngine;
-import org.siphonlab.ago.runtime.rdb.RdbSlots;
+import org.siphonlab.ago.runtime.db.ObjectRef;
+import org.siphonlab.ago.runtime.rdb.DbEngine;
+import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.rdb.RowState;
 import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots;
 
@@ -35,14 +33,14 @@ import java.util.List;
 import java.util.Map;
 
 public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializer {
-    public InstanceJsonDeserializerWithObjectId(RdbEngine agoEngine) {
+    public InstanceJsonDeserializerWithObjectId(DbEngine agoEngine) {
         super(agoEngine);
     }
 
     @Override
     protected void readObjectId(Slots slots, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
         long id = ajp.getLongValue();
-        ((RdbSlots) slots).setId(id);
+        ((DbSlots) slots).setObjectRef(id);
         ajp.nextToken();
     }
 
@@ -79,10 +77,10 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         ajp.nextToken();    // pass END_ARRAY
         ajp.nextToken();    // pass END_OBJECT
 
-        if (((RdbSlots) baseClass.getSlots()).getId() == id) return baseClass;
+        if (((DbSlots) baseClass.getSlots()).getObjectRef() == id) return baseClass;
 
         if (id == -1) throw new IllegalStateException("class id not found");
-        return ((RdbEngine) this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
+        return ((DbEngine) this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
     }
 
     //{"@classref": [classname, id, [parentScope]]}
@@ -106,16 +104,16 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();
 
-        if (((RdbSlots) baseClass.getSlots()).getId() == id) return baseClass;
+        if (((DbSlots) baseClass.getSlots()).getObjectRef() == id) return baseClass;
 
         if(id ==-1) throw new IllegalStateException("class id not found");
-        return  ((RdbEngine)this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
+        return  ((DbEngine)this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
     }
 
     @Override
     protected AgoClass deserializeClassRef(AgoClass baseClass, long id) {
-        if (((RdbSlots) baseClass.getSlots()).getId() == id) return baseClass;
-        return ((RdbEngine) this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
+        if (((DbSlots) baseClass.getSlots()).getObjectRef() == id) return baseClass;
+        return ((DbEngine) this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
     }
 
     // {"@objectref": [classname, id]}
@@ -132,12 +130,12 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         ajp.nextToken();
         assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();        // PASS END_OBJECT
-        return ((RdbEngine) this.agoEngine).getRdbAdapter().restoreInstance(new ObjectRef(classname,id));
+        return ((DbEngine) this.agoEngine).getRdbAdapter().restoreInstance(new ObjectRef(classname,id));
     }
 
     @Override
     protected void deserializeSlots(AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator, Slots hostSlots, Map<String, AgoSlotDef> map) throws IOException {
-        if(hostSlots instanceof RdbSlots rdbSlots) {
+        if(hostSlots instanceof DbSlots dbSlots) {
             if (ajp.currentToken() == JsonToken.START_OBJECT) ajp.nextToken();
             RowState rowState = null;
             List<Instance<?>> usingInstances = null;
@@ -164,9 +162,9 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
                     rowState = RowState.valueOf(ajp.getValueAsString());
                     ajp.nextToken();
                 } else if (s.equals("slots")) {
-                    rdbSlots.beginRestore(usingInstances, rowState);
-                    super.deserializeSlots(ajp, ctxt, creator, rdbSlots, map);
-                    rdbSlots.endRestore();
+                    dbSlots.beginRestore(usingInstances, rowState);
+                    super.deserializeSlots(ajp, ctxt, creator, dbSlots, map);
+                    dbSlots.endRestore();
                 }
             }
             ajp.nextToken();
@@ -177,7 +175,7 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
 
     @Override
     protected Instance<?> acceptObject(Instance<?> instance) {
-        RdbSlots slots = (RdbSlots) instance.getSlots();
+        DbSlots slots = (DbSlots) instance.getSlots();
         slots.setRowState(RowState.Unchanged);
         return super.acceptObject(instance);
     }

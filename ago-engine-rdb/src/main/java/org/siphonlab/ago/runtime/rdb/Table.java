@@ -22,19 +22,19 @@ public class Table {
 
     public static Instance<?> getRowById(AgoEngine agoEngine, CallFrame<?> callFrame, Instance instance, long id) {
         AgoClass entityClass = (AgoClass) instance;
-        RdbEngine rdbEngine = (RdbEngine) agoEngine;
+        DbEngine dbEngine = (DbEngine) agoEngine;
 
-        return rdbEngine.getById(entityClass, id);
+        return dbEngine.getById(entityClass, id);
     }
 
     public static Instance<?> fetchAll(AgoEngine agoEngine, CallFrame<?> callFrame, Instance instance) {
         AgoClass entityClass = (AgoClass) instance;
-        RdbEngine rdbEngine = (RdbEngine) agoEngine;
+        DbEngine dbEngine = (DbEngine) agoEngine;
 
         AgoClass queryResultClass = callFrame.getAgoClass().getResultClass();
 
-        NativeInstance queryResultInstance = (NativeInstance) rdbEngine.createNativeInstance(null, queryResultClass, callFrame);
-        queryResultInstance.setNativePayload((ResultSetMapper)rdbEngine.fetchAll(entityClass, callFrame));
+        NativeInstance queryResultInstance = (NativeInstance) dbEngine.createNativeInstance(null, queryResultClass, callFrame);
+        queryResultInstance.setNativePayload((ResultSetMapper) dbEngine.fetchAll(entityClass, callFrame));
 
         return queryResultInstance;
     }

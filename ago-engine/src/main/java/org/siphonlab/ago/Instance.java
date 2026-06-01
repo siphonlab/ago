@@ -42,11 +42,11 @@ public class Instance<C extends AgoClass>  {
         this.agoClass = agoClass;
     }
 
-    public Instance getParentScope() {
+    public Instance<?> getParentScope() {
         return parentScope;
     }
 
-    public void setParentScope(Instance parentScope) {
+    public void setParentScope(Instance<?> parentScope) {
         this.parentScope = parentScope;
     }
 

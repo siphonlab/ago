@@ -20,29 +20,36 @@ import groovy.json.JsonSlurper
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import io.netty.util.collection.LongObjectHashMap
-import org.agrona.collections.Int2ObjectHashMap
 import org.agrona.concurrent.IdGenerator
+import org.apache.commons.lang3.mutable.MutableObject
 import org.postgresql.jdbc.PgArray
 import org.postgresql.util.PGobject
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.AgoNativeFunction
 import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.native_.NativeInstance
+import org.siphonlab.ago.runtime.AgoArrayInstance
+import org.siphonlab.ago.runtime.db.WorkflowAdapter
+import org.siphonlab.ago.runtime.db.CallFrameWithRunningState
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
-import org.siphonlab.ago.runtime.rdb.RdbAdapter
-import org.siphonlab.ago.runtime.rdb.RdbRunSpace
-import org.siphonlab.ago.runtime.rdb.RdbEngine
-import org.siphonlab.ago.runtime.rdb.RdbSlots
-import org.siphonlab.ago.runtime.rdb.RdbType
-import org.siphonlab.ago.runtime.rdb.ObjectRef
+import org.siphonlab.ago.runtime.rdb.DbAdapter
+import org.siphonlab.ago.runtime.db.TaskRunSpace
+import org.siphonlab.ago.runtime.rdb.DbEngine
+import org.siphonlab.ago.runtime.db.DbSlots
+import org.siphonlab.ago.runtime.db.ObjectRef
 import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
 import org.siphonlab.ago.runtime.rdb.SavableRunSpace
-import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject
-import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame
-import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonCallFrame
-import org.siphonlab.ago.runtime.rdb.reactive.json.ReactiveJsonAgoEngine
+import org.siphonlab.ago.runtime.db.lazy.DeferenceAgoFrame
+import org.siphonlab.ago.runtime.db.lazy.DeferenceInstance
+import org.siphonlab.ago.runtime.db.lazy.DeferenceNativeFrame
+import org.siphonlab.ago.runtime.db.lazy.DeferenceNativeInstance
+import org.siphonlab.ago.runtime.db.lazy.DeferenceObject
+import org.siphonlab.ago.runtime.db.lazy.DereferenceAdapter
+import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame
+import org.siphonlab.ago.runtime.db.lazy.ObjectRefInstance
+import org.siphonlab.ago.runtime.db.lazy.ObjectRefObject
+import org.siphonlab.ago.runtime.rdb.reactive.PersistentDbEngine
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -50,10 +57,9 @@ import javax.annotation.Nonnull
 import javax.sql.DataSource
 import java.sql.Connection
 import java.sql.SQLException
-import java.sql.Types
 
 @CompileStatic
-public abstract class JsonPGAdapter extends RdbAdapter {
+public abstract class JsonPGAdapter extends DbAdapter implements DereferenceAdapter, WorkflowAdapter{
 
     private  final Logger logger = LoggerFactory.getLogger(JsonPGAdapter)
 
@@ -70,90 +76,10 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
     @Override
-    public RdbType idType() {
-        return mapType(TypeCode.LONG, null);
-    }
-
-    @Override
-    protected void initTypeMap(Int2ObjectHashMap<RdbType> typeMap, Map<AgoClass, RdbType> standardDbTypes, ClassManager rdbEngine) {
-        typeMap.put(TypeCode.INT_VALUE, new RdbType(TypeCode.INT, Types.INTEGER, "integer"));
-        typeMap.put(TypeCode.LONG_VALUE, new RdbType(TypeCode.LONG, Types.BIGINT, "bigint"));
-        typeMap.put(TypeCode.FLOAT_VALUE, new RdbType(TypeCode.FLOAT, Types.FLOAT, "float"));
-        typeMap.put(TypeCode.DOUBLE_VALUE, new RdbType(TypeCode.DOUBLE, Types.DOUBLE, "double"));
-        typeMap.put(TypeCode.DECIMAL_VALUE, new RdbType(TypeCode.DECIMAL, Types.DECIMAL, "decimal"));
-        typeMap.put(TypeCode.BOOLEAN_VALUE, new RdbType(TypeCode.BOOLEAN, Types.BOOLEAN, "boolean"));
-        typeMap.put(TypeCode.STRING_VALUE, new RdbType(TypeCode.STRING, Types.VARCHAR, "varchar"));
-        typeMap.put(TypeCode.BYTE_VALUE, new RdbType(TypeCode.BYTE, Types.TINYINT, "smallint"));    // no byte type in PG
-        typeMap.put(TypeCode.SHORT_VALUE, new RdbType(TypeCode.SHORT, Types.SMALLINT, "smallint"));
-        typeMap.put(TypeCode.CHAR_VALUE, new RdbType(TypeCode.CHAR, Types.CHAR, "char"));
-        typeMap.put(TypeCode.CLASS_REF_VALUE, new RdbType(TypeCode.CLASS_REF, Types.VARCHAR, "varchar(1024)"));
-        typeMap.put(TypeCode.UNION_VALUE, new RdbType(TypeCode.UNION, Types.JAVA_OBJECT, "jsonb"));
-        typeMap.put(TypeCode.OBJECT_VALUE, new RdbType(TypeCode.OBJECT, Types.JAVA_OBJECT, "jsonb"));
-
-        AgoClass agoClass = classManager.getClass("VarChar");
-        if (agoClass != null) standardDbTypes.put(agoClass, new RdbType(TypeCode.STRING, Types.VARCHAR, "varchar", agoClass));
-
-        agoClass = classManager.getClass("BigInt");
-        if (agoClass != null)
-            standardDbTypes.put(agoClass, new RdbType(TypeCode.LONG, Types.BIGINT, "bigint", agoClass));
-    }
-
-    @Override
     void setDataSource(DataSource dataSource) {
         super.setDataSource(dataSource)
         this.sql = new Sql(this.getDataSource());
     }
-
-    Instance restoreInstance(Connection connection, ObjectRef objectRef){
-        // TODO improve AgoClass performance, let's don't load row
-        var row = new Sql(connection).firstRow("SELECT * FROM " + getTableName(objectRef.className()) + " WHERE id = ?", [objectRef.id() as Object])
-        String className = row["ago_class"]
-        String parentScopeTable = row['parent_scope_class']
-        Instance parentScope = null;
-        if(parentScopeTable != null){
-            long parent_scope_id = row["parent_scope_id"] as long
-            parentScope = restoreInstance(connection, new ObjectRef(parentScopeTable, parent_scope_id))
-        }
-
-        AgoClass agoClass = this.getClassByName(className);
-        if(agoClass instanceof MetaClass){
-            return this.getClassByName(row["fullname"] as String);
-        } else if(agoClass instanceof AgoFunction){
-            // TODO new NativeFrame...
-            var frame = new ReactiveJsonCallFrame(restoreSlots(objectRef, row, agoClass), agoClass as AgoFunction, this.classManager as ReactiveJsonAgoEngine)
-            frame.parentScope = parentScope
-            frame.pc = row['pc'] as int
-            frame.suspended = row['suspended']
-            return frame
-        } else {
-            var slots = restoreSlots(objectRef, row, agoClass)
-            var inst = new Instance(slots, agoClass)
-            inst.parentScope = parentScope;
-            return inst
-        }
-    }
-
-    abstract Slots restoreSlots(ObjectRef objectRef, Map<String, Object> dbRow, AgoClass agoClass);
-//    {
-//        return null;        //TODO restoreInstance need this, however, JsonRefSlots need SlotsAdapter
-////        return new JsonRefSlots(dbRef, this.getSlotsAdapter(), agoClass.getSlotDefs());       // don't restore value, only a ref
-////        for(var slotDef : agoClass.getSlotDefs()){
-////            var v = map[slots.getFieldName(slotDef.index)]
-////            switch (slotDef.typeCode.value){
-////                case TypeCode.INT_VALUE -> slots.setInt(slotDef.index, v as int)
-////                case TypeCode.LONG_VALUE -> slots.setLong(slotDef.index, v as long)
-////                case TypeCode.SHORT_VALUE -> slots.setShort(slotDef.index, v as short)
-////                case TypeCode.BYTE_VALUE -> slots.setByte(slotDef.index, v as byte)
-////                case TypeCode.FLOAT_VALUE -> slots.setFloat(slotDef.index, v as float)
-////                case TypeCode.DOUBLE_VALUE -> slots.setDouble(slotDef.index, v as double)
-////                case TypeCode.BOOLEAN_VALUE -> slots.setBoolean(slotDef.index, v as boolean)
-////                case TypeCode.STRING_VALUE -> slots.setString(slotDef.index, v as String)
-////                case TypeCode.CHAR_VALUE -> slots.setChar(slotDef.index, v as char)
-////                case TypeCode.CLASS_REF_VALUE -> slots.setClassRef(slotDef.index, this.getClassByName(v as String).classId)
-////                case TypeCode.OBJECT_VALUE -> restoreInstance()
-////            }
-////        }
-//    }
 
     void saveAgoFrame(@Nonnull Connection conn, AgoFrame agoFrame) {
         var slots = agoFrame.slots as JsonRefSlots;
@@ -163,7 +89,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 //        var defaultSlots = defaultSlots(agoFrame.agoClass, slots.jsonSlotMapper.jsonFiledNames)
 
         def params = [
-                id                : slots.objectRef.id() as Object,
+                id                : slots.objectRef.setObjectRef() as Object,
                 application       : applicationId,
                 ago_class         : agoFrame.agoClass.fullname,
                 parent_scope_id   : parentScope?.id(),
@@ -175,8 +101,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 suspended         : false,
                 exception_id      : null,
                 exception_class   : null,
-                runspace          : (agoFrame.getRunSpace() as RdbRunSpace)?.id,
-                slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
+                runspace          : (agoFrame.getRunSpace() as TaskRunSpace)?.id,
+                slots             : toJsonb((classManager as DbEngine).jsonStringifySlots(agoFrame))
         ]
 
         var sql = new Sql(conn);
@@ -196,7 +122,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ObjectRef creatorObjectRef = ObjectRefOwner.extractCreator(agoFrame);
 
         def params = [
-                id                : slots.objectRef.id() as Object,
+                id                : slots.objectRef.setObjectRef() as Object,
                 application       : applicationId,
                 ago_class         : agoFrame.agoClass.fullname,
                 parent_scope_id   : parentScope?.id(),
@@ -208,8 +134,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 suspended         : false,
                 exception_id      : null,
                 exception_class   : null,
-                runspace          : (agoFrame.getRunSpace() as RdbRunSpace)?.id,
-                slots             : toJsonb((classManager as RdbEngine).jsonStringifySlots(agoFrame))
+                runspace          : (agoFrame.getRunSpace() as TaskRunSpace)?.id,
+                slots             : toJsonb((classManager as DbEngine).jsonStringifySlots(agoFrame))
         ]
 
         var sql = new Sql(conn);
@@ -269,16 +195,13 @@ public abstract class JsonPGAdapter extends RdbAdapter {
             } else if (callFrame instanceof EntranceCallFrame) {
                 map["is_entrance"] = true
                 callFrame = callFrame.inner
-            }
-            else if (callFrame instanceof ExpandableCallFrame) {
-                callFrame = callFrame.getExpandedInstance();
             } else {
                 break
             }
         }
         if(saveSlots){
             var slots = callFrame.slots as JsonRefSlots
-            if(slots instanceof RdbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified))
+            if(slots instanceof DbSlots && (slots.rowState == RowState.Saving || slots.rowState == RowState.Modified))
                 map['slots'] = toJsonb(this.getAgoEngine().jsonStringifySlots(callFrame))
         }
         ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(callFrame.caller);
@@ -306,7 +229,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     void saveAgoClass(@Nonnull Connection conn, AgoClass agoClass) {
         var slots = agoClass.slots as JsonRefSlots;
-        if(logger.isDebugEnabled()) logger.debug("INSERT CLASS " + slots.objectRef.id())
+        if(logger.isDebugEnabled()) logger.debug("INSERT CLASS " + slots.objectRef.setObjectRef())
 
         sql.executeInsert(toMap(agoClass, applicationId),
             """INSERT INTO ago_class (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, 
@@ -422,7 +345,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
 
     void saveAgoFunction(@Nonnull Connection conn, AgoFunction agoFunction) {
         var slots = agoFunction.slots as JsonRefSlots;
-        if (logger.isDebugEnabled()) logger.debug("INSERT Function " + slots.objectRef.id())
+        if (logger.isDebugEnabled()) logger.debug("INSERT Function " + slots.objectRef.setObjectRef())
 
         var m = toMap(agoFunction, applicationId);
 
@@ -454,7 +377,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         var creator = ObjectRefOwner.extractCreator(agoClass);
 
         return [
-                id                      : slots.objectRef.id() as Object,
+                id                      : slots.objectRef.setObjectRef() as Object,
                 application             : applicationId,
                 class_id                : agoClass.classId,
                 ago_class               : agoClass.agoClass.fullname,
@@ -486,8 +409,8 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         ]
     }
 
-    RdbEngine getAgoEngine(){
-        return this.classManager as RdbEngine;
+    DbEngine getAgoEngine(){
+        return this.classManager as DbEngine;
     }
 
     PGobject toJsonb(Object object){
@@ -512,7 +435,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     PGobject toJsonb(Instance instance) {
         if (instance == null) return null;
 
-        var s = ((RdbEngine) this.classManager).dumpJson(instance);
+        var s = ((DbEngine) this.classManager).dumpJson(instance);
         var obj = new PGobject();
         obj.type = "json";
         obj.value = s
@@ -543,10 +466,10 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         sql.executeInsert("""INSERT INTO ago_instance
                                     (id, application, ago_class, parent_scope_id, parent_scope_class, creator_id, creator_class, slots, payload)
                                 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                [slots.objectRef.id() as Object, applicationId,
+                [slots.objectRef.setObjectRef() as Object, applicationId,
                  instance.agoClass.fullname, parentScope?.id(), parentScope?.className(),
                  creator?.id(), creator?.className(),
-                 toJsonb((classManager as RdbEngine).jsonStringifySlots(instance)),
+                 toJsonb((classManager as DbEngine).jsonStringifySlots(instance)),
                  payload
                 ]
         )
@@ -578,7 +501,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
     Map<String, Object> toMap(SavableRunSpace runSpace){
-        RdbEngine rdbEngine = this.classManager as RdbEngine
+        DbEngine rdbEngine = this.classManager as DbEngine
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
         return [
                 "id"               : (Object) runSpace.id,
@@ -589,13 +512,13 @@ public abstract class JsonPGAdapter extends RdbAdapter {
                 "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
-                "pausing_parents"  : runSpace.pausingParents.collect { ((RdbRunSpace) it).id }.toArray(new Long[0]),
-                "forked_runspaces" : runSpace.forkedSpaces.collect { ((RdbRunSpace) it).id }.toArray(new Long[0]), "parent": ((RdbRunSpace) runSpace.getParent())?.id
+                "pausing_parents"  : runSpace.pausingParents.collect { ((TaskRunSpace) it).id }.toArray(new Long[0]),
+                "forked_runspaces" : runSpace.forkedSpaces.collect { ((TaskRunSpace) it).id }.toArray(new Long[0]), "parent": ((TaskRunSpace) runSpace.getParent())?.id
         ];      // UnhandledException
     }
 
     Map<String, Object> toUpdateMap(SavableRunSpace runSpace) {
-        RdbEngine rdbEngine = this.classManager as RdbEngine
+        DbEngine rdbEngine = this.classManager as DbEngine
 
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(runSpace.getCurrentCallFrame());
         return [
@@ -611,7 +534,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
     private ResultSlots parseResultSlots(PGobject json) {
-        return ((RdbEngine)agoEngine).getDumpingObjectMapper().readValue(json.value, ResultSlots);
+        return ((DbEngine)agoEngine).getDumpingObjectMapper().readValue(json.value, ResultSlots);
     }
 
 
@@ -634,8 +557,7 @@ public abstract class JsonPGAdapter extends RdbAdapter {
         }
     }
 
-    @Override
-    String getTableName(String className) {
+    String tableName(String className) {
         return tableName(classManager.getClass(className))
     }
 
@@ -725,4 +647,255 @@ public abstract class JsonPGAdapter extends RdbAdapter {
     }
 
 
+    Instance restoreInstance(ObjectRef objectRef){
+        if(objectRef == null) return null;
+
+        return objectReferenceInstancesPool.computeIfAbsent(objectRef, {
+            AgoClass agoClass = classManager.getClass(objectRef.className())
+            ObjectRefObject r;
+            if (agoClass instanceof AgoFunction) {
+                r = new ObjectRefCallFrame(agoClass, objectRef, this, RowState.Unchanged)
+            } else if(agoClass instanceof AgoClass){
+                r = new ObjectRefInstance(agoClass, objectRef, this)
+            } else {
+                if (r == null && objectRef.className() == "<Meta>"){
+                    return classManager.getTheMeta();
+                }
+                throw new IllegalArgumentException("unknown class " + objectRef.className());
+            }
+            return r
+        }) as Instance;
+
+    }
+
+
+    @Override
+    protected void saveInstance(@Nonnull Connection conn, Instance<?> instance, Set<Instance<?>> saved) {
+        if (boxTypes.isBoxType((AgoClass)instance.getAgoClass()) || instance instanceof AgoArrayInstance)
+            return;
+
+        if(instance instanceof ObjectRefObject){
+            if(instance.getDeferencedInstance() != null){
+                var d = instance.getDeferencedInstance()
+                if(!saved.contains(d)) {
+                    saveInstance(conn, d, saved)
+                }
+            }
+            return;     // for folded Instance, it must be already saved or never touch its Slots, needn't save
+        } else if(instance instanceof ExpandableObject){
+            if(instance.isExpanded()){
+                saved.add((Instance) instance);
+                saveInstance(conn, instance.getExpandedInstance(), saved)
+            }
+            return      // ignore folded Instance
+        }
+        if(logger.isDebugEnabled()) logger.debug("save instance " + instance)
+        super.saveInstance(conn, instance, saved)
+        if(instance instanceof DeferenceObject){
+            if(instance.isSaveRequired()){
+                if(instance instanceof CallFrame) {
+                    updateCallFrameRunningState(conn, instance, (byte) -1)
+                } else {
+                    this.update(conn, (Instance)instance, (DbSlots)null, instance.getAgoClass() as AgoClass);
+                }
+            }
+        }
+    }
+
+    @Override
+    void insert(@Nonnull Connection conn, Instance<?> instance, DbSlots rdbSlots, AgoClass agoClass) {
+        if (instance instanceof AgoFrame) {
+            saveAgoFrame(conn, instance)
+        } else if(instance instanceof NativeFrame){
+            saveNativeFrame(conn, instance)
+        } else if (instance instanceof AgoFunction) {
+            saveAgoFunction(conn, (AgoFunction) instance)
+        } else if (instance instanceof AgoClass) {
+            saveAgoClass(conn, (AgoClass) instance)
+        } else {
+            saveAgoInstance(instance)
+        }
+
+        if (instance instanceof DeferenceObject) {
+            instance.markSaved()
+        }
+    }
+
+    @Override
+    void update(@Nonnull Connection conn, Instance<?> instance, DbSlots rdbSlots, AgoClass agoClass) {
+        if (instance instanceof CallFrameWithRunningState) {
+            updateCallFrameRunningState(conn, instance.unwrap(), instance.getRunningState());
+            return
+        }
+
+        Map<String, Object> arguments = new HashMap<>();
+        ObjectRef ref = ((RdbRefSlots) rdbSlots).objectRef
+        logger.info("UPDATE " + ref)
+
+        arguments["id"] = ref.id()
+        if(rdbSlots != null && rdbSlots.getRowState() != RowState.Unchanged) {
+            arguments["slots"] = toJsonb(this.getAgoEngine().jsonStringifySlots(instance))
+        }
+
+        boolean hasPayload = false;
+        if(instance instanceof NativeInstance){
+            hasPayload = true;
+            if(instance.nativePayload != null) {
+                arguments['payload'] = toJsonb(instance.nativePayload)
+            } else {
+                arguments['payload'] = null
+            }
+        } else if(instance instanceof NativeFrame){
+            hasPayload = true;
+            if (instance.nativePayload != null) {
+                arguments['payload'] = toJsonb(instance.nativePayload)
+            } else {
+                arguments['payload'] = null
+            }
+        }
+
+        String sql
+        if(instance instanceof CallFrame){
+            arguments["runspace"] = (instance.runSpace as SavableRunSpace)?.id
+            if(instance instanceof AgoFrame) {
+                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, ${hasPayload ? 'payload = :payload,' : ''} runspace = :runspace, suspended = :suspended, pc = :pc WHERE id = :id"
+                arguments["pc"] = instance.pc
+                arguments["suspended"] = instance.suspended
+            } else {
+                sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, ${hasPayload ? 'payload = :payload,' : ''}  runspace = :runspace, suspended = :suspended WHERE id = :id"
+                arguments["suspended"] = instance.suspended
+            }
+            ObjectRef callerObjectRef = ObjectRefOwner.extractObjectRef(instance.caller);
+            if(callerObjectRef){
+                arguments['caller_id'] = callerObjectRef.id()
+                arguments['caller_class'] = callerObjectRef.className()
+            }
+        } else {
+            sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots ${hasPayload ? ',payload = :payload' : ''}  WHERE id = :id"
+        }
+
+        if(instance instanceof DeferenceObject){
+            instance.markSaved()
+        }
+
+        var sqlx = new Sql(conn);
+        sqlx.executeUpdate(arguments, sql)
+
+    }
+
+    @Override
+    Instance<?> dereference(ObjectRef objectRef) {
+        var objrefInstance = objectReferenceInstancesPool.get(objectRef);
+        if(objrefInstance != null){
+            if(objrefInstance instanceof ObjectRefObject) {
+                var existed = objrefInstance.getDeferencedInstance()
+                if (existed)
+                    return existed
+            } else {
+                return objrefInstance       // MetaClass
+            }
+        }
+        try(var connection = getDataSource().getConnection()) {
+            var row = new Sql(connection).firstRow("SELECT * FROM " + tableName(objectRef.className()) + " WHERE id = ?", [objectRef.id() as Object])
+            String className = row["ago_class"]
+            String parentScopeTable = row['parent_scope_class']
+            Instance parentScope = null;
+            if (parentScopeTable != null) {
+                long parent_scope_id = row["parent_scope_id"] as long
+                parentScope = restoreInstance(connection, new ObjectRef(parentScopeTable, parent_scope_id))
+            }
+
+            ObjectRef creator;
+            if (row["creator_id"] != null) {
+                creator = new ObjectRef(row["creator_class"] as String, row["creator_id"] as Long)
+            } else {
+                creator = null
+            }
+
+            AgoClass agoClass = this.getClassByName(className);
+            if (agoClass instanceof MetaClass) {
+                return this.getClassByName(row["fullname"] as String);
+            } else if (agoClass instanceof AgoFunction) {
+                CallFrame caller;
+                if (row["caller_id"] != null) {
+                    caller = (CallFrame) restoreInstance(new ObjectRef(row["caller_class"] as String, row["caller_id"] as Long))
+                } else {
+                    caller = null
+                }
+                PersistentDbEngine engine = this.classManager as PersistentDbEngine;
+                MutableObject<Instance> boxInstanceScope = new MutableObject<>();
+                var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, null, slots -> {
+                    getAgoEngine().jsonDeserializeSlots(slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), boxInstanceScope);
+                })
+                if (frame instanceof DeferenceAgoFrame) {
+                    frame.pc = row['pc'] as int
+                    frame.getDeferenceFrameState().entrance = row['is_entrance']
+                    frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
+                    frame.getDeferenceObjectState().setCreator(creator)
+                } else if(frame instanceof DeferenceNativeFrame){        //DeferenceNativeFrame
+                    if(row['payload']) frame.setNativePayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
+                    frame.getDeferenceFrameState().entrance = row['is_entrance']
+                    frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
+                    frame.getDeferenceObjectState().setCreator(creator)
+                } else {
+                    throw new RuntimeException("not deference type");
+                }
+                if(boxInstanceScope.get() != null){
+                    frame.setParentScope(boxInstanceScope.get())
+                }
+                if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, frame))
+                if(row['runspace']) {
+                    PersistentDbEngine persistentRdbEngine = (PersistentDbEngine) this.classManager;
+                    frame.runSpace = persistentRdbEngine.getRunSpace(row['runspace'] as Long)
+                }
+                frame.setCaller(caller)
+
+                if (frame instanceof DeferenceObject) frame.markSaved()
+
+                return frame
+            } else {
+                LazyJsonAgoEngine engine = this.classManager as LazyJsonAgoEngine;
+                LazyJsonRefSlots slots = agoClass.createSlots() as LazyJsonRefSlots
+                getAgoEngine().jsonDeserializeSlots(slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), null);
+
+                var inst = agoClass.isNative() ? new DeferenceNativeInstance(slots,agoClass, engine) : new DeferenceInstance(slots, agoClass, engine);
+                inst.parentScope = parentScope
+                inst.getDeferenceObjectState().setCreator(creator)
+                if(inst instanceof DeferenceNativeInstance){
+                    var payload = row['payload'];
+                    if(payload){
+                        inst.setNativePayload(new JsonSlurper().parseText(((PGobject)payload).value))
+                    }
+                }
+                inst.markSaved()
+
+                if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, inst))
+                return inst
+            }
+        }
+    }
+
+    public AgoClass loadScopedAgoClass(AgoClass baseClass, long id) {
+        var row = sql.firstRow("SELECT parent_scope_class, parent_scope_id, creator_class, creator_id, slots FROM ${baseClass instanceof AgoFunction ? "ago_function" : "ago_class"} WHERE id =?", [id])
+        var parentScopeId = row["parent_scope_id"]
+        if(parentScopeId != null) {
+            Instance scope = restoreInstance(new ObjectRef((String) row["parent_scope_class"], (Long) parentScopeId));
+            var scoped = baseClass.cloneWithScope(scope)
+            Object creatorId = row["creator_id"];
+            if (creatorId != null) {
+                if(scoped instanceof DeferenceObject){
+                    scoped.getDeferenceObjectState().setCreator(new ObjectRef((String) row["creator_class"], (Long) creatorId))
+                }
+            }
+            var slots = scoped.getSlots() as DbSlots;
+            if(baseClass.getAgoClass() != agoEngine.getTheMeta()) {
+                getAgoEngine().jsonDeserializeSlots(slots, id, baseClass.getAgoClass(), row['slots'] as String, null)
+            } else {
+                slots.setId(id)
+            }
+            slots.setRowState(RowState.Unchanged);
+            return scoped;
+        }
+        return baseClass
+    }
 }

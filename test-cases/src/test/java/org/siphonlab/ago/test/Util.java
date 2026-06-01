@@ -29,11 +29,11 @@ import org.siphonlab.ago.compiler.Compiler;
 import org.siphonlab.ago.compiler.Unit;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
-import org.siphonlab.ago.runtime.rdb.json.lazy.JsonAgoClassLoader;
+import org.siphonlab.ago.runtime.db.lazy.JsonAgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
-import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
-import org.siphonlab.ago.runtime.rdb.json.lazy.PGJsonSlotsCreatorFactory;
-import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
+import org.siphonlab.ago.runtime.db.lazy.LazyJsonPGAdapter;
+import org.siphonlab.ago.runtime.db.lazy.PGJsonSlotsCreatorFactory;
+import org.siphonlab.ago.runtime.rdb.reactive.PersistentDbEngine;
 import org.siphonlab.ago.runtime.rdb.task.TaskAdapter;
 import org.siphonlab.ago.runtime.rdb.task.TaskEngine;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
@@ -235,7 +235,7 @@ public class Util {
         slotsCreatorFactory.setAdapter(rdbAdapter);
         rdbAdapter.setDataSource(ds);
 
-        PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        PersistentDbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
         slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.run(entrance);
@@ -254,7 +254,7 @@ public class Util {
         slotsCreatorFactory.setAdapter(rdbAdapter);
         rdbAdapter.setDataSource(ds);
 
-        PersistentRdbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
+        PersistentDbEngine rdbEngine = new LazyJsonAgoEngine(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()));
         slotsCreatorFactory.setEngine(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.resume();

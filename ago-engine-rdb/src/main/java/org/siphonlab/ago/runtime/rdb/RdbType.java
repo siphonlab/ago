@@ -26,6 +26,7 @@ public class RdbType {
     private String typeName;
     private TypeCode typeCode;
     private AgoClass agoClass;
+    private boolean isNullable;
 
     private RdbType additional;
 
@@ -112,5 +113,13 @@ public class RdbType {
             t.setAdditional(t.additional.clone());
         }
         return t;
+    }
+
+    public boolean isNullable() {
+        return isNullable;
+    }
+
+    public void setNullable(boolean nullable) {
+        isNullable = nullable;
     }
 }

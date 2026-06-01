@@ -21,7 +21,6 @@ import io.ebeaninternal.dbmigration.ddlgeneration.DdlWrite;
 import io.ebeaninternal.dbmigration.ddlgeneration.PlatformDdlBuilder;
 import io.ebeaninternal.dbmigration.ddlgeneration.platform.BaseTableDdl;
 import io.ebeaninternal.dbmigration.migration.Column;
-import io.ebeaninternal.dbmigration.migration.CreateTable;
 import org.apache.commons.io.IOUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
@@ -31,17 +30,17 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class RdbDDLGenerator {
+public abstract class RdbDDLGenerator<Id> {
 
     protected final AgoClassLoader classLoader;
-    protected final RdbAdapter rdbAdapter;
+    protected final DbAdapter<Id> dbAdapter;
     protected final DatabasePlatform databasePlatform;
 
-    protected Map<AgoClass, TableOfClass> tables = new LinkedHashMap<>();
+    protected Map<AgoClass, RdbTable> tables = new LinkedHashMap<>();
 
-    public RdbDDLGenerator(AgoClassLoader classLoader, RdbAdapter rdbAdapter, DatabasePlatform databasePlatform) {
+    public RdbDDLGenerator(AgoClassLoader classLoader, DbAdapter<Id> dbAdapter, DatabasePlatform databasePlatform) {
         this.classLoader = classLoader;
-        this.rdbAdapter = rdbAdapter;
+        this.dbAdapter = dbAdapter;
         this.databasePlatform = databasePlatform;
     }
 
@@ -62,59 +61,71 @@ public class RdbDDLGenerator {
         IOUtils.write(applyLast, outputStream, StandardCharsets.UTF_8);
     }
 
-    protected void generate(BaseTableDdl ddlGen, DdlWrite writer) {
-        for (AgoClass agoClass : classLoader.getClasses()) {
-            if (!agoClass.isGenericTemplate()
-                        && !agoClass.isInGenericTemplate()
-                        && !(agoClass instanceof AgoInterface)
-                        && agoClass.getSlotDefs().length > 0) {
-                ddlGen.generate(writer, createTable(agoClass));
-            }
-        }
-    }
+    protected abstract void generate(BaseTableDdl ddlGen, DdlWrite writer);
 
     public void dumpClassMapper(OutputStream outputStream) throws IOException {
-        var s = TableOfClass.dump(tables);
+        var s = RdbTable.dump(tables);
         IOUtils.write(s, outputStream, StandardCharsets.UTF_8);
     }
 
-    protected CreateTable createTable(AgoClass agoClass) {
-        CreateTable createTable = new CreateTable();
-        String tableName = rdbAdapter.tableName(agoClass);
-        createTable.setName(tableName);
-        createTable.setPkName(rdbAdapter.primaryKeyName(agoClass));
+    /** Common columns for all instance‑like tables (id, application, ... , slots) */
+    protected void createInstanceColumns(RdbType idT, List<Column> cols) {
+        // id – PK
+        Column idCol = createColumn("id", idT.getTypeName());
+        idCol.setPrimaryKey(true);
+        cols.add(idCol);
 
-        List<Column> columns = createTable.getColumn();
+        // application (bigint in all tables that need it)
+        cols.add(createColumn("application", idT.getTypeName()));
 
-        Set<String> usedNames = new HashSet<>();
+        // ago_class text
+        cols.add(createColumn("ago_class", "text"));
 
-        ColumnDesc pkColumnDesc = rdbAdapter.composeIdColumn(usedNames);
+        // parent_scope_id / class + creator_id / class
+        objectColumn(cols, "parent_scope", idT);
 
-        rdbAdapter.composeInstanceColumns(createTable, agoClass, usedNames);
+        objectColumn(cols, "creator", idT);
 
-        Column pk = rdbAdapter.toColumn(pkColumnDesc);
-        pk.setPrimaryKey(true);
-        columns.add(pk);
-
-        List<ColumnDesc> columnsOfSlots = new ArrayList<>();
-        for (AgoSlotDef slotDef : agoClass.getSlotDefs()) {
-            createColumn(slotDef, columns, usedNames, columnsOfSlots);
-        }
-        tables.put(agoClass, new TableOfClass(agoClass, tableName, columnsOfSlots));
-
-        return createTable;
+        // slots (jsonb)
+        cols.add(createColumn("slots", "jsonb"));
     }
 
-    protected void createColumn(AgoSlotDef slotDef, List<Column> columns, Set<String> usedNames, List<ColumnDesc> columnDescs) {
-        ColumnDesc columnDesc = rdbAdapter.composeColumnDesc(slotDef, usedNames);
-        columns.add(rdbAdapter.toColumn(columnDesc));
+    /** Class‑specific columns – called after createInstanceColumns() */
+    protected void createClassColumns(List<Column> cols) {
+        cols.add(createColumn("fullname", "text"));
+        cols.add(createColumn("class_id", "int"));
+        cols.add(createColumn("class_type", "int"));
+        cols.add(createColumn("name", "varchar(1024)"));
+        cols.add(createColumn("fields", "jsonb[]"));
+        cols.add(createColumn("slotDefs", "jsonb[]"));
+        cols.add(createColumn("has_slots_creator", "bool"));
+        cols.add(createColumn("modifiers", "int"));
+        cols.add(createColumn("super_class", "text"));
+        cols.add(createColumn("interfaces", "text[]"));
+        cols.add(createColumn("children", "text[]"));
+        cols.add(createColumn("methods", "text[]"));
+        cols.add(createColumn("parent", "text"));
+        cols.add(createColumn("permit_class", "text"));
+        cols.add(createColumn("parameterized_base_class", "text"));
+        cols.add(createColumn("concrete_type_info", "jsonb"));
+        cols.add(createColumn("source_location", "jsonb"));
+    }
 
-        if(columnDesc.getAdditional() != null){
-            ColumnDesc additional = columnDesc.getAdditional();
-            columns.add(rdbAdapter.toColumn(additional));
-        }
+    /** Simple column helper */
+    protected Column createColumn(String name, String type) {
+        Column c = new Column();
+        c.setName(name);
+        c.setType(type);
+        return c;
+    }
 
-        columnDescs.add(columnDesc);
+    /** Helper to generate *_id + *_class columns for an object reference */
+    protected void objectColumn(List<Column> cols, String field, RdbType idT) {
+        Column idCol = createColumn(field + "_id", idT.getTypeName());
+        cols.add(idCol);
+
+        Column classCol = createColumn(field + "_class", "text");
+        cols.add(classCol);
     }
 
 }

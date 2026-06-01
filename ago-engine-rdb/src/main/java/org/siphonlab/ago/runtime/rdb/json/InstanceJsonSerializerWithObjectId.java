@@ -20,7 +20,7 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.runtime.json.InstanceJsonSerializer;
-import org.siphonlab.ago.runtime.rdb.RdbSlots;
+import org.siphonlab.ago.runtime.db.DbSlots;
 
 import java.io.IOException;
 
@@ -34,8 +34,8 @@ public class InstanceJsonSerializerWithObjectId extends InstanceJsonSerializer {
 
     @Override
     public void writeObjectId(Instance<?> instance, JsonGenerator gen) throws IOException {
-        RdbSlots slots = (RdbSlots) instance.getSlots();
-        gen.writeNumberField("@id", slots.getId());
+        DbSlots slots = (DbSlots) instance.getSlots();
+        gen.writeNumberField("@id", slots.getObjectRef());
     }
 
     @Override
@@ -46,8 +46,8 @@ public class InstanceJsonSerializerWithObjectId extends InstanceJsonSerializer {
             gen.writeStartArray();
             gen.writeString(classInst.getFullname());
 
-            RdbSlots slots = (RdbSlots) instance.getSlots();
-            gen.writeNumber(slots.getId());
+            DbSlots slots = (DbSlots) instance.getSlots();
+            gen.writeNumber(slots.getObjectRef());
 
             if(classInst.getParentScope() != null){
                 gen.writeObject(classInst.getParentScope());

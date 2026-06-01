@@ -25,10 +25,10 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.runtime.json.AgoJsonConfig;
-import org.siphonlab.ago.runtime.rdb.ObjectRef;
+import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
-import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonPGAdapter;
+import org.siphonlab.ago.runtime.db.lazy.LazyJsonPGAdapter;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
 public class TestFunctions {

@@ -16,9 +16,9 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.ResultSlots;
+import org.siphonlab.ago.runtime.db.ObjectRef;
 
 import java.util.List;
-import java.util.Objects;
 
 public final class RunSpaceDesc {
     private long id;

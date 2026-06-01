@@ -21,7 +21,9 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.FileUtils;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.runtime.db.DbSlotsCreatorFactory;
 import org.siphonlab.ago.runtime.rdb.*;
+import org.siphonlab.ago.runtime.rdb.h2.H2Adapter;
 import org.siphonlab.ago.test.Util;
 import org.siphonlab.ago.web.RestfulService;
 
@@ -53,7 +55,7 @@ public class RdbDdlTest {
 
 
     public void runWithH2Db(String output) throws IOException {
-        var agoClassLoader = new AgoClassLoader(new RdbSlotsCreatorFactory(null));
+        var agoClassLoader = new AgoClassLoader(new DbSlotsCreatorFactory(null));
         agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         agoClassLoader.loadClasses(output);
 
@@ -67,18 +69,18 @@ public class RdbDdlTest {
         ds.setUsername("sa");
         ds.setDriverClassName("org.h2.Driver");
 
-        RdbAdapter rdbAdapter = new H2Adapter(agoClassLoader.getBoxTypes(), agoClassLoader, new SnowflakeIdGenerator(1));
-        rdbAdapter.loadTableMap(FileUtils.openInputStream(outputMapFile));
-        rdbAdapter.setDataSource(ds);
+        DbAdapter dbAdapter = new H2Adapter(agoClassLoader.getBoxTypes(), agoClassLoader, new SnowflakeIdGenerator(1));
+        dbAdapter.loadTableMap(FileUtils.openInputStream(outputMapFile));
+        dbAdapter.setDataSource(ds);
         // for first run
-        rdbAdapter.executeDDL(FileUtils.readFileToString(outputSqlFile, "utf-8"));
+        dbAdapter.executeDDL(FileUtils.readFileToString(outputSqlFile, "utf-8"));
 
-        RdbEngine rdbEngine = new RdbEngine(rdbAdapter);
-        rdbEngine.load(agoClassLoader);
-        rdbEngine.run("main#");
+        DbEngine dbEngine = new DbEngine(dbAdapter);
+        dbEngine.load(agoClassLoader);
+        dbEngine.run("main#");
 
         RestfulService restfulService = new RestfulService();
-        restfulService.installServices(agoClassLoader, rdbEngine);
+        restfulService.installServices(agoClassLoader, dbEngine);
         restfulService.start();
     }
 

@@ -16,10 +16,10 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.db.DbSlots;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -40,16 +40,16 @@ import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 public class ResultSetMapper {
 
     private final ResultSet resultSet;
-    private final TableOfClass tableOfClass;
+    private final RdbTable rdbTable;
     private final BoxTypes boxTypes;
 
-    private RdbEngine agoEngine;
+    private AgoEngine agoEngine;
     private boolean closed = false;
     private CallFrame<?> creator;
 
-    public ResultSetMapper(ResultSet resultSet, TableOfClass tableOfClass, BoxTypes boxTypes){
+    public ResultSetMapper(ResultSet resultSet, RdbTable rdbTable, BoxTypes boxTypes){
         this.resultSet = resultSet;
-        this.tableOfClass = tableOfClass;
+        this.rdbTable = rdbTable;
         this.boxTypes = boxTypes;
     }
 
@@ -64,10 +64,10 @@ public class ResultSetMapper {
     }
 
     public Instance<?> next() throws SQLException {
-        var instance = agoEngine.createInstance(tableOfClass.agoClass(), creator);
-        RdbSlots slots = (RdbSlots) instance.getSlots();
-        slots.setId(resultSet.getLong("id"));
-        for (ColumnDesc column : tableOfClass.columns()) {
+        var instance = agoEngine.createInstance(rdbTable.agoClass(), creator);
+        DbSlots slots = (DbSlots) instance.getSlots();
+        slots.setObjectRef(resultSet.getLong("id"));
+        for (ColumnDesc column : rdbTable.columns()) {
             AgoSlotDef slotDef = column.getSlotDef();
             int slotIndex = slotDef.getIndex();
             int columnIndex = slotIndex + 1 + 1;        // skip id
@@ -195,11 +195,11 @@ public class ResultSetMapper {
         throw new UnsupportedOperationException("unknown type code " + typeCode);
     }
 
-    public RdbEngine getAgoEngine() {
+    public AgoEngine getAgoEngine() {
         return agoEngine;
     }
 
-    public void setAgoEngine(RdbEngine agoEngine) {
+    public void setAgoEngine(AgoEngine agoEngine) {
         this.agoEngine = agoEngine;
     }
 

@@ -65,7 +65,7 @@ public class LangClasses {
     private final AgoClass shortEnumClass;
     private final AgoClass longEnumClass;
 
-    public final AgoInterface taskInterface;
+    private final AgoInterface taskInterface;
     private final AgoClass boxerClass;
 
     public LangClasses(ClassManager classManager) {
@@ -291,4 +291,9 @@ public class LangClasses {
     public AgoClass getBoxerClass() {
         return boxerClass;
     }
+
+    public AgoInterface getTaskInterface() {
+        return taskInterface;
+    }
+
 }

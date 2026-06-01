@@ -15,58 +15,24 @@
  */
 package org.siphonlab.ago.runtime.rdb.task;
 
-import org.agrona.collections.Long2ObjectHashMap;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.db.TaskRunSpace;
 import org.siphonlab.ago.runtime.rdb.*;
-import org.siphonlab.ago.runtime.rdb.json.lazy.LazyJsonAgoEngine;
-import org.siphonlab.ago.runtime.rdb.lazy.ObjectRefCallFrame;
+import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter;
+import org.siphonlab.ago.runtime.rdb.reactive.PersistentDbEngine;
 
-import java.util.List;
-
-public class TaskEngine extends LazyJsonAgoEngine {
-    public TaskEngine(RdbAdapter rdbAdapter, RunSpaceHost runSpaceHost) {
-        super(rdbAdapter, runSpaceHost);
+public class TaskEngine extends PersistentDbEngine {
+    public TaskEngine(DbAdapter dbAdapter, RunSpaceHost runSpaceHost) {
+        super(dbAdapter, runSpaceHost);
     }
 
     @Override
-    public TaskAdapter getRdbAdapter() {
-        return (TaskAdapter) super.getRdbAdapter();
+    public JsonPGAdapter getRdbAdapter() {
+        return (JsonPGAdapter) super.getRdbAdapter();
     }
 
     protected TaskRunSpace createRunSpaceInner(RunSpaceHost host) {
         return new TaskRunSpace(this, this.getRdbAdapter(), host);
     }
 
-    public void resume(){
-        TaskAdapter adapter = this.getRdbAdapter();
-        List<RunSpaceDesc> runSpaceDescs = adapter.loadResumableRunSpaces();
-
-        Long2ObjectHashMap<TaskRunSpace> runspaces = new Long2ObjectHashMap<>();
-        for (RunSpaceDesc runSpaceDesc : runSpaceDescs) {
-            var r  = new TaskRunSpace(this, adapter, this.runSpaceHost, runSpaceDesc.getId()); //TODO multiple runSpaceHost
-            runspaces.put(runSpaceDesc.getId(),r);
-        }
-        this.runspaces.putAll(runspaces);
-
-        for (RunSpaceDesc runSpaceDesc : runSpaceDescs) {
-            var r = runspaces.get(runSpaceDesc.getId());
-            CallFrame<?> currCallFrame = (CallFrame<?>) adapter.restoreInstance(runSpaceDesc.getCurrFrame());
-            if(currCallFrame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
-                currCallFrame = (CallFrame<?>) objectRefCallFrame.recomposeAsCallFrame();
-            }
-            List<RunSpace> forkedRunspaces = runSpaceDesc.getForkedRunSpaces() == null ? null : runSpaceDesc.getForkedRunSpaces().stream().map(d -> (RunSpace) runspaces.get(d.getId())).toList();
-            RunSpace parent = runSpaceDesc.getParentRunSpace() == null ? null : runspaces.get(runSpaceDesc.getParentRunSpace().getId());
-            List<RunSpace> pausingParents = runSpaceDesc.getPausingParents() == null ? null : runSpaceDesc.getPausingParents().stream().map(d -> (RunSpace)runspaces.get(d.getId())).toList();
-            byte runningState = runSpaceDesc.getRunningState();
-            Instance<?> exception = adapter.restoreInstance(runSpaceDesc.getException());
-            r.restore(runningState, currCallFrame, parent, forkedRunspaces, pausingParents, exception, runSpaceDesc.getResultSlots());
-        }
-
-        for (var runSpace : runspaces.values()) {
-            var state = runSpace.getRunningState();
-            if(state == RunSpace.RunningState.RUNNING || state == RunSpace.RunningState.PENDING) {
-                runSpace.resumeByRestore();
-            }
-        }
-    }
 }

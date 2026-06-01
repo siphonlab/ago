@@ -519,4 +519,12 @@ public class RunSpace implements Runnable{
         this.runningState = runningState;
     }
 
+    public Set<RunSpace> getPausingParents() {
+        return pausingParents;
+    }
+
+    public Set<RunSpace> getForkedSpaces() {
+        return forkedSpaces;
+    }
+
 }
