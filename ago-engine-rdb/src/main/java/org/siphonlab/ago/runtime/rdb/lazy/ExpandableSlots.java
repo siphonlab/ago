@@ -15,7 +15,6 @@
  */
 package org.siphonlab.ago.runtime.rdb.lazy;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.RdbSlots;
@@ -164,9 +163,11 @@ public class ExpandableSlots implements Slots {
             return;
         }
 
+        /*
         if(existed instanceof ExpandableObject<?> object){
             object.fold();
         }
+         */
 
         // always transform to ExpandableInstance
         value = transform(value);

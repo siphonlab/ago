@@ -65,14 +65,14 @@ public class LinkedList {
     }
 
     public static void add(NativeFrame callFrame, int item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList ls = (java.util.LinkedList) instance.getNativePayload();
         ls.add(item);
         callFrame.finishVoid();
     }
 
     public static void add(NativeFrame callFrame, Instance<?> item) {
-        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        var instance = callFrame.getParentScope();
         java.util.LinkedList<Instance> ls = (java.util.LinkedList<Instance>) instance.getNativePayload();
         ls.add(item);
         callFrame.finishVoid();
