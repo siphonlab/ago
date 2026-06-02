@@ -212,9 +212,15 @@ public class AgoClass extends Instance<MetaClass>{
             visited.add(anotherClass);
         }
 
-        if(anotherClass.isGenericInstantiation() && this.isGenericInstantiation()){        // Template -> GenericSource
-            if(anotherClass.getConcreteTypeInfoAsGenericArguments().getTemplateClass() == this.getConcreteTypeInfoAsGenericArguments().getTemplateClass() && isTypeArgumentsMatch(anotherClass)){
-                return anotherClass;
+        if (anotherClass.isGenericInstantiation()) {
+            if (this.isGenericInstantiation()) {        // Template -> GenericSource
+                if (anotherClass.getConcreteTypeInfoAsGenericArguments().getTemplateClass() == this.getConcreteTypeInfoAsGenericArguments().getTemplateClass() && isTypeArgumentsMatch(anotherClass)) {
+                    return anotherClass;
+                }
+            } else if(this.isGenericTemplate()){
+                if(anotherClass.getConcreteTypeInfoAsGenericArguments().getTemplateClass() == this){
+                    return anotherClass;
+                }
             }
         }
 
