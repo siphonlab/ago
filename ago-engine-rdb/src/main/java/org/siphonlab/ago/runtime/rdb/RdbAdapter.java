@@ -22,14 +22,15 @@ import org.agrona.concurrent.IdGenerator;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
+import org.siphonlab.ago.runtime.ObjectArrayInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -318,14 +319,38 @@ public abstract class RdbAdapter {
         return parameterIndex + 1;
     }
 
-    protected void saveInstance(@Nonnull Connection conn, Instance<?> instance, Set<Instance<?>> saved){
+    private void saveObjectInstance(
+            @NonNull Connection conn,
+            ObjectArrayInstance instance,
+            Set<Instance<?>> saved
+    ) {
+        for (var valueInstance : instance.value) {
+            this.saveInstance(conn, valueInstance, saved);
+        }
+    }
+
+    protected void saveInstance(@NonNull Connection conn, Instance<?> instance, Set<Instance<?>> saved){
         saved.add(instance);
+
+        if (this.boxTypes.isBoxType(instance.getAgoClass())) {
+            return ;
+        }
+
+        if (instance instanceof MetaClass meta && meta.getName().equals("<Meta>")) {
+            return ;
+        }
+
+        if (instance instanceof AgoArrayInstance aryInstance) {
+            if (aryInstance instanceof ObjectArrayInstance xs) {
+                this.saveObjectInstance(conn, xs, saved);
+            }
+            return ;
+        }
 
         if (instance.getSlots() instanceof RdbSlots rdbSlots) {
             if(rdbSlots.getUsingInstances() != null) {
                 rdbSlots.getUsingInstances().removeIf(
                 value -> boxTypes.isBoxType(value.getAgoClass())
-                            || value instanceof AgoArrayInstance
                             || value instanceof MetaClass m && m.getName().equals("<Meta>"));
             }
 
@@ -359,7 +384,7 @@ public abstract class RdbAdapter {
     }
 
     // save a instance using exists connection.
-    public void saveWithConn(@Nonnull Connection conn, Instance<?> instance) {
+    public void saveWithConn(@NonNull Connection conn, Instance<?> instance) {
         this.saveInstance(conn, instance, new HashSet<>());
     }
 
@@ -380,11 +405,11 @@ public abstract class RdbAdapter {
         throw new NotImplementedException("not implemented yet");
     }
 
-    public void updateCallFrameRunningState(@Nonnull Connection conn, CallFrame<?> statefulCallFrame, byte runningState, int pc) {
+    public void updateCallFrameRunningState(@NonNull Connection conn, CallFrame<?> statefulCallFrame, byte runningState, int pc) {
         throw new NotImplementedException();
     }
 
-    protected void insert(@Nonnull Connection conn, Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
+    protected void insert(@NonNull Connection conn, Instance<?> instance, RdbSlots rdbSlots, AgoClass agoClass) {
         var tableOfClass = tableOfClassMap.get(agoClass);
         StringBuilder sql = new StringBuilder("INSERT INTO " + tableOfClass.tableName()).append("(");
 
@@ -438,7 +463,7 @@ public abstract class RdbAdapter {
     }
 
     protected void update(
-            @Nonnull Connection conn,
+            @NonNull Connection conn,
             Instance<?> instance,
             RdbSlots rdbSlots,
             AgoClass agoClass

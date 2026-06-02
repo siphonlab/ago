@@ -163,7 +163,7 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
             // { @linkedlist: "type", @elements: [] }
             gen.writeStartObject();
 
-            writeClass(gen, "@linkedlist", agoClass);
+            writeClass(gen, "@collection", agoClass);
 
             var iter = (java.util.List<?>) instance.getNativePayload();
             var innerAry = iter.toArray();
