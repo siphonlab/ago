@@ -157,6 +157,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                             if (collectionType.getFullname().matches("^lang.LinkedList<[a-zA-Z0-9]+>$")) {
                                 var genericParameter = collectionType.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
 
+                                ajp.nextToken(); // skip field anme
                                 ajp.nextToken(); // begin array [
                                 var innerAry = this.collecionFromValue(ajp, ctxt, genericParameter, creator);
                                 ajp.nextToken(); // end object }
