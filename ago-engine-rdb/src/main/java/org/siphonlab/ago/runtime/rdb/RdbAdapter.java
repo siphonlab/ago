@@ -319,13 +319,27 @@ public abstract class RdbAdapter {
         return parameterIndex + 1;
     }
 
-    private void saveObjectInstance(
+    private void saveObjectArrayInstance(
             @NonNull Connection conn,
             ObjectArrayInstance instance,
             Set<Instance<?>> saved
     ) {
         for (var valueInstance : instance.value) {
             this.saveInstance(conn, valueInstance, saved);
+        }
+    }
+
+    private void saveObjectListInstance(
+            Connection conn,
+            Instance<?> instance,
+            Set<Instance<?>> saved
+    ) {
+        var innerList = (java.util.List<Instance<?>>) instance.getNativePayload();
+        if (innerList == null) {
+            return ;
+        }
+        for (var item : innerList) {
+            this.saveInstance(conn, item, saved);
         }
     }
 
@@ -341,9 +355,20 @@ public abstract class RdbAdapter {
         }
 
         if (instance instanceof AgoArrayInstance aryInstance) {
+            // save for ObjectArray
             if (aryInstance instanceof ObjectArrayInstance xs) {
-                this.saveObjectInstance(conn, xs, saved);
+                this.saveObjectArrayInstance(conn, xs, saved);
             }
+            return ;
+        }
+
+        if (instance.getAgoClass().getFullname().matches("^lang.LinkedList<[a-zA-Z0-9]+>$")) {
+            var linkElementType = instance.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+            // save for LinkList
+            if (linkElementType.getTypeCode().getValue() == OBJECT_VALUE) {
+                this.saveObjectListInstance(conn, instance, saved);
+            }
+
             return ;
         }
 
