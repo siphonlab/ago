@@ -21,9 +21,13 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.util.TokenBuffer;
 import org.agrona.collections.IntArrayList;
+import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.mina.core.buffer.IoBuffer;
+import org.eclipse.collections.api.PrimitiveIterable;
+import org.eclipse.collections.api.RichIterable;
+import org.eclipse.collections.impl.list.mutable.primitive.*;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.*;
 
@@ -152,22 +156,6 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                         AgoClass collectionType = expectedClass;
                         if (fieldName.equals("@collection")) {
                             collectionType = deserializeClass(ajp, ctxt, creator);
-
-                            // deserilize value into LinkedList<T>
-                            if (collectionType.getFullname().matches("^lang.LinkedList<[a-zA-Z0-9]+>$")) {
-                                var genericParameter = collectionType.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
-
-                                ajp.nextToken(); // skip field anme
-                                ajp.nextToken(); // begin array [
-                                var innerAry = this.collecionFromValue(ajp, ctxt, genericParameter, creator);
-                                ajp.nextToken(); // end object }
-
-                                var instance = this.agoEngine.createNativeInstance(creator, collectionType, creator);
-                                var iter = new LinkedList<>(Arrays.asList(innerAry));
-                                instance.setNativePayload(iter);
-
-                                return instance;
-                            }
 
                             assert ajp.currentToken() == JsonToken.FIELD_NAME;
                             fieldName = ajp.getValueAsString();
@@ -481,12 +469,43 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         throw new UnsupportedOperationException();
     }
 
-    private Object[] collecionFromValue(
-            AgoJsonParser ajp,
-            DeserializationContext ctxt,
-            AgoClass collectionClass,
-            CallFrame<?> creator
-    ) throws IOException {
+    private Instance<?> deserializeCollection(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass collectionType, CallFrame<?> creator) throws IOException {
+        // curr token is `[`
+        if(ajp.currentToken() == JsonToken.START_ARRAY){
+            ajp.nextToken();
+        }
+        AgoClass elementType;
+        if (collectionType.getConcreteTypeInfo() instanceof ArrayInfo arrayInfo) {
+            elementType = arrayInfo.getElementType();
+            return deserializeArray(ajp, ctxt, collectionType, elementType, creator);
+        } else if (agoEngine.getLangClasses().getListClass().isThatOrSuperOfThat(collectionType)) {
+            // deserilize value into LinkedList<T>
+            if (agoEngine.getLangClasses().getListClass().isThatOrSuperOfThat(collectionType)) {
+                elementType = collectionType.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+            } else {
+                throw new IllegalStateException("unsupported collection type '%s'".formatted(collectionType.getFullname()));
+            }
+            var ls = deserializeList(ajp, ctxt, elementType, creator);
+            var instance = this.agoEngine.createNativeInstance(creator, collectionType, creator);
+            if(collectionType.getConcreteTypeInfoAsGenericArguments().getTemplateClass() == agoEngine.getLangClasses().getArrayListClass()){
+                instance.setNativePayload(ls);
+            } else if(collectionType.getConcreteTypeInfoAsGenericArguments().getTemplateClass() == agoEngine.getLangClasses().getLinkedListClass()) {
+                if(ls instanceof List<?>){
+                    instance.setNativePayload(new LinkedList<>((List<?>)ls));
+                } else if(ls instanceof PrimitiveIterable pi) {
+                    ls = EclipsePrimitiveListBoxer.box(pi);
+                    instance.setNativePayload(new LinkedList<>((List<?>)ls));
+                }
+            } else {
+                throw new IllegalStateException("unsupported collection type '%s'".formatted(collectionType.getFullname()));
+            }
+            return instance;
+        }
+        throw new RuntimeException("bad exit");
+    }
+
+    // PrimitiveIterable for some eclipse typed list
+    private Object deserializeList(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass collectionClass, CallFrame<?> creator) throws IOException {
         return switch (collectionClass.getTypeCode().getValue()) {
             case INT_VALUE -> {
                 IntArrayList list = new IntArrayList();
@@ -494,31 +513,31 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     list.addInt(ajp.getIntValue());
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             case DOUBLE_VALUE -> {
-                List<Object> list = new ArrayList<>();
+                var list = new DoubleArrayList();
                 for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                     list.add(ajp.getDoubleValue());
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             case DECIMAL_VALUE -> {
-                List<Object> list = new ArrayList<>();
+                List<BigDecimal> list = new ArrayList<>();
                 for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                     list.add(ajp.getDecimalValue());
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             case BOOLEAN_VALUE -> {
-                List<Object> list = new ArrayList<>();
+                var list = new BooleanArrayList();
                 for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                     list.add(ajp.getValueAsBoolean());
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             case STRING_VALUE -> {
                 List<String> list = new ArrayList<>();
@@ -526,31 +545,31 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     list.add(ajp.getValueAsString());
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             case CHAR_VALUE -> {
-                List<Object> list = new ArrayList<>();
+                var list = new CharArrayList();
                 for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                     list.add(ajp.getValueAsString().charAt(0));
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             case SHORT_VALUE -> {
-                List<Object> list = new ArrayList<>();
+                var list = new ShortArrayList();
                 for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                    list.add(ajp.getIntValue());
+                    list.add(ajp.getShortValue());
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             case FLOAT_VALUE -> {
-                List<Object> list = new ArrayList<>();
+                var list = new FloatArrayList();
                 for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
                     list.add(ajp.getFloatValue());
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             case OBJECT_VALUE, UNION_VALUE -> {
                 List<Object> list = new ArrayList<>();
@@ -558,131 +577,122 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                     list.add(deserializeAny(ajp, ctxt, null, creator, null, null));
                 }
                 ajp.nextToken();
-                yield list.toArray();
+                yield list;
             }
             default -> throw new IllegalStateException("Unexpected value: " + collectionClass.getTypeCode().getValue());
         };
     }
 
-    private Instance<?> deserializeCollection(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass collectionClass, CallFrame<?> creator) throws IOException {
-        // curr token is `[`
-        if(ajp.currentToken() == JsonToken.START_ARRAY){
-            ajp.nextToken();
-        }
-        if (collectionClass.getConcreteTypeInfo() instanceof ArrayInfo arrayInfo){
-            var elementType = arrayInfo.getElementType();
-            var collection = switch (elementType.getTypeCode().getValue()) {
-                case INT_VALUE -> {
-                    IntArrayList list = new IntArrayList();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        list.addInt(ajp.getIntValue());
-                    }
-                    ajp.nextToken();
-                    var r = new IntArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                    list.toIntArray(r.value);
-                    yield r;
+    private AgoArrayInstance deserializeArray(AgoJsonParser ajp, DeserializationContext ctxt, AgoClass collectionType, AgoClass elementType, CallFrame<?> creator) throws IOException {
+        return switch (elementType.getTypeCode().getValue()) {
+            case INT_VALUE -> {
+                IntArrayList list = new IntArrayList();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.addInt(ajp.getIntValue());
                 }
-                case DOUBLE_VALUE -> {
-                    List<Object> list = new ArrayList<>();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        list.add(ajp.getDoubleValue());
-                    }
-                    ajp.nextToken();
-                    var r = new DoubleArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
+                ajp.nextToken();
+                var r = new IntArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                list.toIntArray(r.value);
+                yield r;
+            }
+            case DOUBLE_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getDoubleValue());
+                }
+                ajp.nextToken();
+                var r = new DoubleArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                r.fill(list);
+                yield r;
+            }
+            case DECIMAL_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getDecimalValue());
+                }
+                ajp.nextToken();
+                var r = new DoubleArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                r.fill(list);
+                yield r;
+            }
+            case BOOLEAN_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getValueAsBoolean());
+                }
+                ajp.nextToken();
+                var r = new BooleanArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                r.fill(list);
+                yield r;
+            }
+            case STRING_VALUE -> {
+                List<String> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getValueAsString());
+                }
+                ajp.nextToken();
+                var r = new StringArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                list.toArray(r.value);
+                yield r;
+            }
+            case CHAR_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getValueAsString().charAt(0));
+                }
+                ajp.nextToken();
+                var r = new CharArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                r.fill(list);
+                yield r;
+            }
+            case SHORT_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getIntValue());
+                }
+                ajp.nextToken();
+                var r = new ShortArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                r.fill(list);
+                yield r;
+            }
+            case BYTE_VALUE -> {
+                IoBuffer buffer = IoBuffer.allocate(128).setAutoExpand(true);
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    buffer.put((byte) ajp.getIntValue());   //TODO write as base64
+                }
+                ajp.nextToken();
+                var r = new ByteArrayInstance(collectionType.createSlots(), collectionType, buffer.position());
+                buffer.flip().get(r.value);
+                yield r;
+            }
+            case FLOAT_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
+                    list.add(ajp.getFloatValue());
+                }
+                ajp.nextToken();
+                var r = new FloatArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                r.fill(list);
+                yield r;
+            }
+            case OBJECT_VALUE, UNION_VALUE -> {
+                List<Object> list = new ArrayList<>();
+                for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.currentToken()) { // getInt stay at original pos, need nextToken to advance, but `deserializeAny` moves the pos
+                    list.add(deserializeAny(ajp, ctxt, null, creator, null, null));
+                }
+                ajp.nextToken();
+                if(elementType.getTypeCode() == OBJECT){
+                    var r = new ObjectArrayInstance(collectionType.createSlots(), collectionType, list.size());
+                    r.fill(list);
+                    yield r;
+                } else {
+                    var r = new UnionArrayInstance(collectionType.createSlots(), collectionType, list.size());
                     r.fill(list);
                     yield r;
                 }
-                case DECIMAL_VALUE -> {
-                    List<Object> list = new ArrayList<>();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        list.add(ajp.getDecimalValue());
-                    }
-                    ajp.nextToken();
-                    var r = new DoubleArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                    r.fill(list);
-                    yield r;
-                }
-                case BOOLEAN_VALUE -> {
-                    List<Object> list = new ArrayList<>();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        list.add(ajp.getValueAsBoolean());
-                    }
-                    ajp.nextToken();
-                    var r = new BooleanArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                    r.fill(list);
-                    yield r;
-                }
-                case STRING_VALUE -> {
-                    List<String> list = new ArrayList<>();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        list.add(ajp.getValueAsString());
-                    }
-                    ajp.nextToken();
-                    var r = new StringArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                    list.toArray(r.value);
-                    yield r;
-                }
-                case CHAR_VALUE -> {
-                    List<Object> list = new ArrayList<>();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        list.add(ajp.getValueAsString().charAt(0));
-                    }
-                    ajp.nextToken();
-                    var r = new CharArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                    r.fill(list);
-                    yield r;
-                }
-                case SHORT_VALUE -> {
-                    List<Object> list = new ArrayList<>();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        list.add(ajp.getIntValue());
-                    }
-                    ajp.nextToken();
-                    var r = new ShortArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                    r.fill(list);
-                    yield r;
-                }
-                case BYTE_VALUE -> {
-                    IoBuffer buffer = IoBuffer.allocate(128).setAutoExpand(true);
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        buffer.put((byte) ajp.getIntValue());   //TODO write as base64
-                    }
-                    ajp.nextToken();
-                    var r = new ByteArrayInstance(collectionClass.createSlots(), collectionClass, buffer.position());
-                    buffer.flip().get(r.value);
-                    yield r;
-                }
-                case FLOAT_VALUE -> {
-                    List<Object> list = new ArrayList<>();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.nextToken()) {
-                        list.add(ajp.getFloatValue());
-                    }
-                    ajp.nextToken();
-                    var r = new FloatArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                    r.fill(list);
-                    yield r;
-                }
-                case OBJECT_VALUE, UNION_VALUE -> {
-                    List<Object> list = new ArrayList<>();
-                    for (var token = ajp.currentToken(); token != null && token != JsonToken.END_ARRAY; token = ajp.currentToken()) { // getInt stay at original pos, need nextToken to advance, but `deserializeAny` moves the pos
-                        list.add(deserializeAny(ajp, ctxt, null, creator, null, null));
-                    }
-                    ajp.nextToken();
-                    if(elementType.getTypeCode() == OBJECT){
-                        var r = new ObjectArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                        r.fill(list);
-                        yield r;
-                    } else {
-                        var r = new UnionArrayInstance(collectionClass.createSlots(), collectionClass, list.size());
-                        r.fill(list);
-                        yield r;
-                    }
-                }
-                default -> throw new IllegalStateException("Unexpected value: " + elementType.getTypeCode().getValue());
-            };
-            return collection;
-        }
-        throw new RuntimeException("bad exit");
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + elementType.getTypeCode().getValue());
+        };
     }
 
     protected Instance<?> deserializeObjectRef(AgoJsonParser ajp, DeserializationContext ctxt) throws IOException {
