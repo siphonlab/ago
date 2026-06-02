@@ -65,6 +65,7 @@ public abstract class RdbAdapter {
     private DataSource dataSource;
 
     protected final IdGenerator idGenerator;
+    private LangClasses langClasses;
 
     public RdbAdapter(BoxTypes boxTypes, ClassManager classManager, IdGenerator idGenerator){
         this.boxTypes = boxTypes;
@@ -75,6 +76,14 @@ public abstract class RdbAdapter {
 
     public void setClassManager(ClassManager classManager) {
         this.classManager = classManager;
+    }
+
+    public LangClasses getLangClasses() {
+        if(classManager instanceof AgoEngine agoEngine){
+            return agoEngine.getLangClasses();
+        }
+        if(this.langClasses != null) return this.langClasses;
+        return this.langClasses = new LangClasses(classManager);
     }
 
     public abstract RdbType idType();
@@ -319,26 +328,18 @@ public abstract class RdbAdapter {
         return parameterIndex + 1;
     }
 
-    private void saveObjectArrayInstance(
-            @NonNull Connection conn,
-            ObjectArrayInstance instance,
-            Set<Instance<?>> saved
-    ) {
+    private void saveObjectArrayInstance(@NonNull Connection conn,ObjectArrayInstance instance, Set<Instance<?>> saved) {
         for (var valueInstance : instance.value) {
             this.saveInstance(conn, valueInstance, saved);
         }
     }
 
-    private void saveObjectListInstance(
-            Connection conn,
-            Instance<?> instance,
-            Set<Instance<?>> saved
-    ) {
-        var innerList = (java.util.List<Instance<?>>) instance.getNativePayload();
-        if (innerList == null) {
+    private void saveObjectListInstance(Connection conn, Instance<?> instance, Set<Instance<?>> saved) {
+        var ls = (java.util.List<Instance<?>>) instance.getNativePayload();
+        if (ls == null) {
             return ;
         }
-        for (var item : innerList) {
+        for (var item : ls) {
             this.saveInstance(conn, item, saved);
         }
     }
@@ -362,7 +363,7 @@ public abstract class RdbAdapter {
             return ;
         }
 
-        if (instance.getAgoClass().getFullname().matches("^lang.LinkedList<[a-zA-Z0-9]+>$")) {
+        if (getLangClasses().getListClass() != null && getLangClasses().getListClass().isThatOrSuperOfThat(instance.getAgoClass())) {
             var linkElementType = instance.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments()[0];
             // save for LinkList
             if (linkElementType.getTypeCode().getValue() == OBJECT_VALUE) {
