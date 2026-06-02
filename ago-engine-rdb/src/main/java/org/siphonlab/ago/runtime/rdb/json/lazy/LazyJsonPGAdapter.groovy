@@ -24,7 +24,6 @@ import org.postgresql.util.PGobject
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.native_.NativeInstance
-import org.siphonlab.ago.runtime.AgoArrayInstance
 import org.siphonlab.ago.runtime.rdb.CallFrameWithRunningState
 import org.siphonlab.ago.runtime.rdb.ObjectRef
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
@@ -108,9 +107,6 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
 
     @Override
     protected void saveInstance(@Nonnull Connection conn, Instance<?> instance, Set<Instance<?>> saved) {
-        if (boxTypes.isBoxType((AgoClass)instance.getAgoClass()) || instance instanceof AgoArrayInstance)
-            return;
-
         if(instance instanceof ObjectRefObject){
             if(instance.getDeferencedInstance() != null){
                 var d = instance.getDeferencedInstance()
@@ -121,7 +117,7 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             return;     // for folded Instance, it must be already saved or never touch its Slots, needn't save
         } else if(instance instanceof ExpandableObject){
             if(instance.isExpanded()){
-                saved.add((Instance) instance);
+                saved.add((Instance) instance)
                 saveInstance(conn, instance.getExpandedInstance(), saved)
             }
             return      // ignore folded Instance
@@ -132,9 +128,12 @@ public class LazyJsonPGAdapter extends JsonPGAdapter implements DereferenceAdapt
             if(instance.isSaveRequired()){
                 if(instance instanceof CallFrame) {
                     updateCallFrameRunningState(conn, instance, (byte) -1)
-                } else {
+                }
+                /*
+                else {
                     this.update(conn, (Instance)instance, (RdbSlots)null, instance.getAgoClass() as AgoClass);
                 }
+                */
             }
         }
     }

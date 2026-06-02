@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.runtime.rdb.task;
 
+import org.jspecify.annotations.NonNull;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.lazy.ExpandableCallFrame;
@@ -23,6 +24,7 @@ import org.siphonlab.ago.runtime.rdb.reactive.PersistentRdbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
@@ -35,7 +37,7 @@ import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseCaller;
 import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.releaseRef;
 
 public class TaskRunSpace extends SavableRunSpace {
-    private final TaskAdapter rdbAdapter;
+    protected final TaskAdapter rdbAdapter;
     private final static Logger logger = LoggerFactory.getLogger(TaskRunSpace.class);
 
     private static boolean isEntranceOrTask(CallFrame<?> frame) {
@@ -67,7 +69,7 @@ public class TaskRunSpace extends SavableRunSpace {
         this.rdbAdapter = rdbAdapter;
     }
 
-    HashSet<CallFrame<?>> callFrames = new HashSet<>();
+    protected HashSet<CallFrame<?>> callFrames = new HashSet<>();
 
     @Override
     public void run() {
@@ -78,7 +80,8 @@ public class TaskRunSpace extends SavableRunSpace {
         }
 
         this.setRunningState(RunningState.RUNNING);
-        CallFrame<?> cf;
+        CallFrame<?> cf = null;
+        boolean isSaveEnd = false;
         while (this.currCallFrame != null && !RunningState.isPausingOrWaitingResult(this.getRunningState())) {
             cf = currCallFrame;
 
@@ -89,8 +92,15 @@ public class TaskRunSpace extends SavableRunSpace {
             }
 
             this.currCallFrame.run();
+
+            if (this.currCallFrame == null) {
+                isSaveEnd = true;
+            }
         }
         tryComplete();
+        if (isSaveEnd && isRefCallFrame(cf)) {
+            this.rdbAdapter.saveInstance(new CallFrameWithRunningState<>(cf, runningState));
+        }
     }
 
     static void runRealease(CallFrame<?> caller) {
@@ -131,7 +141,7 @@ public class TaskRunSpace extends SavableRunSpace {
         runRealease(caller);
     }
 
-    private static boolean isRefCallFrame(CallFrame<?> currCallFrame) {
+    protected static boolean isRefCallFrame(CallFrame<?> currCallFrame) {
         if(currCallFrame instanceof EntranceCallFrame<?> entranceCallFrame){
             currCallFrame = entranceCallFrame.getInner();
         }
@@ -256,11 +266,38 @@ public class TaskRunSpace extends SavableRunSpace {
         // rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
     }
 
-    @Override
-    public Future<?> startAsync(CallFrame<?> frame) {
+    protected void saveFrameAndRunspace(@Nullable CallFrame<?> frame) {
+        if (frame == null) {
+            return ;
+        }
+
         if (frame instanceof ObjectRefCallFrame<?> objectRefCallFrame) {
             frame = objectRefCallFrame.expandFor(objectRefCallFrame, false);
         }
+
+        try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
+            conn.setAutoCommit(false);
+
+            if (frame instanceof ExpandableCallFrame<?> exframe) {
+                this.save(exframe.expand());
+            }
+            else {
+                this.save(frame);
+            }
+            this.rdbAdapter.saveRunspaceWithTx(
+                    conn,
+                    (TaskRunSpace) frame.getRunSpace(),
+                    frame);
+            conn.commit();
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Future<?> startAsync(CallFrame<?> frame) {
+        this.saveFrameAndRunspace(frame);
         return super.startAsync(frame);
     }
 
@@ -303,6 +340,23 @@ public class TaskRunSpace extends SavableRunSpace {
         if(resultSlots != null) this.resultSlots = resultSlots;
     }
 
+    protected void saveCurrentAndAncestorsCallingPoint(@NonNull CallFrame<?> frame) {
+        try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
+            conn.setAutoCommit(false);
+            var parent = frame.getCaller();
+            while (parent != null) {
+                this.rdbAdapter.saveInstance(new CallFrameWithRunningState<>(parent, parent.getRunSpace().getRunningState()));
+                parent = parent.getCaller();
+            }
+            this.save(frame);
+            this.rdbAdapter.updateRunSpace((SavableRunSpace) frame.getRunSpace());
+            conn.commit();
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void saveTask(CallFrame<?> prev, CallFrame<?> cur, int pc) {
         if (cur == null) {
             return ;
@@ -310,7 +364,7 @@ public class TaskRunSpace extends SavableRunSpace {
         if (isEntranceOrTask(cur)) {
             try (var conn = this.rdbAdapter.getDataSource().getConnection()) {
                 logger.debug("saving task instances {}", prev);
-                this.save(prev);
+                this.saveCurrentAndAncestorsCallingPoint(prev);
                 this.rdbAdapter.updateCallFrameRunningState(conn, prev, prev.getRunSpace().getRunningState(), pc);
             }
             catch (SQLException e) {

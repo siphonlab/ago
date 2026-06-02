@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import org.apache.commons.lang3.NotImplementedException;
+import org.eclipse.collections.api.PrimitiveIterable;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
@@ -26,6 +27,7 @@ import org.siphonlab.ago.runtime.AgoArrayInstance;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
@@ -156,6 +158,29 @@ public class InstanceJsonSerializer extends JsonSerializer<Instance> {
                 gen.writeString(classInst.getFullname());
             }
             return;
+        }
+
+        if (agoEngine.getLangClasses().getListClass().isThatOrSuperOfThat(agoClass)) {
+            // serialize LinkedList into JSON's array
+            // { @linkedlist: "type", @elements: [] }
+            gen.writeStartObject();
+
+            writeClass(gen, "@collection", agoClass);
+
+            Object payload = instance.getNativePayload();
+            List<?> ls;
+            if(payload instanceof List<?>){
+                ls = (List<?>) payload;
+            } else if(payload instanceof PrimitiveIterable primitiveIterable){
+                ls = EclipsePrimitiveListBoxer.box(primitiveIterable);
+            } else {
+                throw new IllegalArgumentException("unsupported list format " + agoClass.getFullname());
+            }
+            gen.writeFieldName("@elements");
+            gen.writeObject(ls);
+
+            gen.writeEndObject();
+            return ;
         }
 
         if(instance instanceof AgoArrayInstance arrayInstance){
