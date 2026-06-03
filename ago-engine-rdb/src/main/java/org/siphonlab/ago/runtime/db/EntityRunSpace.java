@@ -14,8 +14,19 @@ public class EntityRunSpace<Id> extends RunSpace {
 
     public EntityRunSpace(AgoEngine agoEngine, RunSpaceHost runSpaceHost, EntityAdapter<Id> entityAdapter) {
         super(agoEngine, runSpaceHost);
-        this.entityAdapter = entityAdapter;
+        this.entityAdapter = entityAdapter.beginTransaction();      // each entity runspace start a transaction
     }
 
+    @Override
+    protected boolean tryComplete() {
+        var b = super.tryComplete();
+        if(b){
+            entityAdapter.flush();
+        }
+        return b;
+    }
 
+    public void flush(){
+        entityAdapter.flush();
+    }
 }

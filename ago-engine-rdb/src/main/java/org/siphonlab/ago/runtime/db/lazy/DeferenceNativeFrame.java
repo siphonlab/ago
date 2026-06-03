@@ -35,7 +35,7 @@ public class DeferenceNativeFrame<F extends AgoFunction, Id> extends NativeFrame
 
     public DeferenceNativeFrame(DbSlots<Id> slots, AgoNativeFunction agoFunction, DbEngine<Id> engine) {
         super(engine, slots, agoFunction);
-        this.adapter = engine.getRdbAdapter();
+        this.adapter = engine.getDbAdapter();
 
         var inst = (ObjectRefCallFrame<F, Id>) adapter.getById(slots.getObjectRef());
         this.state = new DeferenceFrameState(inst);

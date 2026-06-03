@@ -14,10 +14,6 @@ public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
     void lockInstance(Id id);
 
-    String tableName(AgoClass agoClass);
-
-    String primaryKeyName(AgoClass agoClass);
-
     @Override
     EntityAdapter<Id> beginTransaction();
 }

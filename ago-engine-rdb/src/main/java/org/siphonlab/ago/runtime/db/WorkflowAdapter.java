@@ -1,5 +1,6 @@
 package org.siphonlab.ago.runtime.db;
 
+import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc;
 
@@ -14,7 +15,7 @@ public interface WorkflowAdapter<Id> extends DbAdapter<Id> {
 
     void updateCallFrameRunningState(CallFrameWithRunningState<?> callFrame);
 
-    void saveRunSpace(TaskRunSpace<Id> runSpace);
+    void insertRunSpace(TaskRunSpace<Id> runSpace);
 
     List<RunSpaceDesc> loadResumableRunSpaces();
 
@@ -23,5 +24,7 @@ public interface WorkflowAdapter<Id> extends DbAdapter<Id> {
     @Override
     WorkflowAdapter<Id> beginTransaction();
 
-    void saveRunSpace(TaskRunSpace<?> runSpace, CallFrame<?> currentCallFrame);
+    void updateRunSpace(TaskRunSpace<?> runSpace, CallFrame<?> currentCallFrame);
+
+    AgoClass loadScopedAgoClass(AgoClass baseClass, Id id);
 }

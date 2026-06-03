@@ -20,8 +20,8 @@ import org.siphonlab.ago.runtime.db.ObjectRef;
 
 import java.util.List;
 
-public final class RunSpaceDesc {
-    private long id;
+public final class RunSpaceDesc<Id> {
+    private Id id;
     private String runSpaceHostClass;
     private ObjectRef currFrame;
     private ResultSlots resultSlots;
@@ -33,11 +33,11 @@ public final class RunSpaceDesc {
     private List<RunSpaceDesc> forkedRunSpaces;
     private RunSpaceDesc parentRunSpace;
 
-    public long getId() {
+    public Id getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Id id) {
         this.id = id;
     }
 
@@ -49,7 +49,7 @@ public final class RunSpaceDesc {
         this.runSpaceHostClass = runSpaceHostClass;
     }
 
-    public ObjectRef getCurrFrame() {
+    public ObjectRef<Id> getCurrFrame() {
         return currFrame;
     }
 
@@ -73,7 +73,7 @@ public final class RunSpaceDesc {
         this.runningState = runningState;
     }
 
-    public ObjectRef getException() {
+    public ObjectRef<Id> getException() {
         return exception;
     }
 

@@ -10,7 +10,7 @@ import static org.siphonlab.ago.TypeCode.STRING;
 
 public class PGTypeMapping extends TypeMapping {
 
-    protected PGTypeMapping(BoxTypes boxTypes) {
+    public PGTypeMapping(BoxTypes boxTypes) {
         super(boxTypes);
     }
 

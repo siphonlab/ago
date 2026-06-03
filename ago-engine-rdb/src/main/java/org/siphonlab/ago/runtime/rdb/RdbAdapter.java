@@ -1,37 +1,201 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.siphonlab.ago.runtime.rdb;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.siphonlab.ago.runtime.ObjectArrayInstance;
 import org.siphonlab.ago.runtime.db.CallFrameWithRunningState;
+import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.IdGenerator;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
+import java.io.InputStream;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
+import java.sql.*;
+import java.util.*;
 
 import static org.apache.commons.dbcp2.Utils.closeQuietly;
 import static org.siphonlab.ago.TypeCode.*;
+import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
 
-public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
+public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(EntityDbAdapter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RdbAdapter.class);
 
-    public EntityDbAdapter(ClassManager classManager, TypeCode idType, IdGenerator<Id> idGenerator, BoxTypes boxTypes, TypeMapping typeMapping, DataSource dataSource) {
-        super(classManager, idType, idGenerator, boxTypes, typeMapping, dataSource);
+    protected final BoxTypes boxTypes;
+    protected final ClassManager classManager;
+
+    protected final TypeCode idType;
+    protected final IdGenerator<Id> idGenerator;
+    protected final TypeMapping typeMapping;
+
+    protected final DataSource dataSource;
+
+    protected Map<AgoClass, RdbTable> tablesByClass;
+    protected Map<String, RdbTable> tablesByClassName;
+    private RdbType idRdbType;
+
+    public RdbAdapter(ClassManager classManager, TypeCode idType, IdGenerator<Id> idGenerator, BoxTypes boxTypes, TypeMapping typeMapping, DataSource dataSource){
+        this.boxTypes = boxTypes;
+        this.idType = idType;
+        this.idGenerator = idGenerator;
+        this.typeMapping = typeMapping;
+        typeMapping.setIdRdbType(this.idRdbType());
+        this.dataSource = dataSource;
+        this.classManager = classManager;
+        this.typeMapping.initTypeMap(classManager);
+    }
+
+    public DataSource getDataSource() {
+        return dataSource;
+    }
+
+    public void executeDDL(String ddl) {
+        Connection connection = null;
+        Statement statement = null;
+        try {
+            connection = dataSource.getConnection();
+            statement = connection.createStatement();
+            statement.execute(ddl);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(connection);
+        }
+    }
+
+    public void loadTableMap(InputStream tableMapYaml){
+        this.tablesByClass = RdbTable.load(tableMapYaml, this.classManager, this);
+        Map<String, RdbTable> tables = new HashMap<>();
+        for (Map.Entry<AgoClass, RdbTable> entry : tablesByClass.entrySet()) {
+            tables.put(entry.getKey().getFullname(),entry.getValue());
+        }
+        this.tablesByClassName = tables;
+    }
+
+    public Id nextId(){
+        return this.idGenerator.nextId();
+    }
+
+    public RdbType idRdbType() {
+        if (this.idRdbType == null){
+            this.idRdbType = typeMapping.mapType(idType, null);
+        }
+        return this.idRdbType;
+    }
+
+    public ColumnDesc composeIdColumn(Set<String> usedNames) {
+        ColumnDesc column = new ColumnDesc();
+        column.setRdbType(idRdbType());
+        column.setName("id");
+        usedNames.add("id");
+        column.setPrimaryKey(true);
+        return column;
+    }
+
+    public ColumnDesc composeColumnDesc(AgoSlotDef slotDef, Set<String> usedNames) {
+        var type = typeMapping.mapType(slotDef.getTypeCode(), slotDef.getAgoClass());
+        assert type != null;
+        var columnDesc = new ColumnDesc();
+        columnDesc.setRdbType(type);
+        columnDesc.setName(columnName(slotDef, usedNames));
+        columnDesc.setSlotDef(slotDef);
+        if (slotDef.getTypeCode() == OBJECT) {
+            if (columnDesc.getAdditional() != null) {
+                RdbType additional = type.getAdditional();
+                assert additional.getTypeCode() == STRING;      // now it only class name behind object id
+                var additionColumn = new ColumnDesc();
+                additionColumn.setRdbType(additional);
+                additionColumn.setName(columnClassName(slotDef, usedNames));
+                additionColumn.setSlotDef(slotDef);
+                columnDesc.setAdditional(additionColumn);
+            }
+        }
+        return columnDesc;
+    }
+
+
+    protected String columnName(AgoSlotDef slotDef, Set<String> usedNames) {
+        var name = slotDef.getName();
+        if (usedNames.contains(name)) {
+            name += "_" + slotDef.getIndex();
+        }
+        assert !usedNames.contains(name);
+        usedNames.add(name);
+        return transformName(name);
+    }
+
+    protected String columnClassName(AgoSlotDef slotDef, Set<String> usedNames) {
+        String name = slotDef.getName();
+        if (usedNames.contains(name)) {
+            name += "_" + slotDef.getIndex();
+        }
+        name += "_class";
+        assert !usedNames.contains(name);
+        usedNames.add(name);
+        return transformName(name);
+    }
+
+    protected String transformName(String name) {
+        return '"' + StringEscapeUtils.escapeCsv(name) + '"';
+    }
+
+    public ColumnDesc composeField(String name, TypeCode typeCode, Set<String> usedNames) {
+        var rdbType = typeMapping.mapType(typeCode, null);
+        var columnDesc = new ColumnDesc();
+        columnDesc.setRdbType(rdbType);
+        columnDesc.setName(name);
+        return columnDesc;
+    }
+
+    public ColumnDesc composeObjectField(String fieldName, Set<String> usedNames) {
+        var columnDesc = new ColumnDesc();
+        columnDesc.setName("@" + fieldName);    // @agoClass, @parentScope
+        columnDesc.setRdbType(idRdbType());
+        usedNames.add(columnDesc.getName());
+
+        ColumnDesc className = new ColumnDesc();
+        className.setName("@" + fieldName + "_class");      // @parentScope_class
+        className.setRdbType(typeMapping.mapType(STRING, null));
+        columnDesc.setAdditional(className);
+        usedNames.add(className.getName());
+
+        return columnDesc;
+    }
+
+    public String tableName(AgoClass agoClass) {
+        return transformName(agoClass.getFullname());
+    }
+
+    public String primaryKeyName(AgoClass agoClass) {
+        return transformName("PK_" + agoClass.getFullname());
+    }
+
+    public String tableName(String className) {
+        return tablesByClassName.get(className).tableName();
     }
 
     public int fillParameter(PreparedStatement preparedStatement, int parameterIndex, AgoSlotDef slotDef, RdbType rdbType, Slots slots, int index) throws SQLException {
@@ -145,7 +309,7 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
         return parameterIndex + 1;
     }
 
-    protected void saveInstance(@Nonnull Connection conn, Instance<?> instance, Set<Instance<?>> saved) {
+    protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved) {
         saved.add(instance);
 
         if (boxTypes.isBoxType(instance.getAgoClass())) {
@@ -154,7 +318,7 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
         if(instance instanceof AgoArrayInstance){
             if(instance instanceof ObjectArrayInstance arrayInstance){
                 for (Instance<?> el : arrayInstance.value) {
-                    saveInstance(conn, el, saved);
+                    saveInstance(el, saved);
                 }
             }
             return;
@@ -162,7 +326,9 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
         if (instance instanceof MetaClass && ((MetaClass) instance).getName().equals("<Meta>"))
             return;
 
-        if (instance.getSlots() instanceof DbSlots<?> dbSlots) {
+        if (instance.getSlots() instanceof DbSlots<?> slots) {
+            var dbSlots = (DbSlots<Id>) slots;
+
             if (dbSlots.getUsingInstances() != null) {
                 dbSlots.getUsingInstances().removeIf(
                         value -> boxTypes.isBoxType(value.getAgoClass())
@@ -173,18 +339,18 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
             switch (dbSlots.getRowState()) {
                 case RowState.Added:
                     dbSlots.setRowState(RowState.Saving);
-                    this.insert(conn, instance, (DbSlots<Id>) dbSlots, instance.getAgoClass());
+                    this.insert(instance, dbSlots, instance.getAgoClass());
                     break;
                 case RowState.Modified:
                     dbSlots.setRowState(RowState.Saving);
-                    update(conn, instance, dbSlots, instance.getAgoClass());       // need load ID
+                    update(instance, dbSlots, instance.getAgoClass());       // need load ID
                     break;
 //                    case RowState.Deleted:
 //                        delete(rdbSlots);
 //                        break;
                 default:
                     if (instance instanceof CallFrameWithRunningState<?> callFrameWithRunningState) {
-                        update(conn, instance, dbSlots, instance.getAgoClass());
+                        update(instance, dbSlots, instance.getAgoClass());
                     }
             }
             dbSlots.setRowState(RowState.Unchanged);
@@ -193,26 +359,17 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
             if (dbSlots.getUsingInstances() != null) {
                 for (Instance<?> usingInstance : dbSlots.getUsingInstances()) {
                     if (!saved.contains(usingInstance))
-                        saveInstance(conn, usingInstance, saved);
+                        saveInstance(usingInstance, saved);
                 }
             }
         }
     }
 
-    // save an instance using exists connection.
-    public void saveWithConn(@Nonnull Connection conn, Instance<?> instance) {
-        this.saveInstance(conn, instance, new HashSet<>());
-    }
-
     public void saveInstance(Instance<?> instance) {
-        try (var conn = this.dataSource.getConnection()) {
-            this.saveWithConn(conn, instance);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        this.saveInstance(instance, new HashSet<>());
     }
 
-    protected void insert(@Nonnull Connection conn, Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
+    protected void insert(Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
         var tableOfClass = tablesByClass.get(agoClass);
         StringBuilder sql = new StringBuilder("INSERT INTO " + tableOfClass.tableName()).append("(");
 
@@ -238,39 +395,38 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
         sql.setCharAt(sql.length() - 1, ')');
         sql.append(" VALUES (").append(StringUtils.repeat("?", ",", parameterCount)).append(')');
 
-        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            int parameterIndex = 1;
-            parameterIndex = this.fillId(ps, parameterIndex, dbSlots.getObjectRef());
-            for (ColumnDesc column : columns) {
-                var slotDef = column.getSlotDef();
-                parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
-            }
+        try(var conn = dataSource.getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                int parameterIndex = 1;
+                parameterIndex = this.fillId(ps, parameterIndex, dbSlots.getObjectRef());
+                for (ColumnDesc column : columns) {
+                    var slotDef = column.getSlotDef();
+                    parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
+                }
 
-            if (LOGGER.isDebugEnabled())
-                LOGGER.debug("EXECUTE INSERT %d : ".formatted(dbSlots.getObjectRef()) + sql);
-            ps.execute();
+                if (LOGGER.isDebugEnabled()) LOGGER.debug("EXECUTE INSERT %s : ".formatted(dbSlots.getObjectRef()) + sql);
+
+                ps.execute();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void saveUsingNewObject(DbSlots dbSlots, AgoSlotDef slotDef) {
+    private void saveUsingNewObject(DbSlots<Id> dbSlots, AgoSlotDef slotDef) {
         if (slotDef.getTypeCode() == OBJECT) {
             if (!boxTypes.isBoxTypeOrWithin(slotDef.getAgoClass()) && !(slotDef.getAgoClass() instanceof MetaClass)) {
                 Instance<?> object = dbSlots.getObject(slotDef.getIndex());
-                if (object != null && object.getSlots() instanceof DbSlots objectSlots && objectSlots.getRowState() == RowState.Added) {
+                if (object != null && object.getSlots() instanceof DbSlots<?> objectSlots && objectSlots.getRowState() == RowState.Added) {
                     // saveInstance(object);
                 }
             }
         }
     }
 
-    protected void update(
-            @Nonnull Connection conn,
-            Instance<?> instance,
-            DbSlots dbSlots,
-            AgoClass agoClass
-    ) {
+    protected void update(Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
         RdbTable rdbTable = tablesByClass.get(agoClass);
         var columns = rdbTable.columns();
 
@@ -293,52 +449,28 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
         updateSql.setCharAt(updateSql.length() - 1, ' ');
         updateSql.append("WHERE id = ?");
 
-        try (var ps = conn.prepareStatement(updateSql.toString())) {
-            int parameterIndex = 1;
-            for (var index : dbSlots.getChangedSlots()) {
-                var column = rdbTable.columnDescOfSlot(index);
-                var slotDef = column.getSlotDef();
-                parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
-            }
-            this.fillId(ps, parameterIndex, dbSlots.getObjectRef());
-
-            if (LOGGER.isDebugEnabled())
-                LOGGER.debug("{}{}", "EXECUTE INSERT %d : ".formatted(dbSlots.getObjectRef()), updateSql);
-
-            ps.execute();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public ResultSetMapper fetchAll(AgoClass agoClass) {
-        var tableOfClass = getTableOfClass(agoClass);
-
-        StringBuilder sql = composeSelectFrom(tableOfClass);
-
-        Connection connection = null;
-        PreparedStatement ps = null;
-        try {
-            connection = dataSource.getConnection();
-            ps = connection.prepareStatement(sql.toString());
-
-            PreparedStatement finalPs = ps;
-            Connection finalConnection = connection;
-            return new ResultSetMapper(finalPs.executeQuery(), tableOfClass, boxTypes) {
-                public void close() {
-                    super.close();
-                    closeQuietly(finalPs);
-                    closeQuietly(finalConnection);
+        try(var conn = dataSource.getConnection()) {
+            try (var ps = conn.prepareStatement(updateSql.toString())) {
+                int parameterIndex = 1;
+                for (var index : dbSlots.getChangedSlots()) {
+                    var column = rdbTable.columnDescOfSlot(index);
+                    var slotDef = column.getSlotDef();
+                    parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
                 }
-            };
+                this.fillId(ps, parameterIndex, dbSlots.getObjectRef());
+
+                if (LOGGER.isDebugEnabled()) LOGGER.debug("{}{}", "EXECUTE UPDATE %s : ".formatted(dbSlots.getObjectRef()), updateSql);
+
+                ps.execute();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         } catch (SQLException e) {
-            closeQuietly(ps);
-            closeQuietly(connection);
             throw new RuntimeException(e);
         }
     }
 
-    private RdbTable getTableOfClass(AgoClass agoClass) {
+    protected RdbTable getTableOfClass(AgoClass agoClass) {
         var tableOfClass = tablesByClass.get(agoClass);
         if (tableOfClass == null)
             throw new NullPointerException("table for '%s' not found".formatted(agoClass.getFullname()));
@@ -346,7 +478,8 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
     }
 
     public Instance<?> getById(ObjectRef<Id> objectRef) {
-        var tableOfClass = getTableOfClass(classManager.getClass(objectRef.className()));
+        AgoClass agoClass = classManager.getClass(objectRef.className());
+        var tableOfClass = getTableOfClass(agoClass);
         StringBuilder sql = composeSelectFrom(tableOfClass);
         sql.append(" WHERE id=?");
 
@@ -361,7 +494,7 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
 
             PreparedStatement finalPs = ps;
             resultSet = finalPs.executeQuery();
-            var resultMapper = new ResultSetMapper(resultSet, tableOfClass, boxTypes);
+            var resultMapper = new ResultSetMapper(resultSet, agoClass, tableOfClass, boxTypes);
             resultMapper.setAgoEngine((AgoEngine) classManager);
             if (resultMapper.hasNext()) {
                 return resultMapper.next();
@@ -434,4 +567,21 @@ public abstract class EntityDbAdapter<Id> extends DbAdapter<Id> {
         }
     }
 
+    @Override
+    public void commitTransaction() throws SQLException {
+        TransactionBoundDataSource transactionBoundDataSource = (TransactionBoundDataSource) this.getDataSource();
+        transactionBoundDataSource.commit();
+    }
+
+    @Override
+    public void rollbackTransaction() throws SQLException {
+        TransactionBoundDataSource transactionBoundDataSource = (TransactionBoundDataSource) this.getDataSource();
+        transactionBoundDataSource.rollback();
+    }
+
+    @Override
+    public void close() throws SQLException {
+        TransactionBoundDataSource transactionBoundDataSource = (TransactionBoundDataSource) this.getDataSource();
+        transactionBoundDataSource.close();
+    }
 }

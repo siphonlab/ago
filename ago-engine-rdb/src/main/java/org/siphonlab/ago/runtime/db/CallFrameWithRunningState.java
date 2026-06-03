@@ -61,6 +61,10 @@ public class CallFrameWithRunningState<T extends AgoFunction> extends CallFrame<
         return inner.getAgoClass();
     }
 
+    public int getPc() {
+        return pc;
+    }
+
     @Override
     public String toString() {
         if(pc == -1){

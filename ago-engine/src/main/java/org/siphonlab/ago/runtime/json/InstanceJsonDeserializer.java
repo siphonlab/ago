@@ -33,7 +33,7 @@ import java.util.*;
 
 import static org.siphonlab.ago.TypeCode.*;
 
-public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
+public class InstanceJsonDeserializer<Id> extends JsonDeserializer<Instance<?>> {
     protected final AgoEngine agoEngine;
 
     enum ParseState {
@@ -108,8 +108,23 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         }
     }
 
-    public InstanceJsonDeserializer(AgoEngine agoEngine) {
+    private final Object sampleId;
+
+    public InstanceJsonDeserializer(AgoEngine agoEngine, Object sampleId) {
         this.agoEngine = agoEngine;
+        this.sampleId = sampleId;
+    }
+
+    protected Id readId(AgoJsonParser ajp) throws IOException {
+        if(sampleId instanceof Long){
+            return (Id)(Long)ajp.getLongValue();
+        } else if(sampleId instanceof String){
+            return (Id) ajp.getValueAsString();
+        } else if(sampleId instanceof Integer){
+            return (Id) (Integer)ajp.getIntValue();
+        } else {
+            throw new IllegalArgumentException("Unsupported id type: " + sampleId.getClass());
+        }
     }
 
     @Override
@@ -411,7 +426,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
             if (token == JsonToken.FIELD_NAME) {
                 if (ajp.getValueAsString().equals("@id")) {
                     if (result == null) {
-                        result = deserializeClassRef(baseClass, ajp.getValueAsLong());
+                        result = deserializeClassRef(baseClass, readId(ajp));
                     }
                 } else if (ajp.getValueAsString().equals("scope")) {
                     var scope = deserializeAny(ajp, ctxt, null, creator, null, null);
@@ -446,7 +461,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         while((token = ajp.nextToken()) != JsonToken.END_ARRAY) {
             if (token == JsonToken.VALUE_NUMBER_INT) {      // id
                 if(result == null)
-                    result = deserializeClassRef(baseClass, ajp.getValueAsLong());
+                    result = deserializeClassRef(baseClass, readId(ajp));
             } else if(token == JsonToken.START_OBJECT){
                 var scope = deserializeAny(ajp, ctxt, null, creator, null, null);
                 if(result == null)
@@ -460,7 +475,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         return result == null ? baseClass : result;
     }
 
-    protected AgoClass deserializeClassRef(AgoClass baseClass, long id) {
+    protected AgoClass deserializeClassRef(AgoClass baseClass, Id id) {
         throw new UnsupportedOperationException();
     }
 

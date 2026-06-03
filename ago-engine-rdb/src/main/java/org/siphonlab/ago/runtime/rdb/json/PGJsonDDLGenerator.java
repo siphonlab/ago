@@ -21,7 +21,7 @@ import io.ebeaninternal.dbmigration.ddlgeneration.platform.BaseTableDdl;
 import io.ebeaninternal.dbmigration.migration.Column;
 import io.ebeaninternal.dbmigration.migration.CreateTable;
 import org.siphonlab.ago.classloader.AgoClassLoader;
-import org.siphonlab.ago.runtime.rdb.DbAdapter;
+import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.RdbDDLGenerator;
 import org.siphonlab.ago.runtime.rdb.RdbType;
 
@@ -30,9 +30,9 @@ import java.util.List;
 public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
 
     public PGJsonDDLGenerator(AgoClassLoader classLoader,
-                              DbAdapter<Id> dbAdapter,
+                              RdbAdapter<Id> rdbAdapter,
                               DatabasePlatform databasePlatform) {
-        super(classLoader, dbAdapter, databasePlatform);
+        super(classLoader, rdbAdapter, databasePlatform);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         ct.setPkName("pk_ago_runspace");
 
         List<Column> cols = ct.getColumn();
-        RdbType idT = dbAdapter.idRdbType();
+        RdbType idT = rdbAdapter.idRdbType();
 
         // primary key
         Column idCol = createColumn("id", idT.getTypeName());
@@ -99,7 +99,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
 
         List<Column> cols = ct.getColumn();
 
-        RdbType idT = dbAdapter.idRdbType();
+        RdbType idT = rdbAdapter.idRdbType();
 
         // primary key
         Column idCol = createColumn("id", idT.getTypeName());
@@ -127,7 +127,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
 
         List<Column> cols = ct.getColumn();
 
-        RdbType idT = dbAdapter.idRdbType();
+        RdbType idT = rdbAdapter.idRdbType();
 
         // primary key
         Column idCol = createColumn("id", idT.getTypeName());
@@ -158,7 +158,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         List<Column> cols = ct.getColumn();
 
         // id + instance‑common columns
-        createInstanceColumns(dbAdapter.idRdbType(), cols);
+        createInstanceColumns(rdbAdapter.idRdbType(), cols);
 
         // class‑specific columns
         createClassColumns(cols);
@@ -178,7 +178,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         List<Column> cols = ct.getColumn();
 
         // id + instance‑common columns
-        createInstanceColumns(dbAdapter.idRdbType(), cols);
+        createInstanceColumns(rdbAdapter.idRdbType(), cols);
 
         // class‑specific columns (same as ago_class)
         createClassColumns(cols);
@@ -209,7 +209,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         List<Column> cols = ct.getColumn();
 
         // id + instance‑common columns
-        createInstanceColumns(dbAdapter.idRdbType(), cols);
+        createInstanceColumns(rdbAdapter.idRdbType(), cols);
 
         return ct;
     }
@@ -226,10 +226,10 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         List<Column> cols = ct.getColumn();
 
         // id + instance‑common columns
-        createInstanceColumns(dbAdapter.idRdbType(), cols);
+        createInstanceColumns(rdbAdapter.idRdbType(), cols);
 
         // caller_* columns (id + class)
-        objectColumn(cols, "caller", dbAdapter.idRdbType());
+        objectColumn(cols, "caller", rdbAdapter.idRdbType());
 
         // frame‑specific columns
         cols.add(createColumn("suspended", "bool"));

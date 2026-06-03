@@ -19,27 +19,28 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame;
-import org.siphonlab.ago.runtime.rdb.reactive.PersistentDbEngine;
+import org.siphonlab.ago.runtime.db.task.PersistentDbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Future;
 
 public class TaskRunSpace<Id> extends RunSpace{
     private final static Logger logger = LoggerFactory.getLogger(TaskRunSpace.class);
 
-    protected final WorkflowAdapter<Id> rdbAdapter;
+    protected final WorkflowAdapter<Id> workflowAdapter;
     public final Id id;
 
-    public TaskRunSpace(DbEngine agoEngine, WorkflowAdapter<Id> rdbAdapter, RunSpaceHost runSpaceHost) {
-        this(agoEngine, rdbAdapter, runSpaceHost, rdbAdapter.nextId());
+    public TaskRunSpace(DbEngine<Id> agoEngine, WorkflowAdapter<Id> workflowAdapter, RunSpaceHost runSpaceHost) {
+        this(agoEngine, workflowAdapter, runSpaceHost, workflowAdapter.nextId());
     }
 
-    public TaskRunSpace(DbEngine agoEngine, WorkflowAdapter<Id> rdbAdapter, RunSpaceHost runSpaceHost, Id id) {
+    public TaskRunSpace(DbEngine<Id> agoEngine, WorkflowAdapter<Id> workflowAdapter, RunSpaceHost runSpaceHost, Id id) {
         super(agoEngine, runSpaceHost);
         this.id = id;
-        this.rdbAdapter = rdbAdapter;
+        this.workflowAdapter = workflowAdapter;
     }
 
     public Id getId() {
@@ -67,7 +68,7 @@ public class TaskRunSpace<Id> extends RunSpace{
 
     @Override
     public Object awaitTillComplete(CallFrame<?> frame) {
-        rdbAdapter.saveInstance(frame);
+        workflowAdapter.saveInstance(frame);
         return super.awaitTillComplete(frame);
     }
 
@@ -78,47 +79,47 @@ public class TaskRunSpace<Id> extends RunSpace{
     @Override
     protected void addPausingParent(RunSpace parent) {
         super.addPausingParent(parent);
-        rdbAdapter.updateRunSpace(this);
+        workflowAdapter.updateRunSpace(this);
     }
 
     @Override
     protected boolean removePausingParent(RunSpace parent) {
         var r = super.removePausingParent(parent);
-        rdbAdapter.updateRunSpace(this);
+        workflowAdapter.updateRunSpace(this);
         return r;
     }
 
     @Override
     public RunSpace createChildRunSpace(ForkContext forkContext) {
         var r = super.createChildRunSpace(forkContext);
-        rdbAdapter.updateRunSpace(this);        // add forkedRunSpace
+        workflowAdapter.updateRunSpace(this);        // add forkedRunSpace
         return r;
     }
 
     @Override
     protected void removeForkedSpace(RunSpace forkedRunSpace) {
         super.removeForkedSpace(forkedRunSpace);
-        rdbAdapter.updateRunSpace(this);
+        workflowAdapter.updateRunSpace(this);
     }
 
     @Override
     public void setRunningState(byte runningState) {
         if(this.runningState == runningState) return;
         super.setRunningState(runningState);
-        rdbAdapter.updateRunSpace(this);
+        workflowAdapter.updateRunSpace(this);
     }
 
     @Override
     public void setCurrCallFrame(CallFrame<?> currCallFrame) {
         if (ObjectRefOwner.equals(this.currCallFrame, currCallFrame)) return;
         super.setCurrCallFrame(currCallFrame);
-        rdbAdapter.updateRunSpace(this);
+        workflowAdapter.updateRunSpace(this);
     }
 
     @Override
     public void fork(CallFrame<?> frame) {
         super.fork(frame);
-        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
+        workflowAdapter.saveInstance(new CallFrameWithRunningState<>(frame, frame.getRunSpace().getRunningState()));
     }
 
     @Override
@@ -128,7 +129,7 @@ public class TaskRunSpace<Id> extends RunSpace{
 
     @Override
     public void fork(CallFrame<?> frame, ForkContext forkContext) {
-        if(frame instanceof ObjectRefCallFrame<?> objectRefCallFrame) {
+        if(frame instanceof ObjectRefCallFrame objectRefCallFrame) {
             frame = objectRefCallFrame.deference();
         }
 
@@ -143,12 +144,16 @@ public class TaskRunSpace<Id> extends RunSpace{
             logger.info("{} fork {} via {}, got {}", this, nextRunSpace, forkContext, forkedSpaces.size());
         }
 
-        var transactionAdapter = this.rdbAdapter.beginTransaction();
-        transactionAdapter.saveRunSpace(curRunSpace, curRunSpace.getCurrentCallFrame());
-        transactionAdapter.saveRunSpace(nextRunSpace, frame);
+        var transactionAdapter = this.workflowAdapter.beginTransaction();
+        transactionAdapter.updateRunSpace(curRunSpace, curRunSpace.getCurrentCallFrame());
+        transactionAdapter.updateRunSpace(nextRunSpace, frame);
         transactionAdapter.saveInstance(frame);
         transactionAdapter.updateCallFrameRunningState(new CallFrameWithRunningState<>(frame.getCaller(), curRunSpace.getRunningState()));
-        transactionAdapter.commitTransaction();
+        try {
+            transactionAdapter.commitTransaction();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
 
         nextRunSpace.start(new AsyncEntranceCallFrame<>(frame));
     }
@@ -161,20 +166,20 @@ public class TaskRunSpace<Id> extends RunSpace{
     @Override
     protected void setException(Instance<?> exception) {
         super.setException(exception);
-        rdbAdapter.updateRunSpace(this);
+        workflowAdapter.updateRunSpace(this);
     }
 
     @Override
     public void resumeByAcceptResult() {
         super.resumeByAcceptResult();
-        rdbAdapter.updateRunSpace(this);
+        workflowAdapter.updateRunSpace(this);
     }
 
     @Override
     public void interrupt() {
         CallFrame<?> callFrame = this.currCallFrame;
         super.interrupt();
-        rdbAdapter.saveInstance(new CallFrameWithRunningState<>(callFrame, RunningState.INTERRUPTED));
+        workflowAdapter.saveInstance(new CallFrameWithRunningState<>(callFrame, RunningState.INTERRUPTED));
     }
 
     public void resumeByRestore() {
@@ -201,7 +206,7 @@ public class TaskRunSpace<Id> extends RunSpace{
             return ;
         }
         if (isEntranceOrTask(cur)) {
-            var t =this.rdbAdapter.beginTransaction();
+            var t =this.workflowAdapter.beginTransaction();
             logger.debug("saving task instances {}", prev);
             t.saveInstance(prev);
             t.updateCallFrameRunningState(new CallFrameWithRunningState<>(prev, prev.getRunSpace().getRunningState(), pc));

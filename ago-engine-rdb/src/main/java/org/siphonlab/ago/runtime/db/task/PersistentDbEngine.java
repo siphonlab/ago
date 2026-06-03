@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.runtime.rdb.reactive;
+package org.siphonlab.ago.runtime.db.task;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import groovy.sql.GroovyRowResult;
-import org.agrona.collections.Long2ObjectHashMap;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.mina.util.IdentityHashSet;
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*;
@@ -29,13 +29,11 @@ import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.db.TaskRunSpace;
+import org.siphonlab.ago.runtime.db.WorkflowAdapter;
 import org.siphonlab.ago.runtime.db.lazy.*;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.*;
-import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
-import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
-import org.siphonlab.ago.runtime.rdb.json.RdbSlotsJsonSerializer;
-import org.siphonlab.ago.runtime.rdb.json.SlotsJsonSerializer;
+import org.siphonlab.ago.runtime.rdb.json.*;
 import org.siphonlab.ago.runtime.db.lazy.DeferenceObject;
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame;
 
@@ -43,6 +41,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 
@@ -52,24 +51,28 @@ import java.util.function.Consumer;
  * however in memory they are just a `(table-name, id)` key, instead of real data
  * and for `setInt`, `setDouble`, they are all stay in db, and all commands works as sql, i.e. `jump_if_i` transforms to `update function_inst set pc = x where cond = `
  */
-public class PersistentDbEngine extends DbEngine {
+public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
 
-    protected Long2ObjectHashMap<RunSpace> runspaces = new Long2ObjectHashMap<>();
+    protected final WorkflowAdapter<Id> workflowAdapter;
 
-    public PersistentDbEngine(DbAdapter dbAdapter, RunSpaceHost runSpaceHost) {
-        super(dbAdapter, runSpaceHost);
+    protected Map<Id, RunSpace> runspaces = new ConcurrentHashMap<>();
+
+    public PersistentDbEngine(WorkflowAdapter<Id> dbAdapter, RunSpaceHost runSpaceHost, Id sampleId) {
+        super(dbAdapter, runSpaceHost, sampleId);
+        this.workflowAdapter = dbAdapter;
     }
 
-    public PersistentDbEngine(DbAdapter dbAdapter){
-        super(dbAdapter);
+    public PersistentDbEngine(WorkflowAdapter<Id> dbAdapter, Id sampleId){
+        super(dbAdapter, sampleId);
+        this.workflowAdapter = dbAdapter;
     }
 
     @Override
     public void load(AgoClassLoader classLoader) {
         boolean loadFromDb = (classLoader instanceof JsonAgoClassLoader);
         if(!loadFromDb) {
-            getRdbAdapter().saveStrings(classLoader.getStrings());
-            getRdbAdapter().saveBlobs(classLoader.getBlobs());
+            workflowAdapter.saveStrings(classLoader.getStrings());
+            workflowAdapter.saveBlobs(classLoader.getBlobs());
         }
 
         classLoader.getTheMeta().setSlotsCreator(classLoader.getSlotsCreatorFactory().generateSlotsCreator(classLoader.getTheMeta()));
@@ -115,7 +118,7 @@ public class PersistentDbEngine extends DbEngine {
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
         module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
 
-        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
+        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId<>(this, sampleId));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
 
         //        module.addSerializer(ResultSetMapper.class, new ResultSetMapper.JsonSerializer(this.getJsonObjectMapper()));
@@ -123,15 +126,14 @@ public class PersistentDbEngine extends DbEngine {
         return r;
     }
 
-    @Override
     protected void restoreClassStates(AgoClass agoClass, GroovyRowResult row) throws JsonProcessingException {
         PGobject slots = (PGobject) row.get("slots");
 
-        jsonDeserializeSlots((LazyJsonRefSlots) agoClass.getSlots(), (Long)row.get("id"), agoClass.getAgoClass(), slots.getValue(), null);
+        jsonDeserializeSlots((DbSlots<Id>) agoClass.getSlots(), (Id)row.get("id"), agoClass.getAgoClass(), slots.getValue(), null);
 
         Object parentScopeId = row.get("parent_scope_id");
         if(parentScopeId != null) {
-            agoClass.setParentScope(this.getRdbAdapter().restoreInstance(new ObjectRef((String)row.get("parent_scope_class"), (Long)parentScopeId)));
+            agoClass.setParentScope(workflowAdapter.getById(ObjectRef.create((String)row.get("parent_scope_class"), (Id)parentScopeId)));
         }
 
         if (agoClass instanceof AgoEnum enumClass) {
@@ -159,11 +161,18 @@ public class PersistentDbEngine extends DbEngine {
         }
     }
 
+    public void jsonDeserializeSlots(DbSlots<Id> jsonRefSlots, Id id, AgoClass agoClass,
+                             String json, MutableObject<Instance<?>> boxInstanceScope) throws JsonProcessingException {
+        jsonRefSlots.setObjectRef(ObjectRef.create(jsonRefSlots.getObjectRef().className(), id));
+        super.jsonDeserializeSlots(jsonRefSlots, agoClass, json, boxInstanceScope);
+    }
+
+
     @Override
     protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
         var r = super.createRunSpace(runSpaceHost);
-        if(r instanceof SavableRunSpace rdbAgoRunSpace){
-            this.runspaces.put(rdbAgoRunSpace.id, rdbAgoRunSpace);
+        if(r instanceof TaskRunSpace rdbAgoRunSpace){
+            this.runspaces.put((Id)rdbAgoRunSpace.getId(), rdbAgoRunSpace);
         }
         return r;
     }
@@ -209,7 +218,6 @@ public class PersistentDbEngine extends DbEngine {
         // restore DeferenceInstance to ObjectRefInstance
         // it cut off caller chain so that only running CallFrame living in the memory
         DeferenceObject deferenceObject = (DeferenceObject) inst;
-        deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(creator));
         ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
         return inst;
     }
@@ -230,20 +238,19 @@ public class PersistentDbEngine extends DbEngine {
         var slots = agoClass.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);
 
-        if(!(slots instanceof LazyJsonRefSlots)){   // box types use default slots
+        if(!(slots instanceof DbSlots<?>)){   // box types use default slots
             return new Instance<>(slots, agoClass);
         }
 
         Instance<?> inst;
         if(agoClass.isNative()){
-            inst = new DeferenceNativeInstance((LazyJsonRefSlots) slots, agoClass, this);
+            inst = new DeferenceNativeInstance((DbSlots) slots, agoClass, this);
         } else {
-            inst = new DeferenceInstance((LazyJsonRefSlots) slots, agoClass, this);
+            inst = new DeferenceInstance((DbSlots) slots, agoClass, this);
         }
         if (parentScope != null) inst.setParentScope(parentScope);
 
         DeferenceObject deferenceObject = (DeferenceObject) inst;
-        deferenceObject.getDeferenceObjectState().setCreator(ObjectRefOwner.extractObjectRef(creator));
         deferenceObject.markSaved();
 
         return inst;
@@ -258,27 +265,26 @@ public class PersistentDbEngine extends DbEngine {
 
     public void resume(){
 
-        LazyJsonPGAdapter adapter = (LazyJsonPGAdapter) this.getRdbAdapter();
-        List<RunSpaceDesc> runSpaceDescs = adapter.loadResumableRunSpaces();
+        List<RunSpaceDesc> runSpaceDescs = workflowAdapter.loadResumableRunSpaces();
 
-        Long2ObjectHashMap<TaskRunSpace> runspaces = new Long2ObjectHashMap<>();
-        for (RunSpaceDesc runSpaceDesc : runSpaceDescs) {
-            var r  = new TaskRunSpace(this, adapter, this.runSpaceHost, runSpaceDesc.getId()); //TODO multiple runSpaceHost
+        Map<Id, TaskRunSpace> runspaces = new HashMap<>();
+        for (RunSpaceDesc<Id> runSpaceDesc : runSpaceDescs) {
+            var r  = new TaskRunSpace<>(this, workflowAdapter, this.runSpaceHost, runSpaceDesc.getId()); //TODO multiple runSpaceHost
             runspaces.put(runSpaceDesc.getId(),r);
         }
         this.runspaces.putAll(runspaces);
 
-        for (RunSpaceDesc runSpaceDesc : runSpaceDescs) {
+        for (RunSpaceDesc<Id> runSpaceDesc : runSpaceDescs) {
             var r = runspaces.get(runSpaceDesc.getId());
-            CallFrame<?> currCallFrame = (CallFrame<?>) adapter.restoreInstance(runSpaceDesc.getCurrFrame());
-            if(currCallFrame instanceof ObjectRefCallFrame<?> objectRefCallFrame){
+            CallFrame<?> currCallFrame = (CallFrame<?>) workflowAdapter.getById(runSpaceDesc.getCurrFrame());
+            if(currCallFrame instanceof ObjectRefCallFrame objectRefCallFrame){
                 currCallFrame = objectRefCallFrame.deference();
             }
             List<RunSpace> forkedRunspaces = runSpaceDesc.getForkedRunSpaces() == null ? null : runSpaceDesc.getForkedRunSpaces().stream().map(d -> (RunSpace) runspaces.get(d.getId())).toList();
             RunSpace parent = runSpaceDesc.getParentRunSpace() == null ? null : runspaces.get(runSpaceDesc.getParentRunSpace().getId());
             List<RunSpace> pausingParents = runSpaceDesc.getPausingParents() == null ? null : runSpaceDesc.getPausingParents().stream().map(d -> (RunSpace)runspaces.get(d.getId())).toList();
             byte runningState = runSpaceDesc.getRunningState();
-            Instance<?> exception = adapter.restoreInstance(runSpaceDesc.getException());
+            Instance<?> exception = workflowAdapter.getById(runSpaceDesc.getException());
             r.restore(runningState, currCallFrame, parent, forkedRunspaces, pausingParents, exception, runSpaceDesc.getResultSlots());
         }
 

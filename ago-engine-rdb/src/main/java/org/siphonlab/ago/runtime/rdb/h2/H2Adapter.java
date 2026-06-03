@@ -17,29 +17,28 @@ package org.siphonlab.ago.runtime.rdb.h2;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.db.IdGenerator;
-import org.siphonlab.ago.runtime.rdb.EntityDbAdapter;
+import org.siphonlab.ago.runtime.rdb.EntityRdbAdapter;
+import org.siphonlab.ago.runtime.rdb.TransactionBoundDataSource;
 import org.siphonlab.ago.runtime.rdb.TypeMapping;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 
-public class H2Adapter<Id> extends EntityDbAdapter<Id> {
+public class H2Adapter<Id> extends EntityRdbAdapter<Id> {
 
-    public H2Adapter(ClassManager classManager, TypeCode idType, IdGenerator<Id> idGenerator, BoxTypes boxTypes, TypeMapping typeMapping, DataSource dataSource) {
-        super(classManager, idType, idGenerator, boxTypes, typeMapping, dataSource);
+    public H2Adapter(ClassManager classManager, TypeCode idType, IdGenerator<Id> idGenerator, BoxTypes boxTypes, DataSource dataSource) {
+        super(classManager, idType, idGenerator, boxTypes, new H2TypeMapping(boxTypes), dataSource);
+    }
+
+    @Override
+    public void lockInstance(Id id) {
+
     }
 
     @Override
     public H2Adapter<Id> beginTransaction() {
-        return null;
+        var adapter = new H2Adapter<Id>(classManager, idType, idGenerator, boxTypes, new TransactionBoundDataSource(dataSource, true));
+        return adapter;
     }
 
-    @Override
-    public void commitTransaction() {
-
-    }
-
-    @Override
-    public void rollbackTransaction() {
-
-    }
 }

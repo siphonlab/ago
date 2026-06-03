@@ -17,45 +17,40 @@ package org.siphonlab.ago.runtime.db.lazy;
 
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
-import org.siphonlab.ago.runtime.rdb.DbAdapter;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
-import org.siphonlab.ago.runtime.rdb.ReferenceCounter;
-import org.siphonlab.ago.runtime.rdb.lazy.ExpandableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.siphonlab.ago.runtime.rdb.ReferenceCounter.Reason;
-
-public class DeferenceInstance<Id> extends Instance implements DeferenceObject, ObjectRefOwner {
-    private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame.class);
+public class DeferenceInstance<T extends AgoClass, Id> extends Instance<T> implements DeferenceObject<Id>, ObjectRefOwner {
+    private static final Logger logger = LoggerFactory.getLogger(DeferenceInstance.class);
 
     private final DbAdapter<Id> adapter;
 
     private final DeferenceObjectState state;
 
-    public DeferenceInstance(DbSlots<Id> slots, AgoClass agoClass, DbEngine<Id> engine) {
+    public DeferenceInstance(DbSlots<Id> slots, T agoClass, DbEngine<Id> engine) {
         super(slots, agoClass);
 
         slots.setOwner(this);
-        this.adapter = engine.getRdbAdapter();
+        this.adapter = engine.getDbAdapter();
 
-        ObjectRefInstance inst = (ObjectRefInstance) adapter.restoreInstance(getObjectRef());
+        ObjectRefInstance<T, Id> inst = (ObjectRefInstance<T, Id>) adapter.getById(getObjectRef());
         inst.setDeferencedInstance(this);
         this.state = new DeferenceObjectState(inst);
     }
 
     @Override
-    public ObjectRef getObjectRef() {
-        return ((LazyJsonRefSlots) this.slots).getObjectRef();
+    public ObjectRef<Id> getObjectRef() {
+        return ((DbSlots<Id>)slots).getObjectRef();
     }
 
     @Override
-    public void setParentScope(Instance parentScope) {
+    public void setParentScope(Instance<?> parentScope) {
         super.setParentScope(parentScope);
-        ReferenceCounter.increaseRef(parentScope, Reason.SetParentInstall, this);
         state.setSaveRequired();
     }
 
@@ -65,8 +60,8 @@ public class DeferenceInstance<Id> extends Instance implements DeferenceObject, 
     }
 
     @Override
-    public ObjectRefObject toObjectRefInstance() {
-        return state.getObjectRefObject();
+    public ObjectRefInstance<T, Id> toObjectRefInstance() {
+        return (ObjectRefInstance<T, Id>) state.getObjectRefObject();
     }
 
     public boolean isSaveRequired() {
@@ -80,14 +75,6 @@ public class DeferenceInstance<Id> extends Instance implements DeferenceObject, 
 
     public boolean equals(Object obj) {
         return ObjectRefOwner.equals(this, (Instance<?>) obj);
-    }
-
-    public void releaseSlotsDeference(Reason reason) {
-        releaseSlotsDeference((LazyJsonRefSlots) this.slots, reason);
-    }
-
-    public void increaseSlotsDeference(Reason reason) {
-        increaseSlotsDeference((LazyJsonRefSlots) this.slots, reason);
     }
 
     @Override

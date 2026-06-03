@@ -21,6 +21,7 @@ import io.ebeaninternal.dbmigration.ddlgeneration.DdlWrite;
 import io.ebeaninternal.dbmigration.ddlgeneration.PlatformDdlBuilder;
 import io.ebeaninternal.dbmigration.ddlgeneration.platform.BaseTableDdl;
 import io.ebeaninternal.dbmigration.migration.Column;
+import io.ebeaninternal.dbmigration.migration.CreateTable;
 import org.apache.commons.io.IOUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
@@ -33,14 +34,14 @@ import java.util.*;
 public abstract class RdbDDLGenerator<Id> {
 
     protected final AgoClassLoader classLoader;
-    protected final DbAdapter<Id> dbAdapter;
+    protected final RdbAdapter<Id> rdbAdapter;
     protected final DatabasePlatform databasePlatform;
 
     protected Map<AgoClass, RdbTable> tables = new LinkedHashMap<>();
 
-    public RdbDDLGenerator(AgoClassLoader classLoader, DbAdapter<Id> dbAdapter, DatabasePlatform databasePlatform) {
+    public RdbDDLGenerator(AgoClassLoader classLoader, RdbAdapter<Id> rdbAdapter, DatabasePlatform databasePlatform) {
         this.classLoader = classLoader;
-        this.dbAdapter = dbAdapter;
+        this.rdbAdapter = rdbAdapter;
         this.databasePlatform = databasePlatform;
     }
 
@@ -61,7 +62,55 @@ public abstract class RdbDDLGenerator<Id> {
         IOUtils.write(applyLast, outputStream, StandardCharsets.UTF_8);
     }
 
-    protected abstract void generate(BaseTableDdl ddlGen, DdlWrite writer);
+    protected void generate(BaseTableDdl ddlGen, DdlWrite writer) {
+        for (AgoClass agoClass : classLoader.getClasses()) {
+            if (!agoClass.isGenericTemplate()
+                    && !agoClass.isInGenericTemplate()
+                    && !(agoClass instanceof AgoInterface)
+                    && agoClass.getSlotDefs().length > 0) {
+                ddlGen.generate(writer, createTable(agoClass));
+            }
+        }
+    }
+
+    protected CreateTable createTable(AgoClass agoClass) {
+        CreateTable createTable = new CreateTable();
+        String tableName = rdbAdapter.tableName(agoClass);
+        createTable.setName(tableName);
+        createTable.setPkName(rdbAdapter.primaryKeyName(agoClass));
+
+        List<Column> columns = createTable.getColumn();
+
+        Set<String> usedNames = new HashSet<>();
+
+        ColumnDesc pkColumnDesc = rdbAdapter.composeIdColumn(usedNames);
+
+        createInstanceColumns(rdbAdapter.idRdbType(), columns);
+
+        Column pk = pkColumnDesc.toColumn();
+        pk.setPrimaryKey(true);
+        columns.add(pk);
+
+        List<ColumnDesc> columnsOfSlots = new ArrayList<>();
+        for (AgoSlotDef slotDef : agoClass.getSlotDefs()) {
+            createColumn(slotDef, columns, usedNames, columnsOfSlots);
+        }
+        tables.put(agoClass, new RdbTable(tableName, columnsOfSlots));
+
+        return createTable;
+    }
+
+    protected void createColumn(AgoSlotDef slotDef, List<Column> columns, Set<String> usedNames, List<ColumnDesc> columnDescs) {
+        ColumnDesc columnDesc = rdbAdapter.composeColumnDesc(slotDef, usedNames);
+        columns.add(columnDesc.toColumn());
+
+        if(columnDesc.getAdditional() != null){
+            ColumnDesc additional = columnDesc.getAdditional();
+            columns.add(additional.toColumn());
+        }
+
+        columnDescs.add(columnDesc);
+    }
 
     public void dumpClassMapper(OutputStream outputStream) throws IOException {
         var s = RdbTable.dump(tables);

@@ -34,8 +34,11 @@ public class InstanceJsonSerializerWithObjectId extends InstanceJsonSerializer {
 
     @Override
     public void writeObjectId(Instance<?> instance, JsonGenerator gen) throws IOException {
-        DbSlots slots = (DbSlots) instance.getSlots();
-        gen.writeNumberField("@id", slots.getObjectRef());
+        DbSlots<?> slots = (DbSlots<?>) instance.getSlots();
+
+        Object id = slots.getObjectRef().id();
+        gen.writeObjectField("id", id);
+//        gen.writeNumberField("@id", id);
     }
 
     @Override
@@ -46,8 +49,8 @@ public class InstanceJsonSerializerWithObjectId extends InstanceJsonSerializer {
             gen.writeStartArray();
             gen.writeString(classInst.getFullname());
 
-            DbSlots slots = (DbSlots) instance.getSlots();
-            gen.writeNumber(slots.getObjectRef());
+            DbSlots<?> slots = (DbSlots<?>) instance.getSlots();
+            gen.writeObject(slots.getObjectRef().id());
 
             if(classInst.getParentScope() != null){
                 gen.writeObject(classInst.getParentScope());
@@ -58,7 +61,7 @@ public class InstanceJsonSerializerWithObjectId extends InstanceJsonSerializer {
             gen.writeStartArray();
             var objectRef = extractObjectRef(instance);
             gen.writeString(objectRef.className());
-            gen.writeNumber(objectRef.id());
+            gen.writeObject(objectRef.id());
 
             gen.writeEndArray();
         }

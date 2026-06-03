@@ -18,13 +18,10 @@ import java.util.Set;
 
 public class EntityRdbDDLGenerator<Id> extends RdbDDLGenerator<Id>{
 
-    private final EntityAdapter<Id> entityAdapter;
-
     private final AgoClass entityClass;
 
-    public EntityRdbDDLGenerator(AgoClassLoader classLoader, EntityAdapter<Id> entityAdapter, DatabasePlatform databasePlatform) {
-        super(classLoader, (DbAdapter<Id>) entityAdapter, databasePlatform);
-        this.entityAdapter = entityAdapter;
+    public EntityRdbDDLGenerator(AgoClassLoader classLoader, RdbAdapter<Id> rdbAdapter, DatabasePlatform databasePlatform) {
+        super(classLoader, rdbAdapter, databasePlatform);
         this.entityClass = this.classLoader.getClass("Entity");
     }
 
@@ -42,42 +39,4 @@ public class EntityRdbDDLGenerator<Id> extends RdbDDLGenerator<Id>{
         }
     }
 
-    protected CreateTable createTable(AgoClass agoClass) {
-        CreateTable createTable = new CreateTable();
-        String tableName = entityAdapter.tableName(agoClass);
-        createTable.setName(tableName);
-        createTable.setPkName(entityAdapter.primaryKeyName(agoClass));
-
-        List<Column> columns = createTable.getColumn();
-
-        Set<String> usedNames = new HashSet<>();
-
-        ColumnDesc pkColumnDesc = dbAdapter.composeIdColumn(usedNames);
-
-        createInstanceColumns(dbAdapter.idRdbType(), columns);
-
-        Column pk = pkColumnDesc.toColumn();
-        pk.setPrimaryKey(true);
-        columns.add(pk);
-
-        List<ColumnDesc> columnsOfSlots = new ArrayList<>();
-        for (AgoSlotDef slotDef : agoClass.getSlotDefs()) {
-            createColumn(slotDef, columns, usedNames, columnsOfSlots);
-        }
-        tables.put(agoClass, new RdbTable(tableName, columnsOfSlots));
-
-        return createTable;
-    }
-
-    protected void createColumn(AgoSlotDef slotDef, List<Column> columns, Set<String> usedNames, List<ColumnDesc> columnDescs) {
-        ColumnDesc columnDesc = dbAdapter.composeColumnDesc(slotDef, usedNames);
-        columns.add(columnDesc.toColumn());
-
-        if(columnDesc.getAdditional() != null){
-            ColumnDesc additional = columnDesc.getAdditional();
-            columns.add(additional.toColumn());
-        }
-
-        columnDescs.add(columnDesc);
-    }
 }

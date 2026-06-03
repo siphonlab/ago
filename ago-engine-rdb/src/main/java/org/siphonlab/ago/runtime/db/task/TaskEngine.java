@@ -13,26 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.runtime.rdb.task;
+package org.siphonlab.ago.runtime.db.task;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.db.TaskRunSpace;
-import org.siphonlab.ago.runtime.rdb.*;
-import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter;
-import org.siphonlab.ago.runtime.rdb.reactive.PersistentDbEngine;
+import org.siphonlab.ago.runtime.db.WorkflowAdapter;
 
-public class TaskEngine extends PersistentDbEngine {
-    public TaskEngine(DbAdapter dbAdapter, RunSpaceHost runSpaceHost) {
-        super(dbAdapter, runSpaceHost);
+public class TaskEngine<Id> extends PersistentDbEngine<Id> {
+
+    public TaskEngine(WorkflowAdapter<Id> dbAdapter, RunSpaceHost runSpaceHost, Id sampleId) {
+        super(dbAdapter, runSpaceHost, sampleId);
     }
 
-    @Override
-    public JsonPGAdapter getRdbAdapter() {
-        return (JsonPGAdapter) super.getRdbAdapter();
+    public TaskEngine(WorkflowAdapter<Id> dbAdapter, Id sampleId) {
+        super(dbAdapter, sampleId);
     }
 
-    protected TaskRunSpace createRunSpaceInner(RunSpaceHost host) {
-        return new TaskRunSpace(this, this.getRdbAdapter(), host);
+    protected TaskRunSpace<Id> createRunSpaceInner(RunSpaceHost host) {
+        return new TaskRunSpace<Id>(this, workflowAdapter, host);
     }
 
 }

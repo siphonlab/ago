@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.db.DbSlots;
+import org.siphonlab.ago.runtime.db.ObjectRef;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -40,6 +41,7 @@ import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 public class ResultSetMapper {
 
     private final ResultSet resultSet;
+    private final AgoClass agoClass;
     private final RdbTable rdbTable;
     private final BoxTypes boxTypes;
 
@@ -47,8 +49,9 @@ public class ResultSetMapper {
     private boolean closed = false;
     private CallFrame<?> creator;
 
-    public ResultSetMapper(ResultSet resultSet, RdbTable rdbTable, BoxTypes boxTypes){
+    public ResultSetMapper(ResultSet resultSet, AgoClass agoClass, RdbTable rdbTable, BoxTypes boxTypes){
         this.resultSet = resultSet;
+        this.agoClass = agoClass;
         this.rdbTable = rdbTable;
         this.boxTypes = boxTypes;
     }
@@ -64,9 +67,9 @@ public class ResultSetMapper {
     }
 
     public Instance<?> next() throws SQLException {
-        var instance = agoEngine.createInstance(rdbTable.agoClass(), creator);
+        var instance = agoEngine.createInstance(agoClass, creator);
         DbSlots slots = (DbSlots) instance.getSlots();
-        slots.setObjectRef(resultSet.getLong("id"));
+        slots.setObjectRef(ObjectRef.create(slots.getObjectRef().className(), resultSet.getLong("id")));
         for (ColumnDesc column : rdbTable.columns()) {
             AgoSlotDef slotDef = column.getSlotDef();
             int slotIndex = slotDef.getIndex();

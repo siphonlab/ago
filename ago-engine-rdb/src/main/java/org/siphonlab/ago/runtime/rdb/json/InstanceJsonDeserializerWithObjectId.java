@@ -19,28 +19,31 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.db.WorkflowAdapter;
 import org.siphonlab.ago.runtime.json.AgoJsonParser;
 import org.siphonlab.ago.runtime.json.InstanceJsonDeserializer;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.rdb.RowState;
-import org.siphonlab.ago.runtime.rdb.lazy.RdbRefSlots;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializer {
-    public InstanceJsonDeserializerWithObjectId(DbEngine agoEngine) {
-        super(agoEngine);
+public class InstanceJsonDeserializerWithObjectId<Id> extends InstanceJsonDeserializer<Id> {
+
+    public InstanceJsonDeserializerWithObjectId(DbEngine<Id> agoEngine, Object sampleId) {
+        super(agoEngine, sampleId);
     }
+
 
     @Override
     protected void readObjectId(Slots slots, AgoJsonParser ajp, DeserializationContext ctxt, CallFrame<?> creator) throws IOException {
-        long id = ajp.getLongValue();
-        ((DbSlots) slots).setObjectRef(id);
+        DbSlots<Id> dbSlots = (DbSlots<Id>) slots;
+        dbSlots.setObjectRef(ObjectRef.create(dbSlots.getObjectRef().className(), readId(ajp)));
         ajp.nextToken();
     }
 
@@ -59,7 +62,7 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         String className = ajp.getValueAsString();
         AgoClass baseClass = agoEngine.getClass(className);
 
-        long id = -1;
+        Id id = null;
         Instance<?> scope = null;
 
         while((token = ajp.nextToken()) != JsonToken.END_ARRAY) {
@@ -67,7 +70,7 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
             String fieldName = ajp.getValueAsString();
             if (fieldName.equals("@id")) {
                 ajp.nextToken();
-                id = ajp.getValueAsLong();
+                id = readId(ajp);
             } else if (fieldName.equals("scope")) {
                 scope = deserializeAny(ajp, ctxt, null, creator, null, null);
             }
@@ -77,10 +80,10 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         ajp.nextToken();    // pass END_ARRAY
         ajp.nextToken();    // pass END_OBJECT
 
-        if (((DbSlots) baseClass.getSlots()).getObjectRef() == id) return baseClass;
+        if (Objects.equals(((DbSlots) baseClass.getSlots()).getObjectRef().id(), id)) return baseClass;
 
-        if (id == -1) throw new IllegalStateException("class id not found");
-        return ((DbEngine) this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
+        if (id == null) throw new IllegalStateException("class id not found");
+        return ((WorkflowAdapter) ((DbEngine) this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id);
     }
 
     //{"@classref": [classname, id, [parentScope]]}
@@ -91,11 +94,11 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         AgoClass baseClass = agoEngine.getClass(classname);
         JsonToken token;
         AgoClass result = null;
-        long id = -1;
+        Object id = null;
         Instance<?> scope;
         while ((token = ajp.nextToken()) != JsonToken.END_ARRAY) {
             if (token == JsonToken.VALUE_NUMBER_INT) {      // id
-                id = ajp.getValueAsLong();
+                id = readId(ajp);
             } else if (token == JsonToken.START_OBJECT) {
                 scope = deserializeAny(ajp, ctxt, null, creator, null, null);
             }
@@ -104,16 +107,16 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();
 
-        if (((DbSlots) baseClass.getSlots()).getObjectRef() == id) return baseClass;
+        if (Objects.equals(((DbSlots<Id>) baseClass.getSlots()).getObjectRef().id(), id)) return baseClass;
 
-        if(id ==-1) throw new IllegalStateException("class id not found");
-        return  ((DbEngine)this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
+        if(id == null) throw new IllegalStateException("class id not found");
+        return ((WorkflowAdapter)((DbEngine)this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id);
     }
 
     @Override
-    protected AgoClass deserializeClassRef(AgoClass baseClass, long id) {
+    protected AgoClass deserializeClassRef(AgoClass baseClass, Id id) {
         if (((DbSlots) baseClass.getSlots()).getObjectRef() == id) return baseClass;
-        return ((DbEngine) this.agoEngine).getRdbAdapter().loadScopedAgoClass(baseClass, id);
+        return ((WorkflowAdapter)((DbEngine)this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id);
     }
 
     // {"@objectref": [classname, id]}
@@ -130,7 +133,7 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
         ajp.nextToken();
         assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();        // PASS END_OBJECT
-        return ((DbEngine) this.agoEngine).getRdbAdapter().restoreInstance(new ObjectRef(classname,id));
+        return ((DbEngine) this.agoEngine).getDbAdapter().getById(ObjectRef.create(classname,id));
     }
 
     @Override
@@ -175,7 +178,7 @@ public class InstanceJsonDeserializerWithObjectId extends InstanceJsonDeserializ
 
     @Override
     protected Instance<?> acceptObject(Instance<?> instance) {
-        DbSlots slots = (DbSlots) instance.getSlots();
+        var slots = (DbSlots<?>) instance.getSlots();
         slots.setRowState(RowState.Unchanged);
         return super.acceptObject(instance);
     }

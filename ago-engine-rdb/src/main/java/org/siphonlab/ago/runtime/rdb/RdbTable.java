@@ -71,7 +71,7 @@ public final class RdbTable {
         return r;
     }
 
-    public static Map<AgoClass, RdbTable> load(InputStream inputStream, ClassManager classManager, DbAdapter dbAdapter) {
+    public static Map<AgoClass, RdbTable> load(InputStream inputStream, ClassManager classManager, RdbAdapter<?> rdbAdapter) {
         Yaml yaml = new Yaml();
         Map<String, Object> tables = yaml.load(inputStream);
 
@@ -90,7 +90,7 @@ public final class RdbTable {
                 String slotName = e.getKey();
                 AgoSlotDef slotDef = slotByName.get(slotName);
                 assert slotDef != null;
-                RdbType rdbType = dbAdapter.mapType(slotDef.getTypeCode(), slotDef.getAgoClass());
+                RdbType rdbType = rdbAdapter.typeMapping.mapType(slotDef.getTypeCode(), slotDef.getAgoClass());
                 if (e.getValue() instanceof String s) {
                     var c = new ColumnDesc();
                     c.setSlotDef(slotDef);

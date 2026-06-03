@@ -24,18 +24,18 @@ public class Table {
         AgoClass entityClass = (AgoClass) instance;
         DbEngine dbEngine = (DbEngine) agoEngine;
 
-        return dbEngine.getById(entityClass, id);
+        return dbEngine.fetchById(entityClass, id);
     }
 
-    public static Instance<?> fetchAll(AgoEngine agoEngine, CallFrame<?> callFrame, Instance instance) {
-        AgoClass entityClass = (AgoClass) instance;
-        DbEngine dbEngine = (DbEngine) agoEngine;
-
-        AgoClass queryResultClass = callFrame.getAgoClass().getResultClass();
-
-        NativeInstance queryResultInstance = (NativeInstance) dbEngine.createNativeInstance(null, queryResultClass, callFrame);
-        queryResultInstance.setNativePayload((ResultSetMapper) dbEngine.fetchAll(entityClass, callFrame));
-
-        return queryResultInstance;
-    }
+//    public static Instance<?> fetchAll(AgoEngine agoEngine, CallFrame<?> callFrame, Instance instance) {
+//        AgoClass entityClass = (AgoClass) instance;
+//        DbEngine dbEngine = (DbEngine) agoEngine;
+//
+//        AgoClass queryResultClass = callFrame.getAgoClass().getResultClass();
+//
+//        NativeInstance queryResultInstance = (NativeInstance) dbEngine.createNativeInstance(null, queryResultClass, callFrame);
+//        queryResultInstance.setNativePayload((ResultSetMapper) dbEngine.fetchAll(entityClass, callFrame));
+//
+//        return queryResultInstance;
+//    }
 }

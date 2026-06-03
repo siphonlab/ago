@@ -26,6 +26,7 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.runtime.db.DbSlotsCreatorFactory;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
@@ -40,7 +41,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
 
     private Map<String, GroovyRowResult> rowsByClassName;
 
-    public JsonAgoClassLoader(PGJsonSlotsCreatorFactory slotsCreatorFactory) {
+    public JsonAgoClassLoader(DbSlotsCreatorFactory<?> slotsCreatorFactory) {
         super(slotsCreatorFactory);
     }
 

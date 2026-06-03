@@ -21,7 +21,9 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.ClassRefValue;
+import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
+import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
@@ -42,15 +44,19 @@ public abstract class DbEngine<Id> extends AgoEngine {
 
     protected ObjectMapper dumpingObjectMapper;
 
-    public DbEngine(DbAdapter<Id> dbAdapter, RunSpaceHost runSpaceHost) {
+    protected final Id sampleId;
+
+    public DbEngine(DbAdapter<Id> dbAdapter, RunSpaceHost runSpaceHost, Id sampleId) {
         super(runSpaceHost);
         this.dbAdapter = dbAdapter;
+        this.sampleId = sampleId;
         createDumpingObjectMapper();
     }
 
-    public DbEngine(DbAdapter<Id> dbAdapter) {
+    public DbEngine(DbAdapter<Id> dbAdapter, Id sampleId) {
         super();
         this.dbAdapter = dbAdapter;
+        this.sampleId = sampleId;
         createDumpingObjectMapper();
     }
 
@@ -65,7 +71,7 @@ public abstract class DbEngine<Id> extends AgoEngine {
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
         module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
 
-        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
+        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId<>(this, sampleId));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
 
         //        module.addSerializer(ResultSetMapper.class, new ResultSetMapper.JsonSerializer(this.getJsonObjectMapper()));
@@ -84,7 +90,7 @@ public abstract class DbEngine<Id> extends AgoEngine {
         module.addSerializer(Slots.class, new SlotsJsonSerializer(this));
         module.addSerializer(DbSlots.class, new RdbSlotsJsonSerializer(this));
 
-        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId(this));
+        module.addDeserializer(Instance.class, new InstanceJsonDeserializerWithObjectId<>(this, sampleId));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
 
         //        module.addSerializer(ResultSetMapper.class, new ResultSetMapper.JsonSerializer(this.getJsonObjectMapper()));
@@ -95,7 +101,7 @@ public abstract class DbEngine<Id> extends AgoEngine {
     }
 
 
-    public DbAdapter<Id> getRdbAdapter() {
+    public DbAdapter<Id> getDbAdapter() {
         return dbAdapter;
     }
 
@@ -195,8 +201,8 @@ public abstract class DbEngine<Id> extends AgoEngine {
 //        return r;
 //    }
 //
-//    public Instance<?> getById(AgoClass entityClass, Object id){
-//        var r = this.rdbAdapter.getById();
-//        return r;
-//    }
+    public Instance<?> fetchById(AgoClass entityClass, Id id){
+        var r = this.dbAdapter.getById(ObjectRef.create(entityClass.getFullname(), id));
+        return r;
+    }
 }

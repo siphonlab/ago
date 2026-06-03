@@ -29,11 +29,18 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame implements DeferenceCallFrame<F,Id>, ObjectRefOwner {
+
+    private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame.class);
+
+    private final DbAdapter<Id> adapter;
+    private final DeferenceFrameState state;
+    private List<Instance<?>> loadedScopes = new LinkedList<>();
+
     public DeferenceAgoFrame(DbSlots<Id> slots, AgoFunction agoFunction, DbEngine<Id> engine) {
         super(slots, agoFunction, engine);
 
         slots.setOwner(this);
-        this.adapter = engine.getRdbAdapter();
+        this.adapter = engine.getDbAdapter();
 
         ObjectRefCallFrame<F, Id> inst = (ObjectRefCallFrame<F, Id>) adapter.getById(getObjectRef());
         this.state = new DeferenceFrameState(inst);
@@ -179,16 +186,10 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
         return state;
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame.class);
-    private final DbAdapter<Id> adapter;
-    private final DeferenceFrameState state;
-    private List<Instance<?>> loadedScopes = new LinkedList<>();
-
     @Override
     public DeferenceFrameState getDeferenceFrameState() {
         return state;
     }
-
 
     @Override
     protected boolean evaluateInvoke(CallFrame<?> self, int instruction) {

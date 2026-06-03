@@ -20,11 +20,14 @@ import org.siphonlab.ago.*;
 public class DbSlotsCreatorFactory<Id> implements SlotsCreatorFactory {
 
     private final DefaultSlotsCreatorFactory baseSlotFactory;
-    private final DbAdapter<Id> adapter;
+    private DbAdapter<Id> adapter;
 
-    public DbSlotsCreatorFactory(DbAdapter<Id> dbAdapter){
-        this.adapter = dbAdapter;
+    public DbSlotsCreatorFactory(){
         this.baseSlotFactory = new DefaultSlotsCreatorFactory();
+    }
+
+    public void setAdapter(DbAdapter<Id> adapter) {
+        this.adapter = adapter;
     }
 
     @Override
