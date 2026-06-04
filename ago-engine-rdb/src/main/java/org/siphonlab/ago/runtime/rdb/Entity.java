@@ -16,25 +16,46 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.native_.NativeInstance;
+import org.siphonlab.ago.runtime.db.DbAdapter;
+import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 
 public class Entity {
 
-    public static Instance<?> getRowById(CallFrame<?> callFrame, Instance<?> instance, long id) {
-        AgoClass entityClass = (AgoClass) instance;
+    public static void getEntityById(NativeFrame callFrame, long id) {
+        AgoClass entityClass = callFrame.getAgoClass().getResultClass();
         DbEngine<Long> dbEngine = (DbEngine<Long>) callFrame.getAgoEngine();
-        return dbEngine.getDbAdapter().getById(ObjectRef.create(entityClass.getFullname(), id));
+        callFrame.finishObject(dbEngine.getDbAdapter().getById(ObjectRef.create(entityClass.getFullname(), id)));
     }
 
-//    public static Instance<?> fetchAll(AgoEngine agoEngine, CallFrame<?> callFrame, Instance instance) {
-//        AgoClass entityClass = (AgoClass) instance;
-//        DbEngine dbEngine = (DbEngine) agoEngine;
-//
-//        AgoClass queryResultClass = callFrame.getAgoClass().getResultClass();
-//
-//        NativeInstance queryResultInstance = (NativeInstance) dbEngine.createNativeInstance(null, queryResultClass, callFrame);
-//        queryResultInstance.setNativePayload((ResultSetMapper) dbEngine.fetchAll(entityClass, callFrame));
+    public static void getId(NativeFrame callFrame) {
+        var instance = callFrame.getParentScope();
+        DbSlots<?> slots = (DbSlots<?>) instance.getSlots();
+        Object id = slots.getObjectRef().id();
+        if(id instanceof Long l) {
+            callFrame.finishLong(l);
+        } else if(id instanceof String s){
+            callFrame.finishString(s);
+        } else if(id instanceof Integer i){
+            callFrame.finishInt(i);
+        } else {
+            callFrame.raiseException(callFrame, "lang.ClassCastException", "can't cast to '%s'".formatted(callFrame.getAgoClass().getResultTypeCode()));
+        }
+    }
+
+    public static void fetchAll(NativeFrame callFrame) {
+        DbEngine<?> dbEngine = (DbEngine<?>) callFrame.getAgoEngine();
+
+        AgoClass queryResultClass = callFrame.getAgoClass().getResultClass();
+        var entityClass = queryResultClass.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+
+        var queryResultInstance = (NativeInstance) dbEngine.createNativeInstance(null, queryResultClass, callFrame);
+        RdbAdapter<?> dbAdapter = (RdbAdapter<?>) dbEngine.getDbAdapter();
+        System.out.println(1);
+//        queryResultInstance.setNativePayload((ResultSetMapper) ((DbAdapter<?>) dbAdapter).(entityClass, callFrame));
 //
 //        return queryResultInstance;
-//    }
+    }
 }

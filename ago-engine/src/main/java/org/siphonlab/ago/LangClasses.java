@@ -74,6 +74,8 @@ public class LangClasses {
     private final AgoInterface taskInterface;
     private final AgoClass boxerClass;
 
+    private final AgoClass entityClass;
+
     public LangClasses(ClassManager classManager) {
         this.objectClass = classManager.getClass("lang.Object");
         this.classClass = classManager.getClass("lang.Class");
@@ -130,6 +132,7 @@ public class LangClasses {
         this.mapClass = (AgoClass) classManager.getClass("lang.Map");
 
         this.taskInterface = (AgoInterface) classManager.getClass("lang.Task");
+        this.entityClass = classManager.getClass("Entity");
     }
 
     public AgoClass getObjectClass() {
@@ -327,5 +330,9 @@ public class LangClasses {
 
     public AgoClass getLinkedListClass() {
         return linkedListClass;
+    }
+
+    public AgoClass getEntityClass() {
+        return entityClass;
     }
 }

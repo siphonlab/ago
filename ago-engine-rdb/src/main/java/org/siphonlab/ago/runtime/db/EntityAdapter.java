@@ -16,4 +16,6 @@ public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
     @Override
     EntityAdapter<Id> beginTransaction();
+
+    boolean isEntityClass(AgoClass agoClass);
 }

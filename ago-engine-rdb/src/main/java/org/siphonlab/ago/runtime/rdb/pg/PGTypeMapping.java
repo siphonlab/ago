@@ -16,6 +16,8 @@ public class PGTypeMapping extends TypeMapping {
 
     @Override
     protected void initTypeMap(ClassManager rdbEngine) {
+        if(classManager == null) classManager = rdbEngine;
+
         typeMap.put(TypeCode.INT_VALUE, new RdbType(TypeCode.INT, Types.INTEGER, "integer"));
         typeMap.put(TypeCode.LONG_VALUE, new RdbType(TypeCode.LONG, Types.BIGINT, "bigint"));
         typeMap.put(TypeCode.FLOAT_VALUE, new RdbType(TypeCode.FLOAT, Types.FLOAT, "float"));

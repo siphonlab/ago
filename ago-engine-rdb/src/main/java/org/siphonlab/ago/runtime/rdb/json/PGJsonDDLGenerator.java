@@ -158,7 +158,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         List<Column> cols = ct.getColumn();
 
         // id + instance‑common columns
-        createInstanceColumns(rdbAdapter.idRdbType(), cols);
+        createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
 
         // class‑specific columns
         createClassColumns(cols);
@@ -178,7 +178,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         List<Column> cols = ct.getColumn();
 
         // id + instance‑common columns
-        createInstanceColumns(rdbAdapter.idRdbType(), cols);
+        createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
 
         // class‑specific columns (same as ago_class)
         createClassColumns(cols);
@@ -209,7 +209,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         List<Column> cols = ct.getColumn();
 
         // id + instance‑common columns
-        createInstanceColumns(rdbAdapter.idRdbType(), cols);
+        createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
 
         return ct;
     }
@@ -226,7 +226,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         List<Column> cols = ct.getColumn();
 
         // id + instance‑common columns
-        createInstanceColumns(rdbAdapter.idRdbType(), cols);
+        createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
 
         // caller_* columns (id + class)
         objectColumn(cols, "caller", rdbAdapter.idRdbType());

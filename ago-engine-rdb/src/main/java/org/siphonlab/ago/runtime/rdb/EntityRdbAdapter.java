@@ -96,4 +96,12 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
         });
     }
 
+    @Override
+    public boolean isEntityClass(AgoClass agoClass) {
+        return !agoClass.isGenericTemplate()
+                && !agoClass.isInGenericTemplate()
+                && !(agoClass instanceof AgoInterface)
+                && agoClass.getSlotDefs().length > 0
+                && entityClass.isThatOrSuperOfThat(agoClass);
+    }
 }

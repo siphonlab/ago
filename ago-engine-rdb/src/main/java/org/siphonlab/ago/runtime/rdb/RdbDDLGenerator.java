@@ -83,13 +83,7 @@ public abstract class RdbDDLGenerator<Id> {
 
         Set<String> usedNames = new HashSet<>();
 
-        ColumnDesc pkColumnDesc = rdbAdapter.composeIdColumn(usedNames);
-
-        createInstanceColumns(rdbAdapter.idRdbType(), columns);
-
-        Column pk = pkColumnDesc.toColumn();
-        pk.setPrimaryKey(true);
-        columns.add(pk);
+        createInstanceColumns(rdbAdapter.idRdbType(), columns, false);
 
         List<ColumnDesc> columnsOfSlots = new ArrayList<>();
         for (AgoSlotDef slotDef : agoClass.getSlotDefs()) {
@@ -118,7 +112,7 @@ public abstract class RdbDDLGenerator<Id> {
     }
 
     /** Common columns for all instance‑like tables (id, application, ... , slots) */
-    protected void createInstanceColumns(RdbType idT, List<Column> cols) {
+    protected void createInstanceColumns(RdbType idT, List<Column> cols, boolean slotsAsJson) {
         // id – PK
         Column idCol = createColumn("id", idT.getTypeName());
         idCol.setPrimaryKey(true);
@@ -135,8 +129,10 @@ public abstract class RdbDDLGenerator<Id> {
 
         objectColumn(cols, "creator", idT);
 
-        // slots (jsonb)
-        cols.add(createColumn("slots", "jsonb"));
+        if(slotsAsJson) {
+            // slots (jsonb)
+            cols.add(createColumn("slots", "jsonb"));
+        }
     }
 
     /** Class‑specific columns – called after createInstanceColumns() */

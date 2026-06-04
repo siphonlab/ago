@@ -32,7 +32,7 @@ class Entity<T, Id as [Primitive]>{
     get id() as Id native "org.siphonlab.ago.runtime.rdb.Entity.getId";
 
     metaclass{
-        fun of(id as Id) as T native "org.siphonlab.ago.runtime.rdb.Entity.getRowById";
+        fun of(id as Id) as T native "org.siphonlab.ago.runtime.rdb.Entity.getEntityById";
 
         fun fetchAll() as QueryResult<User> native "org.siphonlab.ago.runtime.rdb.Entity.fetchAll"
     }

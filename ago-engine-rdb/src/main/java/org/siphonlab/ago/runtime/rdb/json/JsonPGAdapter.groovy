@@ -547,6 +547,10 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
 
     @Override
     String tableName(AgoClass agoClass) {
+        if(isEntityClass(agoClass)) {
+            return super.tableName(agoClass)
+        }
+
         if(agoClass instanceof MetaClass ){
             if(agoClass.getName() == "<Meta>"){
                 throw new IllegalArgumentException("<Meta> shouldn't save");

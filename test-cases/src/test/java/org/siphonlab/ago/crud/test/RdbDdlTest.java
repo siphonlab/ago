@@ -16,15 +16,19 @@
 package org.siphonlab.ago.crud.test;
 
 import io.ebean.platform.h2.H2Platform;
-import org.agrona.concurrent.SnowflakeIdGenerator;
+import io.ebean.platform.postgres.PostgresPlatform;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.FileUtils;
+import org.siphonlab.ago.BoxTypes;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.runtime.db.DbSlotsCreatorFactory;
+import org.siphonlab.ago.runtime.db.SnowflakeIdGenerator;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.h2.H2Adapter;
+import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter;
+import org.siphonlab.ago.runtime.rdb.json.PGJsonDDLGenerator;
 import org.siphonlab.ago.test.Util;
 import org.siphonlab.ago.web.RestfulService;
 
@@ -44,7 +48,7 @@ public class RdbDdlTest {
     public void test_generate_sql() throws IOException, CompilationError {
         Util.compile("restful/crud.ago");
 
-        String output = "output/restful/crud";
+        String output = "output/restful/crud.ago";
         generateDDL(output);
     }
 
@@ -70,7 +74,7 @@ public class RdbDdlTest {
         ds.setUsername("sa");
         ds.setDriverClassName("org.h2.Driver");
 
-        var rdbAdapter = new H2Adapter<Long>(agoClassLoader, TypeCode.LONG, new org.siphonlab.ago.runtime.db.SnowflakeIdGenerator(1), agoClassLoader.getBoxTypes(), ds);
+        var rdbAdapter = new H2Adapter<Long>(agoClassLoader, TypeCode.LONG, new SnowflakeIdGenerator(1), agoClassLoader.getBoxTypes(), ds);
         rdbAdapter.loadTableMap(FileUtils.openInputStream(outputMapFile));
         // for first run
         rdbAdapter.executeDDL(FileUtils.readFileToString(outputSqlFile, "utf-8"));
@@ -89,7 +93,7 @@ public class RdbDdlTest {
         agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         agoClassLoader.loadClasses(output);
 
-        H2Platform platform = new H2Platform();
+        var platform = new PostgresPlatform();
         var outputSqlFile = new File(new File(output), "create_tables_%s.sql".formatted(platform.name()));
         FileOutputStream fileOutputStream = new FileOutputStream(outputSqlFile);
         var outputMapFile = new File(new File(output), "db_map_" + platform.name() + ".yml");
@@ -100,9 +104,13 @@ public class RdbDdlTest {
         ds.setUsername("sa");
         ds.setDriverClassName("org.h2.Driver");
 
-        var rdbAdapter = new H2Adapter<Long>(agoClassLoader, TypeCode.LONG, new org.siphonlab.ago.runtime.db.SnowflakeIdGenerator(1), agoClassLoader.getBoxTypes(), ds);
-        var rdbDDLGenerator = new EntityRdbDDLGenerator<Long>(agoClassLoader, rdbAdapter, platform);
-        rdbDDLGenerator.generate(fileOutputStream);
-        rdbDDLGenerator.dumpClassMapper(new FileOutputStream(outputMapFile));
+        var rdbAdapter = new JsonPGAdapter<>(agoClassLoader, TypeCode.LONG, new SnowflakeIdGenerator(1), agoClassLoader.getBoxTypes(), ds, 1);
+
+        new PGJsonDDLGenerator<Long>(agoClassLoader, rdbAdapter, platform).generate(fileOutputStream);      // workflow tables
+
+        var entityRdbDDLGenerator = new EntityRdbDDLGenerator<Long>(agoClassLoader, rdbAdapter, platform);
+        entityRdbDDLGenerator.generate(fileOutputStream);
+
+        entityRdbDDLGenerator.dumpClassMapper(new FileOutputStream(outputMapFile));
     }
 }

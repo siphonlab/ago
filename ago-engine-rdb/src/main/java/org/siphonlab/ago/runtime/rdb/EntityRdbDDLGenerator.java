@@ -18,22 +18,15 @@ import java.util.Set;
 
 public class EntityRdbDDLGenerator<Id> extends RdbDDLGenerator<Id>{
 
-    private final AgoClass entityClass;
 
     public EntityRdbDDLGenerator(AgoClassLoader classLoader, RdbAdapter<Id> rdbAdapter, DatabasePlatform databasePlatform) {
         super(classLoader, rdbAdapter, databasePlatform);
-        this.entityClass = this.classLoader.getClass("Entity");
     }
 
     @Override
     protected void generate(BaseTableDdl ddlGen, DdlWrite writer) {
         for (AgoClass agoClass : classLoader.getClasses()) {
-            if (!agoClass.isGenericTemplate()
-                    && !agoClass.isInGenericTemplate()
-                    && !(agoClass instanceof AgoInterface)
-                    && agoClass.getSlotDefs().length > 0
-                    && entityClass.isThatOrSuperOfThat(agoClass)
-            ) {
+            if (((EntityAdapter<?>)rdbAdapter).isEntityClass(agoClass)) {
                 ddlGen.generate(writer, createTable(agoClass));
             }
         }

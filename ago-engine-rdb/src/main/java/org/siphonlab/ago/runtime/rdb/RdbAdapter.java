@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.InputStream;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
@@ -117,32 +118,40 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         return this.langClasses = new LangClasses(classManager);
     }
 
-    public ColumnDesc composeIdColumn(Set<String> usedNames) {
-        ColumnDesc column = new ColumnDesc();
-        column.setRdbType(idRdbType());
-        column.setName("id");
-        usedNames.add("id");
-        column.setPrimaryKey(true);
-        return column;
+    public ColumnDesc composeColumnDesc(AgoSlotDef slotDef, Set<String> usedNames) {
+        boolean nullable = false;
+        AgoClass agoClass = slotDef.getAgoClass();
+        TypeCode typeCode = slotDef.getTypeCode();
+        if(slotDef.getTypeCode() == UNION){
+            if(agoClass.getConcreteTypeInfo() instanceof NullableTypeInfo nullableTypeInfo){
+                agoClass = nullableTypeInfo.getBaseClass();
+                typeCode = agoClass.getTypeCode();
+                nullable = true;
+            } else {
+                nullable = true;
+            }
+        }
+        return composeColumnDesc(slotDef, typeCode, agoClass, nullable, usedNames);
     }
 
-    public ColumnDesc composeColumnDesc(AgoSlotDef slotDef, Set<String> usedNames) {
-        var type = typeMapping.mapType(slotDef.getTypeCode(), slotDef.getAgoClass());
+    protected ColumnDesc composeColumnDesc(AgoSlotDef slotDef, TypeCode typeCode, AgoClass agoClass, boolean nullable, Set<String> usedNames){
+        var type = typeMapping.mapType(typeCode, agoClass);
         assert type != null;
         var columnDesc = new ColumnDesc();
         columnDesc.setRdbType(type);
         columnDesc.setName(columnName(slotDef, usedNames));
         columnDesc.setSlotDef(slotDef);
-        if (slotDef.getTypeCode() == OBJECT) {
-            if (columnDesc.getAdditional() != null) {
-                RdbType additional = type.getAdditional();
-                assert additional.getTypeCode() == STRING;      // now it only class name behind object id
-                var additionColumn = new ColumnDesc();
-                additionColumn.setRdbType(additional);
-                additionColumn.setName(columnClassName(slotDef, usedNames));
-                additionColumn.setSlotDef(slotDef);
-                columnDesc.setAdditional(additionColumn);
-            }
+        columnDesc.setNotNull(!nullable);
+
+        if (columnDesc.getAdditional() != null) {
+            RdbType additional = type.getAdditional();
+            assert additional.getTypeCode() == STRING;      // now it only class name behind object id
+            var additionColumn = new ColumnDesc();
+            additionColumn.setRdbType(additional);
+            additionColumn.setName(columnClassName(slotDef, usedNames));
+            additionColumn.setSlotDef(slotDef);
+            additionColumn.setNotNull(!nullable);
+            columnDesc.setAdditional(additionColumn);
         }
         return columnDesc;
     }
