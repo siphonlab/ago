@@ -33,6 +33,7 @@ public class RunSpace implements Runnable{
     public static class RunningState{
         public static final byte PENDING                = 1;
         public static final byte RUNNING                = 2;
+        public static final byte MIGRATING              = 3;
         public static final byte PAUSE                  = 0b0000_0100;
         public static final byte WAITING_RESULT         = 0b0000_1000;
         public static final byte DONE                   = 0x10;

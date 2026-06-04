@@ -1343,7 +1343,7 @@ public class NamePathResolver {
                     for (int i = 0; i < interfaces.size(); i++) {
                         ClassDef currTypeInterface = interfaces.get(i);
                         AgoParser.InterfaceItemContext ast = currType.getInterfaceDecls() != null && currType.getInterfaceDecls().size() > i? currType.getInterfaceDecls().get(i) : null;
-                        r = resolveVariable(new ConstClass(currTypeInterface).setSourceLocation(currType.getUnit()
+                        r = resolveVariable(new ConstClass(currTypeInterface).setSourceLocation(ownerFunction.getUnit()
                                 .sourceLocation(ast)), id, true);
                         if(r != null) return r;
                     }

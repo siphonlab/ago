@@ -538,6 +538,8 @@ public class AgoClassLoader implements ClassManager{
         var ls = new LinkedList<>(concreteTypeDescs.values());
         while(!ls.isEmpty()){
             var concreteTypeDesc = ls.remove();
+            if(headers.containsKey(concreteTypeDesc.fullname)) continue;        // already loaded before
+
             if(concreteTypeDesc instanceof ArrayConcreteTypeDesc arrayConcreteTypeDesc){
                 ClassHeader elementType = this.headers.get(arrayConcreteTypeDesc.elementType.className);
                 if(elementType != null || !this.concreteTypeDescs.containsKey(arrayConcreteTypeDesc.elementType.className)){

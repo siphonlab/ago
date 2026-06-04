@@ -60,6 +60,12 @@ public class LangClasses {
     private final AgoClass classRefArrayClass;
     private final AgoClass objectArrayClass;
 
+    private final AgoClass collectionClass;
+    private final AgoClass listClass;
+    private final AgoClass arrayListClass;
+    private final AgoClass linkedListClass;
+    private final AgoClass mapClass;
+
     private final AgoClass intEnumClass;
     private final AgoClass byteEnumClass;
     private final AgoClass shortEnumClass;
@@ -116,6 +122,12 @@ public class LangClasses {
         this.byteEnumClass = classManager.getClass("lang.ByteEnum");
         this.shortEnumClass = classManager.getClass("lang.ShortEnum");
         this.longEnumClass = classManager.getClass("lang.LongEnum");
+
+        this.collectionClass = (AgoInterface) classManager.getClass("lang.Collection");
+        this.listClass = (AgoClass) classManager.getClass("lang.List");
+        this.arrayListClass = (AgoClass) classManager.getClass("lang.ArrayList");
+        this.linkedListClass = (AgoClass) classManager.getClass("lang.LinkedList");
+        this.mapClass = (AgoClass) classManager.getClass("lang.Map");
 
         this.taskInterface = (AgoInterface) classManager.getClass("lang.Task");
     }
@@ -296,4 +308,24 @@ public class LangClasses {
         return taskInterface;
     }
 
+
+    public AgoClass getCollectionClass() {
+        return collectionClass;
+    }
+
+    public AgoClass getListClass() {
+        return listClass;
+    }
+
+    public AgoClass getMapClass() {
+        return mapClass;
+    }
+
+    public AgoClass getArrayListClass() {
+        return arrayListClass;
+    }
+
+    public AgoClass getLinkedListClass() {
+        return linkedListClass;
+    }
 }

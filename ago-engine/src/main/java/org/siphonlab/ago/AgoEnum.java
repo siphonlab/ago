@@ -16,7 +16,6 @@
 package org.siphonlab.ago;
 
 import org.siphonlab.ago.classloader.AgoClassLoader;
-import org.siphonlab.ago.native_.AgoNativeFunction;
 
 import java.util.Map;
 import java.util.Objects;
