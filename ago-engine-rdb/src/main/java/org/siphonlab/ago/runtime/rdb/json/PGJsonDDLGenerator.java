@@ -77,7 +77,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         cols.add(createColumn("native_host_class", "text"));
         cols.add(createColumn("curr_frame_table", "varchar(1024)"));
         cols.add(createColumn("curr_frame_id", "bigint"));
-        cols.add(createColumn("result_slots", "jsonb")); // json in SQL – use jsonb
+        cols.add(createColumn("result_slots", "json"));
         cols.add(createColumn("running_state", "smallint"));
         cols.add(createColumn("exception_id", "bigint"));
 
@@ -184,15 +184,15 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         createClassColumns(cols);
 
         // function‑specific columns
-        cols.add(createColumn("variables", "jsonb[]"));
-        cols.add(createColumn("parameters", "jsonb[]"));
-        cols.add(createColumn("switch_tables", "jsonb[]"));
-        cols.add(createColumn("try_catch_items", "jsonb[]"));
-        cols.add(createColumn("source_map_entries", "jsonb[]"));
+        cols.add(createColumn("variables", "json[]"));
+        cols.add(createColumn("parameters", "json[]"));
+        cols.add(createColumn("switch_tables", "json[]"));
+        cols.add(createColumn("try_catch_items", "json[]"));
+        cols.add(createColumn("source_map_entries", "json[]"));
         cols.add(createColumn("code", "int[]"));
         cols.add(createColumn("native_function_entrance", "varchar(1024)"));
         cols.add(createColumn("native_function_result_slot", "int"));
-        cols.add(createColumn("result_type", "jsonb"));
+        cols.add(createColumn("result_type", "json"));
 
         return ct;
     }
@@ -210,6 +210,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
 
         // id + instance‑common columns
         createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
+        cols.add(createColumn("payload", "json"));
 
         return ct;
     }
@@ -240,9 +241,8 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         cols.add(createColumn("exception_class", "text"));
         cols.add(createColumn("runspace", "text"));
 
-        // slots / payload
-        cols.add(createColumn("slots", "jsonb"));
-        cols.add(createColumn("payload", "jsonb"));
+        // payload
+        cols.add(createColumn("payload", "json"));
 
         // entrance flags
         cols.add(createColumn("is_entrance", "bool"));

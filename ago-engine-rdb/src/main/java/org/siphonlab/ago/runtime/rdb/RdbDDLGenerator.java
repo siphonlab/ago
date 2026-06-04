@@ -22,6 +22,7 @@ import io.ebeaninternal.dbmigration.ddlgeneration.PlatformDdlBuilder;
 import io.ebeaninternal.dbmigration.ddlgeneration.platform.BaseTableDdl;
 import io.ebeaninternal.dbmigration.migration.Column;
 import io.ebeaninternal.dbmigration.migration.CreateTable;
+import io.ebeaninternal.dbmigration.migration.DropTable;
 import org.apache.commons.io.IOUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
@@ -130,8 +131,7 @@ public abstract class RdbDDLGenerator<Id> {
         objectColumn(cols, "creator", idT);
 
         if(slotsAsJson) {
-            // slots (jsonb)
-            cols.add(createColumn("slots", "jsonb"));
+            cols.add(createColumn("slots", "json"));
         }
     }
 
@@ -141,8 +141,8 @@ public abstract class RdbDDLGenerator<Id> {
         cols.add(createColumn("class_id", "int"));
         cols.add(createColumn("class_type", "int"));
         cols.add(createColumn("name", "varchar(1024)"));
-        cols.add(createColumn("fields", "jsonb[]"));
-        cols.add(createColumn("slotDefs", "jsonb[]"));
+        cols.add(createColumn("fields", "json[]"));
+        cols.add(createColumn("slotDefs", "json[]"));
         cols.add(createColumn("has_slots_creator", "bool"));
         cols.add(createColumn("modifiers", "int"));
         cols.add(createColumn("super_class", "text"));
@@ -152,8 +152,8 @@ public abstract class RdbDDLGenerator<Id> {
         cols.add(createColumn("parent", "text"));
         cols.add(createColumn("permit_class", "text"));
         cols.add(createColumn("parameterized_base_class", "text"));
-        cols.add(createColumn("concrete_type_info", "jsonb"));
-        cols.add(createColumn("source_location", "jsonb"));
+        cols.add(createColumn("concrete_type_info", "json"));
+        cols.add(createColumn("source_location", "json"));
     }
 
     /** Simple column helper */

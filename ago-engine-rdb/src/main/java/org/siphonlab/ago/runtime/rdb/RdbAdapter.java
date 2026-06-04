@@ -158,21 +158,14 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
 
 
     protected String columnName(AgoSlotDef slotDef, Set<String> usedNames) {
-        var name = slotDef.getName();
-        if (usedNames.contains(name)) {
-            name += "_" + slotDef.getIndex();
-        }
+        var name = slotDef.getName() + "_" + slotDef.getIndex();
         assert !usedNames.contains(name);
         usedNames.add(name);
         return transformName(name);
     }
 
     protected String columnClassName(AgoSlotDef slotDef, Set<String> usedNames) {
-        String name = slotDef.getName();
-        if (usedNames.contains(name)) {
-            name += "_" + slotDef.getIndex();
-        }
-        name += "_class";
+        var name = slotDef.getName() + "_" + slotDef.getIndex() + "_class";
         assert !usedNames.contains(name);
         usedNames.add(name);
         return transformName(name);
