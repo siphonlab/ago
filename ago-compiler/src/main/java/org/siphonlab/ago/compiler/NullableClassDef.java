@@ -80,8 +80,8 @@ public class NullableClassDef extends UnionClassDef {
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
-        return this.nullableBaseClass.isAffectedByTypeArguments(instantiationArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
+        return this.nullableBaseClass.isAffectedByTypeArguments(instantiationArguments, visited);
     }
 
     @Override

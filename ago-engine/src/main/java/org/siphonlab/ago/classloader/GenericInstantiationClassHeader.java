@@ -104,8 +104,8 @@ public class GenericInstantiationClassHeader extends ClassHeader {
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
-        return super.isAffectedByTypeArguments(typeArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments, Set<String> visited) {
+        return super.isAffectedByTypeArguments(typeArguments, visited);
     }
 
     public InstantiationArguments genericTypeArguments(){

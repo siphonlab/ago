@@ -38,9 +38,9 @@ public class InstantiationArguments {
         this.flatString = stringify();
     }
 
-    private boolean determineTerminated() {
+    private boolean determineTerminated(Set<String> visited) {
         for (var value : this.typeMapping.values()) {
-            if(!value.isGenericTerminated()) return false;
+            if(!value.isGenericTerminated(visited)) return false;
         }
         return true;
     }
@@ -118,13 +118,13 @@ public class InstantiationArguments {
     }
 
 
-    public boolean canApply(InstantiationArguments next) {
+    public boolean canApply(InstantiationArguments next, Set<String> visited) {
         for (var map : this.typeMapping.entrySet()) {
             var to = map.getValue();
             var nextTo = to instanceof GenericTypeCodeAvatarClassHeader g ? next.typeMapping.get(g) : null;
             if(nextTo != null) {
                 return true;
-            } else if(to.isAffectedByTypeArguments(next)){
+            } else if(to.isAffectedByTypeArguments(next, visited)){
                 return true;
             }
         }
@@ -159,8 +159,12 @@ public class InstantiationArguments {
     }
 
     public boolean isTerminated() {
+        return isTerminated(new HashSet<>());
+    }
+
+    public boolean isTerminated(Set<String> visited) {
         if(isTerminatedResolved) return isTerminated;
-        isTerminated = determineTerminated();
+        isTerminated = determineTerminated(visited);
         isTerminatedResolved  = true;
         return isTerminated;
     }

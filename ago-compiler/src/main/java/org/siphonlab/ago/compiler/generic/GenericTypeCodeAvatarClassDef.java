@@ -79,11 +79,11 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
         if(instantiationArguments.typeMapping.containsKey(this)){
             return true;
         }
-        return this.sharedGenericTypeParameterClassDef.isAffectedByTypeArguments(instantiationArguments);
+        return this.sharedGenericTypeParameterClassDef.isAffectedByTypeArguments(instantiationArguments, visited);
     }
 
     @Override

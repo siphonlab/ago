@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago.classloader;
 
+import java.util.Set;
+
 public class GenericTypeCodeAvatarClassHeader extends ParameterizedClassHeader implements Comparable<GenericTypeCodeAvatarClassHeader>{
 
     public final String sharedGenericTypeParamClassName;
@@ -66,15 +68,15 @@ public class GenericTypeCodeAvatarClassHeader extends ParameterizedClassHeader i
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<String> visited) {
         if(instantiationArguments.typeMapping.containsKey(this)){
             return true;
         }
-        return classLoader.getClassHeader(this.sharedGenericTypeParamClassName).isAffectedByTypeArguments(instantiationArguments);
+        return classLoader.getClassHeader(this.sharedGenericTypeParamClassName).isAffectedByTypeArguments(instantiationArguments, visited);
     }
 
     @Override
-    public boolean isGenericTerminated() {
+    public boolean isGenericTerminated(Set<String> visited) {
         return false;
     }
 

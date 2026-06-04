@@ -999,7 +999,7 @@ public class ClassDef extends ClassContainer {
             var r = this.asThatOrSuperOfThat(p.baseClass, visited, depth);
             if(r != null) return r;
         } else if(anotherClass instanceof ParameterizedClassDef.PlaceHolder p){
-            var r = this.asThatOrSuperOfThat(p.getBaseClassDef(), visited, depth);
+            var r = this.asThatOrSuperOfThat(p.getBaseClass(), visited, depth);
             if(r != null) return r;
         }
 
@@ -1817,7 +1817,13 @@ public class ClassDef extends ClassContainer {
         return child.getParent() != this && child.getParent() instanceof ClassDef classDef && this.isDeriveFrom(classDef);
     }
 
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments){
+        return isAffectedByTypeArguments(instantiationArguments, new HashSet<>());
+    }
+
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
+        if(visited.contains(this)) return false;
+        visited.add(this);
         for(ClassDef p = this; p != null; p = p.getParentClass()){
             if(p.isGenericTemplate()){
                 var r = instantiationArguments.canApplyOnTemplate(p);
@@ -1825,20 +1831,20 @@ public class ClassDef extends ClassContainer {
             }
         }
         if(this.getSuperClass() != null && this.getSuperClass() != this){
-            if(this.getSuperClass().isAffectedByTypeArguments(instantiationArguments)) return true;
+            if(this.getSuperClass().isAffectedByTypeArguments(instantiationArguments, visited)) return true;
         }
         if(this.getInterfaces() != null){
             for (ClassDef anInterface : this.getInterfaces()) {
-                if(anInterface.isAffectedByTypeArguments(instantiationArguments)) return true;
+                if(anInterface.isAffectedByTypeArguments(instantiationArguments, visited)) return true;
             }
         }
         if(this.genericSource != null){
-            if(this.genericSource.instantiationArguments().canApply(instantiationArguments)){
+            if(this.genericSource.instantiationArguments().canApply(instantiationArguments, visited)){
                 return true;
             }
         }
         if(this.permitClass != null){
-            if(this.permitClass.isAffectedByTypeArguments(instantiationArguments)) return true;
+            if(this.permitClass.isAffectedByTypeArguments(instantiationArguments, visited)) return true;
         }
 //        for (ClassDef child : this.getDirectChildren()) {
 //            if(child.isAffectedByTypeArguments(instantiationArguments)) return true;

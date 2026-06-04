@@ -19,10 +19,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.ParameterizedClassInfo;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static org.siphonlab.ago.AgoClass.*;
 import static org.siphonlab.ago.classloader.LoadingStage.*;
@@ -105,7 +102,7 @@ public class ParameterizedClassHeader extends ClassHeader {
 
 
     @Override
-    public boolean isGenericTerminated() {
+    public boolean isGenericTerminated(Set<String> visited) {
         if(!this.getBaseClassHeader().isGenericTerminated()) return false;
         for (var arg : this.arguments) {
             if(arg instanceof ClassRefValue(String className)) {
@@ -205,12 +202,12 @@ public class ParameterizedClassHeader extends ClassHeader {
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments, Set<String> visited) {
         ClassHeader baseClass = classLoader.getClassHeader(this.baseClass);
-        if(baseClass.isAffectedByTypeArguments(typeArguments)) return true;
+        if(baseClass.isAffectedByTypeArguments(typeArguments, visited)) return true;
         for (var arg : this.arguments) {
             if(arg instanceof ClassRefValue(String className)) {
-                if (classLoader.getClassHeader(className).isAffectedByTypeArguments(typeArguments)) {
+                if (classLoader.getClassHeader(className).isAffectedByTypeArguments(typeArguments, visited)) {
                     return true;
                 }
             }
