@@ -28,7 +28,7 @@ import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
-import org.siphonlab.ago.runtime.db.TaskRunSpace;
+import org.siphonlab.ago.runtime.db.WorkflowRunSpace;
 import org.siphonlab.ago.runtime.db.WorkflowAdapter;
 import org.siphonlab.ago.runtime.db.lazy.*;
 import org.siphonlab.ago.runtime.json.*;
@@ -86,7 +86,7 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
             agoClass.initSlots();
             // assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
             if (!loadFromDb) {
-                saveInstance(agoClass);
+                getDbAdapter().saveInstance(agoClass);
             }
         }
 
@@ -177,8 +177,8 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
     @Override
     protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
         var r = super.createRunSpace(runSpaceHost);
-        if(r instanceof TaskRunSpace rdbAgoRunSpace){
-            this.runspaces.put((Id)rdbAgoRunSpace.getId(), rdbAgoRunSpace);
+        if(r instanceof WorkflowRunSpace workflowRunSpace){
+            this.runspaces.put((Id)workflowRunSpace.getId(), workflowRunSpace);
         }
         return r;
     }
@@ -199,18 +199,16 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
         if(getBoxTypes().isBoxTypeOrWithin(agoFunction)){       // isWithinBoxType
             return super.createFunctionInstance(parentScope, agoFunction, caller, creator);
         }
-        var inst = createFunctionInstance(agoFunction,parentScope, creator, null);
+        var inst = createFunctionInstance(agoFunction,parentScope, null);
         if(inst instanceof DeferenceObject) {
-            saveInstance(inst);
+            getDbAdapter().saveInstance(inst);
             return (CallFrame<?>) ((DeferenceObject)inst).toObjectRefInstance();
         } else {
             return inst;
         }
     }
 
-
-
-    public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, CallFrame<?> creator, Consumer<Slots> slotsInitializer) {
+    public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, Consumer<Slots> slotsInitializer) {
         var slots = (DbSlots<?>) agoFunction.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);    // may change slots rowstate -> none
         CallFrame<?> inst;
@@ -230,15 +228,15 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
 
     @Override
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        var inst = createInstance(parentScope,agoClass, creator, null);
-        saveInstance(inst);
+        var inst = createInstance(parentScope,agoClass, (Consumer<Slots>) null);
+        getDbAdapter().saveInstance(inst);
         return inst;
     }
 
-    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator,
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass,
                                       Consumer<Slots> slotsInitializer) {
         if (agoClass instanceof AgoFunction fun) {
-            return createFunctionInstance(fun, parentScope, creator, slotsInitializer);
+            return createFunctionInstance(fun, parentScope, slotsInitializer);
         }
 
         var slots = agoClass.createSlots();
@@ -264,18 +262,18 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
 
     @Override
     public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        var inst = createInstance(parentScope, agoClass, creator, null);
-        saveInstance(inst);
+        var inst = createInstance(parentScope, agoClass, (Consumer<Slots>) null);
+        getDbAdapter().saveInstance(inst);
         return inst;
     }
 
     public void resume(){
 
-        List<RunSpaceDesc> runSpaceDescs = workflowAdapter.loadResumableRunSpaces();
+        List<RunSpaceDesc<Id>> runSpaceDescs = workflowAdapter.loadResumableRunSpaces();
 
-        Map<Id, TaskRunSpace> runspaces = new HashMap<>();
+        Map<Id, WorkflowRunSpace<Id>> runspaces = new HashMap<>();
         for (RunSpaceDesc<Id> runSpaceDesc : runSpaceDescs) {
-            var r  = new TaskRunSpace<>(this, workflowAdapter, this.runSpaceHost, runSpaceDesc.getId()); //TODO multiple runSpaceHost
+            var r  = new WorkflowRunSpace<>(this, workflowAdapter, this.runSpaceHost, runSpaceDesc.getId()); //TODO multiple runSpaceHost
             runspaces.put(runSpaceDesc.getId(),r);
         }
         this.runspaces.putAll(runspaces);
@@ -294,7 +292,7 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
             r.restore(runningState, currCallFrame, parent, forkedRunspaces, pausingParents, exception, runSpaceDesc.getResultSlots());
         }
 
-        for (TaskRunSpace runSpace : runspaces.values()) {
+        for (WorkflowRunSpace runSpace : runspaces.values()) {
             if(runSpace.getRunningState() == RunSpace.RunningState.RUNNING || runSpace.getRunningState() == RunSpace.RunningState.PENDING){
                 runSpace.resumeByRestore();
             }

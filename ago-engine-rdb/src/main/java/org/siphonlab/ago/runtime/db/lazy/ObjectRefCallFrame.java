@@ -15,16 +15,12 @@
  */
 package org.siphonlab.ago.runtime.db.lazy;
 
-import groovy.lang.Closure;
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.siphonlab.ago.*;
-import org.siphonlab.ago.runtime.db.DbSlots;
+import org.siphonlab.ago.runtime.db.DbSlotsCreator;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> implements ObjectRefObject<Id>, ObjectRefOwner {
 
@@ -36,20 +32,7 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
     CallFrame<?> deferencedCallFrame;
 
     public ObjectRefCallFrame(F agoClass, final ObjectRef<Id> objectRef, DereferenceAdapter<Id> dereferenceAdapter, final RowState rowState) {
-        super(DefaultGroovyMethods.with(agoClass.createSlots(), new Closure<Slots>(null, null) {
-            public Slots doCall(Slots it) {
-                if (it instanceof DbSlots<?> dbSlots) {
-                    dbSlots.setRowState(rowState);
-                    ((DbSlots<Id>)dbSlots).setObjectRef(objectRef);
-                }
-                return it;
-            }
-
-            public Slots doCall() {
-                return doCall(null);
-            }
-
-        }), agoClass);
+        super(DbSlotsCreator.create(agoClass, objectRef), agoClass);
         this.objectRef = objectRef;
         this.dereferenceAdapter = dereferenceAdapter;
     }

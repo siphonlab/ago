@@ -20,20 +20,20 @@ import groovy.json.JsonSlurper
 import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import org.apache.commons.lang3.mutable.MutableObject
+import org.jspecify.annotations.NonNull
+import org.jspecify.annotations.Nullable
 import org.postgresql.jdbc.PgArray
 import org.postgresql.util.PGobject
 import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.AgoNativeFunction
 import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.native_.NativeInstance
-import org.siphonlab.ago.runtime.AgoArrayInstance
 import org.siphonlab.ago.runtime.db.IdGenerator
 import org.siphonlab.ago.runtime.db.WorkflowAdapter
 import org.siphonlab.ago.runtime.db.CallFrameWithRunningState
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
 import org.siphonlab.ago.runtime.rdb.PGEntityAdapter
-import org.siphonlab.ago.runtime.rdb.RdbAdapter
-import org.siphonlab.ago.runtime.db.TaskRunSpace
+import org.siphonlab.ago.runtime.db.WorkflowRunSpace
 import org.siphonlab.ago.runtime.rdb.DbEngine
 import org.siphonlab.ago.runtime.db.DbSlots
 import org.siphonlab.ago.runtime.db.ObjectRef
@@ -49,10 +49,8 @@ import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefInstance
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefObject
 import org.siphonlab.ago.runtime.rdb.TransactionBoundDataSource
-import org.siphonlab.ago.runtime.rdb.TypeMapping
 import org.siphonlab.ago.runtime.db.task.PersistentDbEngine
 import org.siphonlab.ago.runtime.db.task.TaskEngine
-import org.siphonlab.ago.runtime.rdb.pg.PGTypeMapping
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -100,7 +98,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
                 suspended         : false,
                 exception_id      : null,
                 exception_class   : null,
-                runspace          : (agoFrame.getRunSpace() as TaskRunSpace)?.id,
+                runspace          : (agoFrame.getRunSpace() as WorkflowRunSpace)?.id,
                 slots             : toJsonb((classManager as DbEngine).jsonStringifySlots(agoFrame))
         ]
 
@@ -129,7 +127,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
                 suspended         : false,
                 exception_id      : null,
                 exception_class   : null,
-                runspace          : (agoFrame.getRunSpace() as TaskRunSpace)?.id,
+                runspace          : (agoFrame.getRunSpace() as WorkflowRunSpace)?.id,
                 slots             : toJsonb((classManager as DbEngine).jsonStringifySlots(agoFrame))
         ]
 
@@ -162,7 +160,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         var map = [
                 "id"       : objectRef.id() as Object,
                 "suspended": callFrame.suspended,
-                "runspace" : (callFrame.runSpace as TaskRunSpace)?.id,
+                "runspace" : (callFrame.runSpace as WorkflowRunSpace)?.id,
         ]
         if(runningState != (byte)-1) map["state"] = runningState
 
@@ -224,7 +222,6 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         var slots = agoClass.slots as DbSlots<Id>;
         if(logger.isDebugEnabled()) logger.debug("INSERT CLASS " + slots.objectRef)
 
-        var sql = new Sql(conn)
         sql.executeInsert(toMap(agoClass, applicationId),
             """INSERT INTO ago_class (id, application, class_id, class_type, ago_class, parent_scope_id, parent_scope_class, 
                         creator_id, creator_class, slots, fullname, modifiers, super_class, interfaces, children, methods, parent,
@@ -470,7 +467,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         )
     }
 
-    void insertRunSpace(TaskRunSpace runSpace){
+    void insertRunSpace(WorkflowRunSpace runSpace){
         sql.executeInsert(toMap(runSpace, runSpace.getCurrentCallFrame()),
             """insert into ago_runspace (
                     id, application, native_host_class, curr_frame_table, curr_frame_id, result_slots, running_state, exception_id, pausing_parents, forked_runspaces, parent_runspace
@@ -481,7 +478,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
                 """);
     }
 
-    void updateRunSpace(TaskRunSpace runSpace) {
+    void updateRunSpace(WorkflowRunSpace runSpace) {
         sql.executeUpdate(toUpdateMap(runSpace, runSpace.getCurrentCallFrame()),
             """UPDATE ago_runspace
                 SET
@@ -496,7 +493,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
     }
 
     @Override
-    void updateRunSpace(TaskRunSpace<?> runSpace, CallFrame<?> currentCallFrame) {
+    void updateRunSpace(WorkflowRunSpace<?> runSpace, CallFrame<?> currentCallFrame) {
         sql.executeUpdate(toUpdateMap(runSpace, currentCallFrame),
                 """UPDATE ago_runspace
                 SET
@@ -510,7 +507,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
                 WHERE id = :id""")
     }
 
-    Map<String, Object> toMap(TaskRunSpace runSpace, CallFrame<?> callFrame){
+    Map<String, Object> toMap(WorkflowRunSpace runSpace, CallFrame<?> callFrame){
         DbEngine rdbEngine = this.classManager as DbEngine
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(callFrame);
         return [
@@ -522,12 +519,12 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
                 "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
-                "pausing_parents"  : runSpace.pausingParents.collect { ((TaskRunSpace) it).id }.toArray(new Long[0]),
-                "forked_runspaces" : runSpace.forkedSpaces.collect { ((TaskRunSpace) it).id }.toArray(new Long[0]), "parent": ((TaskRunSpace) runSpace.getParent())?.id
+                "pausing_parents"  : runSpace.pausingParents.collect { ((WorkflowRunSpace) it).id }.toArray(new Long[0]),
+                "forked_runspaces" : runSpace.forkedSpaces.collect { ((WorkflowRunSpace) it).id }.toArray(new Long[0]), "parent": ((WorkflowRunSpace) runSpace.getParent())?.id
         ];      // UnhandledException
     }
 
-    Map<String, Object> toUpdateMap(TaskRunSpace runSpace, CallFrame<?> callFrame) {
+    Map<String, Object> toUpdateMap(WorkflowRunSpace runSpace, CallFrame<?> callFrame) {
         DbEngine rdbEngine = this.classManager as DbEngine
 
         ObjectRef currFrameRef = ObjectRefOwner.extractObjectRef(callFrame);
@@ -538,8 +535,8 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
                 "result_slots"     : toJsonb(rdbEngine.dumpJson(runSpace.resultSlots)),
                 "running_state"    : runSpace.runningState,
                 "exception_id"     : ObjectRefOwner.extractObjectRef(runSpace.getException())?.id(),
-                "pausing_parents"  : runSpace.pausingParents.collect { ((TaskRunSpace) it).id}.toArray(new Long[0]),
-                "forked_runspaces" : runSpace.forkedSpaces.collect { ((TaskRunSpace) it).id}.toArray(new Long[0]),
+                "pausing_parents"  : runSpace.pausingParents.collect { ((WorkflowRunSpace) it).id}.toArray(new Long[0]),
+                "forked_runspaces" : runSpace.forkedSpaces.collect { ((WorkflowRunSpace) it).id}.toArray(new Long[0]),
         ];
     }
 
@@ -616,13 +613,13 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
     }
 
     @Override
-    List<RunSpaceDesc> loadResumableRunSpaces() {
-        var rows = this.sql.rows("SELECT * FROM ago_runspace WHERE application=? AND running_state < 16", [applicationId as Object])
-        Map<Id, RunSpaceDesc> runspaceDescById = new HashMap<>();
+    List<RunSpaceDesc<Id>> loadResumableRunSpaces() {
+        var rows = this.sql.rows("SELECT * FROM ago_runspace WHERE application=? AND running_state < 16", [applicationId as Id])
+        Map<Id, RunSpaceDesc<Id>> runspaceDescById = new HashMap<>();
 
-        List<RunSpaceDesc> ls = new ArrayList<>(rows.size())
+        List<RunSpaceDesc<Id>> ls = new ArrayList<>(rows.size())
         for(var row : rows){
-            ls.add(new RunSpaceDesc().with {
+            ls.add(new RunSpaceDesc<Id>().with {
                 it.id = row["id"] as Id
                 it.runSpaceHostClass = row['native_host_class'] as String
                 it.currFrame = row['curr_frame_id'] != null ? ObjectRef.create(row['curr_frame_table'] as String, row['curr_frame_id'] as Id) : null
@@ -637,8 +634,9 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         }
 
         for(var row : rows){
-            var r = runspaceDescById[row['id'] as Long]
-            r.pausingParents = row['pausing_parents'] == null ? null : loadPgLongArray(row['pausing_parents'] as PgArray).collect { runspaceDescById[it as Long] }.toList()
+            var r = runspaceDescById[row['id'] as Id]
+            //TODO support string id
+            r.pausingParents = row['pausing_parents'] == null ? null : loadPgLongArray(row['pausing_parents'] as PgArray).collect { runspaceDescById[it as Id] }.toList()
 
             r.forkedRunSpaces = null
             var forkedRunspaces = row['forked_runspaces']
@@ -680,8 +678,8 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
 
     @Override
     protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved) {
-        if (boxTypes.isBoxType((AgoClass)instance.getAgoClass()) || instance instanceof AgoArrayInstance)
-            return;
+//        if (boxTypes.isBoxType((AgoClass)instance.getAgoClass()) || instance instanceof AgoArrayInstance)
+//            return;
 
         if(instance instanceof ObjectRefObject){
             if(instance.getDeferencedInstance() != null){
@@ -759,7 +757,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
 
         String sql
         if(instance instanceof CallFrame){
-            arguments["runspace"] = (instance.runSpace as TaskRunSpace)?.id
+            arguments["runspace"] = (instance.runSpace as WorkflowRunSpace)?.id
             if(instance instanceof AgoFrame) {
                 sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots, ${hasPayload ? 'payload = :payload,' : ''} runspace = :runspace, suspended = :suspended, pc = :pc WHERE id = :id"
                 arguments["pc"] = instance.pc
@@ -797,73 +795,72 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
                 return objrefInstance       // MetaClass
             }
         }
-        try(var connection = getDataSource().getConnection()) {
-            var row = new Sql(connection).firstRow("SELECT * FROM " + tableName(objectRef.className()) + " WHERE id = ?", [objectRef.id() as Object])
-            String className = row["ago_class"]
-            String parentScopeTable = row['parent_scope_class']
-            Instance parentScope = null;
-            if (parentScopeTable != null) {
-                var parent_scope_id = row["parent_scope_id"] as Id
-                parentScope = getById(ObjectRef.create(parentScopeTable, parent_scope_id))
-            }
 
-            AgoClass agoClass = this.classManager.getClass(className);
-            if (agoClass instanceof MetaClass) {
-                return this.classManager.getClass(row["fullname"] as String);
-            } else if (agoClass instanceof AgoFunction) {
-                CallFrame caller;
-                if (row["caller_id"] != null) {
-                    caller = (CallFrame) getById(ObjectRef.create(row["caller_class"] as String, row["caller_id"] as Id))
-                } else {
-                    caller = null
-                }
-                PersistentDbEngine engine = this.classManager as PersistentDbEngine;
-                MutableObject<Instance> boxInstanceScope = new MutableObject<>();
-                var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, null, slots -> {
-                    getAgoEngine().jsonDeserializeSlots((DbSlots<Id>)slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), boxInstanceScope);
-                })
-                if (frame instanceof DeferenceAgoFrame) {
-                    frame.pc = row['pc'] as int
-                    frame.getDeferenceFrameState().entrance = row['is_entrance']
-                    frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
-                } else if(frame instanceof DeferenceNativeFrame){        //DeferenceNativeFrame
-                    if(row['payload']) frame.setNativePayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
-                    frame.getDeferenceFrameState().entrance = row['is_entrance']
-                    frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
-                } else {
-                    throw new RuntimeException("not deference type");
-                }
-                if(boxInstanceScope.get() != null){
-                    frame.setParentScope(boxInstanceScope.get())
-                }
-                if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, frame))
-                if(row['runspace']) {
-                    PersistentDbEngine persistentRdbEngine = (PersistentDbEngine) this.classManager;
-                    frame.runSpace = persistentRdbEngine.getRunSpace(row['runspace'] as Long)
-                }
-                frame.setCaller(caller)
+        var row = this.sql.firstRow("SELECT * FROM " + tableName(objectRef.className()) + " WHERE id = ?", [objectRef.id() as Object])
+        String className = row["ago_class"]
+        String parentScopeTable = row['parent_scope_class']
+        Instance parentScope = null;
+        if (parentScopeTable != null) {
+            var parent_scope_id = row["parent_scope_id"] as Id
+            parentScope = getById(ObjectRef.create(parentScopeTable, parent_scope_id))
+        }
 
-                if (frame instanceof DeferenceObject) frame.markSaved()
-
-                return frame
+        AgoClass agoClass = this.classManager.getClass(className);
+        if (agoClass instanceof MetaClass) {
+            return this.classManager.getClass(row["fullname"] as String);
+        } else if (agoClass instanceof AgoFunction) {
+            CallFrame caller;
+            if (row["caller_id"] != null) {
+                caller = (CallFrame) getById(ObjectRef.create(row["caller_class"] as String, row["caller_id"] as Id))
             } else {
-                var engine = this.getAgoEngine();
-                var slots = agoClass.createSlots() as DbSlots<Id>
-                getAgoEngine().jsonDeserializeSlots(slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), null);
-
-                var inst = agoClass.isNative() ? new DeferenceNativeInstance(slots,agoClass, engine) : new DeferenceInstance(slots, agoClass, engine);
-                inst.parentScope = parentScope
-                if(inst instanceof DeferenceNativeInstance){
-                    var payload = row['payload'];
-                    if(payload){
-                        inst.setNativePayload(new JsonSlurper().parseText(((PGobject)payload).value))
-                    }
-                }
-                inst.markSaved()
-
-                if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, inst))
-                return inst
+                caller = null
             }
+            PersistentDbEngine engine = this.classManager as PersistentDbEngine;
+            MutableObject<Instance> boxInstanceScope = new MutableObject<>();
+            var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, slots -> {
+                getAgoEngine().jsonDeserializeSlots((DbSlots<Id>)slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), boxInstanceScope);
+            })
+            if (frame instanceof DeferenceAgoFrame) {
+                frame.pc = row['pc'] as int
+                frame.getDeferenceFrameState().entrance = row['is_entrance']
+                frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
+            } else if(frame instanceof DeferenceNativeFrame){        //DeferenceNativeFrame
+                if(row['payload']) frame.setNativePayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
+                frame.getDeferenceFrameState().entrance = row['is_entrance']
+                frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
+            } else {
+                throw new RuntimeException("not deference type");
+            }
+            if(boxInstanceScope.get() != null){
+                frame.setParentScope(boxInstanceScope.get())
+            }
+            if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, frame))
+            if(row['runspace']) {
+                PersistentDbEngine persistentRdbEngine = (PersistentDbEngine) this.classManager;
+                frame.runSpace = persistentRdbEngine.getRunSpace(row['runspace'] as Long)
+            }
+            frame.setCaller(caller)
+
+            if (frame instanceof DeferenceObject) frame.markSaved()
+
+            return frame
+        } else {
+            var engine = this.getAgoEngine();
+            var slots = agoClass.createSlots() as DbSlots<Id>
+            getAgoEngine().jsonDeserializeSlots(slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), null);
+
+            var inst = agoClass.isNative() ? new DeferenceNativeInstance(slots,agoClass, engine) : new DeferenceInstance(slots, agoClass, engine);
+            inst.parentScope = parentScope
+            if(inst instanceof DeferenceNativeInstance){
+                var payload = row['payload'];
+                if(payload){
+                    inst.setNativePayload(new JsonSlurper().parseText(((PGobject)payload).value))
+                }
+            }
+            inst.markSaved()
+
+            if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, inst))
+            return inst
         }
     }
 
@@ -884,6 +881,41 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         }
         return baseClass
     }
+
+    void saveCallChainIncludeCurrent(CallFrame<?> currentFrame) {
+        var transactionAdapter = this.beginTransaction();
+        for(var c = currentFrame.getCaller(); c != null; c = c.getCaller()){
+            var callFrameWithRunningState = new CallFrameWithRunningState(c, c.getRunSpace().getRunningState())
+            transactionAdapter.saveInstance(callFrameWithRunningState);
+        }
+        transactionAdapter.saveInstance(currentFrame);
+        transactionAdapter.updateRunSpace((WorkflowRunSpace<Id>) currentFrame.getRunSpace());
+        try {
+            transactionAdapter.commitTransaction();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    void saveFrameAndRunspace(CallFrame<?> frame) {
+        if (frame == null) {
+            return ;
+        }
+
+        if (frame instanceof ObjectRefCallFrame<?,?> objectRefCallFrame) {
+            frame = objectRefCallFrame.deference();
+        }
+
+        var transactionAdapter = this.beginTransaction();
+        transactionAdapter.saveInstance(frame);
+        transactionAdapter.updateRunSpace((WorkflowRunSpace<?>) frame.getRunSpace(), frame);
+        try {
+            transactionAdapter.commitTransaction();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
     @Override
     JsonPGAdapter<Id> beginTransaction() {

@@ -15,6 +15,8 @@
  */
 package org.siphonlab.ago.runtime.db;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
@@ -27,17 +29,17 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Future;
 
-public class TaskRunSpace<Id> extends RunSpace{
-    private final static Logger logger = LoggerFactory.getLogger(TaskRunSpace.class);
+public class WorkflowRunSpace<Id> extends RunSpace{
+    private final static Logger logger = LoggerFactory.getLogger(WorkflowRunSpace.class);
 
     protected final WorkflowAdapter<Id> workflowAdapter;
     public final Id id;
 
-    public TaskRunSpace(DbEngine<Id> agoEngine, WorkflowAdapter<Id> workflowAdapter, RunSpaceHost runSpaceHost) {
+    public WorkflowRunSpace(DbEngine<Id> agoEngine, WorkflowAdapter<Id> workflowAdapter, RunSpaceHost runSpaceHost) {
         this(agoEngine, workflowAdapter, runSpaceHost, workflowAdapter.nextId());
     }
 
-    public TaskRunSpace(DbEngine<Id> agoEngine, WorkflowAdapter<Id> workflowAdapter, RunSpaceHost runSpaceHost, Id id) {
+    public WorkflowRunSpace(DbEngine<Id> agoEngine, WorkflowAdapter<Id> workflowAdapter, RunSpaceHost runSpaceHost, Id id) {
         super(agoEngine, runSpaceHost);
         this.id = id;
         this.workflowAdapter = workflowAdapter;
@@ -53,6 +55,9 @@ public class TaskRunSpace<Id> extends RunSpace{
         }
         if (frame instanceof EntranceCallFrame<?>) {
             return true;
+        }
+        if(frame instanceof ObjectRefCallFrame<?,?> objectRefCallFrame){
+            frame = objectRefCallFrame.deference();
         }
         return frame.getAgoClass().isThatOrDerivedFrom(agoEngine.getLangClasses().getTaskInterface());
     }
@@ -72,10 +77,6 @@ public class TaskRunSpace<Id> extends RunSpace{
         return super.awaitTillComplete(frame);
     }
 
-    protected void save(Instance<?> instance){
-        ((DbEngine)getAgoEngine()).saveInstance(instance);
-    }
-
     @Override
     protected void addPausingParent(RunSpace parent) {
         super.addPausingParent(parent);
@@ -92,7 +93,7 @@ public class TaskRunSpace<Id> extends RunSpace{
     @Override
     public RunSpace createChildRunSpace(ForkContext forkContext) {
         var r = super.createChildRunSpace(forkContext);
-        workflowAdapter.updateRunSpace(this);        // add forkedRunSpace
+        workflowAdapter.insertRunSpace(this);        // add forkedRunSpace
         return r;
     }
 
@@ -133,8 +134,8 @@ public class TaskRunSpace<Id> extends RunSpace{
             frame = objectRefCallFrame.deference();
         }
 
-        var curRunSpace = (TaskRunSpace<?>) frame.getRunSpace();
-        var nextRunSpace = (TaskRunSpace<?>) this.createChildRunSpace(forkContext);
+        var curRunSpace = (WorkflowRunSpace<?>) frame.getRunSpace();
+        var nextRunSpace = (WorkflowRunSpace<?>) this.createChildRunSpace(forkContext);
         frame.setRunSpace(nextRunSpace);
 
         if (forkContext == null) {
@@ -160,6 +161,10 @@ public class TaskRunSpace<Id> extends RunSpace{
 
     @Override
     public Future<?> startAsync(CallFrame<?> frame) {
+        if(frame instanceof ObjectRefCallFrame<?,?> objectRefCallFrame) {
+            frame = objectRefCallFrame.deference();
+        }
+        workflowAdapter.saveFrameAndRunspace(frame);
         return super.startAsync(frame);
     }
 
@@ -208,7 +213,7 @@ public class TaskRunSpace<Id> extends RunSpace{
         if (isEntranceOrTask(cur)) {
             var t =this.workflowAdapter.beginTransaction();
             logger.debug("saving task instances {}", prev);
-            t.saveInstance(prev);
+            this.workflowAdapter.saveCallChainIncludeCurrent(prev);
             t.updateCallFrameRunningState(new CallFrameWithRunningState<>(prev, prev.getRunSpace().getRunningState(), pc));
         }
     }

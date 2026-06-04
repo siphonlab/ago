@@ -28,23 +28,22 @@ native class QueryResult<T> with Iterator<T>{
 
 // everything stored in db, but only extends Table can have getRowById and table functions
 // and if GC enabled, if not extends Table the data will be clean by GC
-class Table<T>{
+class Entity<T, Id as [Primitive]>{
+    get id() as Id native "org.siphonlab.ago.runtime.rdb.Entity.getId";
+
     metaclass{
-        fun of(id as long) as T native "org.siphonlab.ago.runtime.rdb.Table.getRowById";
+        fun of(id as Id) as T native "org.siphonlab.ago.runtime.rdb.Entity.getRowById";
 
-        fun fetchAll() as QueryResult<User> native "org.siphonlab.ago.runtime.rdb.Table.fetchAll"
-
+        fun fetchAll() as QueryResult<User> native "org.siphonlab.ago.runtime.rdb.Entity.fetchAll"
     }
 }
 
 
-class User from Table<User> {
+class User from Entity<User, long> {
     metaclass{
         class Name from VarChar::(100)
         class Address from VarChar::(200)
         class Age from BigInt
-
-        // fun findByName(name as User.Name) as Iterable<User> native "org.siphonlab.ago.rdb.Table.findBy"
     }
     name as Name;
     address as Address;
@@ -65,45 +64,45 @@ fun main(){
     Trace.print(u.age)
 }
 
-enum HttpMethod{
-    Get, Post, Put, Delete, Patch, Options, Head
-}
-
-native trait RestService<R> for Function0<R>{
-    metaclass{
-        httpMethod as HttpMethod
-        path as string
-        fun new#GET(path as string){
-            this.httpMethod = HttpMethod.Get
-            this.path = path
-        }
-        fun new#method(httpMethod as HttpMethod, path as string){
-            this.httpMethod = httpMethod
-            this.path = path
-        }
-    }
-    // JSON
-    fun payload<T>() as T native "org.siphonlab.ago.web.RestfulService.payload"
-}
-
-fun listUsers() as QueryResult<User> with RestService<Iterator<User>>::('/list_users'){
-    return User.fetchAll()
-}
-
-fun getUserById(id as long) as User with RestService<User>::('/user/{id}'){
-    return User.of(id)
-}
-
-fun create_user() as User with RestService<User>::(HttpMethod.Post, '/create_user'){
-    var input = fun.this.payload<User>()        // decoded json, to User
-    var u = new User()
-    u o= input
-    return u
-}
-
-fun update_user(id as long) as User with RestService<User>::(HttpMethod.Put, '/update_user/{id}'){
-    var input = fun.this.payload<User>();
-    var u = User.of(id)
-    u o= input
-    return u;
-}
+//enum HttpMethod{
+//    Get, Post, Put, Delete, Patch, Options, Head
+//}
+//
+//native trait RestService<R> for Function0<R>{
+//    metaclass{
+//        httpMethod as HttpMethod
+//        path as string
+//        fun new#GET(path as string){
+//            this.httpMethod = HttpMethod.Get
+//            this.path = path
+//        }
+//        fun new#method(httpMethod as HttpMethod, path as string){
+//            this.httpMethod = httpMethod
+//            this.path = path
+//        }
+//    }
+//    // JSON
+//    fun payload<T>() as T native "org.siphonlab.ago.web.RestfulService.payload"
+//}
+//
+//fun listUsers() as QueryResult<User> with RestService<Iterator<User>>::('/list_users'){
+//    return User.fetchAll()
+//}
+//
+//fun getUserById(id as long) as User with RestService<User>::('/user/{id}'){
+//    return User.of(id)
+//}
+//
+//fun create_user() as User with RestService<User>::(HttpMethod.Post, '/create_user'){
+//    var input = fun.this.payload<User>()        // decoded json, to User
+//    var u = new User()
+//    u o= input
+//    return u
+//}
+//
+//fun update_user(id as long) as User with RestService<User>::(HttpMethod.Put, '/update_user/{id}'){
+//    var input = fun.this.payload<User>();
+//    var u = User.of(id)
+//    u o= input
+//    return u;
+//}

@@ -190,19 +190,4 @@ public abstract class DbEngine<Id> extends AgoEngine {
         return inst;
     }
 
-    public void saveInstance(Instance<?> instance){
-        dbAdapter.saveInstance(instance);
-    }
-
-//    public ResultSetMapper fetchAll(AgoClass entityClass, CallFrame<?> callFrame) {
-//        var r = this.rdbAdapter.fetchAll(entityClass);
-//        r.setAgoEngine(this);
-//        r.setCreator(callFrame);
-//        return r;
-//    }
-//
-    public Instance<?> fetchById(AgoClass entityClass, Id id){
-        var r = this.dbAdapter.getById(ObjectRef.create(entityClass.getFullname(), id));
-        return r;
-    }
 }

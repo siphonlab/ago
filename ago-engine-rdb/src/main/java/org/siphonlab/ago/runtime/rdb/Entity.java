@@ -16,15 +16,14 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.*;
-import org.siphonlab.ago.native_.NativeInstance;
+import org.siphonlab.ago.runtime.db.ObjectRef;
 
-public class Table {
+public class Entity {
 
-    public static Instance<?> getRowById(AgoEngine agoEngine, CallFrame<?> callFrame, Instance instance, long id) {
+    public static Instance<?> getRowById(CallFrame<?> callFrame, Instance<?> instance, long id) {
         AgoClass entityClass = (AgoClass) instance;
-        DbEngine dbEngine = (DbEngine) agoEngine;
-
-        return dbEngine.fetchById(entityClass, id);
+        DbEngine<Long> dbEngine = (DbEngine<Long>) callFrame.getAgoEngine();
+        return dbEngine.getDbAdapter().getById(ObjectRef.create(entityClass.getFullname(), id));
     }
 
 //    public static Instance<?> fetchAll(AgoEngine agoEngine, CallFrame<?> callFrame, Instance instance) {

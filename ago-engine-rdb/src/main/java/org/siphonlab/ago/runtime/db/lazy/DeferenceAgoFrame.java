@@ -20,7 +20,7 @@ import org.siphonlab.ago.opcode.Load;
 import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
-import org.siphonlab.ago.runtime.db.TaskRunSpace;
+import org.siphonlab.ago.runtime.db.WorkflowRunSpace;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -193,7 +193,7 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
 
     @Override
     protected boolean evaluateInvoke(CallFrame<?> self, int instruction) {
-        var runspace = (TaskRunSpace<?>) this.runSpace;
+        var runspace = (WorkflowRunSpace<?>) this.runSpace;
         var nextFrame = this.getCallFrameAt(this.code[this.pc]);
 
         nextFrame.setRunSpace(self.getRunSpace());

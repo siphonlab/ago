@@ -16,7 +16,7 @@
 package org.siphonlab.ago.runtime.db.task;
 
 import org.siphonlab.ago.*;
-import org.siphonlab.ago.runtime.db.TaskRunSpace;
+import org.siphonlab.ago.runtime.db.WorkflowRunSpace;
 import org.siphonlab.ago.runtime.db.WorkflowAdapter;
 
 public class TaskEngine<Id> extends PersistentDbEngine<Id> {
@@ -29,8 +29,8 @@ public class TaskEngine<Id> extends PersistentDbEngine<Id> {
         super(dbAdapter, sampleId);
     }
 
-    protected TaskRunSpace<Id> createRunSpaceInner(RunSpaceHost host) {
-        return new TaskRunSpace<Id>(this, workflowAdapter, host);
+    protected WorkflowRunSpace<Id> createRunSpaceInner(RunSpaceHost host) {
+        return new WorkflowRunSpace<Id>(this, workflowAdapter, host);
     }
 
 }

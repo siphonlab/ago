@@ -33,7 +33,7 @@ public class DbSlotsCreatorFactory<Id> implements SlotsCreatorFactory {
     @Override
     public SlotsCreator generateSlotsCreator(AgoClass agoClass) {
         var creator = baseSlotFactory.generateSlotsCreator(agoClass);
-        return new SlotsCreator() {
+        return new DbSlotsCreator<Id>(){
             @Override
             public Slots create() {
                 /*
@@ -59,6 +59,17 @@ public class DbSlotsCreatorFactory<Id> implements SlotsCreatorFactory {
             @Override
             public Class<?> getSlotType(int slotIndex) {
                 return creator.getSlotType(slotIndex);
+            }
+
+            // for restore with existed objectRef
+            @Override
+            public DbSlots<Id> create(ObjectRef<Id> objectRef) {
+                var baseSlots = (creator == null)? new AgoClass.TraceOwnerSlots(agoClass) : creator.create();
+                var slots = new DbSlots<Id>(baseSlots, objectRef);
+                if (agoClass.getSlotDefs() != null) {
+                    slots.allocateObjectSlots(agoClass.getSlotDefs().length);
+                }
+                return slots;
             }
         };
     }

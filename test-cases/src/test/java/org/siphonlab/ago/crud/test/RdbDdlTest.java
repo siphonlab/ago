@@ -42,7 +42,7 @@ public class RdbDdlTest {
 
     @Test
     public void test_generate_sql() throws IOException, CompilationError {
-        Util.compile("restful/crud");
+        Util.compile("restful/crud.ago");
 
         String output = "output/restful/crud";
         generateDDL(output);

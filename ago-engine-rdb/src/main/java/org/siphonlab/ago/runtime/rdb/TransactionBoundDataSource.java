@@ -77,7 +77,9 @@ public class TransactionBoundDataSource implements DataSource{
             try {
                 connection.commit();
             } finally {
-                connection.inner.close();
+                if(!(this.dataSource instanceof TransactionBoundDataSource)) {      // the connection is still using by inner TransactionBoundDataSource
+                    connection.inner.close();
+                }
             }
         }
     }

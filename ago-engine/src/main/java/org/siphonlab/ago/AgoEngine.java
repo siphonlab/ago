@@ -34,10 +34,7 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-
-import static org.siphonlab.ago.TypeCode.*;
 
 public class AgoEngine implements ClassManager{
 
@@ -276,7 +273,7 @@ public class AgoEngine implements ClassManager{
         return classes[classId];
     }
 
-    public Instance<?> createInstance(Instance<?> parentScope, int classId, CallFrame<?> creator, RunSpace runSpace) {
+    public Instance<?> createInstance(Instance<?> parentScope, int classId, CallFrame<?> creator) {
         return createInstance(parentScope,classes[classId], creator);
     }
 

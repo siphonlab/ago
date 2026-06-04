@@ -30,12 +30,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import static org.siphonlab.ago.TypeCode.*;
-import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
-import static org.siphonlab.ago.TypeCode.BYTE_VALUE;
-import static org.siphonlab.ago.TypeCode.CHAR_VALUE;
-import static org.siphonlab.ago.TypeCode.DOUBLE_VALUE;
-import static org.siphonlab.ago.TypeCode.FLOAT_VALUE;
-import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
 
 /**
  * Call frame
@@ -1376,7 +1370,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
                 // ------------------- new ----------------------
                 case New.new_vC: {
-                    slots.setObject(code[pc++], engine.createInstance(null, code[pc++], this, runSpace));
+                    slots.setObject(code[pc++], engine.createInstance(null, code[pc++], this));
                     break;
                 }
                 case New.newn_vC: {
@@ -1384,7 +1378,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     break;
                 }
                 case New.new_child_voC:{
-                    slots.setObject(code[pc++], engine.createInstance(slots.getObject(code[pc++]), code[pc++], this,  runSpace));
+                    slots.setObject(code[pc++], engine.createInstance(slots.getObject(code[pc++]), code[pc++], this));
                     break;
                 }
                 case New.newn_child_voC:{
