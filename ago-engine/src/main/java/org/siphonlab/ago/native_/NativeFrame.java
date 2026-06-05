@@ -16,8 +16,10 @@
 package org.siphonlab.ago.native_;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.ObjectArrayInstance;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 
 public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
@@ -47,7 +49,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
             nativeFunctionCaller.invoke(this, this.slots);
         }
         catch (java.lang.Exception javaException) {
-            this.raiseException(self, "lang.NativeException", javaException.getMessage());
+            this.raiseJavaException(self, javaException);
         }
     }
 

@@ -83,7 +83,6 @@ public class TestFunctions {
     }
 
     public static void throwJavaError(NativeFrame frame) {
-        System.out.println("hello exception");
         throw new RuntimeException("java exceptions");
         // frame.finishVoid();
     }
