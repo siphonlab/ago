@@ -43,7 +43,12 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         this.self = self;
         this.setRunSpace(runSpace);
         // the native function f(NativeFrame frame, param1, param2), end with `frame.finish(result)`
-        nativeFunctionCaller.invoke(this, this.slots);
+        try {
+            nativeFunctionCaller.invoke(this, this.slots);
+        }
+        catch (java.lang.Exception javaException) {
+            this.raiseException(self, "lang.NativeException", javaException.getMessage());
+        }
     }
 
     public void beginAsync(){

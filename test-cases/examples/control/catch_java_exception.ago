@@ -1,0 +1,10 @@
+fun failed() throws NativeException native "org.siphonlab.ago.test.TestFunctions.throwJavaError";
+
+fun main() {
+    try {
+        failed();
+    }
+    catch (ex as NativeException) {
+        Trace.print("java exception catched");
+    }
+}
