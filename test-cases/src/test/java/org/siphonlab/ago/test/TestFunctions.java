@@ -82,6 +82,11 @@ public class TestFunctions {
         frame.finishBoolean(content.isEmpty());
     }
 
+    public static void throwJavaError(NativeFrame frame) {
+        throw new RuntimeException("java exceptions");
+        // frame.finishVoid();
+    }
+
     //TODO auto convert enum to primitive type
     public static void jsonSerialize(NativeFrame nativeFrame,
                                      Instance<?> input,

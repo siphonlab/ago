@@ -109,4 +109,9 @@ public class ControlTest{
         assertTrue(Trace.outputted("open file sample.txt", "read file content from sample.txt", "close file sample.txt"));
     }
 
+    @Test
+    public void catchJavaException() throws CompilationError, IOException {
+        run("control/catch_java_exception.ago");
+        assertTrue(Trace.outputted("java exception catched"));
+    }
 }

@@ -398,4 +398,18 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         var exception = engine.createInstance(null, ExceptionClass, this );
         exception.invokeMethod(self, REENTER_RAISE_EXCEPTION, 0, ExceptionClass.findMethod("new#message"), message);
     }
+
+    public void raiseJavaException(CallFrame<?> self, java.lang.Exception ex) {
+        var engine = this.getAgoEngine();
+        var exceptionType = engine.getClass("lang.NativeException");
+        var exceptionInstance = engine.createNativeInstance(null, exceptionType, this);
+        exceptionInstance.setNativePayload(ex);
+        exceptionInstance.invokeMethod(
+                self,
+                REENTER_RAISE_EXCEPTION,
+                0,
+                exceptionType.findMethod("new#message"),
+                ex.getMessage()
+        );
+    }
 }

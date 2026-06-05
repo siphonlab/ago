@@ -221,6 +221,10 @@ class Exception from Throwable{
 
 }
 
+class NativeException from Throwable {
+    override fillStackTrace() native "org.siphonlab.ago.lang.Lang.Throwable_fillStackTraceFromJavaException";
+}
+
 class RuntimeException from Exception {
 
 }
