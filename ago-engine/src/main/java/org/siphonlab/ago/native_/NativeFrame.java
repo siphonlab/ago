@@ -20,6 +20,7 @@ import org.siphonlab.ago.runtime.ObjectArrayInstance;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 
 public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
@@ -49,7 +50,44 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
             nativeFunctionCaller.invoke(this, this.slots);
         }
         catch (java.lang.Exception javaException) {
-            this.raiseJavaException(self, javaException);
+            var nativeExceptionType = this.engine.getClass("lang.NativeException");
+            var scope = this.engine.createInstance(nativeExceptionType, self);
+
+            AgoClass StackTraceElementClass = this.engine.getClass("lang.StackTraceElement");
+            AgoField functionName = StackTraceElementClass.findField("functionName");
+            AgoField fileName = StackTraceElementClass.findField("fileName");
+            AgoField lineNumber = StackTraceElementClass.findField("lineNumber");
+            AgoField column = StackTraceElementClass.findField("column");
+            AgoField length = StackTraceElementClass.findField("length");
+            List<Instance<?>> stackElements = new ArrayList<>();
+
+            var c = self.resolveSourceLocation();
+            for (var stack : javaException.getStackTrace()) {
+                var inst = this.engine.createInstance(StackTraceElementClass, self);
+                //     fun new(field functionName as string, field fileName as string, field lineNumber as int, field column as int, field length as int){
+                inst.getSlots().setString(functionName.getSlotIndex(), stack.getMethodName());
+                inst.getSlots().setString(fileName.getSlotIndex(), stack.getFileName());
+                inst.getSlots().setInt(lineNumber.getSlotIndex(), stack.getLineNumber());
+                inst.getSlots().setInt(column.getSlotIndex(), c.getColumn());
+                inst.getSlots().setInt(length.getSlotIndex(), c.getLength());
+                stackElements.add(inst);
+            }
+            AgoClass arrClass = this.engine.getClass("[lang.StackTraceElement;");
+            var arrayInst = new ObjectArrayInstance(arrClass.createSlots(), arrClass, stackElements.size());
+            for (int i = 0; i < stackElements.size(); i++) {
+                Instance<?> stackElement = stackElements.get(i);
+                arrayInst.value[i] = stackElement;
+            }
+            var ThrowableClass = this.engine.getClass("lang.Throwable");
+            var stackTraceElements = ThrowableClass.findField("stackTraceElements");
+            scope.getSlots().setObject(stackTraceElements.getSlotIndex(), arrayInst);
+
+            scope.invokeMethod(
+                    self,
+                    REENTER_RAISE_EXCEPTION,
+                    0,
+                    nativeExceptionType.findMethod("new#")
+            );
         }
     }
 
