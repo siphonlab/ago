@@ -192,7 +192,7 @@ public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
         cols.add(createColumn("code", "int[]"));
         cols.add(createColumn("native_function_entrance", "varchar(1024)"));
         cols.add(createColumn("native_function_result_slot", "int"));
-        cols.add(createColumn("result_type", "json"));
+        cols.add(createColumn("result_type", "text"));
 
         return ct;
     }

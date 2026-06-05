@@ -24,7 +24,7 @@ import org.apache.commons.io.FileUtils;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
-import org.siphonlab.ago.runtime.db.task.TaskEngine;
+import org.siphonlab.ago.runtime.db.task.WorkflowEngine;
 import org.siphonlab.ago.runtime.json.AgoJsonConfig;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
@@ -148,7 +148,7 @@ public class TestFunctions {
         ObjectRef objectRef = ObjectRefOwner.extractObjectRef(source);
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
-        TaskEngine<?> engine = (TaskEngine<?>) nativeFrame.getAgoEngine();
+        WorkflowEngine<?> engine = (WorkflowEngine<?>) nativeFrame.getAgoEngine();
         var adapter = engine.getDbAdapter();
 
         var connection = factory.newConnection();

@@ -59,7 +59,7 @@ public class AgoEngine implements ClassManager{
 
     private AgoClass runSpaceClass;
 
-    private LangClasses langClasses;
+    protected LangClasses langClasses;
 
     public String toString(int i){
         return strings[i];
@@ -125,11 +125,11 @@ public class AgoEngine implements ClassManager{
         this.runSpaceHost = runSpaceHost;
     }
 
-    protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
-        return createRunSpaceInner(runSpaceHost);
+    protected RunSpace createRunSpace(RunSpaceHost runSpaceHost, ForkContext forkContext) {
+        return createRunSpaceInner(runSpaceHost, forkContext);
     }
 
-    protected RunSpace createRunSpaceInner(RunSpaceHost runSpaceHost) {
+    protected RunSpace createRunSpaceInner(RunSpaceHost runSpaceHost, ForkContext forkContext) {
         return new RunSpace(this, runSpaceHost);
     }
 
@@ -137,7 +137,7 @@ public class AgoEngine implements ClassManager{
     public void load(AgoClassLoader classLoader){
         this.theMata = classLoader.getTheMeta();
 
-        this.runSpace = createRunSpace(this.runSpaceHost);
+        this.runSpace = createRunSpace(this.runSpaceHost, null);
 
         this.classes = classLoader.getClasses().toArray(new AgoClass[0]);
         this.strings = classLoader.getStrings().toArray(new String[0]);
@@ -304,7 +304,7 @@ public class AgoEngine implements ClassManager{
     public void invokeMethod(CallFrame<?> caller, Instance<?> instance, AgoFunction method, Object... arguments){
         var runSpace = this.runSpace;
         if(runSpace.getCurrentCallFrame() != null){
-            runSpace = createRunSpace(this.runSpaceHost);
+            runSpace = caller.getRunSpace().createChildRunSpace(null);
         }
         CallFrame<?> frame = createFunctionInstance(instance, method, caller, caller);
         frame.assignArguments(arguments);

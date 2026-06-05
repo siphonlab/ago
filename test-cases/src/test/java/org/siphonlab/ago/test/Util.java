@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.test;
 
+import io.ebean.platform.postgres.PostgresPlatform;
 import io.vertx.core.Vertx;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.file.PathUtils;
@@ -30,18 +31,22 @@ import org.siphonlab.ago.compiler.Unit;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 import org.siphonlab.ago.runtime.db.DbSlotsCreatorFactory;
+import org.siphonlab.ago.runtime.db.SnowflakeIdGenerator;
 import org.siphonlab.ago.runtime.db.lazy.JsonAgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter;
-import org.siphonlab.ago.runtime.db.task.TaskEngine;
+import org.siphonlab.ago.runtime.db.task.WorkflowEngine;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.zip.ZipInputStream;
+
+import static org.siphonlab.ago.crud.test.RdbDdlTest.generateDDL;
 
 public class Util {
     public static class TestDatabaseConfig {
@@ -109,24 +114,17 @@ public class Util {
     public enum RunEngine{
         NettyEngine,
         VertxEngine,
-        PGJsonReactiveEngine,
-        PGJsonLazyEngine,
-        TaskEngine,
+        WorkflowEngine,
     }
 
     public static RunEngine parseEngine(){
         String s = System.getenv("engine");
         if("vertx".equalsIgnoreCase(s)){
             return RunEngine.VertxEngine;
-        } else if("PGJsonLazy".equalsIgnoreCase(s)){
-            return RunEngine.PGJsonLazyEngine;
-        } else if("PGJsonReactive".equalsIgnoreCase(s)){
-            return RunEngine.PGJsonReactiveEngine;
         } else if("netty".equalsIgnoreCase(s) || StringUtils.isEmpty(s)){
             return RunEngine.NettyEngine;
-        }
-        else if ("task".equalsIgnoreCase(s)) {
-            return RunEngine.TaskEngine;
+        } else if ("workflow".equalsIgnoreCase(s)) {
+            return RunEngine.WorkflowEngine;
         }
         throw new IllegalArgumentException("unknown engine '%s'".formatted(s));
     }
@@ -166,7 +164,7 @@ public class Util {
                 runInVertxSpace(filename,entrance);
                 break;
 
-            case PGJsonLazyEngine, TaskEngine:
+            case WorkflowEngine:
                 runWithPGJsonLazy(filename, entrance);
                 break;
         }
@@ -215,22 +213,30 @@ public class Util {
 
         var slotsCreatorFactory = new DbSlotsCreatorFactory<Long>();
         var agoClassLoader = new AgoClassLoader(slotsCreatorFactory);
+        String output = "output/%s".formatted(filename);
         if(new File("../ago-sdk/compiled/lang/").exists()) {
-            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", output);
         } else {
             agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
-            agoClassLoader.loadClasses("output/%s".formatted(filename));
+            agoClassLoader.loadClasses(output);
         }
 
         var ds = connectDataSource();
         ds.setDefaultAutoCommit(true);
         ds.setMaxTotal(20);
 
-        var rdbAdapter = new JsonPGAdapter<Long>(agoClassLoader, TypeCode.LONG, new org.siphonlab.ago.runtime.db.SnowflakeIdGenerator(1),
-                                        agoClassLoader.getBoxTypes(), ds, applicationId);
+        var rdbAdapter = new JsonPGAdapter<>(agoClassLoader, TypeCode.LONG, new SnowflakeIdGenerator(1),
+                agoClassLoader.getBoxTypes(), ds, applicationId);
         slotsCreatorFactory.setAdapter(rdbAdapter);
 
-        var rdbEngine = new TaskEngine<>(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()), 0L);
+        generateDDL(output);
+
+        var platform = new PostgresPlatform();
+        var outputMapFile = new File(new File(output), "db_map_" + platform.name() + ".yml");
+        rdbAdapter.loadTableMap(new FileInputStream(outputMapFile));
+
+        var rdbEngine = new WorkflowEngine<>(rdbAdapter, rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()), 0L);
+        rdbAdapter.setClassManager(rdbEngine);
         rdbEngine.load(agoClassLoader);
         rdbEngine.run(entrance);
     }
@@ -243,12 +249,12 @@ public class Util {
         var agoClassLoader = new JsonAgoClassLoader(slotsCreatorFactory);
         agoClassLoader.loadClasses(ds, applicationId);      // load classes from db
 
-        var rdbAdapter = new JsonPGAdapter<Long>(agoClassLoader, TypeCode.LONG, new org.siphonlab.ago.runtime.db.SnowflakeIdGenerator(1),
+        var rdbAdapter = new JsonPGAdapter<Long>(agoClassLoader, TypeCode.LONG, new SnowflakeIdGenerator(1),
                 agoClassLoader.getBoxTypes(), ds, applicationId);
 
         slotsCreatorFactory.setAdapter(rdbAdapter);
 
-        var rdbEngine = new TaskEngine<>(rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()), 0L);
+        var rdbEngine = new WorkflowEngine<>(rdbAdapter, rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()), 0L);
         rdbEngine.load(agoClassLoader);
         rdbEngine.resume();
 

@@ -88,7 +88,7 @@ public class RdbDdlTest {
 //        restfulService.start();
     }
 
-    private void generateDDL(String output) throws IOException {
+    public static void generateDDL(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader();
         agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         agoClassLoader.loadClasses(output);

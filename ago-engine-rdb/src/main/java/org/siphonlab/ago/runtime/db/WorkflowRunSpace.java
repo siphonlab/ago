@@ -15,13 +15,12 @@
  */
 package org.siphonlab.ago.runtime.db;
 
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.db.sdk.ForkWorkflowRunSpace;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame;
-import org.siphonlab.ago.runtime.db.task.PersistentDbEngine;
+import org.siphonlab.ago.runtime.db.task.WorkflowEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,8 +64,8 @@ public class WorkflowRunSpace<Id> extends RunSpace{
     @Override
     protected boolean tryComplete() {
         boolean r = super.tryComplete();
-        if(r && agoEngine instanceof PersistentDbEngine persistentRdbEngine){
-            persistentRdbEngine.releaseRunSpace(this.getId());
+        if(r && agoEngine instanceof WorkflowEngine workflowEngine){
+            workflowEngine.releaseRunSpace(this.getId());
         }
         return r;
     }
@@ -92,8 +91,8 @@ public class WorkflowRunSpace<Id> extends RunSpace{
 
     @Override
     public RunSpace createChildRunSpace(ForkContext forkContext) {
-        var r = super.createChildRunSpace(forkContext);
-        workflowAdapter.insertRunSpace(this);        // add forkedRunSpace
+        var r = super.createChildRunSpace(forkContext == null ? new ForkWorkflowRunSpace(): forkContext);
+        workflowAdapter.updateRunSpace(this);        // add forkedRunSpace
         return r;
     }
 

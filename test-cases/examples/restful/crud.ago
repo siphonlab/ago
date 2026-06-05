@@ -19,6 +19,9 @@ class VarChar from String{
 }
 
 class BigInt from Boxer<long>{
+    override toString() as string{
+        return "" + this.value
+    }
 }
 
 native class QueryResult<T> with Iterator<T>{
@@ -29,12 +32,12 @@ native class QueryResult<T> with Iterator<T>{
 // everything stored in db, but only extends Table can have getRowById and table functions
 // and if GC enabled, if not extends Table the data will be clean by GC
 class Entity<T, Id as [Primitive]>{
-    get id() as Id native "org.siphonlab.ago.runtime.rdb.Entity.getId";
+    get id() as Id native "org.siphonlab.ago.runtime.db.sdk.Entity.getId";
 
     metaclass{
-        fun of(id as Id) as T native "org.siphonlab.ago.runtime.rdb.Entity.getEntityById";
+        fun of(id as Id) as T native "org.siphonlab.ago.runtime.db.sdk.Entity.getEntityById";
 
-        fun fetchAll() as QueryResult<User> native "org.siphonlab.ago.runtime.rdb.Entity.fetchAll"
+        fun fetchAll() as QueryResult<User> native "org.siphonlab.ago.runtime.db.sdk.Entity.fetchAll"
     }
 }
 
@@ -50,18 +53,38 @@ class User from Entity<User, long> {
     age as Age
 }
 
-fun main(){
+fun createUser() as User {
     var u = new User() with {
         .name = "Tom";
         .address = "liberation street 222";
         .age = 20;
     }
+    return u;
+}
+
+fun main(){
+    var u = await createUser() via EntitySpace.new#();
 
 //    // next time we can load from existed data
 //    var u = User.of(1)
 
     Trace.print(u.name)
     Trace.print(u.age)
+}
+
+// to fork entity runspace
+native class EntitySpace with ForkContext{
+    fun new#() native "org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace.create";
+}
+
+// to fork workflow runspace
+native class WorkflowSpace with ForkContext{
+    fun new#() native "org.siphonlab.ago.runtime.db.sdk.ForkWorkflowRunSpace.create";
+}
+
+// to fork entity workflow runspace
+native class EntityWorkflowSpace with ForkContext{
+    fun new#() native "org.siphonlab.ago.runtime.db.sdk.ForkEntityWorkflowRunSpace.create";
 }
 
 //enum HttpMethod{

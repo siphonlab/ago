@@ -13,25 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.crud.test;
+package org.siphonlab.ago.runtime.db.sdk;
 
-import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.ForkContext;
+import org.siphonlab.ago.native_.NativeFrame;
 
-import java.io.IOException;
-
-import static org.siphonlab.ago.test.Util.run;
-
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-public class RestfulTest {
-
-    @Test
-    public void crud() throws CompilationError, IOException {
-        run("restful/crud.ago");
-        System.in.read();
+public class ForkEntityWorkflowRunSpace extends ForkContext {
+    public static void create(NativeFrame frame){
+        frame.getParentScope().setNativePayload(new ForkEntityWorkflowRunSpace());
+        frame.finishVoid();
     }
-
-
 }

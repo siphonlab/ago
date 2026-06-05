@@ -13,14 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.runtime.rdb;
+package org.siphonlab.ago.runtime.db.sdk;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
-import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
+import org.siphonlab.ago.runtime.rdb.DbEngine;
+import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 
 public class Entity {
 

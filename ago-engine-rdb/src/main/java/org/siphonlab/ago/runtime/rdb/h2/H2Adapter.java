@@ -18,11 +18,14 @@ package org.siphonlab.ago.runtime.rdb.h2;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.db.IdGenerator;
 import org.siphonlab.ago.runtime.rdb.EntityRdbAdapter;
+import org.siphonlab.ago.runtime.rdb.RdbTable;
 import org.siphonlab.ago.runtime.rdb.TransactionBoundDataSource;
 import org.siphonlab.ago.runtime.rdb.TypeMapping;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class H2Adapter<Id> extends EntityRdbAdapter<Id> {
 
@@ -38,6 +41,8 @@ public class H2Adapter<Id> extends EntityRdbAdapter<Id> {
     @Override
     public H2Adapter<Id> beginTransaction() {
         var adapter = new H2Adapter<Id>(classManager, idType, idGenerator, boxTypes, new TransactionBoundDataSource(dataSource, true));
+        adapter.tablesByClass = this.tablesByClass;
+        adapter.tablesByClassName = this.tablesByClassName;
         return adapter;
     }
 

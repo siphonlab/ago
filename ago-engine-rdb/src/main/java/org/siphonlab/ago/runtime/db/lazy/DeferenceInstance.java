@@ -32,11 +32,11 @@ public class DeferenceInstance<T extends AgoClass, Id> extends Instance<T> imple
 
     private final DeferenceObjectState state;
 
-    public DeferenceInstance(DbSlots<Id> slots, T agoClass, DbEngine<Id> engine) {
+    public DeferenceInstance(DbSlots<Id> slots, T agoClass, DbAdapter<Id> adapter) {
         super(slots, agoClass);
 
         slots.setOwner(this);
-        this.adapter = engine.getDbAdapter();
+        this.adapter = adapter;
 
         ObjectRefInstance<T, Id> inst = (ObjectRefInstance<T, Id>) adapter.getById(getObjectRef());
         inst.setDeferencedInstance(this);

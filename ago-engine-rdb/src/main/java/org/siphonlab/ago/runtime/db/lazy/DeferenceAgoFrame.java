@@ -193,12 +193,12 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
 
     @Override
     protected boolean evaluateInvoke(CallFrame<?> self, int instruction) {
-        var runspace = (WorkflowRunSpace<?>) this.runSpace;
-        var nextFrame = this.getCallFrameAt(this.code[this.pc]);
+        if(self.getRunSpace() instanceof WorkflowRunSpace<?> workflowRunSpace) {
+            var nextFrame = this.getCallFrameAt(this.code[this.pc]);
 
-        nextFrame.setRunSpace(self.getRunSpace());
-        runspace.saveTask(self, nextFrame, this.pc - 1);
-
+            nextFrame.setRunSpace(workflowRunSpace);
+            workflowRunSpace.saveTask(self, nextFrame, this.pc - 1);
+        }
         return super.evaluateInvoke(self, instruction);
     }
 }

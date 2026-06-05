@@ -1,8 +1,9 @@
 package org.siphonlab.ago.runtime.db;
 
-import org.siphonlab.ago.AgoEngine;
+import org.siphonlab.ago.ForkContext;
 import org.siphonlab.ago.RunSpace;
 import org.siphonlab.ago.RunSpaceHost;
+import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 
 /**
@@ -13,9 +14,13 @@ public class EntityRunSpace<Id> extends RunSpace {
 
     private final EntityAdapter<Id> entityAdapter;
 
-    public EntityRunSpace(DbEngine<Id> dbEngine, RunSpaceHost runSpaceHost, EntityAdapter<Id> entityAdapter) {
+    public EntityRunSpace(DbEngine<Id> dbEngine, EntityAdapter<Id> entityAdapter, RunSpaceHost runSpaceHost) {
         super(dbEngine, runSpaceHost);
         this.entityAdapter = entityAdapter.beginTransaction();      // each entity runspace start a transaction
+    }
+
+    public EntityAdapter<Id> getEntityAdapter() {
+        return entityAdapter;
     }
 
     @Override
@@ -27,7 +32,8 @@ public class EntityRunSpace<Id> extends RunSpace {
         return b;
     }
 
-    public void flush(){
-        entityAdapter.flush();
+    @Override
+    public RunSpace createChildRunSpace(ForkContext forkContext) {
+        return super.createChildRunSpace(forkContext == null ? new ForkEntityRunSpace() : forkContext);
     }
 }

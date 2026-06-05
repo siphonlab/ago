@@ -47,7 +47,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
     private static final Logger LOGGER = LoggerFactory.getLogger(RdbAdapter.class);
 
     protected final BoxTypes boxTypes;
-    protected final ClassManager classManager;
+    protected ClassManager classManager;
 
     protected final TypeCode idType;
     protected final IdGenerator<Id> idGenerator;
@@ -69,6 +69,10 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         this.dataSource = dataSource;
         this.classManager = classManager;
         this.typeMapping.initTypeMap(classManager);
+    }
+
+    public void setClassManager(ClassManager classManager) {
+        this.classManager = classManager;
     }
 
     public DataSource getDataSource() {
@@ -316,7 +320,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         return parameterIndex + 1;
     }
 
-    public int fillId(PreparedStatement ps, int parameterIndex, Object id) throws SQLException {
+    public int fillId(PreparedStatement ps, int parameterIndex, Id id) throws SQLException {
         ps.setLong(parameterIndex, (Long) id);
         return parameterIndex + 1;
     }
@@ -435,7 +439,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         try(var conn = dataSource.getConnection()) {
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 int parameterIndex = 1;
-                parameterIndex = this.fillId(ps, parameterIndex, dbSlots.getObjectRef());
+                parameterIndex = this.fillId(ps, parameterIndex, dbSlots.getObjectRef().id());
                 for (ColumnDesc column : columns) {
                     var slotDef = column.getSlotDef();
                     parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
@@ -494,7 +498,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
                     var slotDef = column.getSlotDef();
                     parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
                 }
-                this.fillId(ps, parameterIndex, dbSlots.getObjectRef());
+                this.fillId(ps, parameterIndex, dbSlots.getObjectRef().id());
 
                 if (LOGGER.isDebugEnabled()) LOGGER.debug("{}{}", "EXECUTE UPDATE %s : ".formatted(dbSlots.getObjectRef()), updateSql);
 

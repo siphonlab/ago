@@ -26,11 +26,11 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.AgoNativeFunction;
-import org.siphonlab.ago.runtime.db.DbSlots;
-import org.siphonlab.ago.runtime.db.ObjectRef;
-import org.siphonlab.ago.runtime.db.WorkflowRunSpace;
-import org.siphonlab.ago.runtime.db.WorkflowAdapter;
+import org.siphonlab.ago.runtime.db.*;
 import org.siphonlab.ago.runtime.db.lazy.*;
+import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
+import org.siphonlab.ago.runtime.db.sdk.ForkEntityWorkflowRunSpace;
+import org.siphonlab.ago.runtime.db.sdk.ForkWorkflowRunSpace;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.json.*;
@@ -51,24 +51,29 @@ import java.util.function.Consumer;
  * however in memory they are just a `(table-name, id)` key, instead of real data
  * and for `setInt`, `setDouble`, they are all stay in db, and all commands works as sql, i.e. `jump_if_i` transforms to `update function_inst set pc = x where cond = `
  */
-public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
+public class WorkflowEngine<Id> extends DbEngine<Id> {
 
     protected final WorkflowAdapter<Id> workflowAdapter;
+    private EntityAdapter<Id> entityAdapter;
 
     protected Map<Id, RunSpace> runspaces = new ConcurrentHashMap<>();
 
-    public PersistentDbEngine(WorkflowAdapter<Id> dbAdapter, RunSpaceHost runSpaceHost, Id sampleId) {
-        super(dbAdapter, runSpaceHost, sampleId);
-        this.workflowAdapter = dbAdapter;
+    public WorkflowEngine(WorkflowAdapter<Id> workflowAdapter, EntityAdapter<Id> entityAdapter, RunSpaceHost runSpaceHost, Id sampleId) {
+        super(workflowAdapter, runSpaceHost, sampleId);
+        this.workflowAdapter = workflowAdapter;
+        this.entityAdapter = entityAdapter;
     }
 
-    public PersistentDbEngine(WorkflowAdapter<Id> dbAdapter, Id sampleId){
+    public WorkflowEngine(WorkflowAdapter<Id> dbAdapter, EntityAdapter<Id> entityAdapter, Id sampleId){
         super(dbAdapter, sampleId);
         this.workflowAdapter = dbAdapter;
+        this.entityAdapter = entityAdapter;
     }
 
     @Override
     public void load(AgoClassLoader classLoader) {
+        this.langClasses = classLoader.getLangClasses();
+
         boolean loadFromDb = (classLoader instanceof JsonAgoClassLoader);
         if(!loadFromDb) {
             workflowAdapter.saveStrings(classLoader.getStrings());
@@ -84,14 +89,17 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
                 }
             }
             agoClass.initSlots();
-            // assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
-            if (!loadFromDb) {
-                getDbAdapter().saveInstance(agoClass);
-            }
         }
 
         // here is parentScope, creator, slots of class
         super.load(classLoader);
+
+        for (AgoClass agoClass : classLoader.getClasses()) {
+            // assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
+            if (!loadFromDb) {
+                workflowAdapter.saveInstance(agoClass);
+            }
+        }
 
         if(loadFromDb){
             JsonAgoClassLoader jsonAgoClassLoader = (JsonAgoClassLoader) classLoader;
@@ -174,20 +182,32 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
     }
 
 
-    @Override
-    protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
-        var r = super.createRunSpace(runSpaceHost);
-        if(r instanceof WorkflowRunSpace workflowRunSpace){
-            this.runspaces.put((Id)workflowRunSpace.getId(), workflowRunSpace);
+    protected RunSpace createRunSpaceInner(RunSpaceHost host, ForkContext forkContext) {
+        RunSpace r;
+        if(forkContext == null){
+            r = new RunSpace(this, host);
+        } else if(forkContext instanceof ForkEntityRunSpace){
+            r = new EntityRunSpace<Id>(this, entityAdapter, host);
+        } else if(forkContext instanceof ForkWorkflowRunSpace){
+            WorkflowRunSpace<Id> workflowRunSpace = new WorkflowRunSpace<Id>(this, workflowAdapter, host);
+            this.runspaces.put(workflowRunSpace.getId(), workflowRunSpace);
+            r = workflowRunSpace;
+        } else if(forkContext instanceof ForkEntityWorkflowRunSpace) {
+            EntityWorkflowRunSpace<Id> workflowRunSpace = new EntityWorkflowRunSpace<>(this, workflowAdapter, entityAdapter, host);
+            this.runspaces.put(workflowRunSpace.getId(), workflowRunSpace);
+            r = workflowRunSpace;
+        } else {
+            throw new IllegalArgumentException("unsupport fork context " + forkContext);
         }
         return r;
     }
 
-    public void releaseRunSpace(Object id) {
+
+    public void releaseRunSpace(Id id) {
         this.runspaces.remove(id);
     }
 
-    public RunSpace getRunSpace(long id) {
+    public RunSpace getRunSpace(Id id) {
         return this.runspaces.get(id);
     }
 
@@ -201,7 +221,7 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
         }
         var inst = createFunctionInstance(agoFunction,parentScope, null);
         if(inst instanceof DeferenceObject) {
-            getDbAdapter().saveInstance(inst);
+//            workflowAdapter.saveInstance(inst);
             return (CallFrame<?>) ((DeferenceObject)inst).toObjectRefInstance();
         } else {
             return inst;
@@ -209,13 +229,13 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
     }
 
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, Consumer<Slots> slotsInitializer) {
-        var slots = (DbSlots<?>) agoFunction.createSlots();
+        var slots = (DbSlots<Id>) agoFunction.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);    // may change slots rowstate -> none
         CallFrame<?> inst;
         if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
-            inst = new DeferenceNativeFrame(slots, agoNativeFunction, this);
+            inst = new DeferenceNativeFrame<>(slots, agoNativeFunction, this);
         } else {
-            inst = new DeferenceAgoFrame(slots, agoFunction, this);
+            inst = new DeferenceAgoFrame<>(slots, agoFunction, this);
         }
         if (parentScope != null)
             inst.setParentScope(parentScope);  // not sure parentScope need restore to ObjectRefInstance too
@@ -228,13 +248,13 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
 
     @Override
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        var inst = createInstance(parentScope,agoClass, (Consumer<Slots>) null);
-        getDbAdapter().saveInstance(inst);
+        var inst = createInstance(parentScope,agoClass, creator.getRunSpace(), (Consumer<Slots>) null);
+        this.saveCreatedInstance(inst, agoClass, creator.getRunSpace());
         return inst;
     }
 
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass,
-                                      Consumer<Slots> slotsInitializer) {
+                                      RunSpace runSpace, Consumer<Slots> slotsInitializer) {
         if (agoClass instanceof AgoFunction fun) {
             return createFunctionInstance(fun, parentScope, slotsInitializer);
         }
@@ -246,11 +266,19 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
             return new Instance<>(slots, agoClass);
         }
 
+        DbAdapter<Id> adapter;
+        if(runSpace instanceof EntityRunSpace<?> entityRunSpace) {
+            adapter = (DbAdapter<Id>) entityRunSpace.getEntityAdapter();
+        } else if(runSpace instanceof EntityWorkflowRunSpace<?> entityWorkflowRunSpace) {
+            adapter = (DbAdapter<Id>) entityWorkflowRunSpace.getEntityAdapter();
+        } else {
+            adapter = this.getDbAdapter();
+        }
         Instance<?> inst;
         if(agoClass.isNative()){
-            inst = new DeferenceNativeInstance((DbSlots) slots, agoClass, this);
+            inst = new DeferenceNativeInstance((DbSlots) slots, agoClass, adapter);
         } else {
-            inst = new DeferenceInstance((DbSlots) slots, agoClass, this);
+            inst = new DeferenceInstance((DbSlots) slots, agoClass, adapter);
         }
         if (parentScope != null) inst.setParentScope(parentScope);
 
@@ -262,9 +290,26 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
 
     @Override
     public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        var inst = createInstance(parentScope, agoClass, (Consumer<Slots>) null);
-        getDbAdapter().saveInstance(inst);
+        var inst = createInstance(parentScope, agoClass, creator.getRunSpace(), (Consumer<Slots>) null);
+        this.saveCreatedInstance(inst, agoClass, creator.getRunSpace());
         return inst;
+    }
+
+    private void saveCreatedInstance(Instance<?> inst, AgoClass agoClass, RunSpace runSpace) {
+        if(runSpace instanceof  EntityRunSpace<?> entityRunSpace){
+            var entityAdapter = entityRunSpace.getEntityAdapter();
+            if(entityAdapter != null && entityAdapter.isEntityClass(agoClass) && inst.getSlots() instanceof DbSlots) {
+                entityAdapter.saveInstance(inst);
+            }
+        } else if(runSpace instanceof EntityWorkflowRunSpace<?> entityWorkflowRunSpace){
+            if(entityAdapter != null && entityAdapter.isEntityClass(agoClass) && inst.getSlots() instanceof DbSlots) {
+                entityWorkflowRunSpace.getEntityAdapter().saveInstance(inst);
+            } else {
+                //workflowAdapter.saveInstance(inst);
+            }
+        } else {
+            //workflowAdapter.saveInstance(inst);
+        }
     }
 
     public void resume(){
@@ -292,7 +337,7 @@ public abstract class PersistentDbEngine<Id> extends DbEngine<Id> {
             r.restore(runningState, currCallFrame, parent, forkedRunspaces, pausingParents, exception, runSpaceDesc.getResultSlots());
         }
 
-        for (WorkflowRunSpace runSpace : runspaces.values()) {
+        for (WorkflowRunSpace<Id> runSpace : runspaces.values()) {
             if(runSpace.getRunningState() == RunSpace.RunningState.RUNNING || runSpace.getRunningState() == RunSpace.RunningState.PENDING){
                 runSpace.resumeByRestore();
             }

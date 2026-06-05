@@ -20,7 +20,7 @@ import static org.apache.commons.dbcp2.Utils.closeQuietly;
 public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements EntityAdapter<Id> {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(EntityRdbAdapter.class);
-    private final AgoClass entityClass;
+    protected final AgoClass entityClass;
 
     // cache for this session
     protected Map<ObjectRef<Id>, Instance<?>> cache = new ConcurrentHashMap<>();
@@ -76,7 +76,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
     @Override
     public void flush() {
         for (var objectRef : itemsBuffer.keySet()) {
-            var instance = cache.get(objectRef);
+            var instance = this.getById(objectRef);
             switch (itemsBuffer.get(objectRef)) {
                 case Modified:
                     super.update(instance, (DbSlots<Id>) instance.getSlots(), instance.getAgoClass());

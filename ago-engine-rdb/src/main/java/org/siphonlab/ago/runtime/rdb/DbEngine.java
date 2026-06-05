@@ -23,7 +23,6 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
-import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
@@ -36,7 +35,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 
-public abstract class DbEngine<Id> extends AgoEngine {
+public class DbEngine<Id> extends AgoEngine {
 
     public final static Logger logger = LoggerFactory.getLogger(DbEngine.class);
 
@@ -169,12 +168,9 @@ public abstract class DbEngine<Id> extends AgoEngine {
     }
 
     @Override
-    protected RunSpace createRunSpace(RunSpaceHost runSpaceHost) {
-        return createRunSpaceInner(runSpaceHost);
+    protected RunSpace createRunSpaceInner(RunSpaceHost runSpaceHost, ForkContext forkContext){
+        return super.createRunSpaceInner(runSpaceHost, forkContext);
     }
-
-    @Override
-    protected abstract RunSpace createRunSpaceInner(RunSpaceHost runSpaceHost);
 
     @Override
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
