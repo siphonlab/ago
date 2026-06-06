@@ -10,6 +10,7 @@ public interface DbAdapter<IdType> {
 
     void saveInstance(Instance<?> instance);
 
+    // for EntityAdapter, it returns whole instance, but, for the scope and other linked Object,
     Instance<?> getById(ObjectRef<IdType> objectRef);
 
     DbAdapter<IdType> beginTransaction();

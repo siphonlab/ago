@@ -35,11 +35,11 @@ import org.siphonlab.ago.runtime.db.SnowflakeIdGenerator;
 import org.siphonlab.ago.runtime.db.lazy.JsonAgoClassLoader;
 import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter;
 import org.siphonlab.ago.runtime.db.task.WorkflowEngine;
+import org.siphonlab.ago.runtime.rdb.pg.PGEntityAdapter;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -225,18 +225,24 @@ public class Util {
         ds.setDefaultAutoCommit(true);
         ds.setMaxTotal(20);
 
-        var rdbAdapter = new JsonPGAdapter<>(agoClassLoader, TypeCode.LONG, new SnowflakeIdGenerator(1),
-                agoClassLoader.getBoxTypes(), ds, applicationId);
-        slotsCreatorFactory.setAdapter(rdbAdapter);
+        SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(1);
+        var workflowAdapter = new JsonPGAdapter<>(agoClassLoader, TypeCode.LONG, idGenerator, agoClassLoader.getBoxTypes(), ds, applicationId);
+        slotsCreatorFactory.setIdGenerator(idGenerator);
+
+        var entityAdapter = new PGEntityAdapter<>(agoClassLoader, TypeCode.LONG, idGenerator, agoClassLoader.getBoxTypes(), ds);
+        slotsCreatorFactory.setIdGenerator(idGenerator);
 
         generateDDL(output);
 
         var platform = new PostgresPlatform();
         var outputMapFile = new File(new File(output), "db_map_" + platform.name() + ".yml");
-        rdbAdapter.loadTableMap(new FileInputStream(outputMapFile));
+        workflowAdapter.loadTableMap(new FileInputStream(outputMapFile));
+        entityAdapter.loadTableMap(new FileInputStream(outputMapFile));
 
-        var rdbEngine = new WorkflowEngine<>(rdbAdapter, rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()), 0L);
-        rdbAdapter.setClassManager(rdbEngine);
+        var rdbEngine = new WorkflowEngine<>(workflowAdapter, entityAdapter, new VertxRunSpaceHost(Vertx.vertx()), 0L);
+        workflowAdapter.setClassManager(rdbEngine);
+        entityAdapter.setClassManager(rdbEngine);
+
         rdbEngine.load(agoClassLoader);
         rdbEngine.run(entrance);
     }
@@ -249,12 +255,14 @@ public class Util {
         var agoClassLoader = new JsonAgoClassLoader(slotsCreatorFactory);
         agoClassLoader.loadClasses(ds, applicationId);      // load classes from db
 
-        var rdbAdapter = new JsonPGAdapter<Long>(agoClassLoader, TypeCode.LONG, new SnowflakeIdGenerator(1),
-                agoClassLoader.getBoxTypes(), ds, applicationId);
+        SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(1);
+        var workflowAdapter = new JsonPGAdapter<>(agoClassLoader, TypeCode.LONG, idGenerator, agoClassLoader.getBoxTypes(), ds, applicationId);
+        slotsCreatorFactory.setIdGenerator(idGenerator);
 
-        slotsCreatorFactory.setAdapter(rdbAdapter);
+        var entityAdapter = new PGEntityAdapter<>(agoClassLoader, TypeCode.LONG, idGenerator, agoClassLoader.getBoxTypes(), ds);
+        slotsCreatorFactory.setIdGenerator(idGenerator);
 
-        var rdbEngine = new WorkflowEngine<>(rdbAdapter, rdbAdapter, new VertxRunSpaceHost(Vertx.vertx()), 0L);
+        var rdbEngine = new WorkflowEngine<>(workflowAdapter, entityAdapter, new VertxRunSpaceHost(Vertx.vertx()), 0L);
         rdbEngine.load(agoClassLoader);
         rdbEngine.resume();
 

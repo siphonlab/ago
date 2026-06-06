@@ -153,7 +153,7 @@ public class DynamicOp {
                         return RESULT_EXCEPTION;
                     }
                 } else if(property instanceof Property.AttributeProperty attributeProperty){
-                    var setter = engine.createFunctionInstance(object, attributeProperty.getSetter(), self, self);
+                    var setter = engine.createFunctionInstance(object, attributeProperty.getSetter(), self);
                     AgoClass targetType = setter.getAgoClass();
                     AgoVariable fld = setter.getAgoClass().getParameters()[0];
                     AgoClass unionClass = frame.getAgoEngine().getLangClasses().getAnyClass();

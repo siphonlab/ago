@@ -139,7 +139,7 @@ create table ago_frame (
   caller_id                     bigint,
   caller_class                  text,
 
-  suspended					bool,
+  suspended					    bool,
   state                         int,
 
   pc                            int,

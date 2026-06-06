@@ -1,8 +1,9 @@
-package org.siphonlab.ago.runtime.rdb;
+package org.siphonlab.ago.runtime.rdb.pg;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.db.IdGenerator;
-import org.siphonlab.ago.runtime.rdb.pg.PGTypeMapping;
+import org.siphonlab.ago.runtime.rdb.EntityRdbAdapter;
+import org.siphonlab.ago.runtime.rdb.TransactionBoundDataSource;
 
 import javax.sql.DataSource;
 
@@ -19,7 +20,10 @@ public class PGEntityAdapter<Id> extends EntityRdbAdapter<Id> {
 
     @Override
     public PGEntityAdapter<Id> beginTransaction() {
-        return null;
+        var adapter = new PGEntityAdapter<Id>(classManager, idType, idGenerator, boxTypes, new TransactionBoundDataSource(dataSource, true));
+        adapter.tablesByClass = this.tablesByClass;
+        adapter.tablesByClassName = this.tablesByClassName;
+        return adapter;
     }
 
 }

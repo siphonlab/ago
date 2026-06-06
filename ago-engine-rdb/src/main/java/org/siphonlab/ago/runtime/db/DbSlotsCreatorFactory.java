@@ -16,18 +16,19 @@
 package org.siphonlab.ago.runtime.db;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.RowState;
 
 public class DbSlotsCreatorFactory<Id> implements SlotsCreatorFactory {
 
     private final DefaultSlotsCreatorFactory baseSlotFactory;
-    private DbAdapter<Id> adapter;
+    private IdGenerator<Id> idGenerator;
 
     public DbSlotsCreatorFactory(){
         this.baseSlotFactory = new DefaultSlotsCreatorFactory();
     }
 
-    public void setAdapter(DbAdapter<Id> adapter) {
-        this.adapter = adapter;
+    public void setIdGenerator(IdGenerator<Id> idGenerator) {
+        this.idGenerator = idGenerator;
     }
 
     @Override
@@ -48,7 +49,7 @@ public class DbSlotsCreatorFactory<Id> implements SlotsCreatorFactory {
                     }
                  */
                 var baseSlots = (creator == null)? new AgoClass.TraceOwnerSlots(agoClass) : creator.create();
-                var objectRef = ObjectRef.create(agoClass.getFullname(), adapter.nextId());
+                var objectRef = ObjectRef.create(agoClass.getFullname(), idGenerator.nextId());
                 var slots = new DbSlots<Id>(baseSlots, objectRef);
                 if (agoClass.getSlotDefs() != null) {
                     slots.allocateObjectSlots(agoClass.getSlotDefs().length);

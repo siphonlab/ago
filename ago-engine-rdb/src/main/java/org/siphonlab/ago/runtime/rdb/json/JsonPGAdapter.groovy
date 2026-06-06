@@ -26,15 +26,16 @@ import org.siphonlab.ago.*
 import org.siphonlab.ago.native_.AgoNativeFunction
 import org.siphonlab.ago.native_.NativeFrame
 import org.siphonlab.ago.native_.NativeInstance
+import org.siphonlab.ago.runtime.db.DbSlotsCreator
 import org.siphonlab.ago.runtime.db.IdGenerator
 import org.siphonlab.ago.runtime.db.WorkflowAdapter
 import org.siphonlab.ago.runtime.db.CallFrameWithRunningState
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner
-import org.siphonlab.ago.runtime.rdb.PGEntityAdapter
 import org.siphonlab.ago.runtime.db.WorkflowRunSpace
 import org.siphonlab.ago.runtime.rdb.DbEngine
 import org.siphonlab.ago.runtime.db.DbSlots
 import org.siphonlab.ago.runtime.db.ObjectRef
+import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
 import org.siphonlab.ago.runtime.db.lazy.DeferenceAgoFrame
@@ -48,6 +49,7 @@ import org.siphonlab.ago.runtime.db.lazy.ObjectRefInstance
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefObject
 import org.siphonlab.ago.runtime.rdb.TransactionBoundDataSource
 import org.siphonlab.ago.runtime.db.task.WorkflowEngine
+import org.siphonlab.ago.runtime.rdb.pg.PGTypeMapping
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -56,7 +58,7 @@ import java.sql.SQLException
 import java.util.concurrent.ConcurrentHashMap
 
 @CompileStatic
-public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements DereferenceAdapter<Id>, WorkflowAdapter<Id>{
+public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdapter<Id>, WorkflowAdapter<Id>{
 
     private  final Logger logger = LoggerFactory.getLogger(JsonPGAdapter)
 
@@ -66,7 +68,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
     protected Map<ObjectRef, Instance> objectReferenceInstancesPool = new ConcurrentHashMap<>();
 
     JsonPGAdapter(ClassManager classManager, TypeCode idType, IdGenerator<Id> idGenerator, BoxTypes boxTypes, DataSource dataSource, int applicationId) {
-        super(classManager, idType, idGenerator, boxTypes, dataSource)
+        super(classManager, idType, idGenerator, boxTypes, new PGTypeMapping(boxTypes), dataSource)
         this.applicationId = applicationId
         this.sql = new Sql(dataSource);
     }
@@ -544,9 +546,9 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
 
     @Override
     String tableName(AgoClass agoClass) {
-        if(isEntityClass(agoClass)) {
-            return super.tableName(agoClass)
-        }
+//        if(isEntityClass(agoClass)) {
+//            return super.tableName(agoClass)
+//        }
 
         if(agoClass instanceof MetaClass ){
             if(agoClass.getName() == "<Meta>"){
@@ -660,19 +662,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         if(objectRef == null) return null;
 
         return objectReferenceInstancesPool.computeIfAbsent(objectRef, {
-            AgoClass agoClass = classManager.getClass(objectRef.className())
-            ObjectRefObject r;
-            if (agoClass instanceof AgoFunction) {
-                r = new ObjectRefCallFrame(agoClass, objectRef, this, RowState.Unchanged)
-            } else if(agoClass instanceof AgoClass){
-                r = new ObjectRefInstance(agoClass, objectRef, this)
-            } else {
-                if (r == null && objectRef.className() == "<Meta>"){
-                    return classManager.getTheMeta();
-                }
-                throw new IllegalArgumentException("unknown class " + objectRef.className());
-            }
-            return r
+            return dereference(it)
         }) as Instance;
 
     }
@@ -706,10 +696,10 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
 
     @Override
     void insert(Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
-        if(entityClass != agoClass && entityClass.isThatOrSuperOfThat(agoClass)) {
-            super.insert(instance, dbSlots, agoClass);
-            return;
-        }
+//        if(entityClass != agoClass && entityClass.isThatOrSuperOfThat(agoClass)) {
+//            super.insert(instance, dbSlots, agoClass);
+//            return;
+//        }
         if (instance instanceof AgoFrame) {
             insertAgoFrame(instance)
         } else if(instance instanceof NativeFrame){
@@ -729,10 +719,10 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
 
     @Override
     void update(Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
-        if(entityClass != agoClass && entityClass.isThatOrSuperOfThat(agoClass)) {
-            super.update(instance, dbSlots, agoClass);
-            return;
-        }
+//        if(entityClass != agoClass && entityClass.isThatOrSuperOfThat(agoClass)) {
+//            super.update(instance, dbSlots, agoClass);
+//            return;
+//        }
 
         if (instance instanceof CallFrameWithRunningState) {
             updateCallFrameRunningState(instance.unwrap(), instance.getRunningState());
@@ -812,7 +802,7 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         Instance parentScope = null;
         if (parentScopeTable != null) {
             var parent_scope_id = row["parent_scope_id"] as Id
-            parentScope = getById(ObjectRef.create(parentScopeTable, parent_scope_id))
+            parentScope = agoEngine.createObjectRefInstance(ObjectRef.create(parentScopeTable, parent_scope_id))
         }
 
         AgoClass agoClass = this.classManager.getClass(className);
@@ -821,14 +811,14 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         } else if (agoClass instanceof AgoFunction) {
             CallFrame caller;
             if (row["caller_id"] != null) {
-                caller = (CallFrame) getById(ObjectRef.create(row["caller_class"] as String, row["caller_id"] as Id))
+                caller = (CallFrame) agoEngine.createObjectRefInstance(ObjectRef.create(row["caller_class"] as String, row["caller_id"] as Id))
             } else {
                 caller = null
             }
             WorkflowEngine engine = this.classManager as WorkflowEngine;
             MutableObject<Instance> boxInstanceScope = new MutableObject<>();
-            var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, slots -> {
-                getAgoEngine().jsonDeserializeSlots((DbSlots<Id>)slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), boxInstanceScope);
+            var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, null, objectRef, slots -> {
+                getAgoEngine().jsonDeserializeSlots((DbSlots<Id>)slots, agoClass, (String) ((row['slots'] as PGobject).value), boxInstanceScope);
             })
             if (frame instanceof DeferenceAgoFrame) {
                 frame.pc = row['pc'] as int
@@ -856,8 +846,8 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
             return frame
         } else {
             var engine = this.getAgoEngine();
-            var slots = agoClass.createSlots() as DbSlots<Id>
-            getAgoEngine().jsonDeserializeSlots(slots, objectRef.id(), agoClass, (String) ((row['slots'] as PGobject).value), null);
+            DbSlots<Id> slots = DbSlotsCreator<Id>.create(agoClass, ObjectRef.create(agoClass.fullname, objectRef.id())) as DbSlots<Id>
+            getAgoEngine().jsonDeserializeSlots(slots, agoClass, (String) ((row['slots'] as PGobject).value), null);
 
             var inst = agoClass.isNative() ? new DeferenceNativeInstance(slots,agoClass, this) : new DeferenceInstance(slots, agoClass, this);
             inst.parentScope = parentScope
@@ -878,13 +868,12 @@ public class JsonPGAdapter<Id> extends PGEntityAdapter<Id> implements Dereferenc
         var row = sql.firstRow("SELECT parent_scope_class, parent_scope_id, creator_class, creator_id, slots FROM ${baseClass instanceof AgoFunction ? "ago_function" : "ago_class"} WHERE id =?", [id])
         var parentScopeId = row["parent_scope_id"]
         if(parentScopeId != null) {
-            Instance scope = getById(ObjectRef.create((String) row["parent_scope_class"], (Id) parentScopeId));
+            Instance scope = agoEngine.createObjectRefInstance(ObjectRef.create((String) row["parent_scope_class"], (Id) parentScopeId));
             var scoped = baseClass.cloneWithScope(scope)
             var slots = scoped.getSlots() as DbSlots<Id>;
+            slots.setObjectRef(ObjectRef.create(slots.getObjectRef().className(), id));
             if(baseClass.getAgoClass() != agoEngine.getTheMeta()) {
-                getAgoEngine().jsonDeserializeSlots(slots, id, baseClass.getAgoClass(), row['slots'] as String, null)
-            } else {
-                slots.setObjectRef(ObjectRef.create(slots.getObjectRef().className(), id))
+                getAgoEngine().jsonDeserializeSlots(slots, baseClass.getAgoClass(), row['slots'] as String, null)
             }
             slots.setRowState(RowState.Unchanged);
             return scoped;

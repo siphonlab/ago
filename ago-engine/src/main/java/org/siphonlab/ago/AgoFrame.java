@@ -1403,18 +1403,18 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                     // here the C was used in transform code, to locate method index
                     // and the class of scope will use to implement method overriding
                     Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), this, this ));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), this ));
                     pc++;
                     break;
                 }
                 case New.new_method_voIm: {
                     Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().resolveMethodByInterface(code[pc++], code[pc++]), this, this ));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().resolveMethodByInterface(code[pc++], code[pc++]), this ));
                     break;
                 }
                 case New.new_cls_method_vCm:{
                     AgoClass scopeClass;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scopeClass = engine.getClass(code[pc++]), scopeClass.getAgoClass().getMethod(code[pc++]), this, this  ));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(scopeClass = engine.getClass(code[pc++]), scopeClass.getAgoClass().getMethod(code[pc++]), this  ));
                     break;
                 }
                 case New.new_scope_child_vcC:{
@@ -1429,12 +1429,12 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 case New.new_scope_method_vcCm:{
                     // like new_method_voCm, C wa used in transform code
                     Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = getScope(code[pc++]), scope.getAgoClass().getMethod(code[++pc]),this,this  ));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = getScope(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), this  ));
                     pc++;
                     break;
                 }
                 case New.new_scope_method_fix_vcCm:{
-                    slots.setObject(code[pc++], engine.createFunctionInstance(getScope(code[pc++]), engine.getClass(code[pc++]).getMethod(code[pc++]),this,this  ));
+                    slots.setObject(code[pc++], engine.createFunctionInstance(getScope(code[pc++]), engine.getClass(code[pc++]).getMethod(code[pc++]), this  ));
                     break;
                 }
         }

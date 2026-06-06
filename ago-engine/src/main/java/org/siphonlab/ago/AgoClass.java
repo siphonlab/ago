@@ -372,6 +372,10 @@ public class AgoClass extends Instance<MetaClass>{
         return this.type == TYPE_FUNCTION;
     }
 
+    public void initSlots(Slots dbSlots) {
+        this.slots = dbSlots;
+    }
+
     public static class DefaultSlots implements Slots{
 
     }

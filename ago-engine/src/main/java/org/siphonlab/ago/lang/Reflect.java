@@ -263,7 +263,7 @@ public class Reflect {
             frame.finishVoid();
         } else if(property instanceof Property.AttributeProperty attributeProperty){
             var method = attributeProperty.getSetter();
-            var setter = engine.createFunctionInstance(object, method, frame.self(), frame.self());
+            var setter = engine.createFunctionInstance(object, method, frame.self());
             CallFrame<?> self = frame.self();
             AgoClass targetType = setter.getAgoClass();
             AgoVariable fld = setter.getAgoClass().getParameters()[0];
@@ -290,7 +290,7 @@ public class Reflect {
         AgoEngine engine = frame.getAgoEngine();
         UnionArrayInstance arr = (UnionArrayInstance) arguments;
         AgoFunction fun = method instanceof AgoFunction f ? f : (AgoFunction) Boxer.getClassFromClassRef(method);
-        var toInvoke = engine.createFunctionInstance(object, fun, frame.self(), frame.self());
+        var toInvoke = engine.createFunctionInstance(object, fun, frame.self());
         AgoParameter[] parameters = fun.getParameters();
         for (int i = 0; i < parameters.length; i++) {
             AgoParameter parameter = parameters[i];
@@ -341,7 +341,7 @@ public class Reflect {
         }
         if(constructor != null){
             AgoFunction fun = constructor instanceof AgoFunction f ? f : (AgoFunction) Boxer.getClassFromClassRef(constructor);
-            var toInvoke = engine.createFunctionInstance(result, fun, frame.self(), frame.self());
+            var toInvoke = engine.createFunctionInstance(result, fun, frame.self());
             UnionArrayInstance arr = (UnionArrayInstance) arguments;
             AgoParameter[] parameters = fun.getParameters();
             for (int i = 0; i < parameters.length; i++) {

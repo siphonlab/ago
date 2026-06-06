@@ -23,6 +23,9 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
+import org.siphonlab.ago.runtime.db.ObjectRef;
+import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame;
+import org.siphonlab.ago.runtime.db.lazy.ObjectRefInstance;
 import org.siphonlab.ago.runtime.json.*;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonSerializerWithObjectId;
 import org.siphonlab.ago.runtime.rdb.json.InstanceJsonDeserializerWithObjectId;
@@ -34,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.Objects;
 
 public class DbEngine<Id> extends AgoEngine {
 
@@ -154,7 +158,6 @@ public class DbEngine<Id> extends AgoEngine {
     }
 
     public void jsonDeserializeSlots(Slots slots, AgoClass agoClass, String json, MutableObject<Instance<?>> boxInstanceScope) throws JsonProcessingException {
-        //TODO ObjectRef
         dumpingObjectMapper.readerFor(Instance.class)
                 .withAttribute("slots_class", agoClass)
                 .withAttribute("slots", slots)
@@ -180,10 +183,23 @@ public class DbEngine<Id> extends AgoEngine {
         return super.createInstance(parentScope, agoClass, creator);
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
-        var inst = super.createFunctionInstance(parentScope, agoFunction, caller, creator);
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> creator) {
+        var inst = super.createFunctionInstance(parentScope, agoFunction, creator);
 //        ((RdbAgoSpace) runSpace).collectInstance(inst);
         return inst;
     }
 
+    public Instance<?> createObjectRefInstance(ObjectRef<Id> objectRef) {
+        AgoClass agoClass = getClass(objectRef.className());
+        if (agoClass instanceof AgoFunction agoFunction) {
+            return new ObjectRefCallFrame(agoFunction, objectRef, getDbAdapter(), RowState.Unchanged);
+        } else if(agoClass instanceof AgoClass){
+            return new ObjectRefInstance(agoClass, objectRef, getDbAdapter());
+        } else {
+            if (Objects.equals(objectRef.className(), "<Meta>")){
+                return getTheMeta();
+            }
+            throw new IllegalArgumentException("unknown class " + objectRef.className());
+        }
+    }
 }

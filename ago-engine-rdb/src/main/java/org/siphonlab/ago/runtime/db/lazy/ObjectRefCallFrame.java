@@ -16,6 +16,7 @@
 package org.siphonlab.ago.runtime.db.lazy;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlotsCreator;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.*;
@@ -27,11 +28,11 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
     private static final Logger logger = LoggerFactory.getLogger(ObjectRefInstance.class);
 
     final ObjectRef<Id> objectRef;
-    final DereferenceAdapter<Id> dereferenceAdapter;
+    final DbAdapter<Id> dereferenceAdapter;
 
     CallFrame<?> deferencedCallFrame;
 
-    public ObjectRefCallFrame(F agoClass, final ObjectRef<Id> objectRef, DereferenceAdapter<Id> dereferenceAdapter, final RowState rowState) {
+    public ObjectRefCallFrame(F agoClass, final ObjectRef<Id> objectRef, DbAdapter<Id> dereferenceAdapter, final RowState rowState) {
         super(DbSlotsCreator.create(agoClass, objectRef), agoClass);
         this.objectRef = objectRef;
         this.dereferenceAdapter = dereferenceAdapter;

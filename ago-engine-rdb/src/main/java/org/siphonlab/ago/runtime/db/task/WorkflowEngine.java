@@ -19,13 +19,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import groovy.sql.GroovyRowResult;
-import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.mina.util.IdentityHashSet;
 import org.postgresql.util.PGobject;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.classloader.ClassRefValue;
-import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.runtime.db.*;
 import org.siphonlab.ago.runtime.db.lazy.*;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
@@ -37,10 +35,7 @@ import org.siphonlab.ago.runtime.rdb.json.*;
 import org.siphonlab.ago.runtime.db.lazy.DeferenceObject;
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -75,7 +70,7 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
         this.langClasses = classLoader.getLangClasses();
 
         boolean loadFromDb = (classLoader instanceof JsonAgoClassLoader);
-        if(!loadFromDb) {
+        if (!loadFromDb) {
             workflowAdapter.saveStrings(classLoader.getStrings());
             workflowAdapter.saveBlobs(classLoader.getBlobs());
         }
@@ -88,15 +83,15 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
                     metaClass.setSlotsCreator(classLoader.getSlotsCreatorFactory().generateSlotsCreator(classLoader.getTheMeta()));
                 }
             }
-            agoClass.initSlots();
+            if(!loadFromDb) agoClass.initSlots();
         }
 
         // here is parentScope, creator, slots of class
         super.load(classLoader);
 
-        for (AgoClass agoClass : classLoader.getClasses()) {
-            // assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
-            if (!loadFromDb) {
+        if (!loadFromDb) {
+            for (AgoClass agoClass : classLoader.getClasses()) {
+                // assert agoClass.getSlots() != null && !(agoClass.getSlots() instanceof AgoClass.TraceOwnerSlots);
                 workflowAdapter.saveInstance(agoClass);
             }
         }
@@ -137,11 +132,14 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
     protected void restoreClassStates(AgoClass agoClass, GroovyRowResult row) throws JsonProcessingException {
         PGobject slots = (PGobject) row.get("slots");
 
-        jsonDeserializeSlots((DbSlots<Id>) agoClass.getSlots(), (Id)row.get("id"), agoClass.getAgoClass(), slots.getValue(), null);
+        var dbSlots = DbSlotsCreator.create(agoClass.getAgoClass(), ObjectRef.create(agoClass.getAgoClass().getFullname(), (Id)row.get("id")));
+        agoClass.initSlots(dbSlots);
+
+        jsonDeserializeSlots(dbSlots, agoClass.getAgoClass(), slots.getValue(), null);
 
         Object parentScopeId = row.get("parent_scope_id");
         if(parentScopeId != null) {
-            agoClass.setParentScope(workflowAdapter.getById(ObjectRef.create((String)row.get("parent_scope_class"), (Id)parentScopeId)));
+            agoClass.setParentScope(createObjectRefInstance(ObjectRef.create((String)row.get("parent_scope_class"), (Id)parentScopeId)));
         }
 
         if (agoClass instanceof AgoEnum enumClass) {
@@ -175,12 +173,11 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
         }
     }
 
-    public void jsonDeserializeSlots(DbSlots<Id> jsonRefSlots, Id id, AgoClass agoClass,
-                             String json, MutableObject<Instance<?>> boxInstanceScope) throws JsonProcessingException {
-        jsonRefSlots.setObjectRef(ObjectRef.create(jsonRefSlots.getObjectRef().className(), id));
-        super.jsonDeserializeSlots(jsonRefSlots, agoClass, json, boxInstanceScope);
-    }
-
+//    public void jsonDeserializeSlots(DbSlots<Id> jsonRefSlots, Id id, AgoClass agoClass,
+//                             String json, MutableObject<Instance<?>> boxInstanceScope) throws JsonProcessingException {
+//        jsonRefSlots.setObjectRef(ObjectRef.create(jsonRefSlots.getObjectRef().className(), id));
+//        super.jsonDeserializeSlots(jsonRefSlots, agoClass, json, boxInstanceScope);
+//    }
 
     protected RunSpace createRunSpaceInner(RunSpaceHost host, ForkContext forkContext) {
         RunSpace r;
@@ -215,11 +212,11 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
         return new IdentityHashSet<>(this.runspaces.values());
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator) {
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> creator) {
         if(getBoxTypes().isBoxTypeOrWithin(agoFunction)){       // isWithinBoxType
-            return super.createFunctionInstance(parentScope, agoFunction, caller, creator);
+            return super.createFunctionInstance(parentScope, agoFunction, creator);
         }
-        var inst = createFunctionInstance(agoFunction,parentScope, null);
+        var inst = createFunctionInstance(agoFunction, parentScope, creator.getRunSpace(),null, null);
         if(inst instanceof DeferenceObject) {
 //            workflowAdapter.saveInstance(inst);
             return (CallFrame<?>) ((DeferenceObject)inst).toObjectRefInstance();
@@ -228,69 +225,32 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
         }
     }
 
-    public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, Consumer<Slots> slotsInitializer) {
-        var slots = (DbSlots<Id>) agoFunction.createSlots();
-        if(slotsInitializer != null) slotsInitializer.accept(slots);    // may change slots rowstate -> none
-        CallFrame<?> inst;
-        if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
-            inst = new DeferenceNativeFrame<>(slots, agoNativeFunction, this);
-        } else {
-            inst = new DeferenceAgoFrame<>(slots, agoFunction, this);
+    public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, RunSpace runSpace, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
+        if(runSpace instanceof CreateInstanceRunSpace createInstanceRunSpace){
+            return createInstanceRunSpace.createFunctionInstance(agoFunction, parentScope, objectRef, slotsInitializer);
         }
-        if (parentScope != null)
-            inst.setParentScope(parentScope);  // not sure parentScope need restore to ObjectRefInstance too
-        // restore DeferenceInstance to ObjectRefInstance
-        // it cut off caller chain so that only running CallFrame living in the memory
-        DeferenceObject deferenceObject = (DeferenceObject) inst;
-        ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
-        return inst;
+        return super.createFunctionInstance(parentScope, agoFunction, null);
     }
 
     @Override
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        var inst = createInstance(parentScope,agoClass, creator.getRunSpace(), (Consumer<Slots>) null);
+        var inst = createInstance(parentScope,agoClass, creator.getRunSpace(), null, (Consumer<Slots>) null);
         this.saveCreatedInstance(inst, agoClass, creator.getRunSpace());
         return inst;
     }
 
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass,
-                                      RunSpace runSpace, Consumer<Slots> slotsInitializer) {
-        if (agoClass instanceof AgoFunction fun) {
-            return createFunctionInstance(fun, parentScope, slotsInitializer);
+                                      RunSpace runSpace, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
+
+        if(runSpace instanceof CreateInstanceRunSpace createInstanceRunSpace){
+            return createInstanceRunSpace.createInstance(parentScope, agoClass, objectRef, slotsInitializer);
         }
-
-        var slots = agoClass.createSlots();
-        if(slotsInitializer != null) slotsInitializer.accept(slots);
-
-        if(!(slots instanceof DbSlots<?>)){   // box types use default slots
-            return new Instance<>(slots, agoClass);
-        }
-
-        DbAdapter<Id> adapter;
-        if(runSpace instanceof EntityRunSpace<?> entityRunSpace) {
-            adapter = (DbAdapter<Id>) entityRunSpace.getEntityAdapter();
-        } else if(runSpace instanceof EntityWorkflowRunSpace<?> entityWorkflowRunSpace) {
-            adapter = (DbAdapter<Id>) entityWorkflowRunSpace.getEntityAdapter();
-        } else {
-            adapter = this.getDbAdapter();
-        }
-        Instance<?> inst;
-        if(agoClass.isNative()){
-            inst = new DeferenceNativeInstance((DbSlots) slots, agoClass, adapter);
-        } else {
-            inst = new DeferenceInstance((DbSlots) slots, agoClass, adapter);
-        }
-        if (parentScope != null) inst.setParentScope(parentScope);
-
-        DeferenceObject deferenceObject = (DeferenceObject) inst;
-        deferenceObject.markSaved();
-
-        return inst;
+        return super.createInstance(parentScope, agoClass, null);
     }
 
     @Override
     public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
-        var inst = createInstance(parentScope, agoClass, creator.getRunSpace(), (Consumer<Slots>) null);
+        var inst = createInstance(parentScope, agoClass, creator.getRunSpace(), null, (Consumer<Slots>) null);
         this.saveCreatedInstance(inst, agoClass, creator.getRunSpace());
         return inst;
     }
@@ -325,7 +285,7 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
 
         for (RunSpaceDesc<Id> runSpaceDesc : runSpaceDescs) {
             var r = runspaces.get(runSpaceDesc.getId());
-            CallFrame<?> currCallFrame = (CallFrame<?>) workflowAdapter.getById(runSpaceDesc.getCurrFrame());
+            CallFrame<?> currCallFrame = (CallFrame<?>) createObjectRefInstance(runSpaceDesc.getCurrFrame());
             if(currCallFrame instanceof ObjectRefCallFrame objectRefCallFrame){
                 currCallFrame = objectRefCallFrame.deference();
             }
@@ -333,7 +293,7 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
             RunSpace parent = runSpaceDesc.getParentRunSpace() == null ? null : runspaces.get(runSpaceDesc.getParentRunSpace().getId());
             List<RunSpace> pausingParents = runSpaceDesc.getPausingParents() == null ? null : runSpaceDesc.getPausingParents().stream().map(d -> (RunSpace)runspaces.get(d.getId())).toList();
             byte runningState = runSpaceDesc.getRunningState();
-            Instance<?> exception = workflowAdapter.getById(runSpaceDesc.getException());
+            Instance<?> exception = createObjectRefInstance(runSpaceDesc.getException());
             r.restore(runningState, currCallFrame, parent, forkedRunspaces, pausingParents, exception, runSpaceDesc.getResultSlots());
         }
 
@@ -354,4 +314,18 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
         return callFrame;
     }
 
+    public Instance<?> createObjectRefInstance(ObjectRef<Id> objectRef) {
+        AgoClass agoClass = getClass(objectRef.className());
+        var dereferenceAdapter = entityAdapter != null && entityAdapter.isEntityClass(agoClass) ? entityAdapter : workflowAdapter;
+        if (agoClass instanceof AgoFunction agoFunction) {
+            return new ObjectRefCallFrame(agoFunction, objectRef, dereferenceAdapter, RowState.Unchanged);
+        } else if(agoClass instanceof AgoClass){
+            return new ObjectRefInstance(agoClass, objectRef, dereferenceAdapter);
+        } else {
+            if (Objects.equals(objectRef.className(), "<Meta>")){
+                return getTheMeta();
+            }
+            throw new IllegalArgumentException("unknown class " + objectRef.className());
+        }
+    }
 }

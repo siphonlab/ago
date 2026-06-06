@@ -217,7 +217,7 @@ public class AgoEngine implements ClassManager{
             var item = metaClassCreationQueue.removeFirst();
             if(LOGGER.isDebugEnabled()) LOGGER.debug("apply meta class %s".formatted(item));
             var constructor = item.constructor;
-            CallFrame<?> frame = createFunctionInstance(item.target, constructor, null, null);
+            CallFrame<?> frame = createFunctionInstance(item.target, constructor, null);
             frame.setRunSpace(this.runSpace);
             frame.assignArguments(item.arguments);
             this.runSpace.awaitTillComplete(frame);
@@ -227,7 +227,7 @@ public class AgoEngine implements ClassManager{
     public void run(String functionName){
         var agoClass = classByName.get(functionName);
         if(agoClass instanceof AgoFunction fun) {
-            var frame = createFunctionInstance(null, fun, null, null);
+            var frame = createFunctionInstance(null, fun, null);
             this.runSpace.awaitTillComplete(frame);
         } else {
             throw new RuntimeException(functionName + " is not function");
@@ -237,14 +237,14 @@ public class AgoEngine implements ClassManager{
     public void run(String className, String functionName){
         var agoClass = classByName.get(className + "." + functionName);
         if(agoClass instanceof AgoFunction fun) {
-            var frame = createFunctionInstance(classByName.get(className), fun, null, null);
+            var frame = createFunctionInstance(classByName.get(className), fun, null);
             runSpace.awaitTillComplete(frame);
         } else {
             throw new RuntimeException(functionName + " is not function");
         }
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> caller, CallFrame<?> creator){
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> creator){
         if(LOGGER.isDebugEnabled()) LOGGER.debug("create instance of " + agoFunction);
         CallFrame<?> result;
         if (agoFunction instanceof AgoNativeFunction agoNativeFunction) {
@@ -258,7 +258,7 @@ public class AgoEngine implements ClassManager{
 
     public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
         if (agoClass.isFunction())
-            return createFunctionInstance(parentScope, (AgoFunction) agoClass, creator, creator);
+            return createFunctionInstance(parentScope, (AgoFunction) agoClass, creator);
 
         var instance = new Instance<>(agoClass.createSlots(), agoClass);
         if(parentScope != null) instance.setParentScope(parentScope);
@@ -283,7 +283,7 @@ public class AgoEngine implements ClassManager{
 
     public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
         if (agoClass.isFunction() && agoClass instanceof AgoNativeFunction agoNativeFunction) {
-            return createFunctionInstance(parentScope, agoNativeFunction, creator, creator);
+            return createFunctionInstance(parentScope, agoNativeFunction, creator);
         }
         var instance = new NativeInstance(agoClass.createSlots(), agoClass);
         if (parentScope != null) instance.setParentScope(parentScope);
@@ -306,7 +306,7 @@ public class AgoEngine implements ClassManager{
         if(runSpace.getCurrentCallFrame() != null){
             runSpace = caller.getRunSpace().createChildRunSpace(null);
         }
-        CallFrame<?> frame = createFunctionInstance(instance, method, caller, caller);
+        CallFrame<?> frame = createFunctionInstance(instance, method, caller);
         frame.assignArguments(arguments);
         runSpace.setCurrCallFrame(frame);
         runSpace.awaitTillComplete(frame);

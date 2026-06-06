@@ -133,7 +133,7 @@ public class InstanceJsonDeserializerWithObjectId<Id> extends InstanceJsonDeseri
         ajp.nextToken();
         assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();        // PASS END_OBJECT
-        return ((DbEngine) this.agoEngine).getDbAdapter().getById(ObjectRef.create(classname,id));
+        return ((DbEngine) this.agoEngine).createObjectRefInstance(ObjectRef.create(classname,id));
     }
 
     @Override

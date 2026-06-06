@@ -16,6 +16,7 @@
 package org.siphonlab.ago.runtime.db.lazy;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;
@@ -24,13 +25,13 @@ import org.slf4j.LoggerFactory;
 public class ObjectRefInstance<T extends AgoClass, Id> extends Instance<T> implements ObjectRefObject<Id>, ObjectRefOwner {
     private static final Logger logger = LoggerFactory.getLogger(ObjectRefInstance.class);
 
-    private final DereferenceAdapter<Id> dereferenceAdapter;
+    private final DbAdapter<Id> dereferenceAdapter;
 
     final ObjectRef<Id> objectRef;
 
     private Instance<?> deferencedInstance;
 
-    public ObjectRefInstance(T agoClass, ObjectRef<Id> objectRef, DereferenceAdapter<Id> dereferenceAdapter) {
+    public ObjectRefInstance(T agoClass, ObjectRef<Id> objectRef, DbAdapter<Id> dereferenceAdapter) {
         super(agoClass);
         this.dereferenceAdapter = dereferenceAdapter;
         this.objectRef = objectRef;

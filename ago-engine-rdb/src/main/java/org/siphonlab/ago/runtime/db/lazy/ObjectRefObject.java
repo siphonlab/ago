@@ -16,6 +16,7 @@
 package org.siphonlab.ago.runtime.db.lazy;
 
 import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,13 +34,13 @@ public interface ObjectRefObject<Id> {
     Instance<?> deference();
 
     default Instance<?> deference(Instance<?> deferencedInstance,
-                                  DereferenceAdapter<Id> dereferenceAdapter,
+                                  DbAdapter<Id> dereferenceAdapter,
                                   ObjectRef<Id> objectRef) {
         if (deferencedInstance != null)
             return deferencedInstance;
 
         if (logger.isDebugEnabled()) logger.debug(getObjectRef() + " expand deference");
-        Instance<?> r = dereferenceAdapter.dereference(objectRef);
+        Instance<?> r = dereferenceAdapter.getById(objectRef);
         setDeferencedInstance(r);
         return r;
     }

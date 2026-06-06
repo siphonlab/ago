@@ -29,6 +29,7 @@ import org.siphonlab.ago.runtime.rdb.*;
 import org.siphonlab.ago.runtime.rdb.h2.H2Adapter;
 import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter;
 import org.siphonlab.ago.runtime.rdb.json.PGJsonDDLGenerator;
+import org.siphonlab.ago.runtime.rdb.pg.PGEntityAdapter;
 import org.siphonlab.ago.test.Util;
 import org.siphonlab.ago.web.RestfulService;
 
@@ -104,11 +105,14 @@ public class RdbDdlTest {
         ds.setUsername("sa");
         ds.setDriverClassName("org.h2.Driver");
 
-        var rdbAdapter = new JsonPGAdapter<>(agoClassLoader, TypeCode.LONG, new SnowflakeIdGenerator(1), agoClassLoader.getBoxTypes(), ds, 1);
+        SnowflakeIdGenerator idGenerator = new SnowflakeIdGenerator(1);
+        var workflowAdapter = new JsonPGAdapter<>(agoClassLoader, TypeCode.LONG, idGenerator, agoClassLoader.getBoxTypes(), ds, 1);
 
-        new PGJsonDDLGenerator<Long>(agoClassLoader, rdbAdapter, platform).generate(fileOutputStream);      // workflow tables
+        var entityAdapter = new PGEntityAdapter<>(agoClassLoader, TypeCode.LONG, idGenerator, agoClassLoader.getBoxTypes(), ds);
 
-        var entityRdbDDLGenerator = new EntityRdbDDLGenerator<Long>(agoClassLoader, rdbAdapter, platform);
+        new PGJsonDDLGenerator<Long>(agoClassLoader, workflowAdapter, platform).generate(fileOutputStream);      // workflow tables
+
+        var entityRdbDDLGenerator = new EntityRdbDDLGenerator<Long>(agoClassLoader, entityAdapter, platform);
         entityRdbDDLGenerator.generate(fileOutputStream);
 
         entityRdbDDLGenerator.dumpClassMapper(new FileOutputStream(outputMapFile));

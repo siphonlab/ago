@@ -16,10 +16,11 @@
 package org.siphonlab.ago.runtime.db;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.runtime.db.lazy.*;
 import org.siphonlab.ago.runtime.db.sdk.ForkWorkflowRunSpace;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
-import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame;
 import org.siphonlab.ago.runtime.db.task.WorkflowEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +28,9 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
-public class WorkflowRunSpace<Id> extends RunSpace{
+public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunSpace<Id>{
     private final static Logger logger = LoggerFactory.getLogger(WorkflowRunSpace.class);
 
     protected final WorkflowAdapter<Id> workflowAdapter;
@@ -217,4 +219,51 @@ public class WorkflowRunSpace<Id> extends RunSpace{
         }
     }
 
+    @Override
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
+        if (agoClass instanceof AgoFunction fun) {
+            return createFunctionInstance(fun, parentScope, objectRef, slotsInitializer);
+        }
+
+        var slots = DbSlotsCreator.create(agoClass, objectRef);
+        if(slotsInitializer != null) slotsInitializer.accept(slots);
+
+        if(!(slots instanceof DbSlots<?>)){   // box types use default slots
+            return new Instance<>(slots, agoClass);
+        }
+
+        DbAdapter<Id> adapter = this.workflowAdapter;
+
+        Instance<?> inst;
+        if(agoClass.isNative()){
+            inst = new DeferenceNativeInstance((DbSlots) slots, agoClass, adapter);
+        } else {
+            inst = new DeferenceInstance((DbSlots) slots, agoClass, adapter);
+        }
+        if (parentScope != null) inst.setParentScope(parentScope);
+
+        DeferenceObject deferenceObject = (DeferenceObject) inst;
+        deferenceObject.markSaved();
+
+        return inst;
+    }
+
+    @Override
+    public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
+        DbSlots<Id> slots = (DbSlots<Id>) DbSlotsCreator.create(agoFunction, objectRef);
+        if(slotsInitializer != null) slotsInitializer.accept(slots);    // may change slots rowstate -> none
+        CallFrame<?> inst;
+        if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
+            inst = new DeferenceNativeFrame<>(slots, agoNativeFunction, (DbEngine<Id>) getAgoEngine());
+        } else {
+            inst = new DeferenceAgoFrame<>(slots, agoFunction, (DbEngine<Id>) getAgoEngine());
+        }
+        if (parentScope != null)
+            inst.setParentScope(parentScope);  // not sure parentScope need restore to ObjectRefInstance too
+        // restore DeferenceInstance to ObjectRefInstance
+        // it cut off caller chain so that only running CallFrame living in the memory
+        DeferenceObject deferenceObject = (DeferenceObject) inst;
+        ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
+        return inst;
+    }
 }

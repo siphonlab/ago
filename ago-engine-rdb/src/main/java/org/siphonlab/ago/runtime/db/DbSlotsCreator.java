@@ -9,6 +9,8 @@ public interface DbSlotsCreator<Id> extends SlotsCreator {
 
     static <Id> Slots create(AgoClass agoClass, ObjectRef<Id> objectRef) {
         SlotsCreator slotsCreator = agoClass.getSlotsCreator();
+        if(objectRef == null) return slotsCreator.create();
+
         if(slotsCreator instanceof DbSlotsCreator){
             DbSlotsCreator<Id> dbSlotsCreator = (DbSlotsCreator<Id>) slotsCreator;
             return dbSlotsCreator.create(objectRef);

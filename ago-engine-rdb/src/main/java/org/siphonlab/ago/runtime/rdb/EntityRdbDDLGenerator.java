@@ -18,7 +18,6 @@ import java.util.Set;
 
 public class EntityRdbDDLGenerator<Id> extends RdbDDLGenerator<Id>{
 
-
     public EntityRdbDDLGenerator(AgoClassLoader classLoader, RdbAdapter<Id> rdbAdapter, DatabasePlatform databasePlatform) {
         super(classLoader, rdbAdapter, databasePlatform);
     }
@@ -31,5 +30,23 @@ public class EntityRdbDDLGenerator<Id> extends RdbDDLGenerator<Id>{
             }
         }
     }
+
+    @Override
+    protected void createInstanceColumns(RdbType idT, List<Column> cols, boolean slotsAsJson) {
+        // id – PK
+        Column idCol = createColumn("id", idT.getTypeName());
+        idCol.setPrimaryKey(true);
+        cols.add(idCol);
+
+        // parent_scope_id / class + creator_id / class
+        objectColumn(cols, "parent_scope", idT);
+
+        objectColumn(cols, "creator", idT);
+
+        if(slotsAsJson) {
+            cols.add(createColumn("slots", "json"));
+        }
+    }
+
 
 }
