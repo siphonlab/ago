@@ -51,7 +51,7 @@ public class AgoEngine implements ClassManager{
     protected AgoClass PRIMITIVE_TYPE;
     protected AgoClass PRIMITIVE_NUMBER_TYPE;
 
-    private RunSpace runSpace;
+    private RunSpace defaultRunSpace;
     private BoxTypes boxTypes;
 
     protected ObjectMapper defaultObjectMapper;
@@ -137,8 +137,6 @@ public class AgoEngine implements ClassManager{
     public void load(AgoClassLoader classLoader){
         this.theMata = classLoader.getTheMeta();
 
-        this.runSpace = createRunSpace(this.runSpaceHost, null);
-
         this.classes = classLoader.getClasses().toArray(new AgoClass[0]);
         this.strings = classLoader.getStrings().toArray(new String[0]);
         this.classByName = classLoader.getClassByName();
@@ -174,7 +172,7 @@ public class AgoEngine implements ClassManager{
         module.addSerializer(ResultSlots.class, new ResultSlotsSerializer());
         module.addSerializer(ClassRefValue.class, new ClassRefValueSerializer());
 
-        module.addDeserializer(Instance.class, new InstanceJsonDeserializer(this, 0L));
+        module.addDeserializer(Instance.class, new InstanceJsonDeserializer<>(this, 0L));
         module.addDeserializer(ResultSlots.class, new ResultSlotsDeserializer(this));
         r.registerModule(module);
         return r;
@@ -191,10 +189,6 @@ public class AgoEngine implements ClassManager{
 
     public String jsonStringify(Instance<?> instance, AgoJsonConfig agoJsonConfig) throws JsonProcessingException {
         return getObjectMapper(agoJsonConfig).writeValueAsString(instance);
-    }
-
-    public Instance<?> jsonDeserialize(Reader reader, boolean deserializeSlots) throws IOException {
-        return jsonDeserialize(null,null,reader,deserializeSlots);
     }
 
     public Instance<?> jsonDeserialize(AgoClass agoClass, CallFrame<?> callFrame, Reader reader, boolean deserializeSlots) throws IOException {
@@ -217,18 +211,18 @@ public class AgoEngine implements ClassManager{
             var item = metaClassCreationQueue.removeFirst();
             if(LOGGER.isDebugEnabled()) LOGGER.debug("apply meta class %s".formatted(item));
             var constructor = item.constructor;
-            CallFrame<?> frame = createFunctionInstance(item.target, constructor, null);
-            frame.setRunSpace(this.runSpace);
+            CallFrame<?> frame = createFunctionInstance(item.target, constructor, this.getDefaultRunSpace());
+            frame.setRunSpace(this.getDefaultRunSpace());
             frame.assignArguments(item.arguments);
-            this.runSpace.awaitTillComplete(frame);
+            this.getDefaultRunSpace().awaitTillComplete(frame);
         }
     }
 
     public void run(String functionName){
         var agoClass = classByName.get(functionName);
         if(agoClass instanceof AgoFunction fun) {
-            var frame = createFunctionInstance(null, fun, null);
-            this.runSpace.awaitTillComplete(frame);
+            var frame = createFunctionInstance(null, fun, this.getDefaultRunSpace());
+            this.getDefaultRunSpace().awaitTillComplete(frame);
         } else {
             throw new RuntimeException(functionName + " is not function");
         }
@@ -237,14 +231,14 @@ public class AgoEngine implements ClassManager{
     public void run(String className, String functionName){
         var agoClass = classByName.get(className + "." + functionName);
         if(agoClass instanceof AgoFunction fun) {
-            var frame = createFunctionInstance(classByName.get(className), fun, null);
-            runSpace.awaitTillComplete(frame);
+            var frame = createFunctionInstance(classByName.get(className), fun, this.getDefaultRunSpace());
+            getDefaultRunSpace().awaitTillComplete(frame);
         } else {
             throw new RuntimeException(functionName + " is not function");
         }
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> creator){
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, RunSpace runSpace){
         if(LOGGER.isDebugEnabled()) LOGGER.debug("create instance of " + agoFunction);
         CallFrame<?> result;
         if (agoFunction instanceof AgoNativeFunction agoNativeFunction) {
@@ -256,34 +250,34 @@ public class AgoEngine implements ClassManager{
         return result;
     }
 
-    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, RunSpace runSpace) {
         if (agoClass.isFunction())
-            return createFunctionInstance(parentScope, (AgoFunction) agoClass, creator);
+            return createFunctionInstance(parentScope, (AgoFunction) agoClass, runSpace);
 
         var instance = new Instance<>(agoClass.createSlots(), agoClass);
         if(parentScope != null) instance.setParentScope(parentScope);
         return instance;
     }
 
-    public Instance<?> createInstance(AgoClass agoClass, CallFrame<?> creator){
-        return createInstance(null, agoClass, creator);
+    public Instance<?> createInstance(AgoClass agoClass, RunSpace runSpace){
+        return createInstance(null, agoClass, runSpace);
     }
 
     public AgoClass getClass(int classId) {
         return classes[classId];
     }
 
-    public Instance<?> createInstance(Instance<?> parentScope, int classId, CallFrame<?> creator) {
-        return createInstance(parentScope,classes[classId], creator);
+    public Instance<?> createInstance(Instance<?> parentScope, int classId, RunSpace runSpace) {
+        return createInstance(parentScope,classes[classId], runSpace);
     }
 
-    public Instance<?> createNativeInstance(Instance<?> parentScope, int classId, CallFrame<?> creator) {
-        return createNativeInstance(parentScope, classes[classId], creator);
+    public Instance<?> createNativeInstance(Instance<?> parentScope, int classId, RunSpace runSpace) {
+        return createNativeInstance(parentScope, classes[classId], runSpace);
     }
 
-    public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
+    public Instance<?> createNativeInstance(Instance<?> parentScope, AgoClass agoClass, RunSpace runSpace) {
         if (agoClass.isFunction() && agoClass instanceof AgoNativeFunction agoNativeFunction) {
-            return createFunctionInstance(parentScope, agoNativeFunction, creator);
+            return createFunctionInstance(parentScope, agoNativeFunction, runSpace);
         }
         var instance = new NativeInstance(agoClass.createSlots(), agoClass);
         if (parentScope != null) instance.setParentScope(parentScope);
@@ -302,11 +296,11 @@ public class AgoEngine implements ClassManager{
     }
 
     public void invokeMethod(CallFrame<?> caller, Instance<?> instance, AgoFunction method, Object... arguments){
-        var runSpace = this.runSpace;
+        RunSpace runSpace = caller.getRunSpace();
         if(runSpace.getCurrentCallFrame() != null){
-            runSpace = caller.getRunSpace().createChildRunSpace(null);
+            runSpace = runSpace.createChildRunSpace(null);
         }
-        CallFrame<?> frame = createFunctionInstance(instance, method, caller);
+        CallFrame<?> frame = createFunctionInstance(instance, method, runSpace);
         frame.assignArguments(arguments);
         runSpace.setCurrCallFrame(frame);
         runSpace.awaitTillComplete(frame);
@@ -314,7 +308,7 @@ public class AgoEngine implements ClassManager{
 
     // create ScopedClassInterval instance from scopedClass
     public Instance<?> createScopedClassRef(CallFrame<?> caller, AgoClass parameterizedScopedClassInterval, AgoClass scopedClass) {
-        var scopedClassInterval = createInstance(parameterizedScopedClassInterval,caller);
+        var scopedClassInterval = createInstance(parameterizedScopedClassInterval, caller.getRunSpace());
         Slots slots = scopedClassInterval.getSlots();
         slots.setClassRef(0,scopedClass.getClassId());   // value
         slots.setObject(1, scopedClass);            // ScopedClass
@@ -322,23 +316,28 @@ public class AgoEngine implements ClassManager{
         return scopedClassInterval;
     }
 
-    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, CallFrame<?> creator, RunSpace runSpace){
+    public Instance<?> createInstanceFromScopedClass(AgoClass scopedClass, RunSpace runSpace){
         // after getClass(scopedClass.classId), the ScopedClass restore to the original class
-        return createInstance(scopedClass.getParentScope(), getClass(scopedClass.classId), creator);
+        return createInstance(scopedClass.getParentScope(), getClass(scopedClass.classId), runSpace);
     }
 
-    public Instance<?> createInstanceFromScopedClassInterval(Instance<?> scopedClass, CallFrame<?> creator){
+    public Instance<?> createInstanceFromScopedClassInterval(Instance<?> scopedClass, RunSpace runSpace){
         assert !(scopedClass instanceof AgoClass);
         // after getClass(scopedClass.classId), the ScopedClass restore to the original class
         Slots slots = scopedClass.getSlots();
         int classId = slots.getClassRef(0);
         AgoClass agoClass = (AgoClass) slots.getObject(1);
         Instance<?> scope = slots.getObject(2);
-        return createInstance(scope, agoClass, creator);
+        return createInstance(scope, agoClass, runSpace);
     }
 
-    public RunSpace getRunSpace() {
-        return runSpace;
+    public RunSpace getDefaultRunSpace() {
+        if(defaultRunSpace == null) defaultRunSpace = createDefaultRunSpace();
+        return defaultRunSpace;
+    }
+
+    protected RunSpace createDefaultRunSpace() {
+        return createRunSpaceInner(runSpaceHost, null);
     }
 
     public IntArrayInstance createIntArray(AgoClass arrayType, int length) {

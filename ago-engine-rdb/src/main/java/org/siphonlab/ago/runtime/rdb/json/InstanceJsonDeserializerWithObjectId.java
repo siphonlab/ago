@@ -83,7 +83,7 @@ public class InstanceJsonDeserializerWithObjectId<Id> extends InstanceJsonDeseri
         if (Objects.equals(((DbSlots) baseClass.getSlots()).getObjectRef().id(), id)) return baseClass;
 
         if (id == null) throw new IllegalStateException("class id not found");
-        return ((WorkflowAdapter) ((DbEngine) this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id);
+        return ((WorkflowAdapter) ((DbEngine) this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id, ajp.getCallFrame().getRunSpace());
     }
 
     //{"@classref": [classname, id, [parentScope]]}
@@ -110,13 +110,13 @@ public class InstanceJsonDeserializerWithObjectId<Id> extends InstanceJsonDeseri
         if (Objects.equals(((DbSlots<Id>) baseClass.getSlots()).getObjectRef().id(), id)) return baseClass;
 
         if(id == null) throw new IllegalStateException("class id not found");
-        return ((WorkflowAdapter)((DbEngine)this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id);
+        return ((WorkflowAdapter)((DbEngine)this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id, ajp.getCallFrame().getRunSpace());
     }
 
     @Override
-    protected AgoClass deserializeClassRef(AgoClass baseClass, Id id) {
+    protected AgoClass deserializeClassRef(AgoClass baseClass, Id id, RunSpace runSpace) {
         if (((DbSlots) baseClass.getSlots()).getObjectRef() == id) return baseClass;
-        return ((WorkflowAdapter)((DbEngine)this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id);
+        return ((WorkflowAdapter)((DbEngine)this.agoEngine).getDbAdapter()).loadScopedAgoClass(baseClass, id, runSpace);
     }
 
     // {"@objectref": [classname, id]}
@@ -133,7 +133,7 @@ public class InstanceJsonDeserializerWithObjectId<Id> extends InstanceJsonDeseri
         ajp.nextToken();
         assert ajp.currentToken() == JsonToken.END_OBJECT;
         ajp.nextToken();        // PASS END_OBJECT
-        return ((DbEngine) this.agoEngine).createObjectRefInstance(ObjectRef.create(classname,id));
+        return ((DbEngine) this.agoEngine).createObjectRefInstance(ObjectRef.create(classname,id), ajp.getCallFrame().getRunSpace());
     }
 
     @Override

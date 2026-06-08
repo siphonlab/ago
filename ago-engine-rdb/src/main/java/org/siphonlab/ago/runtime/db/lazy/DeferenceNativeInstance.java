@@ -17,6 +17,7 @@ package org.siphonlab.ago.runtime.db.lazy;
 
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.RunSpace;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
@@ -32,13 +33,13 @@ public class DeferenceNativeInstance<T extends AgoClass, Id> extends NativeInsta
 
     private final DeferenceObjectState state;
 
-    public DeferenceNativeInstance(DbSlots<Id> slots, AgoClass agoClass, DbAdapter<Id> adapter) {
+    public DeferenceNativeInstance(DbSlots<Id> slots, AgoClass agoClass, DbEngine<Id> engine, DbAdapter<Id> adapter, RunSpace runSpace) {
         super(slots, agoClass);
 
         slots.setOwner(this);
         this.adapter = adapter;
 
-        ObjectRefInstance<T, Id> inst = (ObjectRefInstance<T, Id>) adapter.getById(getObjectRef());
+        ObjectRefInstance<T, Id> inst = (ObjectRefInstance<T, Id>) engine.createObjectRefInstance(this.getObjectRef(), runSpace);
         inst.setDeferencedInstance(this);
         this.state = new DeferenceObjectState(inst);
     }

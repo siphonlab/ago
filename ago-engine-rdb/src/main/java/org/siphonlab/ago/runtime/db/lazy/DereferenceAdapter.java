@@ -16,10 +16,11 @@
 package org.siphonlab.ago.runtime.db.lazy;
 
 import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.RunSpace;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 
 public interface DereferenceAdapter<Id> {
 
-    Instance<?> dereference(ObjectRef<Id> objectRef);
+    Instance<?> dereference(ObjectRef<Id> objectRef, RunSpace runSpace);
 
 }

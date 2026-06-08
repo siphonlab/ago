@@ -61,7 +61,7 @@ public class Instance<C extends AgoClass>  {
 
     public void invokeMethod(CallFrame<?> caller, int reenterState, int additionalState, AgoFunction method, Object... arguments){
         var runSpace = caller.getRunSpace();
-        CallFrame<?> frame = runSpace.getAgoEngine().createFunctionInstance(this, method, caller);
+        CallFrame<?> frame = runSpace.getAgoEngine().createFunctionInstance(this, method, runSpace);
         var interframe = new ReentrantProxyFrame<>(caller, frame, reenterState, additionalState);
         frame.assignArguments(arguments);
         runSpace.setCurrCallFrame(interframe);

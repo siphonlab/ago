@@ -63,6 +63,10 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         return frame.getAgoClass().isThatOrDerivedFrom(agoEngine.getLangClasses().getTaskInterface());
     }
 
+    public WorkflowAdapter<Id> getWorkflowAdapter() {
+        return workflowAdapter;
+    }
+
     @Override
     protected boolean tryComplete() {
         boolean r = super.tryComplete();
@@ -236,9 +240,9 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
 
         Instance<?> inst;
         if(agoClass.isNative()){
-            inst = new DeferenceNativeInstance((DbSlots) slots, agoClass, adapter);
+            inst = new DeferenceNativeInstance((DbSlots) slots, agoClass, (DbEngine<Id>) this.agoEngine, adapter, this);
         } else {
-            inst = new DeferenceInstance((DbSlots) slots, agoClass, adapter);
+            inst = new DeferenceInstance((DbSlots) slots, agoClass, adapter, (DbEngine<Id>) this.agoEngine, this);
         }
         if (parentScope != null) inst.setParentScope(parentScope);
 
@@ -254,9 +258,9 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         if(slotsInitializer != null) slotsInitializer.accept(slots);    // may change slots rowstate -> none
         CallFrame<?> inst;
         if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
-            inst = new DeferenceNativeFrame<>(slots, agoNativeFunction, (DbEngine<Id>) getAgoEngine());
+            inst = new DeferenceNativeFrame<>(slots, agoNativeFunction, (DbEngine<Id>) getAgoEngine(), this);
         } else {
-            inst = new DeferenceAgoFrame<>(slots, agoFunction, (DbEngine<Id>) getAgoEngine());
+            inst = new DeferenceAgoFrame<>(slots, agoFunction, (DbEngine<Id>) getAgoEngine(), this);
         }
         if (parentScope != null)
             inst.setParentScope(parentScope);  // not sure parentScope need restore to ObjectRefInstance too

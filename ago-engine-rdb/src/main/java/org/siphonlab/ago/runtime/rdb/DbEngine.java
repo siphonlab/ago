@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.io.StringReader;
 import java.util.Objects;
 
 public class DbEngine<Id> extends AgoEngine {
@@ -120,17 +119,17 @@ public class DbEngine<Id> extends AgoEngine {
         return dumpingObjectMapper;
     }
 
-    // restore dumped json to Instance
-    public Instance<?> restoreJson(String json) throws IOException {
-        return this.dumpingObjectMapper.readValue(new StringReader(json), Instance.class);
-    }
-
-    // restore dumped json to Instance
-    public Instance<?> restoreJson(String json, CallFrame<?> creator) throws IOException {
-        return dumpingObjectMapper
-                .copyWith(new AgoJsonParserFactory(AgoJsonConfig.RPC_OBJECT_REF, null, creator))
-                .readValue(new StringReader(json), Instance.class);
-    }
+//    // restore dumped json to Instance
+//    public Instance<?> restoreJson(String json) throws IOException {
+//        return this.dumpingObjectMapper.readValue(new StringReader(json), Instance.class);
+//    }
+//
+//    // restore dumped json to Instance
+//    public Instance<?> restoreJson(String json, RunSpace runSpace) throws IOException {
+//        return dumpingObjectMapper
+//                .copyWith(new AgoJsonParserFactory(AgoJsonConfig.RPC_OBJECT_REF, null, runSpace))
+//                .readValue(new StringReader(json), Instance.class);
+//    }
 
     public String jsonStringifySlots(Instance<?> instance) throws JsonProcessingException {
         Slots slots = instance.getSlots();
@@ -176,25 +175,25 @@ public class DbEngine<Id> extends AgoEngine {
     }
 
     @Override
-    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, CallFrame<?> creator) {
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, RunSpace runSpace) {
 //        if(!boxTypes.isBoxType(agoClass)) {
 //            ((RdbAgoSpace)runSpace).collectInstance(inst);
 //        }
-        return super.createInstance(parentScope, agoClass, creator);
+        return super.createInstance(parentScope, agoClass, runSpace);
     }
 
-    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, CallFrame<?> creator) {
-        var inst = super.createFunctionInstance(parentScope, agoFunction, creator);
+    public CallFrame<?> createFunctionInstance(Instance<?> parentScope, AgoFunction agoFunction, RunSpace runSpace) {
+        var inst = super.createFunctionInstance(parentScope, agoFunction, runSpace);
 //        ((RdbAgoSpace) runSpace).collectInstance(inst);
         return inst;
     }
 
-    public Instance<?> createObjectRefInstance(ObjectRef<Id> objectRef) {
+    public Instance<?> createObjectRefInstance(ObjectRef<Id> objectRef, RunSpace runSpace) {
         AgoClass agoClass = getClass(objectRef.className());
         if (agoClass instanceof AgoFunction agoFunction) {
-            return new ObjectRefCallFrame(agoFunction, objectRef, getDbAdapter(), RowState.Unchanged);
+            return new ObjectRefCallFrame(agoFunction, objectRef, getDbAdapter(), runSpace, RowState.Unchanged);
         } else if(agoClass instanceof AgoClass){
-            return new ObjectRefInstance(agoClass, objectRef, getDbAdapter());
+            return new ObjectRefInstance(agoClass, objectRef, getDbAdapter(), runSpace);
         } else {
             if (Objects.equals(objectRef.className(), "<Meta>")){
                 return getTheMeta();

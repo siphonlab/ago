@@ -50,7 +50,7 @@ public class Reflect {
         var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), properties.size());
         int i = 0;
         for (Property property : properties) {
-            var inst = engine.createNativeInstance(null, engine.getClass("lang.PropertyDesc"), frame);
+            var inst = engine.createNativeInstance(null, engine.getClass("lang.PropertyDesc"), frame.getRunSpace());
             inst.setNativePayload(property);
             arr.value[i++] = inst;
         }
@@ -103,7 +103,7 @@ public class Reflect {
             return;
         }
 
-        var inst = engine.createNativeInstance(null, engine.getClass("lang.PropertyDesc"), frame);
+        var inst = engine.createNativeInstance(null, engine.getClass("lang.PropertyDesc"), frame.getRunSpace());
         inst.setNativePayload(prop);
         frame.finishUnion(inst);
     }
@@ -263,7 +263,7 @@ public class Reflect {
             frame.finishVoid();
         } else if(property instanceof Property.AttributeProperty attributeProperty){
             var method = attributeProperty.getSetter();
-            var setter = engine.createFunctionInstance(object, method, frame.self());
+            var setter = engine.createFunctionInstance(object, method, frame.getRunSpace());
             CallFrame<?> self = frame.self();
             AgoClass targetType = setter.getAgoClass();
             AgoVariable fld = setter.getAgoClass().getParameters()[0];
@@ -290,7 +290,7 @@ public class Reflect {
         AgoEngine engine = frame.getAgoEngine();
         UnionArrayInstance arr = (UnionArrayInstance) arguments;
         AgoFunction fun = method instanceof AgoFunction f ? f : (AgoFunction) Boxer.getClassFromClassRef(method);
-        var toInvoke = engine.createFunctionInstance(object, fun, frame.self());
+        var toInvoke = engine.createFunctionInstance(object, fun, frame.getRunSpace());
         AgoParameter[] parameters = fun.getParameters();
         for (int i = 0; i < parameters.length; i++) {
             AgoParameter parameter = parameters[i];
@@ -335,13 +335,13 @@ public class Reflect {
 
         Instance<?> result;
         if(agoClass.isNative()) {
-            result = engine.createNativeInstance(scope, agoClass, frame.self());
+            result = engine.createNativeInstance(scope, agoClass, frame.getRunSpace());
         } else {
-            result = engine.createInstance(scope, agoClass, frame.self());
+            result = engine.createInstance(scope, agoClass, frame.getRunSpace());
         }
         if(constructor != null){
             AgoFunction fun = constructor instanceof AgoFunction f ? f : (AgoFunction) Boxer.getClassFromClassRef(constructor);
-            var toInvoke = engine.createFunctionInstance(result, fun, frame.self());
+            var toInvoke = engine.createFunctionInstance(result, fun, frame.getRunSpace());
             UnionArrayInstance arr = (UnionArrayInstance) arguments;
             AgoParameter[] parameters = fun.getParameters();
             for (int i = 0; i < parameters.length; i++) {

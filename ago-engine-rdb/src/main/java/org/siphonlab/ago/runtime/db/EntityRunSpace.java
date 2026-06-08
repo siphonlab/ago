@@ -32,7 +32,7 @@ public class EntityRunSpace<Id> extends RunSpace implements CreateInstanceRunSpa
     protected boolean tryComplete() {
         var b = super.tryComplete();
         if(b){
-            entityAdapter.flush();
+            entityAdapter.flush(this);
         }
         return b;
     }

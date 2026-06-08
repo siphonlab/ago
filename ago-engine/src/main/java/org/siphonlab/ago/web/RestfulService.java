@@ -91,7 +91,7 @@ public class RestfulService {
                     public HttpResponse serve(ServiceRequestContext ctx, HttpRequest req) throws Exception {
                         CompletableFuture<HttpResponse> completableFuture = new CompletableFuture<>();
 
-                        var frame = agoEngine.createFunctionInstance(null, fun, null);
+                        var frame = agoEngine.createFunctionInstance(null, fun, null);  // TODO runSpace is null
                         Map<String, String> pathParams = ctx.pathParams();
                         Slots slots = frame.getSlots();
                         if(pathParams != null && !pathParams.isEmpty()){

@@ -17,11 +17,12 @@ package org.siphonlab.ago.runtime.db.lazy;
 
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.RunSpace;
 import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
-import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
+import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,12 +31,12 @@ public class DeferenceInstance<T extends AgoClass, Id> extends Instance<T> imple
 
     private final DeferenceObjectState state;
 
-    public DeferenceInstance(DbSlots<Id> slots, T agoClass, DbAdapter<Id> adapter) {
+    public DeferenceInstance(DbSlots<Id> slots, T agoClass, DbAdapter<Id> adapter, DbEngine<Id> engine, RunSpace runSpace) {
         super(slots, agoClass);
 
         slots.setOwner(this);
 
-        ObjectRefInstance<T, Id> inst = (ObjectRefInstance<T, Id>) adapter.getById(getObjectRef());
+        ObjectRefInstance<T, Id> inst = (ObjectRefInstance<T, Id>) engine.createObjectRefInstance(this.getObjectRef(), runSpace);
         inst.setDeferencedInstance(this);
         this.state = new DeferenceObjectState(inst);
     }

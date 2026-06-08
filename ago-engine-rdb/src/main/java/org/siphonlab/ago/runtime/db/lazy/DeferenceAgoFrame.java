@@ -36,13 +36,13 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
     private final DeferenceFrameState state;
     private List<Instance<?>> loadedScopes = new LinkedList<>();
 
-    public DeferenceAgoFrame(DbSlots<Id> slots, AgoFunction agoFunction, DbEngine<Id> engine) {
+    public DeferenceAgoFrame(DbSlots<Id> slots, AgoFunction agoFunction, DbEngine<Id> engine, RunSpace runSpace) {
         super(slots, agoFunction, engine);
 
         slots.setOwner(this);
         this.adapter = engine.getDbAdapter();
 
-        ObjectRefCallFrame<F, Id> inst = (ObjectRefCallFrame<F, Id>) adapter.getById(getObjectRef());
+        ObjectRefCallFrame<F, Id> inst = (ObjectRefCallFrame<F, Id>) engine.createObjectRefInstance(this.getObjectRef(), runSpace);
         this.state = new DeferenceFrameState(inst);
         inst.setDeferencedInstance(this);
     }

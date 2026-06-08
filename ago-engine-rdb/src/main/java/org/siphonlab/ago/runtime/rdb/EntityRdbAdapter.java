@@ -1,6 +1,5 @@
 package org.siphonlab.ago.runtime.rdb;
 
-import com.google.common.collect.Table;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.db.*;
 import org.slf4j.Logger;
@@ -32,7 +31,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
         this.entityClass = classManager.getClass("Entity");
     }
 
-    public ResultSetMapper fetchAll(AgoClass agoClass) {
+    public ResultSetMapper fetchAll(AgoClass agoClass, RunSpace runSpace) {
         var tableOfClass = getTableOfClass(agoClass);
 
         StringBuilder sql = composeSelectFrom(tableOfClass);
@@ -45,7 +44,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
 
             PreparedStatement finalPs = ps;
             Connection finalConnection = connection;
-            return new ResultSetMapper(finalPs.executeQuery(), agoClass, tableOfClass, boxTypes) {
+            return new ResultSetMapper(finalPs.executeQuery(), agoClass, tableOfClass, boxTypes, runSpace) {
                 public void close() {
                     super.close();
                     closeQuietly(finalPs);
@@ -63,6 +62,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
     protected void insert(Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
         if(entityClass != agoClass && entityClass.isThatOrSuperOfThat(agoClass)) {
             itemsBuffer.putIfAbsent(dbSlots.getObjectRef(), RowState.Added);
+            cache.put(dbSlots.getObjectRef(), instance);
         }
     }
 
@@ -70,13 +70,14 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
     protected void update(Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
         if(entityClass != agoClass && entityClass.isThatOrSuperOfThat(agoClass)) {
             itemsBuffer.putIfAbsent(dbSlots.getObjectRef(), RowState.Modified);
+            cache.put(dbSlots.getObjectRef(), instance);
         }
     }
 
     @Override
-    public void flush() {
+    public void flush(RunSpace runSpace) {
         for (var objectRef : itemsBuffer.keySet()) {
-            var instance = this.getById(objectRef);
+            var instance = this.getById(objectRef, runSpace);
             switch (itemsBuffer.get(objectRef)) {
                 case Modified:
                     super.update(instance, (DbSlots<Id>) instance.getSlots(), instance.getAgoClass());
@@ -90,9 +91,9 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
     }
 
     @Override
-    public Instance<?> getById(ObjectRef<Id> objectRef) {
+    public Instance<?> getById(ObjectRef<Id> objectRef, RunSpace runSpace) {
         return cache.computeIfAbsent(objectRef, r ->{
-            return super.getById(objectRef);
+            return super.getById(objectRef, runSpace);
         });
     }
 

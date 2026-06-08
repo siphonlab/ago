@@ -28,7 +28,7 @@ public class Entity {
     public static void getEntityById(NativeFrame callFrame, long id) {
         AgoClass entityClass = callFrame.getAgoClass().getResultClass();
         DbEngine<Long> dbEngine = (DbEngine<Long>) callFrame.getAgoEngine();
-        callFrame.finishObject(dbEngine.getDbAdapter().getById(ObjectRef.create(entityClass.getFullname(), id)));
+        callFrame.finishObject(dbEngine.getDbAdapter().getById(ObjectRef.create(entityClass.getFullname(), id), callFrame.getRunSpace()));
     }
 
     public static void getId(NativeFrame callFrame) {
@@ -52,7 +52,8 @@ public class Entity {
         AgoClass queryResultClass = callFrame.getAgoClass().getResultClass();
         var entityClass = queryResultClass.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
 
-        var queryResultInstance = (NativeInstance) dbEngine.createNativeInstance(null, queryResultClass, callFrame);
+        //TODO parentScope
+        var queryResultInstance = (NativeInstance) dbEngine.createNativeInstance(null, queryResultClass, callFrame.getRunSpace());
         RdbAdapter<?> dbAdapter = (RdbAdapter<?>) dbEngine.getDbAdapter();
         System.out.println(1);
 //        queryResultInstance.setNativePayload((ResultSetMapper) ((DbAdapter<?>) dbAdapter).(entityClass, callFrame));

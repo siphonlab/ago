@@ -163,7 +163,7 @@ public class TestFunctions {
             public void handle(String consumerTag, Delivery message) throws IOException {
                 Map<String,Object> o = (Map<String, Object>) new JsonSlurper().parse(message.getBody());
                 ObjectRef messageRef = ObjectRef.create((String) o.get("className"), o.get("id"));
-                var instance = adapter.getById(messageRef);
+                var instance = adapter.getById(messageRef, nativeFrame.getRunSpace());
                 Utils.closeQuietly(channel);
                 Utils.closeQuietly(connection);
                 nativeFrame.finishObject(instance);

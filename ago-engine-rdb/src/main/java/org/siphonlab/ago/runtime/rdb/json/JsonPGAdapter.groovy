@@ -45,7 +45,6 @@ import org.siphonlab.ago.runtime.db.lazy.DeferenceNativeInstance
 import org.siphonlab.ago.runtime.db.lazy.DeferenceObject
 import org.siphonlab.ago.runtime.db.lazy.DereferenceAdapter
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame
-import org.siphonlab.ago.runtime.db.lazy.ObjectRefInstance
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefObject
 import org.siphonlab.ago.runtime.rdb.TransactionBoundDataSource
 import org.siphonlab.ago.runtime.db.task.WorkflowEngine
@@ -658,11 +657,11 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
     }
 
     @Override
-    Instance<?> getById(ObjectRef<Id> objectRef) {
+    Instance<?> getById(ObjectRef<Id> objectRef, RunSpace runSpace) {
         if(objectRef == null) return null;
 
         return objectReferenceInstancesPool.computeIfAbsent(objectRef, {
-            return dereference(it)
+            return dereference(it, runSpace)
         }) as Instance;
 
     }
@@ -784,7 +783,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
     }
 
     @Override
-    Instance<?> dereference(ObjectRef<Id> objectRef) {
+    Instance<?> dereference(ObjectRef<Id> objectRef, RunSpace runSpace) {
         var objrefInstance = objectReferenceInstancesPool.get(objectRef);
         if(objrefInstance != null){
             if(objrefInstance instanceof ObjectRefObject) {
@@ -802,7 +801,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
         Instance parentScope = null;
         if (parentScopeTable != null) {
             var parent_scope_id = row["parent_scope_id"] as Id
-            parentScope = agoEngine.createObjectRefInstance(ObjectRef.create(parentScopeTable, parent_scope_id))
+            parentScope = agoEngine.createObjectRefInstance(ObjectRef.create(parentScopeTable, parent_scope_id), runSpace)
         }
 
         AgoClass agoClass = this.classManager.getClass(className);
@@ -811,7 +810,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
         } else if (agoClass instanceof AgoFunction) {
             CallFrame caller;
             if (row["caller_id"] != null) {
-                caller = (CallFrame) agoEngine.createObjectRefInstance(ObjectRef.create(row["caller_class"] as String, row["caller_id"] as Id))
+                caller = (CallFrame) agoEngine.createObjectRefInstance(ObjectRef.create(row["caller_class"] as String, row["caller_id"] as Id),runSpace)
             } else {
                 caller = null
             }
@@ -849,7 +848,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
             DbSlots<Id> slots = DbSlotsCreator<Id>.create(agoClass, ObjectRef.create(agoClass.fullname, objectRef.id())) as DbSlots<Id>
             getAgoEngine().jsonDeserializeSlots(slots, agoClass, (String) ((row['slots'] as PGobject).value), null);
 
-            var inst = agoClass.isNative() ? new DeferenceNativeInstance(slots,agoClass, this) : new DeferenceInstance(slots, agoClass, this);
+            var inst = agoClass.isNative() ? new DeferenceNativeInstance(slots,agoClass, (DbEngine<Id>) this.agoEngine, this, runSpace) : new DeferenceInstance(slots, agoClass, this, (DbEngine<Id>) this.agoEngine, runSpace);
             inst.parentScope = parentScope
             if(inst instanceof DeferenceNativeInstance){
                 var payload = row['payload'];
@@ -864,11 +863,11 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
         }
     }
 
-    public AgoClass loadScopedAgoClass(AgoClass baseClass, Id id) {
+    public AgoClass loadScopedAgoClass(AgoClass baseClass, Id id, RunSpace runSpace) {
         var row = sql.firstRow("SELECT parent_scope_class, parent_scope_id, creator_class, creator_id, slots FROM ${baseClass instanceof AgoFunction ? "ago_function" : "ago_class"} WHERE id =?", [id])
         var parentScopeId = row["parent_scope_id"]
         if(parentScopeId != null) {
-            Instance scope = agoEngine.createObjectRefInstance(ObjectRef.create((String) row["parent_scope_class"], (Id) parentScopeId));
+            Instance scope = agoEngine.createObjectRefInstance(ObjectRef.create((String) row["parent_scope_class"], (Id) parentScopeId), runSpace);
             var scoped = baseClass.cloneWithScope(scope)
             var slots = scoped.getSlots() as DbSlots<Id>;
             slots.setObjectRef(ObjectRef.create(slots.getObjectRef().className(), id));

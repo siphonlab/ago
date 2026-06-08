@@ -29,18 +29,20 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
 
     final ObjectRef<Id> objectRef;
     final DbAdapter<Id> dereferenceAdapter;
+    private final RunSpace runSpace;
 
     CallFrame<?> deferencedCallFrame;
 
-    public ObjectRefCallFrame(F agoClass, final ObjectRef<Id> objectRef, DbAdapter<Id> dereferenceAdapter, final RowState rowState) {
+    public ObjectRefCallFrame(F agoClass, final ObjectRef<Id> objectRef, DbAdapter<Id> dereferenceAdapter, RunSpace runSpace, final RowState rowState) {
         super(DbSlotsCreator.create(agoClass, objectRef), agoClass);
         this.objectRef = objectRef;
         this.dereferenceAdapter = dereferenceAdapter;
+        this.runSpace = runSpace;
     }
 
     @Override
     public CallFrame<?> deference() {
-        deference(deferencedCallFrame, this.dereferenceAdapter, this.objectRef);
+        deference(deferencedCallFrame, this.dereferenceAdapter, this.objectRef, runSpace);
         return deferencedCallFrame;
     }
 

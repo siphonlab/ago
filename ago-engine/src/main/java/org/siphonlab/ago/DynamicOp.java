@@ -153,7 +153,7 @@ public class DynamicOp {
                         return RESULT_EXCEPTION;
                     }
                 } else if(property instanceof Property.AttributeProperty attributeProperty){
-                    var setter = engine.createFunctionInstance(object, attributeProperty.getSetter(), self);
+                    var setter = engine.createFunctionInstance(object, attributeProperty.getSetter(), frame.getRunSpace());
                     AgoClass targetType = setter.getAgoClass();
                     AgoVariable fld = setter.getAgoClass().getParameters()[0];
                     AgoClass unionClass = frame.getAgoEngine().getLangClasses().getAnyClass();
@@ -185,9 +185,9 @@ public class DynamicOp {
 
         AgoClass agoClass = obj.getAgoClass();
         if(engine.getLangClasses().getScopedClassIntervalClass().isThatOrSuperOfThat(agoClass)) {
-            return (CallFrame<?>) engine.createInstanceFromScopedClassInterval(obj, self);
+            return (CallFrame<?>) engine.createInstanceFromScopedClassInterval(obj, frame.getRunSpace());
         } else if(obj instanceof AgoFunction f){
-            return (CallFrame<?>) engine.createInstanceFromScopedClass(f, self, frame.getRunSpace());
+            return (CallFrame<?>) engine.createInstanceFromScopedClass(f, frame.getRunSpace());
         } else {
             frame.raiseException(self, "lang.ClassCastException", "'%s' is not a function".formatted(agoClass.getFullname()));
             return null;
@@ -198,9 +198,9 @@ public class DynamicOp {
         Instance<?> instance;
         AgoClass agoClass = creator.getAgoClass();
         if(engine.getLangClasses().getScopedClassIntervalClass().isThatOrSuperOfThat(agoClass)) {
-            instance = engine.createInstanceFromScopedClassInterval(creator, self);
+            instance = engine.createInstanceFromScopedClassInterval(creator, frame.getRunSpace());
         } else if(creator instanceof AgoFunction f){
-            instance = engine.createInstanceFromScopedClass(f, self, frame.getRunSpace());
+            instance = engine.createInstanceFromScopedClass(f, frame.getRunSpace());
         } else {
             frame.raiseException(self, "lang.ClassCastException", "'%s' is not a function".formatted(agoClass.getFullname()));
             return null;

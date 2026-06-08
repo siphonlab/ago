@@ -341,67 +341,67 @@ public class Boxer {
     }
 
     public Instance<?> boxInt(CallFrame<?> callFrame, AgoClass agoClass, int value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setInt(0, value);        // TODO invoke constructor?
         return instance;
     }
 
     public Instance<?> boxLong(CallFrame<?> callFrame, AgoClass agoClass, long value) {
-        Instance<?> instance = engine.createInstance(agoClass, callFrame);
+        Instance<?> instance = engine.createInstance(agoClass, callFrame.getRunSpace());
         instance.slots.setLong(0, value);
         return instance;
     }
 
     public Instance<?> boxDouble(CallFrame<?> callFrame, AgoClass agoClass, double value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setDouble(0, value);
         return instance;
     }
 
     public Instance<?> boxDecimal(CallFrame<?> callFrame, AgoClass agoClass, BigDecimal value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setDecimal(0, value);
         return instance;
     }
 
     public Instance<?> boxBoolean(CallFrame<?> callFrame, AgoClass agoClass, boolean value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setBoolean(0, value);
         return instance;
     }
 
     public Instance<?> boxString(CallFrame<?> callFrame, AgoClass agoClass, String value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setString(0, value);
         return instance;
     }
 
     public Instance<?> boxChar(CallFrame<?> callFrame, AgoClass agoClass, char value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setChar(0, value);
         return instance;
     }
 
     public Instance<?> boxShort(CallFrame<?> callFrame, AgoClass agoClass, short value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setShort(0, value);
         return instance;
     }
 
     public Instance<?> boxByte(CallFrame<?> callFrame, AgoClass agoClass, byte value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setByte(0, value);
         return instance;
     }
 
     public Instance<?> boxFloat(CallFrame<?> callFrame, AgoClass agoClass, float value) {
-        Instance<?> instance = engine.createInstance(agoClass,callFrame);
+        Instance<?> instance = engine.createInstance(agoClass,callFrame.getRunSpace());
         instance.slots.setFloat(0, value);
         return instance;
     }
 
     public Instance<?> boxClassRef(CallFrame<?> callFrame, AgoClass boxType, AgoClass value) {
-        Instance<?> instance = engine.createInstance(boxType,callFrame);
+        Instance<?> instance = engine.createInstance(boxType,callFrame.getRunSpace());
         Slots slots = instance.slots;
         slots.setClassRef(0, value.classId);
         slots.setObject(1, value);
@@ -409,7 +409,7 @@ public class Boxer {
     }
 
     public Instance<?> boxClassRef(CallFrame<?> callFrame, AgoClass boxType, AgoClass value, Instance<?> scope) {
-        Instance<?> instance = engine.createInstance(boxType,callFrame);
+        Instance<?> instance = engine.createInstance(boxType,callFrame.getRunSpace());
         Slots slots = instance.slots;
         slots.setClassRef(0, value.classId);
         slots.setObject(1, value);
@@ -432,7 +432,7 @@ public class Boxer {
     }
 
     public Instance<?> boxAny(Slots slots, int srcIndex, int srcTypeCode, AgoClass boxerClass, CallFrame<?> caller) {
-        var boxed = engine.createInstance(boxerClass, caller);
+        var boxed = engine.createInstance(boxerClass, caller.getRunSpace());
         var toType = boxTypes.getUnboxType(boxerClass);
         switch (toType.value) {
             case INT_VALUE:

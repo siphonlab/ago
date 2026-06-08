@@ -1,16 +1,29 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.siphonlab.ago.runtime.db;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.*;
 
-import java.util.List;
-
 public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
-    ResultSetMapper fetchAll(AgoClass agoClass);
+    ResultSetMapper fetchAll(AgoClass agoClass, RunSpace runSpace);
 
     // for EntityAdapter, the saveInstance only log the changed instances, and `flush` really save them to db, and saveInstance may lock the id
-    void flush();
+    void flush(RunSpace runSpace);
 
     void lockInstance(Id id);
 

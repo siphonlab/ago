@@ -678,7 +678,7 @@ public class AgoHashMap {
         var valueType = genericArgumentsInfo.getArguments()[1];
 
         AgoEngine agoEngine = callFrame.getAgoEngine();
-        var r = agoEngine.createInstance(KeyValuePairType, callFrame);
+        var r = agoEngine.createInstance(KeyValuePairType, callFrame.getRunSpace());
         Slots slots = r.getSlots();
 
         switch (keyType.getTypeCode().value) {

@@ -44,16 +44,17 @@ public class ResultSetMapper {
     private final AgoClass agoClass;
     private final RdbTable rdbTable;
     private final BoxTypes boxTypes;
+    private final RunSpace runSpace;
 
     private AgoEngine agoEngine;
     private boolean closed = false;
-    private CallFrame<?> creator;
 
-    public ResultSetMapper(ResultSet resultSet, AgoClass agoClass, RdbTable rdbTable, BoxTypes boxTypes){
+    public ResultSetMapper(ResultSet resultSet, AgoClass agoClass, RdbTable rdbTable, BoxTypes boxTypes, RunSpace runSpace){
         this.resultSet = resultSet;
         this.agoClass = agoClass;
         this.rdbTable = rdbTable;
         this.boxTypes = boxTypes;
+        this.runSpace = runSpace;
     }
 
     public void close(){
@@ -67,7 +68,7 @@ public class ResultSetMapper {
     }
 
     public Instance<?> next() throws SQLException {
-        var instance = agoEngine.createInstance(agoClass, creator);
+        var instance = agoEngine.createInstance(agoClass, runSpace);
         DbSlots slots = (DbSlots) instance.getSlots();
         slots.setObjectRef(ObjectRef.create(slots.getObjectRef().className(), resultSet.getLong("id")));
         for (ColumnDesc column : rdbTable.columns()) {
@@ -159,7 +160,7 @@ public class ResultSetMapper {
                     return boxer.boxChar(resultSet.getString(columnIndex).charAt(0));
             }
         } else {
-            Instance<?> instance = agoEngine.createInstance(agoClass,creator);
+            Instance<?> instance = agoEngine.createInstance(agoClass, runSpace);
             Slots slots = instance.getSlots();
             switch (typeCode.value) {
                 case INT_VALUE:
@@ -204,14 +205,6 @@ public class ResultSetMapper {
 
     public void setAgoEngine(AgoEngine agoEngine) {
         this.agoEngine = agoEngine;
-    }
-
-    public void setCreator(CallFrame<?> creator) {
-        this.creator = creator;
-    }
-
-    public CallFrame<?> getCreator() {
-        return creator;
     }
 
     public static class JsonSerializer extends com.fasterxml.jackson.databind.JsonSerializer<ResultSetMapper> {

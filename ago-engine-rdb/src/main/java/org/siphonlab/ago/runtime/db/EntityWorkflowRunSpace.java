@@ -42,7 +42,7 @@ public class EntityWorkflowRunSpace<Id> extends WorkflowRunSpace<Id>{
     protected boolean tryComplete() {
         var b = super.tryComplete();
         if(b){
-            entityAdapter.flush();
+            entityAdapter.flush(this);
         }
         return b;
     }

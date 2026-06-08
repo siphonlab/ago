@@ -28,18 +28,20 @@ public class ObjectRefInstance<T extends AgoClass, Id> extends Instance<T> imple
     private final DbAdapter<Id> dereferenceAdapter;
 
     final ObjectRef<Id> objectRef;
+    private final RunSpace runSpace;
 
     private Instance<?> deferencedInstance;
 
-    public ObjectRefInstance(T agoClass, ObjectRef<Id> objectRef, DbAdapter<Id> dereferenceAdapter) {
+    public ObjectRefInstance(T agoClass, ObjectRef<Id> objectRef, DbAdapter<Id> dereferenceAdapter, RunSpace runSpace) {
         super(agoClass);
         this.dereferenceAdapter = dereferenceAdapter;
         this.objectRef = objectRef;
+        this.runSpace = runSpace;
     }
 
     @Override
     public Instance<?> deference() {
-        return deference(deferencedInstance, this.dereferenceAdapter, this.objectRef);
+        return deference(deferencedInstance, this.dereferenceAdapter, this.objectRef, runSpace);
     }
 
     @Override

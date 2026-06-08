@@ -17,7 +17,6 @@ package org.siphonlab.ago.runtime.rdb;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
-import org.jspecify.annotations.NonNull;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
@@ -33,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.InputStream;
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
@@ -518,7 +516,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         return tableOfClass;
     }
 
-    public Instance<?> getById(ObjectRef<Id> objectRef) {
+    public Instance<?> getById(ObjectRef<Id> objectRef, RunSpace runSpace) {
         AgoClass agoClass = classManager.getClass(objectRef.className());
         var tableOfClass = getTableOfClass(agoClass);
         StringBuilder sql = composeSelectFrom(tableOfClass);
@@ -535,7 +533,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
 
             PreparedStatement finalPs = ps;
             resultSet = finalPs.executeQuery();
-            var resultMapper = new ResultSetMapper(resultSet, agoClass, tableOfClass, boxTypes);
+            var resultMapper = new ResultSetMapper(resultSet, agoClass, tableOfClass, boxTypes, runSpace);
             resultMapper.setAgoEngine((AgoEngine) classManager);
             if (resultMapper.hasNext()) {
                 return resultMapper.next();
