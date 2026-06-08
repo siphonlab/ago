@@ -16,9 +16,14 @@
 package org.siphonlab.ago.runtime.db;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityWorkflowRunSpace;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
+
+import java.util.function.Consumer;
 
 public class EntityWorkflowRunSpace<Id> extends WorkflowRunSpace<Id>{
 
@@ -52,4 +57,43 @@ public class EntityWorkflowRunSpace<Id> extends WorkflowRunSpace<Id>{
         return super.createChildRunSpace(forkContext == null ? new ForkEntityWorkflowRunSpace() : forkContext);
     }
 
+
+    @Override
+    public Instance<?> createInstance(Instance<?> parentScope, AgoClass agoClass, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
+        if (agoClass instanceof AgoFunction fun) {
+            return createFunctionInstance(fun, parentScope, objectRef, slotsInitializer);
+        }
+        if (!entityAdapter.isEntityClass(agoClass)) {
+            return super.createInstance(parentScope, agoClass, objectRef, slotsInitializer);
+        }
+
+        Slots slots = DbSlotsCreator.create(agoClass, objectRef);
+        if(slotsInitializer != null) slotsInitializer.accept(slots);
+        Instance<?> instance;
+        if(agoClass.isNative()) {
+            instance = new NativeInstance(slots, agoClass);
+        } else {
+            instance = new Instance<>(slots, agoClass);
+        }
+        if(parentScope != null) instance.setParentScope(parentScope);
+        return instance;
+    }
+
+    @Override
+    public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
+        if(!entityAdapter.isEntityClass(agoFunction)) {
+            return super.createFunctionInstance(agoFunction, parentScope, objectRef, slotsInitializer);
+        }
+
+        var slots = DbSlotsCreator.create(agoFunction, objectRef);
+        if(slotsInitializer != null) slotsInitializer.accept(slots);
+        CallFrame<?> inst;
+        if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
+            inst = new NativeFrame(getAgoEngine(), slots, agoNativeFunction);
+        } else {
+            inst = new AgoFrame(slots, agoFunction, this.getAgoEngine());
+        }
+        if(parentScope != null) inst.setParentScope(parentScope);
+        return inst;
+    }
 }

@@ -533,7 +533,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
 
             PreparedStatement finalPs = ps;
             resultSet = finalPs.executeQuery();
-            var resultMapper = new ResultSetMapper(resultSet, agoClass, tableOfClass, boxTypes, runSpace);
+            var resultMapper = new ResultSetMapper<Id>(resultSet, agoClass, tableOfClass, boxTypes, runSpace, idType);
             resultMapper.setAgoEngine((AgoEngine) classManager);
             if (resultMapper.hasNext()) {
                 return resultMapper.next();

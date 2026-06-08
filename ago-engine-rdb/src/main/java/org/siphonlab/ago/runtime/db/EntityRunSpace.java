@@ -4,8 +4,6 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
-import org.siphonlab.ago.runtime.db.lazy.DeferenceAgoFrame;
-import org.siphonlab.ago.runtime.db.lazy.DeferenceNativeFrame;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 
@@ -82,4 +80,15 @@ public class EntityRunSpace<Id> extends RunSpace implements CreateInstanceRunSpa
         if(parentScope != null) inst.setParentScope(parentScope);
         return inst;
     }
+
+    public static <Id> EntityAdapter<Id> retrieveEntityAdapter(RunSpace runSpace) {
+        if(runSpace instanceof EntityRunSpace<?> entityRunSpace){
+            return (EntityAdapter<Id>) entityRunSpace.getEntityAdapter();
+        }
+        if(runSpace instanceof EntityWorkflowRunSpace<?> entityWorkflowRunSpace){
+            return (EntityAdapter<Id>) entityWorkflowRunSpace.getEntityAdapter();
+        }
+        return null;
+    }
+
 }

@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.db.CreateInstanceRunSpace;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 
@@ -38,23 +39,25 @@ import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
 import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
 import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 
-public class ResultSetMapper {
+public class ResultSetMapper<Id> {
 
     private final ResultSet resultSet;
     private final AgoClass agoClass;
     private final RdbTable rdbTable;
     private final BoxTypes boxTypes;
     private final RunSpace runSpace;
+    private final TypeCode idType;
 
     private AgoEngine agoEngine;
     private boolean closed = false;
 
-    public ResultSetMapper(ResultSet resultSet, AgoClass agoClass, RdbTable rdbTable, BoxTypes boxTypes, RunSpace runSpace){
+    public ResultSetMapper(ResultSet resultSet, AgoClass agoClass, RdbTable rdbTable, BoxTypes boxTypes, RunSpace runSpace, TypeCode idType){
         this.resultSet = resultSet;
         this.agoClass = agoClass;
         this.rdbTable = rdbTable;
         this.boxTypes = boxTypes;
         this.runSpace = runSpace;
+        this.idType = idType;
     }
 
     public void close(){
@@ -67,10 +70,25 @@ public class ResultSetMapper {
         return resultSet.next();
     }
 
+    Id readId(ResultSet rs) throws SQLException {
+        return (Id)switch (idType.value){
+            case LONG_VALUE -> rs.getLong("id");
+            case STRING_VALUE -> rs.getString("id");
+            case INT_VALUE -> rs.getInt("id");
+            case DECIMAL_VALUE -> rs.getBigDecimal("id");
+            default -> throw new UnsupportedOperationException("unsupported id type " + idType);
+        };
+    }
+
     public Instance<?> next() throws SQLException {
-        var instance = agoEngine.createInstance(agoClass, runSpace);
+        ObjectRef<Id> objectRef = ObjectRef.create(agoClass.getFullname(), readId(resultSet));
+        Instance<?> instance;
+        if(runSpace instanceof CreateInstanceRunSpace createInstanceRunSpace){
+            instance = createInstanceRunSpace.createInstance(null, agoClass, objectRef, null);
+        } else {
+            instance = agoEngine.createInstance(agoClass, runSpace);
+        }
         DbSlots slots = (DbSlots) instance.getSlots();
-        slots.setObjectRef(ObjectRef.create(slots.getObjectRef().className(), resultSet.getLong("id")));
         for (ColumnDesc column : rdbTable.columns()) {
             AgoSlotDef slotDef = column.getSlotDef();
             int slotIndex = slotDef.getIndex();

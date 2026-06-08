@@ -44,7 +44,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
 
             PreparedStatement finalPs = ps;
             Connection finalConnection = connection;
-            return new ResultSetMapper(finalPs.executeQuery(), agoClass, tableOfClass, boxTypes, runSpace) {
+            return new ResultSetMapper<Id>(finalPs.executeQuery(), agoClass, tableOfClass, boxTypes, runSpace, idType) {
                 public void close() {
                     super.close();
                     closeQuietly(finalPs);

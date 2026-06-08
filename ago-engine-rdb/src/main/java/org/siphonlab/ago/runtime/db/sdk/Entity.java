@@ -19,16 +19,19 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.db.DbSlots;
+import org.siphonlab.ago.runtime.db.EntityAdapter;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
+
+import static org.siphonlab.ago.runtime.db.EntityRunSpace.retrieveEntityAdapter;
 
 public class Entity {
 
     public static void getEntityById(NativeFrame callFrame, long id) {
         AgoClass entityClass = callFrame.getAgoClass().getResultClass();
-        DbEngine<Long> dbEngine = (DbEngine<Long>) callFrame.getAgoEngine();
-        callFrame.finishObject(dbEngine.getDbAdapter().getById(ObjectRef.create(entityClass.getFullname(), id), callFrame.getRunSpace()));
+        var adapter = retrieveEntityAdapter(callFrame.getRunSpace());
+        callFrame.finishObject(adapter.getById(ObjectRef.create(entityClass.getFullname(), id), callFrame.getRunSpace()));
     }
 
     public static void getId(NativeFrame callFrame) {

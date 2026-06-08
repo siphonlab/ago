@@ -62,14 +62,21 @@ fun createUser() as User {
     return u;
 }
 
+fun getUser(id as long) as User{
+    var u = User.of(id)
+    return u;
+}
+
 fun main(){
     var u = await createUser() via EntitySpace.new#();
 
-//    // next time we can load from existed data
-//    var u = User.of(1)
-
     Trace.print(u.name)
     Trace.print(u.age)
+
+    // next time we can load from existed data
+    var u2 = await getUser(u.id) via EntitySpace.new#();
+    Trace.print(u2.name)
+    Trace.print(u2.age)
 }
 
 // to fork entity runspace
