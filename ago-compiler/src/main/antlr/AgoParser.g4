@@ -75,6 +75,7 @@ typeDeclaration
      | interfaceDeclaration     #InterfaceDecl
      | traitDeclaration         #TraitDecl
      | methodDeclaration        #TopFunctionDecl
+     | queryDeclaration         #TopQueryDecl
 ;
 
 commonVisiblility:
@@ -89,6 +90,10 @@ fieldModifier:
 
 methodModifier:
     commonVisiblility | ABSTRACT | FINAL  | OVERRIDE | GENERATOR //|  STATIC | SYNCHRONIZED
+    ;
+
+queryModifier:
+    commonVisiblility | FINAL  | OVERRIDE    //|  STATIC | SYNCHRONIZED
     ;
 
 interfaceModifier:
@@ -164,6 +169,7 @@ classBodyDeclaration
 memberDeclaration :
       constructorDeclaration            # ConstructorDecl       // Class    Trait
     | methodDeclaration                 # MethodDecl            // Class    Trait   Interface(No MethodBody)
+    | queryDeclaration                  # QueryDecl
     | fieldDeclaration                  # FieldDecl             // Class    Trait
     // | constDeclaration                  # ConstDecl      // use final instead
     | interfaceDeclaration              # InnerInterfaceDecl    // Class    Trait   Interface
@@ -185,6 +191,23 @@ metaclassDeclaration:   METACLASS classBody;
 methodDeclaration
     : methodStarter methodName genericTypeParameters? formalParameters typeOfFunction? implementsPhrase? throwsPhrase?
         methodBody?
+    ;
+
+queryDeclaration
+    : queryModifier* QUERY methodName genericTypeParameters? formalParameters implementsPhrase?
+        '{' sqlBlock+ '}'
+    ;
+
+sqlAttr:
+        IDENTIFIER '=' IDENTIFIER
+    ;
+
+sqlAttrs:
+        '(' sqlAttr (',' sqlAttr)* ')'
+    ;
+
+sqlBlock:
+        SQL SQL_TICK sqlAttrs? SQL_ATOM+ SQL_TICK
     ;
 
 throwsPhrase:       THROWS declarationTypeList;
@@ -366,7 +389,7 @@ localVariableDeclaration
 identifier
     : IDENTIFIER
      //| MODULE    | OPEN    | REQUIRES    | EXPORTS    | OPENS    | TO    | USES      | PROVIDES       | TRANSITIVE
-     | WITH| YIELD    | FROM      | FIELD     | RECORD  | GETTER | SETTER   | TO    | LIKE
+     | WITH| YIELD    | FROM      | FIELD     | RECORD  | GETTER | SETTER   | TO    | LIKE  | QUERY | SQL
 //    | SEALED   | PERMITS
     ;
 
@@ -389,6 +412,7 @@ localTypeDeclaration
     : classDeclaration          #ClassDeclInBlock
     | interfaceDeclaration      #InterfaceInBlock
     | methodDeclaration         #MethodInBlock
+    | queryDeclaration          #QueryInBlock
     | enumDeclaration           #EnumInBlock
     | metaclassDeclaration      #MetaclassInBlock
     ;

@@ -24,23 +24,30 @@ class BigInt from Boxer<long>{
     }
 }
 
-native class QueryResult<T> with Iterator<T>{
+native class QueryResultIterator<T> with Iterator<T>{
     override hasNext() as boolean native "org.siphonlab.ago.runtime.rdb.QueryResult.hasNext"
     override next() as T native "org.siphonlab.ago.runtime.rdb.QueryResult.next"
 }
 
 // everything stored in db, but only extends Table can have getRowById and table functions
 // and if GC enabled, if not extends Table the data will be clean by GC
-class Entity<T, Id as [Primitive]>{
+class Entity<T, Id as [Primitive]> from QueryResult{
     get id() as Id native "org.siphonlab.ago.runtime.db.sdk.Entity.getId";
 
     metaclass{
         fun of(id as Id) as T native "org.siphonlab.ago.runtime.db.sdk.Entity.getEntityById";
 
-        fun fetchAll() as QueryResult<User> native "org.siphonlab.ago.runtime.db.sdk.Entity.fetchAll"
+        fun fetchAll() as QueryResultIterator<T> native "org.siphonlab.ago.runtime.db.sdk.Entity.fetchAll"
     }
 }
 
+// query result, sql result of SELECT and other CTE output QueryResultIterator<QueryResult> if not return Entity
+// that means query result are: QueryResultIterator<special Entity>, QueryResultIterator<special QueryResult>, and int (for update/delete count)
+// for SELECT and CTE, the result is typed QueryResult, i.e. for query `SELECT name FROM User`, the query result is: `class QueryFunctionNameResult{final name as User.Name}`
+// if the query works on *, the result is the Entity
+class QueryResult{
+
+}
 
 class User from Entity<User, long> {
     metaclass{
@@ -79,6 +86,15 @@ fun main(){
     Trace.print(u2.age)
 }
 
+
+class Query<+R> from Function<R>{
+    metaclass{
+        protected dialects as Map<string, string?> = new HashMap<string, string?>();
+    }
+}
+
+fun executeQuery<R>(sql as string, args as Object?) as QueryResultIterator<R> native "org.siphonlab.ago.runtime.db.sdk.Entity.executeQuery";
+
 // to fork entity runspace
 native class EntitySpace with ForkContext{
     fun new#() native "org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace.create";
@@ -93,6 +109,100 @@ native class WorkflowSpace with ForkContext{
 native class EntityWorkflowSpace with ForkContext{
     fun new#() native "org.siphonlab.ago.runtime.db.sdk.ForkEntityWorkflowRunSpace.create";
 }
+
+/*
+    fun UserByName(dialect as string, name as string?) as Iterator<UserByNameResult>{
+        class Result{
+            final id as int;
+            final name as User.Name;
+        }
+        class Args{
+            final name as string?
+        }
+        metaclass{
+            dialects['pg'] = "select id, name from User where name = ?";
+        }
+        return executeQuery(dialects['pg'], new Args(name))
+    }
+*/
+query UserByName(name as string?) {
+    sql{.
+        SELECT
+            u.id          AS userId,
+            u.name        AS userName,
+            a.street      AS street,
+            a.city        AS city,
+            a.state       AS state,
+            a.zipCode     AS zip,
+            a.country     AS country
+        FROM
+            User u
+        JOIN
+            Address a
+        ON
+            a.user = u.id
+        WHERE
+            a.isPrimary = true
+    .}
+}
+
+query UserByName2(name as string?) {
+    sql{.
+        SELECT
+            u.id          AS userId,
+            u.name        AS userName,
+            a.street      AS street,
+            a.city        AS city,
+            a.state       AS state,
+            a.zipCode     AS zip,
+            a.country     AS country
+        FROM
+            User u, Address a
+        WHERE
+            a.user = u.id
+            AND a.isPrimary = true
+    .}
+}
+
+class Address from Entity<Address, long> {
+    user as User;
+
+    street      as string;
+    city        as string;
+    state       as string;
+    zipCode     as string;
+    country     as string;
+
+    isPrimary   as boolean;
+}
+
+//class Order from Entity<Order, long> {
+//    user as User;
+//
+//    orderNumber  as string unique;
+//    totalAmount  as decimal(10,2);
+//    status       as enum('Pending','Processing','Shipped','Delivered','Cancelled');
+//    createdAt    as datetime;
+//    updatedAt    as datetime;
+//}
+//
+//// ---------- 4️⃣ OrderItem ----------
+//class OrderItem from Entity<OrderItem, long> {
+//    order as Order
+//
+////    productId as long;       // 假设产品在别处定义
+//    quantity  as int;
+//    unitPrice as decimal(10,2);
+//}
+
+//// ---------- 5️⃣ UserLoginLog ----------
+//class UserLoginLog from Entity<UserLoginLog, long> {
+//    user as User;
+//
+//    loginAt     as datetime;
+//    ipAddress   as string;
+//    deviceInfo  as string;   // 浏览器/设备信息
+//}
 
 //enum HttpMethod{
 //    Get, Post, Put, Delete, Patch, Options, Head

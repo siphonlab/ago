@@ -561,6 +561,32 @@ public class Compiler {
         return result;
     }
 
+    static int queryModifiers(Unit unit, List<AgoParser.QueryModifierContext> queryModifiers) throws SyntaxError {
+        int result = 0;
+        boolean visibilityFound = false;
+        for (AgoParser.QueryModifierContext modifier : queryModifiers) {
+            if(modifier.FINAL() != null){
+                if((result & AgoClass.FINAL) == AgoClass.FINAL) throw unit.syntaxError( modifier,"'final' duplicated");
+                result |= AgoClass.FINAL;
+            } else if(modifier.commonVisiblility() != null){
+                if(visibilityFound){
+                    throw unit.syntaxError(modifier, "visibility duplicated");
+                }
+                result |= commonVisibility(unit, modifier.commonVisiblility(), ModifierTarget.Method);
+                visibilityFound = true;
+            } else if(modifier.OVERRIDE() != null){
+                if ((result & AgoClass.OVERRIDE) == AgoClass.OVERRIDE) throw unit.syntaxError(modifier, "'override' duplicated");
+                result |= AgoClass.OVERRIDE;
+            } else {
+                throw unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText()));
+            }
+            if(!visibilityFound){
+                result |= commonVisibility(unit, null, ModifierTarget.Method);
+            }
+        }
+        return result;
+    }
+
     static int commonVisibility(Unit unit, AgoParser.CommonVisiblilityContext commonVisibilility, ModifierTarget target) throws SyntaxError{
         if(commonVisibilility == null) return switch (target){
             case Field -> AgoClass.PRIVATE;

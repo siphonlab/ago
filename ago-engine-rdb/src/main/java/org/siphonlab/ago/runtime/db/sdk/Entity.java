@@ -63,4 +63,8 @@ public class Entity {
 //
 //        return queryResultInstance;
     }
+
+    public static void executeQuery(NativeFrame frame, String sql, Object arguments){
+        System.out.println(1);
+    }
 }

@@ -39,8 +39,8 @@
     <modules>
         <module>ago-engine</module>
         <module>ago-compiler</module>
-        <module>test-cases</module>
         <module>ago-engine-rdb</module>
+        <module>test-cases</module>
     </modules>
 
     <dependencies>

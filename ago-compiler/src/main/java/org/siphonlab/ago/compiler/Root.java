@@ -117,6 +117,8 @@ public class Root extends Namespace<Package> {
     private ClassDef ANY_MAP_CLASS;
     private ClassDef HASH_MAP_CLASS;
 
+    private ClassDef ENTITY_CLASS;
+
     private Map<String, ArrayClassDef> knownArrayTypes = new HashMap<>();
 
     private CompilingStage compilingStage = CompilingStage.ParseClassName;
@@ -621,6 +623,21 @@ public class Root extends Namespace<Package> {
             throw new RuntimeException(e);
         }
     }
+    public ClassDef getAnyEntityClass() {
+        if (ENTITY_CLASS != null) return ENTITY_CLASS;
+        try {
+            ClassDef entityClass = (ClassDef) findByFullname("Entity");
+            return ENTITY_CLASS = entityClass.instantiate(
+                    new InstantiationArguments(entityClass.typeParamsContext,
+                            new ClassRefLiteral[]{
+                                    this.getAnyClass().toClassRefLiteral(),   // Table
+                                    this.getAnyClass().toClassRefLiteral()    // id
+                            }),
+                    null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public synchronized ClassDef getHashMapClass() {
         if (HASH_MAP_CLASS != null) return HASH_MAP_CLASS;
@@ -800,5 +817,13 @@ public class Root extends Namespace<Package> {
 
     public Map<Pair<ClassDef, ClassDef>, Boolean> getDependencyResultCache() {
         return dependencyResultCache;
+    }
+
+    public List<ClassDef> getEntityClasses() {
+        var entityClass = getAnyEntityClass();
+        return this.getAllDescendants().values().stream()
+                .filter(c -> c instanceof ClassDef cl && cl.isDeriveFrom(entityClass))
+                .map(c -> (ClassDef) c)
+                .toList();
     }
 }
