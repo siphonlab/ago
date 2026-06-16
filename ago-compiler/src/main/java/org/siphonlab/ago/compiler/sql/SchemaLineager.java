@@ -163,14 +163,12 @@ public class SchemaLineager
 
     private final ClassDef scopeClass;
 
+    private ValueVisitor valueVisitor;
+
     private QueryScope currentScope = new QueryScope();
     private Map<Table, ClassDef> classMapping = new HashMap<>();
-    private Map<Column, Variable> variableMapping = new HashMap<>();
-
-//    public static void resolve(String sqlStr) throws JSQLParserException {
-//        SchemaLineager<?> schemaLineager = new SchemaLineager<>();
-//        schemaLineager.resolve(CCJSqlParserUtil.parse(sqlStr));
-//    }
+    private Map<Column, QueryResult.VariableColumnDef> variableMapping = new HashMap<>();
+    private Statement statement;
 
     private static <T> void throwUnsupported(T type) {
         throw new UnsupportedOperationException(String.format(
@@ -179,10 +177,16 @@ public class SchemaLineager
 
     public SchemaLineager(ClassDef scopeClass){
         this.scopeClass = scopeClass;
+        this.valueVisitor = new ValueVisitor(variableMapping);
     }
 
     public QueryResult resolve(Statement statement) {
+        this.statement = statement;
         return statement.accept(this, currentScope);
+    }
+
+    public Statement getStatement() {
+        return statement;
     }
 
     QueryResult resolveTableName(Table table) throws CompilationError {
@@ -257,6 +261,14 @@ public class SchemaLineager
         SelectVisitor.super.visit(parenthesedSelect);
     }
 
+    public Map<Table, ClassDef> getClassMapping() {
+        return classMapping;
+    }
+
+    public Map<Column, QueryResult.VariableColumnDef> getVariableMapping() {
+        return variableMapping;
+    }
+
     @Override
     public <S> QueryResult visit(PlainSelect plainSelect, S context) {
 //        String alias = plainSelect.getAlias().getName();
@@ -268,11 +280,11 @@ public class SchemaLineager
         // resolve scope
         QueryResult fromResult;
         if (plainSelect.getFromItem() != null) {
-            fromResult = plainSelect.getFromItem().accept(this, context);
+            fromResult = plainSelect.getFromItem().accept(this, scope);
         } else {
             fromResult = null;
         }
-        var joins = visitJoins(plainSelect.getJoins(), context);
+        var joins = visitJoins(plainSelect.getJoins(), scope);
         registerJoins(plainSelect.getFromItem(), fromResult, plainSelect.getJoins(), joins, scope);
 
 //        if(scope.size() == 1){      // single table, handle *
@@ -282,7 +294,7 @@ public class SchemaLineager
         var result = new QueryResult();
         if (plainSelect.getSelectItems() != null) {
             for (SelectItem<?> item : plainSelect.getSelectItems()) {
-                var v = item.getExpression().accept(new ValueVisitor(), scope);
+                var v = item.getExpression().accept(valueVisitor, scope);
                 String cname = item.getAliasName();
                 if(cname == null) {
                     if(item.getExpression() instanceof Column column){
@@ -291,31 +303,41 @@ public class SchemaLineager
                         throw new IllegalArgumentException("column name expected");      // TODO generate a name
                     }
                 }
+                QueryResult.ColumnDef columnDef;
                 if(v instanceof QueryValue.ColumnValue columnValue){
-                    result.columns.add(columnValue.columnDef.alias(cname));
+                    columnDef = columnValue.columnDef.alias(cname);
                 } else {
-                    var c = new QueryResult.ColumnDef();
-                    result.columns.add(c);
+                    columnDef = new QueryResult.ColumnDef();
+                    columnDef.name = cname;
+                    columnDef.type = scopeClass.getRoot().getAnyClass();
                 }
+                result.columns.add(columnDef);
+
+                // TODO handle QueryValue depends on Variables
+//                if(item.getExpression() instanceof Column column){
+//                    if(columnDef instanceof QueryResult.VariableColumnDef variableColumnDef){
+//                        this.variableMapping.put(column, variableColumnDef);
+//                    }
+//                }
             }
         }
 
 
-        visitJoinOn(plainSelect.getJoins(), context);
+        visitJoinOn(plainSelect.getJoins(), scope);
 
         if (plainSelect.getPreWhere() != null) {
-            plainSelect.getPreWhere().accept(new ValueVisitor(), context);
+            plainSelect.getPreWhere().accept(valueVisitor, scope);
         }
         if (plainSelect.getWhere() != null) {
-            plainSelect.getWhere().accept(new ValueVisitor(), context);
+            plainSelect.getWhere().accept(valueVisitor, scope);
         }
 
         if (plainSelect.getHaving() != null) {
-            plainSelect.getHaving().accept(new ValueVisitor(), context);
+            plainSelect.getHaving().accept(valueVisitor, scope);
         }
 
         if (plainSelect.getOracleHierarchical() != null) {
-            plainSelect.getOracleHierarchical().accept(new ValueVisitor(), context);
+            plainSelect.getOracleHierarchical().accept(valueVisitor, scope);
         }
         return result;
     }
@@ -411,7 +433,7 @@ public class SchemaLineager
         visitJoins(delete.getJoins(), context);
 
         if (delete.getWhere() != null) {
-            delete.getWhere().accept(new ValueVisitor(), context);
+            delete.getWhere().accept(valueVisitor, context);
         }
         return null;
     }
@@ -449,8 +471,8 @@ public class SchemaLineager
 
         if (update.getUpdateSets() != null) {
             for (UpdateSet updateSet : update.getUpdateSets()) {
-                updateSet.getColumns().accept(new ValueVisitor(), context);
-                updateSet.getValues().accept(new ValueVisitor(), context);
+                updateSet.getColumns().accept(valueVisitor, context);
+                updateSet.getValues().accept(valueVisitor, context);
             }
         }
 
@@ -462,13 +484,13 @@ public class SchemaLineager
             for (Join join : update.getJoins()) {
                 join.getRightItem().accept(this, context);
                 for (Expression expression : join.getOnExpressions()) {
-                    expression.accept(new ValueVisitor(), context);
+                    expression.accept(valueVisitor, context);
                 }
             }
         }
 
         if (update.getWhere() != null) {
-            update.getWhere().accept(new ValueVisitor(), context);
+            update.getWhere().accept(valueVisitor, context);
         }
         return null;
     }
@@ -488,7 +510,7 @@ public class SchemaLineager
         if (insert.isOracleMultiInsert() && insert.getOracleMultiInsertBranches() != null) {
             for (OracleMultiInsertBranch branch : insert.getOracleMultiInsertBranches()) {
                 if (branch.getWhenExpression() != null) {
-                    branch.getWhenExpression().accept(new ValueVisitor(), context);
+                    branch.getWhenExpression().accept(valueVisitor, context);
                 }
                 if (branch.getClauses() == null) {
                     continue;
@@ -752,7 +774,7 @@ public class SchemaLineager
     public <S> QueryResult visit(Upsert upsert, S context) {
         visit(upsert.getTable(), context);
         if (upsert.getExpressions() != null) {
-            upsert.getExpressions().accept(new ValueVisitor(), context);
+            upsert.getExpressions().accept(valueVisitor, context);
         }
         if (upsert.getSelect() != null) {
             visit(upsert.getSelect(), context);
@@ -822,9 +844,11 @@ public class SchemaLineager
     }
 
     private <S> void visitJoinOn(List<Join> joins, S context) {
-        for (Join join : joins) {
-            for (Expression expression : join.getOnExpressions()) {
-                expression.accept(new ValueVisitor(), context);
+        if(joins != null) {
+            for (Join join : joins) {
+                for (Expression expression : join.getOnExpressions()) {
+                    expression.accept(valueVisitor, context);
+                }
             }
         }
     }
@@ -863,7 +887,7 @@ public class SchemaLineager
 
     @Override
     public <S> QueryResult visit(Values values, S context) {
-        values.getExpressions().accept(new ValueVisitor(), context);
+        values.getExpressions().accept(valueVisitor, context);
         return null;
     }
 
@@ -1114,11 +1138,11 @@ public class SchemaLineager
         }
 
         if (createPolicy.getUsingExpression() != null) {
-            createPolicy.getUsingExpression().accept(new ValueVisitor(), context);
+            createPolicy.getUsingExpression().accept(valueVisitor, context);
         }
 
         if (createPolicy.getWithCheckExpression() != null) {
-            createPolicy.getWithCheckExpression().accept(new ValueVisitor(), context);
+            createPolicy.getWithCheckExpression().accept(valueVisitor, context);
         }
 
         return null;

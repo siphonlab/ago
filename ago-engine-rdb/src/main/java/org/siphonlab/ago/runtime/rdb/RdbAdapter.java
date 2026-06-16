@@ -63,10 +63,10 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         this.idType = idType;
         this.idGenerator = idGenerator;
         this.typeMapping = typeMapping;
-        typeMapping.setIdRdbType(this.idRdbType());
         this.dataSource = dataSource;
         this.classManager = classManager;
         this.typeMapping.initTypeMap(classManager);
+        typeMapping.setIdRdbType(this.idRdbType());
     }
 
     public void setClassManager(ClassManager classManager) {
@@ -108,6 +108,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
     public RdbType idRdbType() {
         if (this.idRdbType == null){
             this.idRdbType = typeMapping.mapType(idType, null);
+            assert idRdbType != null;
         }
         return this.idRdbType;
     }
@@ -533,7 +534,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
 
             PreparedStatement finalPs = ps;
             resultSet = finalPs.executeQuery();
-            var resultMapper = new ResultSetMapper<Id>(resultSet, agoClass, tableOfClass, boxTypes, runSpace, idType);
+            var resultMapper = new ResultSetToEntityMapper<Id>(resultSet, agoClass, tableOfClass, boxTypes, runSpace, idType);
             resultMapper.setAgoEngine((AgoEngine) classManager);
             if (resultMapper.hasNext()) {
                 return resultMapper.next();
@@ -623,4 +624,9 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         TransactionBoundDataSource transactionBoundDataSource = (TransactionBoundDataSource) this.getDataSource();
         transactionBoundDataSource.close();
     }
+
+    public TypeMapping getTypeMapping() {
+        return typeMapping;
+    }
+
 }

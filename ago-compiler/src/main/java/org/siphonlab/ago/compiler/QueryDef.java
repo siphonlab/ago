@@ -16,24 +16,33 @@
 package org.siphonlab.ago.compiler;
 
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import org.apache.calcite.avatica.util.Casing;
-import org.apache.calcite.config.Lex;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.parser.SqlParser;
-import org.apache.calcite.sql.parser.babel.SqlBabelParserImpl;
-import org.apache.calcite.tools.Frameworks;
-import org.apache.calcite.tools.Planner;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
+import org.siphonlab.ago.compiler.expression.ConstClass;
+import org.siphonlab.ago.compiler.expression.Expression;
+import org.siphonlab.ago.compiler.expression.ToString;
+import org.siphonlab.ago.compiler.expression.Var;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
+import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
-import org.siphonlab.ago.compiler.sql.EntitySchema;
+import org.siphonlab.ago.compiler.sql.CodeGenerator;
+import org.siphonlab.ago.compiler.sql.QueryResult;
 import org.siphonlab.ago.compiler.sql.SchemaLineager;
+import org.siphonlab.ago.compiler.statement.ExpressionStmt;
+import org.siphonlab.ago.compiler.statement.Return;
+import org.siphonlab.ago.compiler.statement.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class QueryDef extends FunctionDef{
 
@@ -43,6 +52,7 @@ public class QueryDef extends FunctionDef{
 
     private ClassDef queryResult;
     private ClassDef queryArgs;
+    private SchemaLineager schemaLineager;
 
     public QueryDef(Root root, String name, AgoParser.QueryDeclarationContext queryDeclaration) {
         super(root, name, null);
@@ -107,10 +117,36 @@ public class QueryDef extends FunctionDef{
         unit.parseFormalParameters(this, formalParameters);
         this.processFieldParameters();
 
+        var it = getOrCreateGenericInstantiationClassDef(getRoot().findByFullname("QueryResultIterator"), new ClassRefLiteral[]{queryResult.toClassRefLiteral()}, null);
+        this.setResultType(it);
+        this.registerConcreteType(it);
+
 //        parseThrows(this.methodDecl.throwsPhrase());
+        buildArgs();
 
         this.setCompilingStage(CompilingStage.InheritsFields);      // skip ValidateHierarchy
         return true;
+    }
+
+    private void buildArgs() {
+        for (Parameter parameter : this.getParameters()) {
+            if(parameter.getType() instanceof NullableClassDef nullableClassDef) {
+                var isNull = new Variable();
+                isNull.setName(parameter.getName() + "IsNull");
+                isNull.setType(root.BOOLEAN());
+                isNull.setOwnerClass(this);
+                isNull.setModifiers(AgoClass.PRIVATE);
+                this.addLocalVariable(isNull);
+            }
+        }
+
+        // put to each dialect later
+        var sql = new Variable();
+        sql.setName("sql");
+        sql.setType(root.STRING());
+        sql.setOwnerClass(this);
+        sql.setModifiers(AgoClass.PRIVATE);
+        this.addLocalVariable(sql);
     }
 
     @Override
@@ -122,30 +158,12 @@ public class QueryDef extends FunctionDef{
         if(this.compilingStage == CompilingStage.InheritsFields) {
             if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: parse query fields".formatted(this));
 
-            var schema = new EntitySchema(this);
-            Planner planner = Frameworks.getPlanner(
-                    Frameworks.newConfigBuilder()
-                            .defaultSchema(schema)
-                            .parserConfig(SqlParser.config()
-                                            .withCaseSensitive(true)
-//                                .withQuotedCasing(Casing.UNCHANGED)
-//                                .withLex(Lex.SQL_SERVER)
-                                            .withParserFactory(SqlBabelParserImpl.FACTORY)
-                                            .withCharLiteralStyles(java.util.Collections.emptySet())
-                            )
-                            .build());
-
-            SqlNode root;
             AgoParser.SqlBlockContext sqlBlock = this.queryDeclaration.sqlBlock().getFirst();
             try {
                 String sql = sqlBlock.SQL_ATOM().getFirst().getText();
-//            root = planner.parse(sql);
-//
-//            SqlNode validated = planner.validate(root);
-//            RelNode rel = planner.rel(validated).rel;
-//            System.out.println(RelOptUtil.toString(rel));
-                var r = new SchemaLineager(this).resolve(CCJSqlParserUtil.parse(sql));
-                System.out.println(r);
+                this.schemaLineager = new SchemaLineager(this);
+                var queryResult = schemaLineager.resolve(CCJSqlParserUtil.parse(sql));
+                buildQueryResult(queryResult);
             } catch (Exception e) {
                 throw new SyntaxError(e.getMessage(), getUnit().sourceLocation(sqlBlock));
             }
@@ -154,4 +172,71 @@ public class QueryDef extends FunctionDef{
         }
     }
 
+    private void buildQueryResult(QueryResult queryResult) {
+        for (QueryResult.ColumnDef column : queryResult.getColumns()) {
+            var field = new Field(this.queryResult, column.getName(), null);
+            field.setModifiers(AgoClass.PUBLIC | AgoClass.FINAL);
+            ClassDef type = column.getType();
+            if(type == null) type = getRoot().getAnyClass();
+            field.setType(type);
+            this.queryResult.addField(field);
+        }
+    }
+
+    @Override
+    public void compileBody() throws CompilationError {
+        if(this.getCompilingStage() != CompilingStage.CompileMethodBody) return;
+        if(this.isGenericInstantiation()){
+            this.nextCompilingStage(CompilingStage.Compiled);
+            return;
+        }
+
+        /*
+            var nameIsNull as boolean = (name == null);
+            var key = dialect + nameIsNull;
+            var existed = cache.get(key);
+            if(existed != null) return existed;
+            if(dialect == 'pg'){
+                var s = pg(name != null);
+                cache.put(key, s)
+                return s;
+            }
+
+            fun pg() as string{
+                var sql = $"
+                    select ${mapColumn<User>('id')}, ${mapColumn<User>('name')}
+                    from ${mapTable<User>()}
+                "$;
+                if(!nameIsNUll){
+                    sql += $"where ${mapColumn<User>('name')} = ${name}"$;
+                }
+                return sql;
+            }
+         */
+
+        var codeGen = new CodeGenerator(new StringBuilder(), this, schemaLineager.getClassMapping(), schemaLineager.getVariableMapping());
+        codeGen.visit((PlainSelect) schemaLineager.getStatement());
+        String code = "$\"" + codeGen.getBuilder().toString() + "\"$";
+        var tempStr = new AgoParser(new CommonTokenStream(new AgoLexer(CharStreams.fromString(code)))).templateStringLiteral();
+
+        List<Statement> statements = new ArrayList<>();
+        BlockCompiler blockCompiler = new BlockCompiler(this.getUnit(), this, Collections.emptyList());
+        Expression templated = blockCompiler.templateString(tempStr);
+
+        Var.LocalVar sql = new Var.LocalVar(this, getVariable("sql"), Var.LocalVar.VarMode.Existed);
+        statements.add(new ExpressionStmt(this, assign(sql, templated)));
+
+        ClassDef execQuery = getRoot().findByFullname("executeQuery#");
+        var execQueryInstantiation = this.getOrCreateGenericInstantiationClassDef(execQuery, new ClassRefLiteral[]{this.getQueryResult().toClassRefLiteral()}, null);
+        registerConcreteType(execQueryInstantiation);
+
+        statements.add(new Return(this, invoke(Invoke.InvokeMode.Invoke,
+                    new ConstClass(execQueryInstantiation),
+                    List.of(sql, root.nullLiteral()), unit.sourceLocation(this.queryDeclaration)
+                )));
+
+        blockCompiler.compileExpressions(statements.stream().map(st -> (Expression)st).toList());
+
+        this.nextCompilingStage(CompilingStage.Compiled);   // Compiled
+    }
 }

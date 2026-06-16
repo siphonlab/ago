@@ -20,7 +20,7 @@ import org.siphonlab.ago.runtime.rdb.*;
 
 public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
-    ResultSetMapper fetchAll(AgoClass agoClass, RunSpace runSpace);
+    ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace);
 
     // for EntityAdapter, the saveInstance only log the changed instances, and `flush` really save them to db, and saveInstance may lock the id
     void flush(RunSpace runSpace);
@@ -31,4 +31,10 @@ public interface EntityAdapter<Id> extends DbAdapter<Id>{
     EntityAdapter<Id> beginTransaction();
 
     boolean isEntityClass(AgoClass agoClass);
+
+    String tableName(AgoClass agoClass);
+
+    ColumnDesc getColumnDesc(String className, int slot);
+
+    ResultSetToQueryResultMapper<Id> executeQuery(String sql, Object[] arguments, AgoClass entityClass, RunSpace runSpace);
 }

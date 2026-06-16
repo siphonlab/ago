@@ -84,6 +84,14 @@ fun main(){
     var u2 = await getUser(u.id) via EntitySpace.new#();
     Trace.print(u2.name)
     Trace.print(u2.age)
+
+    var it = await userByName('Tom') via EntitySpace.new#();
+    for(var item in it){
+        Trace.print(item.name)
+        Trace.print(item.age)
+    }
+
+    Trace.print("DONE");
 }
 
 
@@ -92,6 +100,10 @@ class Query<+R> from Function<R>{
         protected dialects as Map<string, string?> = new HashMap<string, string?>();
     }
 }
+
+fun mapColumn<Table>(column as int) as string native "org.siphonlab.ago.runtime.db.sdk.Entity.mapColumn";
+
+fun mapTable<Table>() as string native "org.siphonlab.ago.runtime.db.sdk.Entity.mapTable";
 
 fun executeQuery<R>(sql as string, args as Object?) as QueryResultIterator<R> native "org.siphonlab.ago.runtime.db.sdk.Entity.executeQuery";
 
@@ -125,44 +137,51 @@ native class EntityWorkflowSpace with ForkContext{
         return executeQuery(dialects['pg'], new Args(name))
     }
 */
-query UserByName(name as string?) {
+
+query userByName(name as string?) {
     sql{.
-        SELECT
-            u.id          AS userId,
-            u.name        AS userName,
-            a.street      AS street,
-            a.city        AS city,
-            a.state       AS state,
-            a.zipCode     AS zip,
-            a.country     AS country
-        FROM
-            User u
-        JOIN
-            Address a
-        ON
-            a.user = u.id
-        WHERE
-            a.isPrimary = true
+        SELECT u.id, u.name, u.age FROM User u
     .}
 }
 
-query UserByName2(name as string?) {
-    sql{.
-        SELECT
-            u.id          AS userId,
-            u.name        AS userName,
-            a.street      AS street,
-            a.city        AS city,
-            a.state       AS state,
-            a.zipCode     AS zip,
-            a.country     AS country
-        FROM
-            User u, Address a
-        WHERE
-            a.user = u.id
-            AND a.isPrimary = true
-    .}
-}
+//query userByName2(name as string?) {
+//    sql{.
+//        SELECT
+//            u.id          AS userId,
+//            u.name        AS userName,
+//            a.street      AS street,
+//            a.city        AS city,
+//            a.state       AS state,
+//            a.zipCode     AS zip,
+//            a.country     AS country
+//        FROM
+//            User u
+//        JOIN
+//            Address a
+//        ON
+//            a.user = u.id
+//        WHERE
+//            a.isPrimary = true
+//    .}
+//}
+//
+//query UserByName3(name as string?) {
+//    sql{.
+//        SELECT
+//            u.id          AS userId,
+//            u.name        AS userName,
+//            a.street      AS street,
+//            a.city        AS city,
+//            a.state       AS state,
+//            a.zipCode     AS zip,
+//            a.country     AS country
+//        FROM
+//            User u, Address a
+//        WHERE
+//            a.user = u.id
+//            AND a.isPrimary = true
+//    .}
+//}
 
 class Address from Entity<Address, long> {
     user as User;

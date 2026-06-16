@@ -31,7 +31,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
         this.entityClass = classManager.getClass("Entity");
     }
 
-    public ResultSetMapper fetchAll(AgoClass agoClass, RunSpace runSpace) {
+    public ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace) {
         var tableOfClass = getTableOfClass(agoClass);
 
         StringBuilder sql = composeSelectFrom(tableOfClass);
@@ -44,7 +44,31 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
 
             PreparedStatement finalPs = ps;
             Connection finalConnection = connection;
-            return new ResultSetMapper<Id>(finalPs.executeQuery(), agoClass, tableOfClass, boxTypes, runSpace, idType) {
+            return new ResultSetToEntityMapper<Id>(finalPs.executeQuery(), agoClass, tableOfClass, boxTypes, runSpace, idType) {
+                public void close() {
+                    super.close();
+                    closeQuietly(finalPs);
+                    closeQuietly(finalConnection);
+                }
+            };
+        } catch (SQLException e) {
+            closeQuietly(ps);
+            closeQuietly(connection);
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public ResultSetToQueryResultMapper<Id> executeQuery(String sql, Object[] arguments, AgoClass entityClass, RunSpace runSpace) {
+        Connection connection = null;
+        PreparedStatement ps = null;
+        try {
+            connection = dataSource.getConnection();
+            ps = connection.prepareStatement(sql);
+
+            PreparedStatement finalPs = ps;
+            Connection finalConnection = connection;
+            return new ResultSetToQueryResultMapper<Id>(finalPs.executeQuery(), entityClass, this, runSpace, idType) {
                 public void close() {
                     super.close();
                     closeQuietly(finalPs);

@@ -39,7 +39,7 @@ import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
 import static org.siphonlab.ago.TypeCode.SHORT_VALUE;
 import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 
-public class ResultSetMapper<Id> {
+public class ResultSetToEntityMapper<Id> {
 
     private final ResultSet resultSet;
     private final AgoClass agoClass;
@@ -51,7 +51,7 @@ public class ResultSetMapper<Id> {
     private AgoEngine agoEngine;
     private boolean closed = false;
 
-    public ResultSetMapper(ResultSet resultSet, AgoClass agoClass, RdbTable rdbTable, BoxTypes boxTypes, RunSpace runSpace, TypeCode idType){
+    public ResultSetToEntityMapper(ResultSet resultSet, AgoClass agoClass, RdbTable rdbTable, BoxTypes boxTypes, RunSpace runSpace, TypeCode idType){
         this.resultSet = resultSet;
         this.agoClass = agoClass;
         this.rdbTable = rdbTable;
@@ -225,7 +225,7 @@ public class ResultSetMapper<Id> {
         this.agoEngine = agoEngine;
     }
 
-    public static class JsonSerializer extends com.fasterxml.jackson.databind.JsonSerializer<ResultSetMapper> {
+    public static class JsonSerializer extends com.fasterxml.jackson.databind.JsonSerializer<ResultSetToEntityMapper> {
         private final ObjectMapper jsonObjectMapper;
 
         public JsonSerializer(ObjectMapper jsonObjectMapper) {
@@ -233,7 +233,7 @@ public class ResultSetMapper<Id> {
         }
 
         @Override
-        public void serialize(ResultSetMapper value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        public void serialize(ResultSetToEntityMapper value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeStartArray();
             try {
                 while (value.hasNext()) {

@@ -25,7 +25,15 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.piped.FromQuery;
 import net.sf.jsqlparser.statement.select.*;
 
+import java.util.Map;
+
 public class ValueVisitor implements ExpressionVisitor<QueryValue> {
+
+    private final Map<Column, QueryResult.VariableColumnDef> variableMapping;
+
+    public ValueVisitor(Map<Column, QueryResult.VariableColumnDef> variableMapping) {
+        this.variableMapping = variableMapping;
+    }
 
     @Override
     public <S> QueryValue visit(Column tableColumn, S context) {
@@ -43,6 +51,9 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
             col = scope.resolveColumn(tableColumn.getColumnName());
         }
         if(col == null) return null;
+        if(col instanceof QueryResult.VariableColumnDef variableColumnDef){
+            variableMapping.put(tableColumn, variableColumnDef);
+        }
         return new QueryValue.ColumnValue(col);
     }
 
@@ -178,6 +189,7 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 
     @Override
     public <S> QueryValue visit(EqualsTo equalsTo, S context) {
+        visitBinaryExpression(equalsTo, context);
         return null;
     }
 

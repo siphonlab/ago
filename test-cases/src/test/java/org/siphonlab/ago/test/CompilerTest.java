@@ -50,7 +50,8 @@ public class CompilerTest {
                 new File("../ago-sdk/src/lang/runspace.ago"),
                 new File("../ago-sdk/src/lang/atomic.ago"),
                 new File("../ago-sdk/src/lang/tuple.ago"),
-                new File("../ago-sdk/src/lang/reflection.ago")
+                new File("../ago-sdk/src/lang/reflection.ago"),
+                new File("../ago-sdk/src/lang/util.ago")
         });
         ClassFile.saveToDirectory(units, "../ago-sdk/compiled/lang/");
     }

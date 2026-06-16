@@ -41,6 +41,10 @@ public class QueryResult {
         return columns.stream().filter(c -> c.name.equals(columnName)).findFirst().orElse(null);
     }
 
+    public List<ColumnDef> getColumns() {
+        return columns;
+    }
+
     public static class ColumnDef{
 
         @NonNull
@@ -53,6 +57,14 @@ public class QueryResult {
             r.name = name;
             r.type = this.type;
             return r;
+        }
+
+        public String getName() {
+            return this.name;
+        }
+
+        public ClassDef getType() {
+            return type;
         }
     }
 
@@ -110,6 +122,7 @@ class TableResult extends QueryResult {
             var c = new VariableColumnDef();
             c.name = field.getName();
             c.srcVariable = field;
+            c.ownerClass = classDef;
             c.type = field.getType();
             columns.add(c);
         }

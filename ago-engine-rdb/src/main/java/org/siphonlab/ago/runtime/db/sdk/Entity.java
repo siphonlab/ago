@@ -19,10 +19,11 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.db.DbSlots;
-import org.siphonlab.ago.runtime.db.EntityAdapter;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
+import org.siphonlab.ago.runtime.rdb.ResultSetToEntityMapper;
+import org.siphonlab.ago.runtime.rdb.ResultSetToQueryResultMapper;
 
 import static org.siphonlab.ago.runtime.db.EntityRunSpace.retrieveEntityAdapter;
 
@@ -65,6 +66,30 @@ public class Entity {
     }
 
     public static void executeQuery(NativeFrame frame, String sql, Object arguments){
-        System.out.println(1);
+        var adapter = retrieveEntityAdapter(frame.getRunSpace());
+        AgoClass queryResultIteratorClass = frame.getAgoClass().getResultClass();
+        var resultClass = queryResultIteratorClass.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+        var queryResultIteratorInstance = (NativeInstance) frame.getAgoEngine().createNativeInstance(null, queryResultIteratorClass, frame.getRunSpace());
+        ResultSetToQueryResultMapper<Object> mapper = adapter.executeQuery(sql, null, resultClass, frame.getRunSpace());
+        mapper.setAgoEngine(frame.getAgoEngine());
+        queryResultIteratorInstance.setNativePayload(mapper);
+        frame.finishObject(queryResultIteratorInstance);
+    }
+
+    public static void mapColumn(NativeFrame frame, int slotIndex){
+        var adapter = retrieveEntityAdapter(frame.getRunSpace());
+        var entityClass = frame.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+        var columnDesc = adapter.getColumnDesc(entityClass.getFullname(), slotIndex);
+        if(columnDesc.getAdditional() == null) {
+            frame.finishString(columnDesc.getName());
+        } else {
+            frame.finishString(columnDesc.getName() + "," + columnDesc.getAdditional().getName());
+        }
+    }
+
+    public static void mapTable(NativeFrame frame){
+        var adapter = retrieveEntityAdapter(frame.getRunSpace());
+        var entityClass = frame.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+        frame.finishString(adapter.tableName(entityClass));
     }
 }
