@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.sql;
 
 import net.sf.jsqlparser.schema.Column;
+import org.siphonlab.ago.compiler.Variable;
 
 import java.util.Objects;
 
@@ -26,6 +27,15 @@ public interface QueryValue {
 
         public ColumnValue(QueryResult.ColumnDef columnDef) {
             this.columnDef = Objects.requireNonNull(columnDef);
+        }
+    }
+
+    public class VariableValue implements QueryValue{
+
+        final Variable variable;
+
+        public VariableValue(Variable variable) {
+            this.variable = Objects.requireNonNull(variable);
         }
     }
 

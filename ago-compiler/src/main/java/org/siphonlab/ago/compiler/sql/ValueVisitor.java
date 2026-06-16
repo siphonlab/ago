@@ -24,15 +24,22 @@ import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.piped.FromQuery;
 import net.sf.jsqlparser.statement.select.*;
+import org.siphonlab.ago.compiler.QueryDef;
+import org.siphonlab.ago.compiler.Variable;
 
 import java.util.Map;
+import java.util.Set;
 
 public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 
-    private final Map<Column, QueryResult.VariableColumnDef> variableMapping;
+    private final Map<Column, QueryResult.FieldColumnDef> fieldMapping;
+    private final QueryDef queryDef;
+    private final Set<Variable> bindParameters;
 
-    public ValueVisitor(Map<Column, QueryResult.VariableColumnDef> variableMapping) {
-        this.variableMapping = variableMapping;
+    public ValueVisitor(QueryDef queryDef, Map<Column, QueryResult.FieldColumnDef> fieldMapping, Set<Variable> bindParameters) {
+        this.fieldMapping = fieldMapping;
+        this.queryDef = queryDef;
+        this.bindParameters = bindParameters;
     }
 
     @Override
@@ -51,8 +58,8 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
             col = scope.resolveColumn(tableColumn.getColumnName());
         }
         if(col == null) return null;
-        if(col instanceof QueryResult.VariableColumnDef variableColumnDef){
-            variableMapping.put(tableColumn, variableColumnDef);
+        if(col instanceof QueryResult.FieldColumnDef fieldColumnDef){
+            fieldMapping.put(tableColumn, fieldColumnDef);
         }
         return new QueryValue.ColumnValue(col);
     }
@@ -94,7 +101,14 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 
     @Override
     public <S> QueryValue visit(JdbcNamedParameter jdbcNamedParameter, S context) {
-        return null;
+        var name = jdbcNamedParameter.getName();
+        var variable = queryDef.getVariable(name);
+        if(variable == null){
+            variable = queryDef.getFields().get(name);
+        }
+        assert variable != null;
+        bindParameters.add(variable);
+        return new QueryValue.VariableValue(variable);
     }
 
     @Override

@@ -27,7 +27,6 @@ import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.QueryDef;
-import org.siphonlab.ago.compiler.Variable;
 
 import java.util.Map;
 
@@ -37,9 +36,9 @@ public class CodeGenerator extends SelectDeParser {
 
     private final QueryDef queryDef;
     private final Map<Table, ClassDef> classMapping;
-    private final Map<Column, QueryResult.VariableColumnDef> variableMapping;
+    private final Map<Column, QueryResult.FieldColumnDef> variableMapping;
 
-    public CodeGenerator(StringBuilder stringBuilder, QueryDef queryDef, Map<Table, ClassDef> classMapping, Map<Column, QueryResult.VariableColumnDef> variableMapping) {
+    public CodeGenerator(StringBuilder stringBuilder, QueryDef queryDef, Map<Table, ClassDef> classMapping, Map<Column, QueryResult.FieldColumnDef> variableMapping) {
         super(new ExprVisitor(variableMapping, stringBuilder), stringBuilder);
         this.queryDef = queryDef;
         this.classMapping = classMapping;
@@ -86,9 +85,9 @@ public class CodeGenerator extends SelectDeParser {
 
     static class ExprVisitor extends ExpressionDeParser{
 
-        private final Map<Column, QueryResult.VariableColumnDef> variableMapping;
+        private final Map<Column, QueryResult.FieldColumnDef> variableMapping;
 
-        public ExprVisitor(Map<Column, QueryResult.VariableColumnDef> variableMapping, StringBuilder stringBuilder) {
+        public ExprVisitor(Map<Column, QueryResult.FieldColumnDef> variableMapping, StringBuilder stringBuilder) {
             this.variableMapping = variableMapping;
             this.builder = stringBuilder;
         }

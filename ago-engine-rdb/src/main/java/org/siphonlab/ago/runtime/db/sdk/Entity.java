@@ -25,6 +25,8 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter;
 import org.siphonlab.ago.runtime.rdb.ResultSetToEntityMapper;
 import org.siphonlab.ago.runtime.rdb.ResultSetToQueryResultMapper;
 
+import java.util.Map;
+
 import static org.siphonlab.ago.runtime.db.EntityRunSpace.retrieveEntityAdapter;
 
 public class Entity {
@@ -70,7 +72,13 @@ public class Entity {
         AgoClass queryResultIteratorClass = frame.getAgoClass().getResultClass();
         var resultClass = queryResultIteratorClass.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
         var queryResultIteratorInstance = (NativeInstance) frame.getAgoEngine().createNativeInstance(null, queryResultIteratorClass, frame.getRunSpace());
-        ResultSetToQueryResultMapper<Object> mapper = adapter.executeQuery(sql, null, resultClass, frame.getRunSpace());
+        Map<String,Object> argMap;
+        if(arguments != null){
+            argMap = new InstanceAsMap((Instance<?>) arguments);
+        } else {
+            argMap = null;
+        }
+        ResultSetToQueryResultMapper<Object> mapper = adapter.executeQuery(sql, argMap, resultClass, frame.getRunSpace());
         mapper.setAgoEngine(frame.getAgoEngine());
         queryResultIteratorInstance.setNativePayload(mapper);
         frame.finishObject(queryResultIteratorInstance);

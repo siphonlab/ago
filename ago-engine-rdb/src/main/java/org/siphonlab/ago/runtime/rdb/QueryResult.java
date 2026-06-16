@@ -27,7 +27,8 @@ public class QueryResult {
     public static void hasNext(NativeFrame frame) {
         ResultSetToQueryResultMapper<?> resultSetToQueryResultMapper = (ResultSetToQueryResultMapper<?>) frame.getParentScope().getNativePayload();
         try {
-            frame.finishBoolean(resultSetToQueryResultMapper.hasNext());
+            boolean result = resultSetToQueryResultMapper.hasNext();
+            frame.finishBoolean(result);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

@@ -68,14 +68,14 @@ public class QueryResult {
         }
     }
 
-    public static class VariableColumnDef extends ColumnDef{
+    public static class FieldColumnDef extends ColumnDef{
 
         @NonNull
         Variable srcVariable;
         ClassDef ownerClass;
 
         public ColumnDef alias(String name) {
-            var r = new VariableColumnDef();
+            var r = new FieldColumnDef();
             r.name = name;
             r.type = this.type;
             r.srcVariable = this.srcVariable;
@@ -119,7 +119,7 @@ class TableResult extends QueryResult {
         columns.add(id);
 
         for(var field : classDef.getFields().values()){
-            var c = new VariableColumnDef();
+            var c = new FieldColumnDef();
             c.name = field.getName();
             c.srcVariable = field;
             c.ownerClass = classDef;

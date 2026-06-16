@@ -20,13 +20,9 @@ import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.siphonlab.ago.AgoClass;
-import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.expression.ConstClass;
-import org.siphonlab.ago.compiler.expression.Expression;
-import org.siphonlab.ago.compiler.expression.ToString;
-import org.siphonlab.ago.compiler.expression.Var;
+import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
@@ -43,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class QueryDef extends FunctionDef{
 
@@ -122,13 +119,13 @@ public class QueryDef extends FunctionDef{
         this.registerConcreteType(it);
 
 //        parseThrows(this.methodDecl.throwsPhrase());
-        buildArgs();
+        createLocalVarsForQuery();
 
         this.setCompilingStage(CompilingStage.InheritsFields);      // skip ValidateHierarchy
         return true;
     }
 
-    private void buildArgs() {
+    private void createLocalVarsForQuery() {
         for (Parameter parameter : this.getParameters()) {
             if(parameter.getType() instanceof NullableClassDef nullableClassDef) {
                 var isNull = new Variable();
@@ -147,6 +144,13 @@ public class QueryDef extends FunctionDef{
         sql.setOwnerClass(this);
         sql.setModifiers(AgoClass.PRIVATE);
         this.addLocalVariable(sql);
+
+        var args = new Variable();
+        args.setName("args");
+        args.setType(queryArgs);
+        args.setOwnerClass(this);
+        args.setModifiers(AgoClass.PRIVATE);
+        this.addLocalVariable(args);
     }
 
     @Override
@@ -164,11 +168,22 @@ public class QueryDef extends FunctionDef{
                 this.schemaLineager = new SchemaLineager(this);
                 var queryResult = schemaLineager.resolve(CCJSqlParserUtil.parse(sql));
                 buildQueryResult(queryResult);
+                buildArgs(schemaLineager.getBindParameters());
             } catch (Exception e) {
                 throw new SyntaxError(e.getMessage(), getUnit().sourceLocation(sqlBlock));
             }
 
             setCompilingStage(CompilingStage.ValidateNewFunctions);
+        }
+    }
+
+    private void buildArgs(Set<Variable> bindParameters) {
+        for (Variable variable : bindParameters) {
+            var field = new Field(this.queryArgs, variable.getName(), null);
+            field.setModifiers(AgoClass.PUBLIC);
+            ClassDef type = variable.getType();
+            field.setType(type);
+            this.queryArgs.addField(field);
         }
     }
 
@@ -214,7 +229,7 @@ public class QueryDef extends FunctionDef{
             }
          */
 
-        var codeGen = new CodeGenerator(new StringBuilder(), this, schemaLineager.getClassMapping(), schemaLineager.getVariableMapping());
+        var codeGen = new CodeGenerator(new StringBuilder(), this, schemaLineager.getClassMapping(), schemaLineager.getFieldMapping());
         codeGen.visit((PlainSelect) schemaLineager.getStatement());
         String code = "$\"" + codeGen.getBuilder().toString() + "\"$";
         var tempStr = new AgoParser(new CommonTokenStream(new AgoLexer(CharStreams.fromString(code)))).templateStringLiteral();
@@ -230,9 +245,28 @@ public class QueryDef extends FunctionDef{
         var execQueryInstantiation = this.getOrCreateGenericInstantiationClassDef(execQuery, new ClassRefLiteral[]{this.getQueryResult().toClassRefLiteral()}, null);
         registerConcreteType(execQueryInstantiation);
 
+        Expression queryArgs;
+        if(!this.queryArgs.getFields().isEmpty()) {
+            Var.LocalVar args = new Var.LocalVar(this, getVariable("args"), Var.LocalVar.VarMode.Existed);
+            statements.add(new ExpressionStmt(this, assign(args, new Creator(this, ClassUnder.create(this, new Scope.Local(this), this.queryArgs), Collections.emptyList(), null))));
+            for (Variable parameter : schemaLineager.getBindParameters()) {
+                Var.Field field = new Var.Field(this, args, this.queryArgs.getFields().get(parameter.getName()));
+                Var value;
+                if(parameter instanceof Field f){
+                    value = new Var.Field(this, new Scope.Local(this), f);
+                } else {
+                    value = new Var.LocalVar(this, parameter, Var.LocalVar.VarMode.Existed);
+                }
+                statements.add(new ExpressionStmt(this, assign(field, value)));
+            }
+            queryArgs = args;
+        } else {
+            queryArgs = getRoot().nullLiteral();
+        }
+
         statements.add(new Return(this, invoke(Invoke.InvokeMode.Invoke,
                     new ConstClass(execQueryInstantiation),
-                    List.of(sql, root.nullLiteral()), unit.sourceLocation(this.queryDeclaration)
+                    List.of(sql, queryArgs), unit.sourceLocation(this.queryDeclaration)
                 )));
 
         blockCompiler.compileExpressions(statements.stream().map(st -> (Expression)st).toList());

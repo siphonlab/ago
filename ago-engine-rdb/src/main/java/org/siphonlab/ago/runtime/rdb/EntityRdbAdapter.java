@@ -1,14 +1,16 @@
 package org.siphonlab.ago.runtime.rdb;
 
+import groovy.lang.Closure;
+import groovy.sql.Sql;
+import org.apache.commons.lang3.mutable.Mutable;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.db.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -59,26 +61,56 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
     }
 
     @Override
-    public ResultSetToQueryResultMapper<Id> executeQuery(String sql, Object[] arguments, AgoClass entityClass, RunSpace runSpace) {
+    public ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace) {
         Connection connection = null;
-        PreparedStatement ps = null;
         try {
             connection = dataSource.getConnection();
-            ps = connection.prepareStatement(sql);
+            Mutable<ResultSet> rs = new MutableObject<>();
+            var manualCloseSql = new ManualCloseSql(connection);
+            manualCloseSql.query(sql, arguments, new Closure(null, null) {
+                @Override
+                public Object call(Object resultSet) {
+                    rs.setValue((ResultSet) resultSet);
+                    return null;
+                }
+            });
 
-            PreparedStatement finalPs = ps;
-            Connection finalConnection = connection;
-            return new ResultSetToQueryResultMapper<Id>(finalPs.executeQuery(), entityClass, this, runSpace, idType) {
+            return new ResultSetToQueryResultMapper<Id>(rs.get(), entityClass, this, runSpace, idType) {
                 public void close() {
                     super.close();
-                    closeQuietly(finalPs);
-                    closeQuietly(finalConnection);
+                    manualCloseSql.close();
                 }
             };
         } catch (SQLException e) {
-            closeQuietly(ps);
             closeQuietly(connection);
             throw new RuntimeException(e);
+        }
+    }
+
+    static class ManualCloseSql extends Sql{
+
+        private Connection connection;
+        private Statement statement;
+        private ResultSet results;
+
+        public ManualCloseSql(DataSource dataSource) {
+            super(dataSource);
+        }
+
+        public ManualCloseSql(Connection connection) {
+            super(connection);
+        }
+
+        @Override
+        protected void closeResources(Connection connection, Statement statement, ResultSet results) {
+            this.connection = connection;
+            this.statement = statement;
+            this.results = results;
+        }
+
+        public void close(){
+            super.closeResources(connection, statement, results);
+            super.close();
         }
     }
 

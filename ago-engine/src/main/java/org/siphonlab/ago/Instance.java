@@ -139,6 +139,14 @@ public class Instance<C extends AgoClass>  {
         this.getSlots().setObject(this.getAgoClass().findField(fieldName).getSlotIndex(), value);
     }
 
+    public Object getUnionField(String fieldName) {
+        return this.getSlots().getUnion(this.getAgoClass().findField(fieldName).getSlotIndex());
+    }
+
+    public void setUnionField(String fieldName, Object value) {
+        this.getSlots().setUnion(this.getAgoClass().findField(fieldName).getSlotIndex(), value);
+    }
+
     public AgoClass getClassRefField(String fieldName) {
         return this.getAgoClass().getClassLoader().getClass(this.getSlots().getClassRef(this.getAgoClass().findField(fieldName).getSlotIndex()));
     }

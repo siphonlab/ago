@@ -18,6 +18,8 @@ package org.siphonlab.ago.runtime.db;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.*;
 
+import java.util.Map;
+
 public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
     ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace);
@@ -36,5 +38,5 @@ public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
     ColumnDesc getColumnDesc(String className, int slot);
 
-    ResultSetToQueryResultMapper<Id> executeQuery(String sql, Object[] arguments, AgoClass entityClass, RunSpace runSpace);
+    ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace);
 }

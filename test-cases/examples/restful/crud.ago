@@ -85,6 +85,7 @@ fun main(){
     Trace.print(u2.name)
     Trace.print(u2.age)
 
+    Trace.print("----------- queryName ---------------------")
     var it = await userByName('Tom') via EntitySpace.new#();
     for(var item in it){
         Trace.print(item.name)
@@ -140,7 +141,7 @@ native class EntityWorkflowSpace with ForkContext{
 
 query userByName(name as string?) {
     sql{.
-        SELECT u.id, u.name, u.age FROM User u
+        SELECT u.id, u.name, u.age FROM User u WHERE name = :name
     .}
 }
 
