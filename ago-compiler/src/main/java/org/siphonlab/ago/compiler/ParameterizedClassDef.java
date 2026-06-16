@@ -276,6 +276,11 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
         }
 
         @Override
+        public MetaClassDef resolveMetaclass() throws CompilationError {
+            return baseClass.resolveMetaclass();
+        }
+
+        @Override
         public void inheritsChildClasses() throws CompilationError {
             if(this.compilingStage != CompilingStage.InheritsInnerClasses) return;
 

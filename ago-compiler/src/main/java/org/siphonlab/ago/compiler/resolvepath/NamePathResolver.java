@@ -903,15 +903,15 @@ public class NamePathResolver {
 
     private ClassDef parameterizedClass(ClassDef classDef, Id id) throws CompilationError {
         if(id instanceof ParameterizedClass parameterizedClass){
-            ClassDef r = classDef;
+            ClassDef base = classDef;
             if(parameterizedClass.typeArguments != null){
-                r = genericTypedClass(classDef, parameterizedClass);     //G<Animal>::(1,2)
-                if(r instanceof GenericInstantiationPlaceHolder && this.ids.getLast() != id){
+                base = genericTypedClass(classDef, parameterizedClass);     //G<Animal>::(1,2)
+                if(base instanceof GenericInstantiationPlaceHolder && this.ids.getLast() != id){
                     throw new SyntaxError("empty type arguments template initialization must put at the last",id.sourceLocation);
                 }
             }
             if(parameterizedClass.classCreatorArguments != null) {
-                var placeHolder = new ParameterizedClassDef.PlaceHolder(r, parameterizedClass.classCreatorArguments, id.sourceLocation, scopeClass);
+                var placeHolder = new ParameterizedClassDef.PlaceHolder(base, parameterizedClass.classCreatorArguments, id.sourceLocation, scopeClass);
                 if(classDef.getCompilingStage().getValue() < CompilingStage.AllocateSlots.getValue()){
                     classDef.getRoot().addParameterizedClassDefPlaceHolder(placeHolder);
                     return placeHolder;
@@ -919,7 +919,7 @@ public class NamePathResolver {
                     return placeHolder.resolve();
                 }
             }
-            return r;
+            return base;
         }
         return classDef;
     }
