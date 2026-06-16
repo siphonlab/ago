@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.resolvepath;
 
 
+import org.jspecify.annotations.NonNull;
 import org.siphonlab.ago.compiler.SourceLocation;
 import org.siphonlab.ago.compiler.Package;
 
@@ -32,6 +33,7 @@ import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
+import org.siphonlab.ago.compiler.generic.GenericInstantiationFunctionDef;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -1270,7 +1272,10 @@ public class NamePathResolver {
             if(!text.contains("#")){
                 var set = parent.findMethods(text);
                 if(set.size() > 1){
-                    maybeFunction.setCandidates(set);
+                    set = filterGenericInstantiationCandidates(set, maybeFunction.getFunction());
+                    if(set.size() > 1) {
+                        maybeFunction.setCandidates(set);
+                    }
                 }
             }
         }
@@ -1279,15 +1284,35 @@ public class NamePathResolver {
 
     private Expression resolveCandidateFunctions(Expression expr, Id id) throws CompilationError {
         if(expr instanceof MaybeFunction maybeFunction && maybeFunction.isFunction()){
+            FunctionDef function = maybeFunction.getFunction();
             String text = id.text();
             if(!text.contains("#")){
-                var set = maybeFunction.getFunction().getParent().findMethods(text);
+                var set = function.getParent().findMethods(text);
                 if(set.size() > 1){
-                    maybeFunction.setCandidates(set);
+                    set = filterGenericInstantiationCandidates(set, function);
+                    if(set.size() > 1) {
+                        maybeFunction.setCandidates(set);
+                    }
                 }
             }
         }
         return expr;
+    }
+
+    private static @NonNull Collection filterGenericInstantiationCandidates(Collection<FunctionDef> candidates, FunctionDef function) {
+        if(candidates.size() > 1) {
+            if (function instanceof GenericInstantiationFunctionDef) {
+                var ls = new ArrayList<FunctionDef>(candidates.size());
+                for (Object o : candidates) {
+                    FunctionDef candidate = (FunctionDef) o;
+                    if(candidate instanceof GenericInstantiationFunctionDef && candidate.getName().equals(function.getName())){
+                        ls.add(candidate);
+                    }
+                }
+                candidates = ls;
+            }
+        }
+        return candidates;
     }
 
     private Expression resolveVariable(Expression curr, Id id, boolean allowMetaScan){
