@@ -20,6 +20,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -517,20 +518,20 @@ public class BlockCompiler {
         }
     }
 
-    private Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
+    Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
         LiteralContext literal = literalExpr.literal();
         if(literal instanceof LArrayContext larr) {
             return arrayLiteral(larr, null, null);
         } else if(literal instanceof LObjectContext lobj){
             return objectLiteral(lobj, null, null);
         } else if(literal instanceof LTemplateStringContext lTemplateString){
-            return templateString(lTemplateString);
+            return templateString(lTemplateString.templateStringLiteral());
         } else {
             return Literal.parse(literal, unit.getRoot(), unit.sourceLocation(literalExpr));
         }
     }
 
-    private Expression templateString(LTemplateStringContext lTemplateString) throws CompilationError {
+    Expression templateString(TemplateStringLiteralContext lTemplateString) throws CompilationError {
         List<Expression> expressions = new ArrayList<>();
         var sb = new StringBuilder();
         TemplateStringAtomContext startAtom = null, endAtom = null;
@@ -545,7 +546,7 @@ public class BlockCompiler {
 
         boolean atFirstLineHead = true;
         boolean atLineHead = true;
-        for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
+        for (var atom : lTemplateString.templateStringAtom()) {
             ExpressionContext atomExpr = atom.expression();
             if(atomExpr != null){
                 atFirstLineHead = false;

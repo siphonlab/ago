@@ -1,0 +1,17 @@
+package lang
+
+native class StringBuilder{
+    fun new() native "org.siphonlab.ago.lang.StringBuilder.create"
+
+    fun new#str(s as string) native "org.siphonlab.ago.lang.StringBuilder.create";
+
+    fun append#str(s as string) as StringBuilder
+        native "org.siphonlab.ago.lang.StringBuilder.append";
+
+    fun append#obj(obj as Object) as StringBuilder{
+        return append(obj.toString())
+    }
+
+    override toString() as string
+        native "org.siphonlab.ago.lang.StringBuilder.toString"
+}
