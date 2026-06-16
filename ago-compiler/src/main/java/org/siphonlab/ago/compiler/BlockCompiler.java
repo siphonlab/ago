@@ -596,12 +596,19 @@ public class BlockCompiler {
         }
         if(expressions.isEmpty()) return getRoot().createStringLiteral("").setSourceLocation(unit.sourceLocation(lTemplateString));
         if(expressions.size() == 1) return expressions.getFirst();
-        var r = expressions.getFirst();
-        for (int j = 1; j < expressions.size(); j++) {
-            Expression expr = expressions.get(j);
-            r = functionDef.concat(r, expr);
+
+        List<Statement> statements = new ArrayList<>();
+        var newStringBuilder = new Creator(functionDef, new ConstClass(getRoot().getStringBuilderClass()), Collections.emptyList(), unit.sourceLocation(lTemplateString));
+        var expression = new CurrWithExpression(functionDef, newStringBuilder);
+        ClassUnder append = ClassUnder.create(functionDef, expression, getRoot().getStringBuilderClass().findMethod("append#str"));
+        for (Expression expr : expressions) {
+            Invoke invokeAppend = functionDef.invoke(Invoke.InvokeMode.Invoke,
+                    append,
+                    List.of(functionDef.cast(expr, getRoot().STRING())), expr.getSourceLocation()
+            );
+            statements.add(new ExpressionStmt(functionDef, invokeAppend));
         }
-        return r;
+        return new ToString(functionDef, new WithExpr(functionDef, expression, new BlockStmt(functionDef, statements)));
     }
 
     public Root getRoot() {
