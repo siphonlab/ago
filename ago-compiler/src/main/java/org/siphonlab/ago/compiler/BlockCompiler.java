@@ -547,19 +547,28 @@ public class BlockCompiler {
         boolean atFirstLineHead = true;
         boolean atLineHead = true;
         for (var atom : lTemplateString.templateStringAtom()) {
-            ExpressionContext atomExpr = atom.expression();
-            if(atomExpr != null){
+            if(atom instanceof ExpressionTempAtomContext exprAtom) {
                 atFirstLineHead = false;
-                if(!sb.isEmpty()){
+                if (!sb.isEmpty()) {
                     expressions.add(root.createStringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
                     sb.setLength(0);
                     startAtom = null;
                 }
-                expressions.add(this.expression(atomExpr));
-            } else {
+                expressions.add(this.expression(exprAtom.expression()));
+            } else if(atom instanceof CondExpressionTempAtomContext condExprAtom){
+                atFirstLineHead = false;
+                if (!sb.isEmpty()) {
+                    expressions.add(root.createStringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
+                    sb.setLength(0);
+                    startAtom = null;
+                }
+                expressions.add(null);
+                expressions.add(this.expression(condExprAtom.cond));
+                expressions.add(this.expression(condExprAtom.value));
+            } else if(atom instanceof LiteralTempAtomContext literalAtom){
                 if(startAtom == null) startAtom = atom;
                 endAtom = atom;
-                String text = atom.TemplateStringAtom().getText();
+                String text = literalAtom.TemplateStringAtom().getText();
                 charBuffer.append(text);
                 while(true) {
                     if (atFirstLineHead) {
@@ -602,12 +611,23 @@ public class BlockCompiler {
         var newStringBuilder = new Creator(functionDef, new ConstClass(getRoot().getStringBuilderClass()), Collections.emptyList(), unit.sourceLocation(lTemplateString));
         var expression = new CurrWithExpression(functionDef, newStringBuilder);
         ClassUnder append = ClassUnder.create(functionDef, expression, getRoot().getStringBuilderClass().findMethod("append#str"));
-        for (Expression expr : expressions) {
-            Invoke invokeAppend = functionDef.invoke(Invoke.InvokeMode.Invoke,
-                    append,
-                    List.of(functionDef.cast(expr, getRoot().STRING())), expr.getSourceLocation()
-            );
-            statements.add(new ExpressionStmt(functionDef, invokeAppend));
+        for (int i = 0; i < expressions.size(); i++) {
+            Expression expr = expressions.get(i);
+            if(expr == null) {
+                var cond = expressions.get(++i);
+                var value = expressions.get(++i);
+                Invoke invokeAppend = functionDef.invoke(Invoke.InvokeMode.Invoke,
+                        append,
+                        List.of(functionDef.cast(value, getRoot().STRING())), value.getSourceLocation()
+                );
+                statements.add(new IfThenElseStmt(functionDef, cond, new ExpressionStmt(functionDef, invokeAppend), null));
+            } else {
+                Invoke invokeAppend = functionDef.invoke(Invoke.InvokeMode.Invoke,
+                        append,
+                        List.of(functionDef.cast(expr, getRoot().STRING())), expr.getSourceLocation()
+                );
+                statements.add(new ExpressionStmt(functionDef, invokeAppend));
+            }
         }
         return new ToString(functionDef, new WithExpr(functionDef, expression, new BlockStmt(functionDef, statements)));
     }

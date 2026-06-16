@@ -303,7 +303,7 @@ public class LiteralParser {
         boolean atFirstLineHead = true;
         boolean atLineHead = true;
         for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
-            String text = atom.TemplateStringAtom().getText();
+            String text = ((AgoParser.LiteralTempAtomContext)atom).TemplateStringAtom().getText();
             charBuffer.append(text);
             while(true) {
                 if (atFirstLineHead) {

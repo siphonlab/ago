@@ -45,9 +45,8 @@ public abstract class Literal<T> implements LiteralResultExpression, TermExpress
     public static Literal<?> parse(AgoParser.LiteralContext literal, ClassDef suggestionType, Root root, SourceLocation sourceLocation) throws TypeMismatchError {
         if(literal instanceof AgoParser.LTemplateStringContext lTemplateString){
             for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
-                AgoParser.ExpressionContext atomExpr = atom.expression();
-                if (atomExpr != null) {
-                    throw new TypeMismatchError("template string not allowed for parameterized class and initializer", sourceLocation);
+                if (!(atom instanceof AgoParser.LiteralTempAtomContext)) {
+                    throw new TypeMismatchError("template string expressions are not allowed for parameterized class and initializer", sourceLocation);
                 }
             }
         }

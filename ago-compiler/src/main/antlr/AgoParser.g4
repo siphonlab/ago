@@ -354,8 +354,9 @@ templateStringLiteral
     ;
 
 templateStringAtom:
-    TemplateStringAtom
-    | TemplateStringStartExpression expression TEMPLATE_CLOSE_BRACE
+    TemplateStringAtom          #LiteralTempAtom
+    | TemplateStringStartExpression expression TEMPLATE_CLOSE_BRACE         #ExpressionTempAtom
+    | TemplateStringStartExpression (IF '(' cond=expression ')') value=expression TEMPLATE_CLOSE_BRACE   #CondExpressionTempAtom
     ;
 
 integerLiteral
