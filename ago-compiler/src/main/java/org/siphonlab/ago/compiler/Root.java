@@ -119,6 +119,8 @@ public class Root extends Namespace<Package> {
 
     private ClassDef ENTITY_CLASS;
 
+    private ClassDef STRING_BUILDER_CLASS;
+
     private Map<String, ArrayClassDef> knownArrayTypes = new HashMap<>();
 
     private CompilingStage compilingStage = CompilingStage.ParseClassName;
@@ -644,6 +646,10 @@ public class Root extends Namespace<Package> {
         return HASH_MAP_CLASS = findByFullname("lang.HashMap");
     }
 
+    public ClassDef getStringBuilderClass(){
+        return STRING_BUILDER_CLASS;
+    }
+
     public void resolveLangClasses() {
         if(this.ANY_CLASS == null) this.ANY_CLASS = findByFullname("lang.any");
         if(this.OBJECT_CLASS == null) this.OBJECT_CLASS = findByFullname("lang.Object");
@@ -686,7 +692,7 @@ public class Root extends Namespace<Package> {
         if(this.NULL_CLASS == null) this.NULL_CLASS = findByFullname("lang.Null");
 
         if(this.ARRAY_CLASS == null) this.ARRAY_CLASS = findByFullname("lang.Array");
-
+        if(this.STRING_BUILDER_CLASS == null) this.STRING_BUILDER_CLASS = findByFullname("lang.StringBuilder");
     }
 
     public PrimitiveClassDef VOID() {
