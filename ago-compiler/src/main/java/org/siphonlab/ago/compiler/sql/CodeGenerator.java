@@ -15,12 +15,10 @@
  */
 package org.siphonlab.ago.compiler.sql;
 
-import net.sf.jsqlparser.expression.Alias;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.MySQLIndexHint;
-import net.sf.jsqlparser.expression.SQLServerHints;
+import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
+import net.sf.jsqlparser.expression.operators.conditional.XorExpression;
 import net.sf.jsqlparser.expression.operators.relational.SupportsOldOracleJoinSyntax;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -160,13 +158,31 @@ public class CodeGenerator extends SelectDeParser {
         }
 
         @Override
-        public <S> StringBuilder visit(OrExpression orExpression, S context) {
-            return super.visit(orExpression, context);
+        public <S> StringBuilder visit(AndExpression andExpression, S context) {
+            Expression left = andExpression.getLeftExpression();
+            Expression right = andExpression.getRightExpression();
+            deParseLogical(left, right, andExpression.isUseOperator() ? " && " : " AND ", context);
+            return builder;
         }
 
         @Override
-        public <S> StringBuilder visit(AndExpression andExpression, S context) {
-            Expression left = andExpression.getLeftExpression();
+        public <S> StringBuilder visit(OrExpression orExpression, S context) {
+            Expression left = orExpression.getLeftExpression();
+            Expression right = orExpression.getRightExpression();
+            deParseLogical(left, right, " OR ", context);
+            return builder;
+        }
+
+        @Override
+        public <S> StringBuilder visit(XorExpression xorExpression, S context) {
+            Expression left = xorExpression.getLeftExpression();
+            Expression right = xorExpression.getRightExpression();
+            deParseLogical(left, right, " XOR ", context);
+            return builder;
+        }
+
+        protected <S> void deParseLogical(Expression left, Expression right,
+                                          String operator, S context) {
             Variable nullableVar = nullableConditions.get(left);
             if(nullableVar != null) {
                 builder.append("${$\"");
@@ -175,19 +191,18 @@ public class CodeGenerator extends SelectDeParser {
             } else {
                 left.accept(this, context);
             }
-            Expression right = andExpression.getRightExpression();
             nullableVar = nullableConditions.get(right);
             if(nullableVar != null) {
                 builder.append("${if(not %s) $\"".formatted(nullableVar.getName() + "IsNull"));
-                builder.append(andExpression.isUseOperator() ? " && " : " AND ");
+                builder.append(operator);
                 right.accept(this, context);
                 builder.append("\"$}");
             } else {
-                builder.append(andExpression.isUseOperator() ? " && " : " AND ");
+                builder.append(operator);
                 right.accept(this, context);
             }
-            return builder;
         }
+
 
     }
 
