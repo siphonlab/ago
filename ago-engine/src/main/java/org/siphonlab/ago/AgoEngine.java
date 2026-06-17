@@ -207,15 +207,20 @@ public class AgoEngine implements ClassManager{
             agoClass.initSlots();
         }
 
+        var runSpace = createRunSpaceForMetaInitialization();
         while(!metaClassCreationQueue.isEmpty()){
             var item = metaClassCreationQueue.removeFirst();
             if(LOGGER.isDebugEnabled()) LOGGER.debug("apply meta class %s".formatted(item));
             var constructor = item.constructor;
-            CallFrame<?> frame = createFunctionInstance(item.target, constructor, this.getDefaultRunSpace());
-            frame.setRunSpace(this.getDefaultRunSpace());
+            CallFrame<?> frame = createFunctionInstance(item.target, constructor, runSpace);
+            frame.setRunSpace(runSpace);
             frame.assignArguments(item.arguments);
-            this.getDefaultRunSpace().awaitTillComplete(frame);
+            runSpace.awaitTillComplete(frame);
         }
+    }
+
+    protected RunSpace createRunSpaceForMetaInitialization() {
+        return getDefaultRunSpace();
     }
 
     public void run(String functionName){

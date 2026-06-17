@@ -69,6 +69,11 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
     }
 
     protected RunSpace createDefaultRunSpace() {
+        return super.createDefaultRunSpace();
+    }
+
+    @Override
+    protected RunSpace createRunSpaceForMetaInitialization() {
         return new WorkflowRunSpace<Id>(this, workflowAdapter, runSpaceHost);
     }
 
