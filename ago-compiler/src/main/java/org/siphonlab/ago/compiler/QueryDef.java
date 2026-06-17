@@ -229,12 +229,23 @@ public class QueryDef extends FunctionDef{
             }
          */
 
-        var codeGen = new CodeGenerator(new StringBuilder(), this, schemaLineager.getClassMapping(), schemaLineager.getFieldMapping());
+        List<Statement> statements = new ArrayList<>();
+        for (Parameter parameter : this.getParameters()) {
+            if(parameter.getType() instanceof NullableClassDef nullableClassDef) {
+                var isNull = getVariable(parameter.getName() + "IsNull") ;
+                statements.add(new ExpressionStmt(this, assign(new Var.LocalVar(this, isNull, Var.LocalVar.VarMode.Existed),
+                        new Equals(this, Var.of(this, new Scope.Local(this), parameter), getRoot().nullLiteral(), Equals.Type.Equals))));
+            }
+        }
+
+        var codeGen = new CodeGenerator(new StringBuilder(), this, schemaLineager.getClassMapping(), schemaLineager.getFieldMapping(), schemaLineager.getNullableConditions());
         codeGen.visit((PlainSelect) schemaLineager.getStatement());
         String code = "$\"" + codeGen.getBuilder().toString() + "\"$";
+        if(LOGGER.isDebugEnabled()){
+            LOGGER.debug("%s transformed sql code: %s".formatted(this, code));
+        }
         var tempStr = new AgoParser(new CommonTokenStream(new AgoLexer(CharStreams.fromString(code)))).templateStringLiteral();
 
-        List<Statement> statements = new ArrayList<>();
         BlockCompiler blockCompiler = new BlockCompiler(this.getUnit(), this, Collections.emptyList());
         Expression templated = blockCompiler.templateString(tempStr);
 

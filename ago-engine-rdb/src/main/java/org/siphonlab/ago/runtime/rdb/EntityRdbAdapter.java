@@ -1,7 +1,9 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import groovy.lang.Closure;
+import groovy.lang.Tuple;
 import groovy.sql.Sql;
+import groovy.sql.SqlWithParams;
 import org.apache.commons.lang3.mutable.Mutable;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.siphonlab.ago.*;
@@ -62,6 +64,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
 
     @Override
     public ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace) {
+        if(LOGGER.isDebugEnabled()) LOGGER.debug("EXEC Query: " + sql);
         Connection connection = null;
         try {
             connection = dataSource.getConnection();
@@ -111,6 +114,19 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
         public void close(){
             super.closeResources(connection, statement, results);
             super.close();
+        }
+
+        public SqlWithParams checkForNamedParams(String sql, List<?> params) {
+            SqlWithParams preCheck = buildSqlWithIndexedProps(sql);
+            if (preCheck == null) {
+                return new SqlWithParams(sql, Collections.emptyList());
+            }
+
+            List<Tuple> indexPropList = new ArrayList<>();
+            for (Object next : preCheck.getParams()) {
+                indexPropList.add((Tuple) next);
+            }
+            return new SqlWithParams(preCheck.getSql(), getUpdatedParams(params, indexPropList));
         }
     }
 

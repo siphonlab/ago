@@ -223,6 +223,10 @@ public class SchemaLineager
         return bindParameters;
     }
 
+    public Map<Expression, Variable> getNullableConditions() {
+        return valueVisitor.getNullableConditions();
+    }
+
     @Override
     public <S> QueryResult visit(PlainSelect plainSelect, S context) {
 //        String alias = plainSelect.getAlias().getName();

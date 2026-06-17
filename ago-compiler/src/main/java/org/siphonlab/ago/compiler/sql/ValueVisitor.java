@@ -21,12 +21,16 @@ import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.conditional.XorExpression;
 import net.sf.jsqlparser.expression.operators.relational.*;
+import net.sf.jsqlparser.parser.ASTNodeAccessImpl;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.piped.FromQuery;
 import net.sf.jsqlparser.statement.select.*;
+import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.QueryDef;
 import org.siphonlab.ago.compiler.Variable;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,11 +39,16 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
     private final Map<Column, QueryResult.FieldColumnDef> fieldMapping;
     private final QueryDef queryDef;
     private final Set<Variable> bindParameters;
+    private final Map<Expression, Variable> nullableConditions = new HashMap<>();
 
     public ValueVisitor(QueryDef queryDef, Map<Column, QueryResult.FieldColumnDef> fieldMapping, Set<Variable> bindParameters) {
         this.fieldMapping = fieldMapping;
         this.queryDef = queryDef;
         this.bindParameters = bindParameters;
+    }
+
+    public Map<Expression, Variable> getNullableConditions() {
+        return nullableConditions;
     }
 
     @Override
@@ -108,7 +117,38 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
         }
         assert variable != null;
         bindParameters.add(variable);
+        ClassDef type = variable.getType();
+        if(type instanceof NullableClassDef nullableClassDef){
+            nullableConditions.put(findTopCondition(jdbcNamedParameter), variable);
+        }
         return new QueryValue.VariableValue(variable);
+    }
+
+    private Expression findTopCondition(JdbcNamedParameter jdbcNamedParameter) {
+        Expression prev = jdbcNamedParameter;
+        for(var p = jdbcNamedParameter.getParent(); p instanceof ASTNodeAccessImpl p2; p = p2.getParent()){
+            if(p instanceof PlainSelect plainSelect){
+                if(prev == plainSelect.getWhere()){
+                    return prev;
+                } else if(prev == plainSelect.getPreWhere()){
+                    return prev;
+                }
+            }
+            if(p instanceof Join join){
+                return prev;
+            }
+            if(p instanceof AndExpression){
+                return prev;
+            }
+            if(p instanceof  OrExpression or){
+                return prev;
+            }
+            if(p instanceof XorExpression xor){
+                return prev;
+            }
+            prev = (Expression) p;
+        }
+        return null;
     }
 
     @Override
@@ -178,16 +218,19 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 
     @Override
     public <S> QueryValue visit(AndExpression andExpression, S context) {
+        visitBinaryExpression(andExpression, context);
         return null;
     }
 
     @Override
     public <S> QueryValue visit(OrExpression orExpression, S context) {
+        visitBinaryExpression(orExpression, context);
         return null;
     }
 
     @Override
     public <S> QueryValue visit(XorExpression xorExpression, S context) {
+        visitBinaryExpression(xorExpression, context);
         return null;
     }
 
@@ -209,11 +252,13 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 
     @Override
     public <S> QueryValue visit(GreaterThan greaterThan, S context) {
+        visitBinaryExpression(greaterThan, context);
         return null;
     }
 
     @Override
     public <S> QueryValue visit(GreaterThanEquals greaterThanEquals, S context) {
+        visitBinaryExpression(greaterThanEquals, context);
         return null;
     }
 
@@ -254,21 +299,25 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 
     @Override
     public <S> QueryValue visit(LikeExpression likeExpression, S context) {
+        visitBinaryExpression(likeExpression, context);
         return null;
     }
 
     @Override
     public <S> QueryValue visit(MinorThan minorThan, S context) {
+        visitBinaryExpression(minorThan, context);
         return null;
     }
 
     @Override
     public <S> QueryValue visit(MinorThanEquals minorThanEquals, S context) {
+        visitBinaryExpression(minorThanEquals, context);
         return null;
     }
 
     @Override
     public <S> QueryValue visit(NotEqualsTo notEqualsTo, S context) {
+        visitBinaryExpression(notEqualsTo, context);
         return null;
     }
 

@@ -16,17 +16,23 @@
 package org.siphonlab.ago.compiler.sql;
 
 import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.MySQLIndexHint;
 import net.sf.jsqlparser.expression.SQLServerHints;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.SupportsOldOracleJoinSyntax;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.Pivot;
+import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.UnPivot;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.QueryDef;
+import org.siphonlab.ago.compiler.Variable;
+import org.siphonlab.ago.compiler.expression.CharBuffer;
 
 import java.util.Map;
 
@@ -37,12 +43,17 @@ public class CodeGenerator extends SelectDeParser {
     private final QueryDef queryDef;
     private final Map<Table, ClassDef> classMapping;
     private final Map<Column, QueryResult.FieldColumnDef> variableMapping;
+    private final Map<Expression, Variable> nullableConditions;
 
-    public CodeGenerator(StringBuilder stringBuilder, QueryDef queryDef, Map<Table, ClassDef> classMapping, Map<Column, QueryResult.FieldColumnDef> variableMapping) {
-        super(new ExprVisitor(variableMapping, stringBuilder), stringBuilder);
+    public CodeGenerator(StringBuilder stringBuilder, QueryDef queryDef,
+                         Map<Table, ClassDef> classMapping,
+                         Map<Column, QueryResult.FieldColumnDef> variableMapping,
+                         Map<Expression, Variable> nullableConditions) {
+        super(new ExprVisitor(variableMapping, stringBuilder, nullableConditions), stringBuilder);
         this.queryDef = queryDef;
         this.classMapping = classMapping;
         this.variableMapping = variableMapping;
+        this.nullableConditions = nullableConditions;
     }
 
     @Override
@@ -83,12 +94,29 @@ public class CodeGenerator extends SelectDeParser {
         return builder;
     }
 
+    @Override
+    protected void deparseWhereClause(PlainSelect plainSelect) {
+        if (plainSelect.getWhere() != null) {
+            Variable nullableVar = nullableConditions.get(plainSelect.getWhere());
+            if(nullableVar != null) {
+                builder.append("${if(not %s) $\"".formatted(nullableVar.getName() + "IsNull"));
+                super.deparseWhereClause(plainSelect);
+                builder.append("\"$}");
+            } else {
+                super.deparseWhereClause(plainSelect);
+            }
+        }
+    }
+
+
     static class ExprVisitor extends ExpressionDeParser{
 
         private final Map<Column, QueryResult.FieldColumnDef> variableMapping;
+        private final Map<Expression, Variable> nullableConditions;
 
-        public ExprVisitor(Map<Column, QueryResult.FieldColumnDef> variableMapping, StringBuilder stringBuilder) {
+        public ExprVisitor(Map<Column, QueryResult.FieldColumnDef> variableMapping, StringBuilder stringBuilder, Map<Expression, Variable> nullableConditions) {
             this.variableMapping = variableMapping;
+            this.nullableConditions = nullableConditions;
             this.builder = stringBuilder;
         }
 
@@ -130,6 +158,37 @@ public class CodeGenerator extends SelectDeParser {
 
             return builder;
         }
+
+        @Override
+        public <S> StringBuilder visit(OrExpression orExpression, S context) {
+            return super.visit(orExpression, context);
+        }
+
+        @Override
+        public <S> StringBuilder visit(AndExpression andExpression, S context) {
+            Expression left = andExpression.getLeftExpression();
+            Variable nullableVar = nullableConditions.get(left);
+            if(nullableVar != null) {
+                builder.append("${$\"");
+                left.accept(this, context);
+                builder.append("\"$ if(not %s) else 'true'}".formatted(nullableVar.getName() + "IsNull"));
+            } else {
+                left.accept(this, context);
+            }
+            Expression right = andExpression.getRightExpression();
+            nullableVar = nullableConditions.get(right);
+            if(nullableVar != null) {
+                builder.append("${if(not %s) $\"".formatted(nullableVar.getName() + "IsNull"));
+                builder.append(andExpression.isUseOperator() ? " && " : " AND ");
+                right.accept(this, context);
+                builder.append("\"$}");
+            } else {
+                builder.append(andExpression.isUseOperator() ? " && " : " AND ");
+                right.accept(this, context);
+            }
+            return builder;
+        }
+
     }
 
 }

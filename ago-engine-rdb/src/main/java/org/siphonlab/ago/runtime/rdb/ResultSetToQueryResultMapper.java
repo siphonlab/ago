@@ -56,7 +56,9 @@ public class ResultSetToQueryResultMapper<Id> {
 
     public boolean hasNext() throws SQLException {
         if(closed) return false;
-        return resultSet.next();
+        boolean r = resultSet.next();
+        if(!r) close();
+        return r;
     }
 
     Id readId(ResultSet rs) throws SQLException {

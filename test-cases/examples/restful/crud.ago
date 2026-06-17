@@ -86,7 +86,7 @@ fun main(){
     Trace.print(u2.age)
 
     Trace.print("----------- queryName ---------------------")
-    var it = await userByName('Tom') via EntitySpace.new#();
+    var it = await userByName('Tom', null, 30) via EntitySpace.new#();
     for(var item in it){
         Trace.print(item.name)
         Trace.print(item.age)
@@ -139,9 +139,9 @@ native class EntityWorkflowSpace with ForkContext{
     }
 */
 
-query userByName(name as string?) {
+query userByName(name as string?, minAge as int?, maxAge as int?) {
     sql{.
-        SELECT u.id, u.name, u.age FROM User u WHERE name = :name
+        SELECT u.id, u.name, u.age FROM User u WHERE name = :name AND age >= :minAge AND age <= :maxAge
     .}
 }
 

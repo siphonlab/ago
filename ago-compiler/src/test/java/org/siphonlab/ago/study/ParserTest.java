@@ -42,13 +42,7 @@ public class ParserTest {
     public void classDef() throws IOException, ExecutionException, InterruptedException {
 //        String code = IOUtils.toString(new FileInputStream("D:\\ficfio\\ago\\examples\\bootstrap\\20.boxer.ago"));
         String code = """
-                query UserByName(name as string?) {
-                    sql{.
-                        select id, name from "User" where name = :name
-                    .}
-                }
-                
-                fun executeQuery<R>(sql as string, args as Object?) as QueryResultIterator<R> native "org.siphonlab.ago.runtime.db.sdk.Entity.executeQuery";
+                $"SELECT u.id, u.${mapColumn<User>(0)}, u.${mapColumn<User>(2)} FROM ${mapTable<User>()} u ${if(!nameIsNull) $" WHERE ${mapColumn<User>(0)} = :name"$ } "$
                 
                 """;
         AgoLexer lexer = new AgoLexer(CharStreams.fromString(code));
@@ -63,7 +57,7 @@ public class ParserTest {
 
         lexer = new AgoLexer(CharStreams.fromString(code));
         AgoParser parser = new AgoParser(new CommonTokenStream(lexer));
-        AgoParser.CompilationUnitContext compilationUnitContext = parser.compilationUnit();
+        var compilationUnitContext = parser.templateStringLiteral();
 
         showAstTreeview(parser, compilationUnitContext);
     }

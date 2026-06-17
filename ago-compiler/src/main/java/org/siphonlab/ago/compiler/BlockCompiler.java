@@ -525,7 +525,7 @@ public class BlockCompiler {
         } else if(literal instanceof LObjectContext lobj){
             return objectLiteral(lobj, null, null);
         } else if(literal instanceof LTemplateStringContext lTemplateString){
-            return templateString(lTemplateString.templateStringLiteral());
+                return templateString(lTemplateString.templateStringLiteral());
         } else {
             return Literal.parse(literal, unit.getRoot(), unit.sourceLocation(literalExpr));
         }
@@ -536,7 +536,12 @@ public class BlockCompiler {
         var sb = new StringBuilder();
         TemplateStringAtomContext startAtom = null, endAtom = null;
 
-        var offset = lTemplateString.getStart().getCharPositionInLine() + 2;  // indent position
+        int offset;
+        if(lTemplateString.getText().contains("\n")) {
+            offset = lTemplateString.getStart().getCharPositionInLine() + 2;  // indent position
+        } else {
+            offset = 0;
+        }
 
         // If the first line has no content and directly transitions to a new line,
         // use the index of the first non-whitespace character from the next line as the indentation point.
