@@ -138,7 +138,6 @@ public class CodeGenerator extends SelectDeParser {
             if(variableColumnDef != null){
                 builder.append("${mapColumn<%s>(%d)}".formatted(variableColumnDef.ownerClass.getFullname(), variableColumnDef.srcVariable.getSlotIndex()));
             } else {
-
                 builder.append(tableColumn.getColumnName());
             }
 

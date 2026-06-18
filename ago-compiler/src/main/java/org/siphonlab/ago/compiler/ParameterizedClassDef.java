@@ -129,15 +129,19 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
             if(baseClass instanceof FunctionDef){
                 throw new TypeMismatchError("function cannot parameterized", sourceLocation);
             }
-            var expressionList = classCreatorArguments.arguments().expressionList();
+            var expressionList = classCreatorArguments.arguments().argList();
             Literal<?>[] literalArguments;
             if(expressionList == null){
                 throw new SyntaxError("no arguments provided", sourceLocation);
             } else {
-                var expressions = expressionList.expression();
-                literalArguments = new Literal[expressions.size()];
-                for (int i = 0; i < expressions.size(); i++) {
-                    AgoParser.ExpressionContext expression = expressions.get(i);
+                var arguments = expressionList.argument();
+                literalArguments = new Literal[arguments.size()];
+                for (int i = 0; i < arguments.size(); i++) {
+                    var arg = arguments.get(i);
+                    if(arg.DEFAULT() != null){
+                        throw new TypeMismatchError("parameterized class only accept literal, default value is not allowed", unit.sourceLocation(arg));
+                    }
+                    AgoParser.ExpressionContext expression = arg.expression();
                     boolean isLiteral = false;
                     if(expression instanceof AgoParser.PrimaryExprContext primaryExpr){
                         if(primaryExpr.primaryExpression() instanceof AgoParser.LiteralExprContext literalExpr){

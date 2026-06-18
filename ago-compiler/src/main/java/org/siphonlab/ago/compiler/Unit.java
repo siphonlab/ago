@@ -932,9 +932,13 @@ public class Unit {
 //                            modifiers |= AgoClass.PUBLIC;
 //                        }
 //                    }
-                    parameter.setModifiers(modifiers);
+                    parameter.setModifiers(modifiers | AgoClass.PARAMETER);
                     parameter.setType(paramType);
                     parameter.setSourceLocation(sourceLocation(defaultParameter));
+                    if(defaultParameter.expression() != null){
+                        parameter.setDefaultValueAst(defaultParameter.expression());
+                        parameter.setModifiers(parameter.getModifiers() | AgoClass.DEFAULT_VALUE_PARAM);
+                    }
                     fun.addParameter(parameter);
                 } else if (param instanceof AgoParser.ReceiverParameterContext receiverParameter) {
                     if (paramList.indexOf(param) != 0) {

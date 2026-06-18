@@ -74,5 +74,11 @@ public class FunctionTest {
         assertTrue(Trace.outputted("0", "1", "2", "done", "0", "1", "2", "3", "done", "0", "1", "2", "done", "1", "3", "5", "7", "done", "0", "1", "2", "1", "3", "5", "done", "7"));
     }
 
+    @Test
+    public void defaultParameter() throws CompilationError, IOException {
+        run("function/default_param.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("8", "12"));
+    }
 
 }

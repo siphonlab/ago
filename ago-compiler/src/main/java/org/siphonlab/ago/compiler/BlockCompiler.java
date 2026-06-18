@@ -1450,19 +1450,21 @@ public class BlockCompiler {
 
 
     private List<Expression> valueExpressions(ArgumentsContext arguments) throws CompilationError {
-        List<ExpressionContext> valueExprs;
-        if(arguments != null && arguments.expressionList() != null){
-            ExpressionListContext expressionList = arguments.expressionList();
-            valueExprs = expressionList.expression();
+        if(arguments != null && arguments.argList() != null){
+            var args = arguments.argList().argument();
+            List<Expression> values = new ArrayList<>();
+            for (int i = 0; i < args.size(); i++) {
+                ArgumentContext arg = args.get(i);
+                if (arg.DEFAULT() != null) {
+                    values.add(new DefaultParameterValue(functionDef, i));
+                } else {
+                    values.add(expression(arg.expression()));
+                }
+            }
+            return values;
         } else {
-            valueExprs = new ArrayList<>();
+            return Collections.emptyList();
         }
-
-        List<Expression> values = new ArrayList<>();
-        for (ExpressionContext valueExpr : valueExprs) {
-            values.add(expression(valueExpr));
-        }
-        return values;
     }
 
     private Expression create(Expression typeExpr, ParserRuleContext creatorContext, ArgumentsContext arguments, String constructorName) throws CompilationError {

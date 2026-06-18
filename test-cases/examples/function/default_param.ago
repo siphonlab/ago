@@ -1,0 +1,14 @@
+fun multi(a as int, b as int = a + 2) as int{
+    return a * b;
+}
+
+fun main(){
+    var r = multi(2, default);
+    Trace.print(r);     // 8
+
+    r = multi(4, 3)
+    Trace.print(r)      //12
+
+//    r = multi(default, 3)       // parameter 'a' has no default value
+//    Trace.print(r)
+}

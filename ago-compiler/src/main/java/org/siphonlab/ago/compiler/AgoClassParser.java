@@ -456,6 +456,9 @@ public class AgoClassParser {
                     if(p.isReceiverParameter()){
                         p.getType().addExtensionMethod(functionDef);
                     }
+                    if(p.hasDefaultValue()){
+                        p.setDefaultValueFun(Objects.requireNonNull((FunctionDef) functionDef.getChild(Parameter.composeDefaultValueFunctionName(p))));
+                    }
                 }
             }
             if(fun.getVariables() != null) {

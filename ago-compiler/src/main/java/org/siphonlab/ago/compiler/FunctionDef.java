@@ -162,6 +162,8 @@ public class FunctionDef extends ClassDef {
         this.createFunctionInterface();
         this.createFieldsOfTrait();
 
+        this.createDefaultValueFunForParameters();
+
         this.nextCompilingStage(CompilingStage.ValidateHierarchy);
         return true;
     }
@@ -199,6 +201,18 @@ public class FunctionDef extends ClassDef {
                 } catch (DuplicatedKeyException e) {
                     throw unit.resolveError(parameter.parameterContext, e.getMessage());
                 }
+            }
+        }
+    }
+    private void createDefaultValueFunForParameters() {
+        List<Parameter> parameterList = this.parameters;
+        for (int i = 0; i < parameterList.size(); i++) {
+            Parameter parameter = parameterList.get(i);
+            if (parameter.hasDefaultValue() && parameter.getDefaultValueAst() != null) {
+                var fun = new DefaultValueFunDef(root, parameter, i);
+                fun.setUnit(this.getUnit());
+                parameter.setDefaultValueFun(fun);
+                this.addChild(fun);
             }
         }
     }
@@ -462,7 +476,11 @@ public class FunctionDef extends ClassDef {
             }
         }
         for (Parameter parameter : templ.getParameters()) {
-            this.addParameter(ps.get(parameter));
+            Parameter instantiated = ps.get(parameter);
+            if(instantiated.hasDefaultValue()){
+                instantiated.setDefaultValueFun((FunctionDef) parameter.getDefaultValueFun().instantiate(instantiationArguments, null));
+            }
+            this.addParameter(instantiated);
         }
 
         for (var entry : templ.getLocalVariables().entrySet()) {
@@ -536,6 +554,7 @@ public class FunctionDef extends ClassDef {
 
         var body = methodDecl.methodBody();
         compileBody(body);
+
         this.nextCompilingStage(CompilingStage.Compiled);   // Compiled
     }
 

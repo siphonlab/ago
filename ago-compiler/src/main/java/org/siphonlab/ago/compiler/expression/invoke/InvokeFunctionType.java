@@ -29,6 +29,7 @@ import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.commons.lang3.StringUtils.join;
@@ -166,11 +167,9 @@ public class InvokeFunctionType extends ExpressionInFunctionBody {
     }
 
     private Var.LocalVar prepareInvocation(BlockCompiler blockCompiler) throws CompilationError {
-        var args = Invoke.processArgs(this.arguments, blockCompiler);
         var instance = createInstance(blockCompiler);
-        for (int i = 0; i < args.size(); i++) {
-            var arg = arguments.get(i);
-
+        blockCompiler.lockRegister(instance);
+        for (int i = 0; i < this.arguments.size(); i++) {
             Variable parameter = new Variable();
             parameter.setType(parameterTypes.get(i));
             parameter.setName("p_%d_%s".formatted(i, parameter.getType().getName()));
@@ -179,12 +178,20 @@ public class InvokeFunctionType extends ExpressionInFunctionBody {
             slot.setIndex(i);       // assert parameters are at the head
             parameter.setSlot(slot);
 
-            ownerFunction.assign(new Var.Field(ownerFunction, instance, parameter), arg)
+            Expression arg = arguments.get(i);
+            Expression argValue;
+            if(arg instanceof DefaultParameterValue defaultParameterValue){
+                FunctionDef functionDef = blockCompiler.getFunctionDef();
+                var invokeDefaultValue = new Invoke(functionDef, Invoke.InvokeMode.Invoke,
+                        ClassUnder.create(functionDef, instance, defaultParameterValue.getResolvedParameter().getDefaultValueFun()), Collections.emptyList(), arg.getSourceLocation());
+                argValue = invokeDefaultValue.transform().visit(blockCompiler);
+            } else {
+                argValue = arg.visit(blockCompiler);
+            }
+            ownerFunction.assign(new Var.Field(ownerFunction, instance, parameter), argValue)
                     .setSourceLocation(arg.getSourceLocation()).setParent(arg.getParent()).termVisit(blockCompiler);
         }
-        for (TermExpression arg : args) {
-            blockCompiler.releaseRegister(arg);
-        }
+        blockCompiler.releaseRegister(instance);
         return instance;
     }
 

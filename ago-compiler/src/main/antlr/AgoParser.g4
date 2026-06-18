@@ -318,7 +318,7 @@ formalParameters: '(' (formalParameter (','formalParameter )*)?  ')';
 
 formalParameter:
         THIS typeOfVariable           #ReceiverParameter
-    |   variableModifier* identifier typeOfVariable fieldGetterSetter?  ('=' literal)?      #DefaultParameter
+    |   variableModifier* identifier typeOfVariable fieldGetterSetter?  ('=' expression)?      #DefaultParameter
     |   variableModifier* identifier typeOfVariable '...'   #VarArgsParameter
 //    |   NULL_LITERAL                                        #NullParameter
 ;
@@ -496,6 +496,10 @@ parExpression
     ;
 
 expressionList: expression (',' expression)*;
+
+argList: argument (',' argument)*;
+
+argument: expression | DEFAULT;
 
 methodCall
     : namePath arguments                                    # NormalInvoke
@@ -737,7 +741,7 @@ classCreatorArguments:  '::' arguments;         // VarChar::(200)
 //    | identifier arguments
 //    ;
 
-arguments: '(' expressionList? ')';
+arguments: '(' argList? ')';
 
 eos
     : ';'

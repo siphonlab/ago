@@ -16,9 +16,11 @@
 package org.siphonlab.ago.compiler.expression.invoke;
 
 
+import org.apache.commons.collections4.ListUtils;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.expression.Cast;
 import org.siphonlab.ago.compiler.expression.CastStrategy;
+import org.siphonlab.ago.compiler.expression.DefaultParameterValue;
 import org.siphonlab.ago.compiler.expression.Expression;
 import org.siphonlab.ago.compiler.generic.*;
 import org.siphonlab.ago.TypeCode;
@@ -108,14 +110,21 @@ public class FunctionInvocationResolver {
             }
         }
         List<Parameter> parameters = functionDef.getParameters();
-        ClassDef[] parameterTypes = parameters.stream().map(p -> {
-            if (!p.isVarArgs()) return p.getType();
-            try {
-                return new VarArgs((ArrayClassDef) p.getType());        // wrap varargs parameter type to a temporary class VarArgs
-            } catch (CompilationError e) {
-                throw new RuntimeException(e);
+        ClassDef[] parameterTypes = new ClassDef[parameters.size()];
+        for (int i = 0; i < parameters.size(); i++) {
+            Parameter p = parameters.get(i);
+            if (!p.isVarArgs()) {
+                parameterTypes[i] = p.getType();
+            } else {
+                try {
+                    parameterTypes[i] = new VarArgs((ArrayClassDef) p.getType());
+                } catch (CompilationError e) {
+                    resolveResult.error = e;
+                }
+                assert i == parameters.size() - 1;
+                break;
             }
-        }).toArray(ClassDef[]::new);
+        }
 
         List<ClassDef> argTypes = new ArrayList<>();
         List<ClassDef> argTypesPreserveVarArgs = new ArrayList<>();
@@ -165,7 +174,17 @@ public class FunctionInvocationResolver {
                     }
                     parameterTypes[p] = argType = new VarArgs(functionDef.getRoot(), eleType);
                 } else {
-                    argType = arguments.get(p).inferType();
+                    Expression arg = arguments.get(p);
+                    if(arg instanceof DefaultParameterValue defaultParameterValue){
+                        Parameter parameter = parameters.get(p);
+                        if(parameter.hasDefaultValue()) {
+                            argType = parameterType;
+                        } else {
+                            throw new ResolveError("parameter '%s' has no default value".formatted(parameter.getName()), sourceLocation);
+                        }
+                    } else {
+                        argType = arg.inferType();
+                    }
                     argPos++;
                     argTypesPreserveVarArgs.add(argType);
                 }

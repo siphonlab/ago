@@ -33,12 +33,12 @@ import org.siphonlab.ago.compiler.statement.Statement;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class Invoke extends ExpressionInFunctionBody {
 
     private Expression forkContext;
-
     public void setForkContext(Expression forkContext) {
         this.forkContext = forkContext;
     }
@@ -115,10 +115,20 @@ public class Invoke extends ExpressionInFunctionBody {
             return this;
         }
 
+        boolean hasDefaultValue = false;
         for (Expression argument : arguments) {
+            if(argument instanceof DefaultParameterValue) hasDefaultValue = true;
             transformedArguments.add(argument.transform().setParent(this));
         }
         this.resolvedFunctionDef = findBestPolymorphismMethod(maybeFunction.getFunction(), maybeFunction.getCandidates(), transformedArguments, sourceLocation);
+        if(hasDefaultValue){
+            for (Expression transformedArgument : transformedArguments) {
+                if(transformedArgument instanceof DefaultParameterValue defaultParameterValue) {
+                    var param = this.resolvedFunctionDef.getParameters().get(defaultParameterValue.getIndex());
+                    defaultParameterValue.setResolvedParameter(param);
+                }
+            }
+        }
         if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
             maybeFunction = new ConstClass(bindExtensionMethod.getFunction()).setSourceLocation(bindExtensionMethod.getSourceLocation());
             maybeFunction.setCandidates(bindExtensionMethod.getCandidates());
@@ -424,9 +434,8 @@ public class Invoke extends ExpressionInFunctionBody {
     }
 
     public Var.LocalVar prepareInvocation(BlockCompiler blockCompiler, Var.LocalVar receiverVar) throws CompilationError {
-        var args = processArgs(arguments, blockCompiler);
         // for empty constructor, needn't invoke, but for empty method must invoke for it may be overrided by descendants
-        if(args.isEmpty() && (resolvedFunctionDef.isEmptyMethod() && resolvedFunctionDef instanceof ConstructorDef)){
+        if(arguments.isEmpty() && (resolvedFunctionDef.isEmptyMethod() && resolvedFunctionDef instanceof ConstructorDef)){
             return null;
         }
         // ensure slots prepared
@@ -434,16 +443,24 @@ public class Invoke extends ExpressionInFunctionBody {
             Compiler.processClassTillStage( resolvedFunctionDef, CompilingStage.AllocateSlots);
 
         var instance = createInstance(blockCompiler, receiverVar);
+        blockCompiler.lockRegister(instance);
         List<Parameter> parameters = resolvedFunctionDef.getParameters();
-        for (int i = 0; i < args.size(); i++) {
+        for (int i = 0; i < arguments.size(); i++) {
             Parameter parameter = parameters.get(i);
-            var arg = args.get(i);
-            ownerFunction.assign(ownerFunction.field(instance, parameter), arg)
+            Expression arg = arguments.get(i);
+            Expression argValue;
+            if(arg instanceof DefaultParameterValue defaultParameterValue){
+                FunctionDef functionDef = blockCompiler.getFunctionDef();
+                var invokeDefaultValue = new Invoke(functionDef, InvokeMode.Invoke,
+                        ClassUnder.create(functionDef, instance, defaultParameterValue.getResolvedParameter().getDefaultValueFun()), Collections.emptyList(), arg.getSourceLocation());
+                argValue = invokeDefaultValue.transform().visit(blockCompiler);
+            } else {
+                argValue = arg.visit(blockCompiler);
+            }
+            ownerFunction.assign(ownerFunction.field(instance, parameter), argValue)
                         .setSourceLocation(arg.getSourceLocation()).setParent(arg.getParent()).termVisit(blockCompiler);
         }
-        for (TermExpression arg : args) {
-            blockCompiler.releaseRegister(arg);
-        }
+        blockCompiler.releaseRegister(instance);
         return instance;
     }
 
