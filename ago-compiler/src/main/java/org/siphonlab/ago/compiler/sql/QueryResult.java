@@ -74,14 +74,16 @@ public class QueryResult {
         Variable srcVariable;
         ClassDef ownerClass;
 
-        public ColumnDef alias(String name) {
-            var r = new FieldColumnDef();
-            r.name = name;
-            r.type = this.type;
-            r.srcVariable = this.srcVariable;
-            r.ownerClass = this.ownerClass;
-            return r;
-        }
+// shouldn't preserve field after alias set, for `mapColumn` cannot work on the alias
+// i.e. `select n from (select name n from User) u`, the result is `select n from (select ${mapColumn<User>('name')} n from User) u`, in the outer select, shouldn't invoke mapColumn again
+//        public ColumnDef alias(String name) {
+//            var r = new FieldColumnDef();
+//            r.name = name;
+//            r.type = this.type;
+//            r.srcVariable = this.srcVariable;
+//            r.ownerClass = this.ownerClass;
+//            return r;
+//        }
     }
 
     public static class IdColumnDef extends ColumnDef{
@@ -89,13 +91,6 @@ public class QueryResult {
         @NonNull
         ClassDef ownerClass;
 
-        public ColumnDef alias(String name) {
-            var r = new IdColumnDef();
-            r.name = name;
-            r.type = this.type;
-            r.ownerClass = this.ownerClass;
-            return r;
-        }
     }
 
 }
