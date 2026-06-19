@@ -324,7 +324,11 @@ public class AgoClass extends Instance<MetaClass>{
             var a2 = anotherArguments[i];
             switch (variance){
                 case Invariance:
-                    if(!Objects.equals(a1, a2)) return false;
+                    if(ClassBound.isClassBound(a1)){
+                        if(!a1.isThatOrSuperOfThat(a2)) return false;
+                    } else {
+                        if (!Objects.equals(a1, a2)) return false;
+                    }
                     break;
                 case Covariance:
                     if(!a1.isThatOrSuperOfThat(a2)) return false;
