@@ -43,7 +43,7 @@ public class Parameter extends Field {
     }
 
     public static String composeDefaultValueFunctionName(Parameter parameter){
-        return "defaultValueOf" + parameter.getName() + "#";
+        return "defaultValue_" + parameter.getName() + "#";
     }
 
     @Override
