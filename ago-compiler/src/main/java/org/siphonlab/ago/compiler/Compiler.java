@@ -253,7 +253,6 @@ public class Compiler {
                         bound = scopeClass.unit.parseTypeRange(typeOfGenericParam.typeRange(), templClass);
                     } else {
                         bound = new ClassDef[]{root.getAnyClass(), root.getAnyClass()};
-                        variance = Variance.Invariance;
                     }
 
                     var gt = root.getGenericTypeParameter();
