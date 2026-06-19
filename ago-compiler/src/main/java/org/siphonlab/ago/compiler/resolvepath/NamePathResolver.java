@@ -935,8 +935,12 @@ public class NamePathResolver {
             //indicate by constructor parameters or assignee type
             typeArguments = resolveTypeArgsListFromAssigneeAST();
         }
-        if(typeArguments == null){  // resolve failed, indicate by constructor parameters
-            return new GenericInstantiationPlaceHolder(templateClass, parameterizedClass.sourceLocation, scopeClass);
+        if(typeArguments == null){  // resolve failed, indicate by constructor parameters or invocation
+            if(templateClass instanceof FunctionDef f){
+                return f;
+            } else {
+                return new GenericInstantiationPlaceHolder(templateClass, parameterizedClass.sourceLocation, scopeClass);
+            }
         } else if(typeArguments instanceof AgoParser.TypeArgsListContext typeArgs){
             var args = new ClassRefLiteral[typeArgs.typeArgument().size()];
             List<AgoParser.TypeArgumentContext> argument = typeArgs.typeArgument();
