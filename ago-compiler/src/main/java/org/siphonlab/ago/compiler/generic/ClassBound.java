@@ -21,4 +21,6 @@ public interface ClassBound {
     ClassDef getLBoundClass();
 
     ClassDef getUBoundClass();
+
+    boolean contains(ClassDef classDef);
 }

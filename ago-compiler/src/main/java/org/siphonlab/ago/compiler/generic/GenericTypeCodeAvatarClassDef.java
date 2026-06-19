@@ -141,6 +141,11 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
     }
 
     @Override
+    public boolean contains(ClassDef classDef) {
+        return sharedGenericTypeParameterClassDef.contains(classDef);
+    }
+
+    @Override
     public boolean isGenericTerminated(Set<ClassDef> visited) {
         return false;
     }

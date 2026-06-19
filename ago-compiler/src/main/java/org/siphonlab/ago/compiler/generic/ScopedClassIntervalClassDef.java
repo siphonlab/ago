@@ -31,7 +31,7 @@ public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
         ScopedClassIntervalClassDef c = null;
         try {
             c = ((ClassContainer)this.getParent()).getOrCreateScopedClassInterval(baseClass.instantiate(instantiationArguments, null),
-                    constructor,
+                    this.parameterizedConstructor,
                     this.getLBoundClass().instantiate(instantiationArguments, null),
                     this.getUBoundClass().instantiate(instantiationArguments, null),
                     returnExisted);

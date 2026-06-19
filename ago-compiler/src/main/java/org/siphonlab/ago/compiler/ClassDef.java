@@ -1745,7 +1745,11 @@ public class ClassDef extends ClassContainer {
             var a2 = anotherArguments[i].getClassDefValue();
             switch (variance){
                 case Invariance:
-                    if(a1 != a2) return false;
+                    if(a1 instanceof ClassBound av1){
+                        if(!a1.isThatOrSuperOfThat(a2)) return false;
+                    } else {
+                        if (a1 != a2) return false;
+                    }
                     break;
                 case Covariance:
                     if(!a1.isThatOrSuperOfThat(a2)) return false;
@@ -2051,6 +2055,10 @@ public class ClassDef extends ClassContainer {
     }
 
     protected void addExtensionMethod(FunctionDef functionDef) throws DuplicatedKeyException {
+        if(this.isInGenericInstantiation()){
+            this.getTemplateClass().addExtensionMethod(functionDef);
+            return;
+        }
         if(extensionMethods.containsKey(functionDef.getName())){
             throw new DuplicatedKeyException("extension method '%s' for '%s' already exists".formatted(functionDef.getName(), this.getFullname()));
         }
@@ -2059,11 +2067,17 @@ public class ClassDef extends ClassContainer {
 
     public FunctionDef getExtensionMethod(String name) {
         for(var c = this; c!= null; c = c.getSuperClass()){
+            if(c.isInGenericInstantiation()){
+                c = c.getTemplateClass();
+            }
             var f = c.extensionMethods.get(name);
             if(f != null) return f;
 
             if(c.getInterfaces() != null) {
                 for (var i : c.getInterfaces()) {
+                    if(i.isInGenericInstantiation()){
+                        i = i.getTemplateClass();
+                    }
                     f = i.extensionMethods.get(name);
                     if(f != null) return f;
                 }
