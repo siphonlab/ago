@@ -26,7 +26,6 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
-import org.siphonlab.ago.compiler.expression.literal.NullLiteral;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.statement.ExpressionStmt;
 import org.siphonlab.ago.compiler.statement.Statement;
@@ -507,7 +506,7 @@ public class Invoke extends ExpressionInFunctionBody {
             TypeParamsContext paramsContext = resolveResult.functionDef.getTypeParamsContext();
             if(paramsContext != null){
                 if (!resolveResult.allFound(paramsContext)) {
-                    resolveResult.error = new ResolveError("not all generic type params provided concrete argument, expected:%d provided:'%d'".formatted(paramsContext.size(), resolveResult.providedArguments.size()), sourceLocation);
+                    resolveResult.error = new ResolveError("not all generic type params provided concrete argument, expected:%d provided:'%d'".formatted(paramsContext.size(), resolveResult.boundArguments.size()), sourceLocation);
                 }
             }
         });

@@ -16,12 +16,8 @@
 package org.siphonlab.ago.compiler.expression.invoke;
 
 
-import org.apache.commons.collections4.ListUtils;
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.compiler.expression.Cast;
-import org.siphonlab.ago.compiler.expression.CastStrategy;
-import org.siphonlab.ago.compiler.expression.DefaultParameterValue;
-import org.siphonlab.ago.compiler.expression.Expression;
+import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.generic.*;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.*;
@@ -131,6 +127,17 @@ public class FunctionInvocationResolver {
         int argPos = 0;
         for (int p = 0; p < parameterTypes.length; p++) {
             var parameterType = parameterTypes[p];
+            if(resolveResult.hasBoundTypeArgs()){
+                try {
+                    var pi = parameterType.instantiate(resolveResult.toTypeArgs(), null);
+                    if(pi != parameterType){
+                        parameterTypes[p] = parameterType = pi;
+                    }
+                } catch (CompilationError e) {
+                    resolveResult.error = e;
+                }
+            }
+
             if(p >= arguments.size()){
                 if(parameters.getLast().isVarArgs() && p == arguments.size()){
                     //
@@ -141,8 +148,15 @@ public class FunctionInvocationResolver {
             }
             ClassDef argType = null;
             try {
-                if(parameterType instanceof ClassIntervalClassDef) {     // cast class to ScopedClassInterval
-                    argType = new Cast(ownerFunction, arguments.get(p), parameterType).transform().inferType();
+                if(parameterType instanceof ClassIntervalClassDef classIntervalClassDef) {     // cast class to ScopedClassInterval
+                    // Assign.processBoundClass -> CastToScopedClassRef, return parameterType
+//                    argType = new Cast(ownerFunction, arguments.get(p), parameterType).transform().inferType();
+                    ClassDef classDef = Creator.extractScopeAndClass(arguments.get(p), arguments.get(p).getSourceLocation(), false).getRight();
+                    argType = classIntervalClassDef.asThatOrSuperOfThat(classDef);
+                    if(argType == null){
+                        resolveResult.error = new TypeMismatchError("argument type '%s' not match '%s'".formatted(classDef.getFullname(), parameterType.getFullname()), arguments.get(p).getSourceLocation());
+                        return resolveResult;
+                    }
                     argTypesPreserveVarArgs.add(argType);
                     argPos++;
                 } else if(parameterType instanceof VarArgs varArgs){
@@ -196,7 +210,7 @@ public class FunctionInvocationResolver {
                 if(!(argType instanceof VarArgs)) {
                     parameterTypes[p] = indicateGenericType(parameterType, argType, resolveResult);
                 }
-                if (!resolveResult.providedArguments.isEmpty()) {
+                if (!resolveResult.boundArguments.isEmpty()) {
                     // only constructor of template or template function can indicate generic type
                     if (functionDef instanceof ConstructorDef && functionDef.getParentClass().isGenericTemplate()) {
                         //
@@ -225,6 +239,7 @@ public class FunctionInvocationResolver {
             return parameterType;
         }
         var root = method.getRoot();
+
         if(parameterType instanceof GenericTypeCodeAvatarClassDef a) {
             resolveResult.regTypeArg(a, argType);
             if (resolveResult.error != null) return argType;
@@ -237,6 +252,17 @@ public class FunctionInvocationResolver {
                     return argType;
                 }
             }
+        } else if(parameterType instanceof ClassIntervalClassDef classIntervalClassDef){
+            if(classIntervalClassDef.getLBoundClass() != classIntervalClassDef.getRoot().getAnyClass()){
+                if(classIntervalClassDef.getLBoundClass().isThatOrSuperOfThat(argType)){
+                    indicateGenericType(classIntervalClassDef.getLBoundClass(), argType, resolveResult);
+                }
+            } else if(classIntervalClassDef.getUBoundClass() != classIntervalClassDef.getRoot().getAnyClass()){
+                if(argType.isThatOrSuperOfThat(classIntervalClassDef.getUBoundClass())){
+                    indicateGenericType(classIntervalClassDef.getUBoundClass(), argType, resolveResult);
+                }
+            }
+            if (resolveResult.error != null) return argType;
         } else if(parameterType.isGenericType()){
             GenericSource pSource = parameterType.getGenericSource();
             ClassDef template = pSource.originalTemplate();
@@ -249,9 +275,7 @@ public class FunctionInvocationResolver {
                         for (int i = 0; i < pArr.length; i++) {
                             ClassRefLiteral p = pArr[i];
                             ClassRefLiteral a = aArr[i];
-                            if(p.getClassDefValue() == root.getAnyClass()){
-                               //
-                            } else {
+                            if(p.getClassDefValue().isGenericType()){
                                 // indicate more deep, i.e. List<List<R>> to List<ArrayList<Dog>>
                                 indicateGenericType(p.getClassDefValue(), a.getClassDefValue(), resolveResult);
                             }
@@ -390,7 +414,7 @@ public class FunctionInvocationResolver {
     public class ResolveResult{
         public int paramIndex = -1;
         FunctionDef functionDef;
-        public Map<GenericTypeCodeAvatarClassDef, ClassDef> providedArguments = new TreeMap<>();
+        public Map<GenericTypeCodeAvatarClassDef, ClassDef> boundArguments = new TreeMap<>();
         public CompilationError error;
         double score;
 
@@ -402,13 +426,13 @@ public class FunctionInvocationResolver {
             if(!genericTypeCodeAvatarClassDef.isThatOrSuperOfThat(argType)){       //TODO the original is SharedGenericTypeParameter
                 this.error = new ResolveError("'%s' is not compatible for '%s'".formatted(argType.getFullname(), genericTypeCodeAvatarClassDef.getFullname()), sourceLocation);
             }
-            var existed = providedArguments.putIfAbsent(genericTypeCodeAvatarClassDef, argType);
+            var existed = boundArguments.putIfAbsent(genericTypeCodeAvatarClassDef, argType);
             if(existed == null || existed == argType){
                 return;
             } else if(existed.isThatOrSuperOfThat(argType)){
                 return;
             } else if(argType.isThatOrSuperOfThat(existed)){
-                providedArguments.put(genericTypeCodeAvatarClassDef, existed);        // rollback
+                boundArguments.put(genericTypeCodeAvatarClassDef, existed);        // rollback
             } else {
                 this.error = new ResolveError("'%s' and '%s' is not compatible for '%s'".formatted(existed.getFullname(), argType.getFullname(), genericTypeCodeAvatarClassDef.getFullname()), sourceLocation);
             }
@@ -417,16 +441,24 @@ public class FunctionInvocationResolver {
         public ClassRefLiteral[] toTypeArgs(TypeParamsContext typeParamsContext){
             ClassRefLiteral[] result = new ClassRefLiteral[typeParamsContext.size()];
             for (int i = 0; i < typeParamsContext.size(); i++) {
-                result[i] = providedArguments.get(typeParamsContext.get(i)).toClassRefLiteral();
+                result[i] = boundArguments.get(typeParamsContext.get(i)).toClassRefLiteral();
             }
             return result;
         }
 
+        public InstantiationArguments toTypeArgs(){
+            return new InstantiationArguments(new TreeMap<>(boundArguments));
+        }
+
         public boolean allFound(TypeParamsContext typeParamsContext) {
             for (int i = 0; i < typeParamsContext.size(); i++) {
-                if(!providedArguments.containsKey(typeParamsContext.get(i))) return false;
+                if(!boundArguments.containsKey(typeParamsContext.get(i))) return false;
             }
             return true;
+        }
+
+        public boolean hasBoundTypeArgs(){
+            return !boundArguments.isEmpty();
         }
     }
 
