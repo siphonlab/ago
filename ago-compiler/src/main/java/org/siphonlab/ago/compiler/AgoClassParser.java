@@ -289,12 +289,20 @@ public class AgoClassParser {
                             ((ClassRefLiteral)args[0]).getClassDefValue(),
                             ((ClassRefLiteral)args[1]).getClassDefValue(),
                             Variance.of(((ByteLiteral)args[2]).value), null);
-            } else if(base == root.getGenericTypeCodeAvatar()){     // create it, but not register into the template
-                r = ((ClassContainer)base.getParent()).getOrCreateGenericTypeAvatarClassDef(base, (SharedGenericTypeParameterClassDef) ((ClassRefLiteral)args[0]).getClassDefValue(),
-                        ((ClassRefLiteral)args[1]).getClassDefValue(),
-                        ((IntLiteral)args[2]).value,
-                        ((IntLiteral)args[3]).value,
-                        ((StringLiteral)args[4]).getString(), null);
+            } else if(base == root.getGenericTypeCodeAvatar()) {     // create it, but not register into the template
+                r = ((ClassContainer) base.getParent()).getOrCreateGenericTypeAvatarClassDef(base, (SharedGenericTypeParameterClassDef) ((ClassRefLiteral) args[0]).getClassDefValue(),
+                        ((ClassRefLiteral) args[1]).getClassDefValue(),
+                        ((IntLiteral) args[2]).value,
+                        ((IntLiteral) args[3]).value,
+                        ((StringLiteral) args[4]).getString(), null);
+            } else if(base == root.getClassInterval()){
+                r = ((ClassContainer) base.getParent()).getOrCreateClassInterval(base, constructor,
+                                    ((ClassRefLiteral)args[0]).getClassDefValue(),
+                                    ((ClassRefLiteral)args[1]).getClassDefValue(), null);
+            } else if(base == root.getScopedClassInterval()){
+                r = ((ClassContainer) base.getParent()).getOrCreateScopedClassInterval(base, constructor,
+                        ((ClassRefLiteral)args[0]).getClassDefValue(),
+                        ((ClassRefLiteral)args[1]).getClassDefValue(), null);
             } else {
                 r = ((ClassContainer) base.getParent()).getOrCreateParameterizedClass(base, constructor, args, null);
             }
