@@ -123,7 +123,11 @@ public class Invoke extends ExpressionInFunctionBody {
         if(hasDefaultValue){
             for (Expression transformedArgument : transformedArguments) {
                 if(transformedArgument instanceof DefaultParameterValue defaultParameterValue) {
-                    var param = this.resolvedFunctionDef.getParameters().get(defaultParameterValue.getIndex());
+                    int index = defaultParameterValue.getIndex();
+                    if(maybeFunction instanceof BindExtensionMethod){
+                        index++;
+                    }
+                    var param = this.resolvedFunctionDef.getParameters().get(index);
                     defaultParameterValue.setResolvedParameter(param);
                 }
             }
