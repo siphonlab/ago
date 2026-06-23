@@ -374,49 +374,21 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
 
             var scope = queryResult.getScope();
             Expression expr = null;
+            Var sort = Var.of(this, new Scope.Local(this), this.getParameters().getFirst());
             for (Map.Entry<String, QueryResult> entry : scope.getNames().entrySet()) {
                 String name = entry.getKey();
                 QueryResult qr = entry.getValue();
                 Invoke invokeSort;
-                Var sort = Var.of(this, new Scope.Local(this), this.getParameters().getFirst());
                 if(qr instanceof TableResult tableResult){
-                    // tableSortScope<User>('u', sort) or
-                    // tableSortScope<User>('u', ['calculation'], sort)
-                    var columns = qr.getColumns().stream().filter(c -> {
-                        if(c instanceof QueryResult.FieldColumnDesc fieldColumnDesc){
-                            return false;
-                        } else {
-                            // not field
-                            return true;
-                        }
-                    }).map(QueryResult.ColumnDesc::getName).toList();
-
-                    if(columns.isEmpty()){
-                        // tableSortScope<User>('u', sort)
-                        FunctionDef tableSortScope = getRoot().findByFullname("tableSortScope#");
-                        var instantiated = this.getOrCreateGenericInstantiationClassDef(tableSortScope, new ClassRefLiteral[]{
-                                tableResult.getClassDef().toClassRefLiteral()
-                        }, null);
-                        this.registerConcreteType(instantiated);
-                        invokeSort = invoke(Invoke.InvokeMode.Invoke, new ConstClass(instantiated),
-                                List.of(new StringLiteral(root.STRING(), name),sort),
-                                QueryDef.this.getSourceLocation());
-                    } else {
-                        // tableSortScope<User>('u', ['calculation'], sort)
-                        FunctionDef tableSortScope = getRoot().findByFullname("tableSortScope#columns");
-                        var instantiated = this.getOrCreateGenericInstantiationClassDef(tableSortScope, new ClassRefLiteral[]{
-                                tableResult.getClassDef().toClassRefLiteral()
-                        }, null);
-                        this.registerConcreteType(instantiated);
-                        invokeSort = invoke(Invoke.InvokeMode.Invoke, new ConstClass(instantiated),
-                                List.of(
-                                        new StringLiteral(root.STRING(), name),
-                                        new ArrayLiteral(this, getOrCreateArrayType(root.STRING(), null),
-                                                columns.stream().map(s -> (Expression)new StringLiteral(root.STRING(), s)).toList()),
-                                        sort
-                                ),
-                                QueryDef.this.getSourceLocation());
-                    }
+                    // tableSortScope<User>('u', sort)
+                    FunctionDef tableSortScope = getRoot().findByFullname("tableSortScope#");
+                    var instantiated = this.getOrCreateGenericInstantiationClassDef(tableSortScope, new ClassRefLiteral[]{
+                            tableResult.getClassDef().toClassRefLiteral()
+                    }, null);
+                    this.registerConcreteType(instantiated);
+                    invokeSort = invoke(Invoke.InvokeMode.Invoke, new ConstClass(instantiated),
+                            List.of(new StringLiteral(root.STRING(), name),sort),
+                            QueryDef.this.getSourceLocation());
                 } else {
                     // querySortScope('q', ['col1', 'col2', 'col3', ...], sort)
                     var columns = qr.getColumns().stream().map(QueryResult.ColumnDesc::getName)
@@ -435,6 +407,21 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
                     expr = new OrExpr(this, expr, invokeSort);
                 }
             }
+            // the output cols of select
+            var columns = this.queryResult.getColumns().stream().map(QueryResult.ColumnDesc::getName)
+                    .map(s -> (Expression)new StringLiteral(root.STRING(), s)).toList();
+            var querySortSelect = invoke(Invoke.InvokeMode.Invoke, new ConstClass(root.findByFullname("querySortSelect#")),
+                    List.of(
+                            new ArrayLiteral(this, getOrCreateArrayType(root.STRING(), null), columns),
+                            sort
+                    ),
+                    QueryDef.this.getSourceLocation());
+            if(expr == null){
+                expr = querySortSelect;
+            } else {
+                expr = new OrExpr(this, expr, querySortSelect);
+            }
+
 
             List<Expression> exprs = List.of(new Return(this, expr.transform()));
 

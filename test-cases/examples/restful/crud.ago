@@ -124,9 +124,9 @@ class Sort{
 
 fun tableSortScope<EntityClass>(alias as string, sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.tableSortScope";
 
-fun tableSortScope#columns<EntityClass>(alias as string, columns as string[], sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.tableSortScope";
-
 fun querySortScope(alias as string, columns as string[], sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.querySortScope";
+
+fun querySortSelect(columns as string[], sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.querySortSelect";
 
 // to fork entity runspace
 native class EntitySpace with ForkContext{

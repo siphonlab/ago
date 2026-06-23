@@ -107,14 +107,9 @@ public class Entity {
         frame.finishString(adapter.tableName(entityClass));
     }
 
-    public static void tableSortScope(NativeFrame frame, String alias, Instance<?> sortArray){
-        System.out.println(1);
-    }
-
-    public static void tableSortScope(NativeFrame frame, String alias, Instance<?> additionColumns, Instance<?> sortInstance){
+    public static void tableSortScope(NativeFrame frame, String alias, Instance<?> sortInstance){
         var adapter = retrieveEntityAdapter(frame.getRunSpace());
         var entityClass = frame.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments()[0];
-        String[] additionColumnNames = ((StringArrayInstance) additionColumns).value;
         String sortCol = sortInstance.getStringField("column");
         String sortDirection = sortInstance.getStringField("direction");
         var tableName = adapter.tableName(entityClass);
@@ -130,9 +125,6 @@ public class Entity {
                         var mapped = adapter.getColumnDesc(entityClass.getFullname(), field.getSlotIndex());
                         frame.finishUnion(column.getTableName() + column.getTableDelimiter() + mapped.getName() + " " + sortDirection);      // ORDER BY ...
                         return;
-                    } else if (additionColumnNames != null && ArrayUtils.containsAny(additionColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
-                        frame.finishUnion(sortCol + " " + sortDirection);
-                        return;
                     }
                 }
             } else {
@@ -144,7 +136,29 @@ public class Entity {
                     var mapped = adapter.getColumnDesc(entityClass.getFullname(), field.getSlotIndex());
                     frame.finishUnion(mapped.getName() + " " + sortDirection);      // ORDER BY ...
                     return;
-                } else if (additionColumnNames != null && ArrayUtils.containsAny(additionColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
+                }
+            }
+            frame.finishUnion(null);
+        } catch (JSQLParserException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void querySortScope(NativeFrame frame, String alias, Instance<?> columns, Instance<?> sortInstance){
+        String[] allowedColumnNames = ((StringArrayInstance) columns).value;
+        String sortCol = sortInstance.getStringField("column");
+        String sortDirection = sortInstance.getStringField("direction");
+        try {
+            Column column = (Column) CCJSqlParserUtil.parseCondExpression(sortCol);
+            if(column.getTableName() != null){
+                if(alias.equals(column.getTableName()) || alias.equals(column.getUnquotedTableName())) {
+                    if (allowedColumnNames != null && ArrayUtils.containsAny(allowedColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
+                        frame.finishUnion(sortCol + " " + sortDirection);
+                        return;
+                    }
+                }
+            } else {
+                if (allowedColumnNames != null && ArrayUtils.containsAny(allowedColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
                     frame.finishUnion(sortCol + " " + sortDirection);
                     return;
                 }
@@ -155,7 +169,22 @@ public class Entity {
         }
     }
 
-    public static void querySortScope(NativeFrame frame, String alias, Instance<?> otherColumns, Instance<?> sortArray){
-        System.out.println(1);
+    public static void querySortSelect(NativeFrame frame, Instance<?> columns, Instance<?> sortInstance){
+        String[] allowedColumnNames = ((StringArrayInstance) columns).value;
+        String sortCol = sortInstance.getStringField("column");
+        String sortDirection = sortInstance.getStringField("direction");
+        try {
+            Column column = (Column) CCJSqlParserUtil.parseCondExpression(sortCol);
+            if(column.getTableName() == null){
+                if (allowedColumnNames != null && ArrayUtils.containsAny(allowedColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
+                    frame.finishUnion(sortCol + " " + sortDirection);
+                    return;
+                }
+            }
+            frame.finishUnion(null);
+        } catch (JSQLParserException e) {
+            throw new RuntimeException(e);
+        }
     }
+
 }
