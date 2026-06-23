@@ -28,27 +28,16 @@ import net.sf.jsqlparser.statement.select.*;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.NullableClassDef;
 import org.siphonlab.ago.compiler.QueryDef;
-import org.siphonlab.ago.compiler.Variable;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 
-    private final Map<Column, QueryResult.FieldColumnDef> fieldMapping;
     private final QueryDef queryDef;
-    private final Set<Variable> bindParameters;
-    private final Map<Expression, Variable> nullableConditions = new HashMap<>();
 
-    public ValueVisitor(QueryDef queryDef, Map<Column, QueryResult.FieldColumnDef> fieldMapping, Set<Variable> bindParameters) {
-        this.fieldMapping = fieldMapping;
+    private final SymbolMapping symbolMapping;
+
+    public ValueVisitor(QueryDef queryDef, SymbolMapping symbolMapping) {
         this.queryDef = queryDef;
-        this.bindParameters = bindParameters;
-    }
-
-    public Map<Expression, Variable> getNullableConditions() {
-        return nullableConditions;
+        this.symbolMapping = symbolMapping;
     }
 
     @Override
@@ -57,18 +46,18 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 //                && tableColumn.getTable().getName() != null) {
 //            visit(tableColumn.getTable(), context);
 //        }
-        QueryResult.ColumnDef col;
+        QueryResult.ColumnDesc col;
         QueryScope scope = (QueryScope) context;
-        if(tableColumn.getTable() != null){
+        if (tableColumn.getTable() != null) {
 //            var r = tableColumn.getTable().accept(this, context);
             var r = scope.resolve(tableColumn.getTable().getFullyQualifiedName());
             col = r.findColumn(tableColumn.getColumnName());
         } else {
             col = scope.resolveColumn(tableColumn.getColumnName());
         }
-        if(col == null) return null;
-        if(col instanceof QueryResult.FieldColumnDef fieldColumnDef){
-            fieldMapping.put(tableColumn, fieldColumnDef);
+        if (col == null) return null;
+        if (col instanceof QueryResult.FieldColumnDesc fieldColumnDef) {
+            symbolMapping.addFiledMapping(tableColumn, fieldColumnDef);
         }
         return new QueryValue.ColumnValue(col);
     }
@@ -112,38 +101,38 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
     public <S> QueryValue visit(JdbcNamedParameter jdbcNamedParameter, S context) {
         var name = jdbcNamedParameter.getName();
         var variable = queryDef.getVariable(name);
-        if(variable == null){
+        if (variable == null) {
             variable = queryDef.getFields().get(name);
         }
         assert variable != null;
-        bindParameters.add(variable);
+        symbolMapping.addBindParameter(variable);
         ClassDef type = variable.getType();
-        if(type instanceof NullableClassDef nullableClassDef){
-            nullableConditions.put(findTopCondition(jdbcNamedParameter), variable);
+        if (type instanceof NullableClassDef nullableClassDef) {
+            symbolMapping.addNullableCondition(findTopCondition(jdbcNamedParameter), variable);
         }
         return new QueryValue.VariableValue(variable);
     }
 
     private Expression findTopCondition(JdbcNamedParameter jdbcNamedParameter) {
         Expression prev = jdbcNamedParameter;
-        for(var p = jdbcNamedParameter.getParent(); p instanceof ASTNodeAccessImpl p2; p = p2.getParent()){
-            if(p instanceof PlainSelect plainSelect){
-                if(prev == plainSelect.getWhere()){
+        for (var p = jdbcNamedParameter.getParent(); p instanceof ASTNodeAccessImpl p2; p = p2.getParent()) {
+            if (p instanceof PlainSelect plainSelect) {
+                if (prev == plainSelect.getWhere()) {
                     return prev;
-                } else if(prev == plainSelect.getPreWhere()){
+                } else if (prev == plainSelect.getPreWhere()) {
                     return prev;
                 }
             }
-            if(p instanceof Join join){
+            if (p instanceof Join join) {
                 return prev;
             }
-            if(p instanceof AndExpression){
+            if (p instanceof AndExpression) {
                 return prev;
             }
-            if(p instanceof  OrExpression or){
+            if (p instanceof OrExpression or) {
                 return prev;
             }
-            if(p instanceof XorExpression xor){
+            if (p instanceof XorExpression xor) {
                 return prev;
             }
             prev = (Expression) p;

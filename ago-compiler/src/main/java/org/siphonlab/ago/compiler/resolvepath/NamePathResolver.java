@@ -604,9 +604,6 @@ public class NamePathResolver {
                 if(atEnd || id instanceof ParameterizedClass){      // GClass<Dog>.create make it not the end
                     var c = resolveClassInScopeClass(id, true, true);
                     if (c != null) return c;
-                    if(id instanceof ParameterizedClass){
-                        resolveClassInScopeClass(id, true, true);
-                    }
                     var v = resolveVariableInScopeClass(id);
                     if (v != null) {
                         if (isClassInterval(v) || isFunction(v)) return v;    // TODO or type variable
@@ -831,15 +828,13 @@ public class NamePathResolver {
             if(! scopeClass.isInterfaceOrTrait()){
                 var r = resolveSubClassOfScope(new Scope.Local(scopeClass), id, allowMetaScan);
                 if(r!=null) return findNearestParameterizedInterface(r);
-            } else {
-                try {
-                    var r = resolveClassInPackage(scopeClass.getParent(), id);
-                    if(r!=null) return findNearestParameterizedInterface(r);
-                } catch (CompilationError e){
-                    this.error = e;
-                    return null;
-                }
             }
+        }
+        try {
+            var r = resolveClassInPackage(scopeClass.getParent(), id);
+            if(r!=null) return findNearestParameterizedInterface(r);
+        } catch (CompilationError e){
+            this.error = e;
         }
         return null;
     }
@@ -867,7 +862,7 @@ public class NamePathResolver {
 
     private Expression resolveVariableInScopeClass(Id id) throws CompilationError {
         if(id instanceof PrimitiveType || id instanceof ParameterizedClass){
-            this.error = new TypeMismatchError("variable expected", id.sourceLocation);
+            this.error = new TypeMismatchError("variable expected, but '%s' found".formatted(id), id.sourceLocation);
             return null;
         }
 

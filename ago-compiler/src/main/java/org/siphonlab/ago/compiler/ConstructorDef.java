@@ -85,6 +85,7 @@ public class ConstructorDef extends FunctionDef{
         this.resolveSuperClass();
         this.createFunctionInterface();
         this.createFieldsOfTrait();
+        this.createDefaultValueFunForParameters();
 
         this.nextCompilingStage(CompilingStage.ValidateHierarchy);
         return true;

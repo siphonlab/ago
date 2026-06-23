@@ -30,30 +30,40 @@ public class QueryResult {
     @NonNull
     String name;
 
-    List<ColumnDef> columns = new ArrayList<>();
+    List<ColumnDesc> columns = new ArrayList<>();
+
+    QueryScope scope;
 
     /**
      * find column only inside my columns
      * @param columnName
      * @return
      */
-    public ColumnDef findColumn(String columnName) {
+    public ColumnDesc findColumn(String columnName) {
         return columns.stream().filter(c -> c.name.equals(columnName)).findFirst().orElse(null);
     }
 
-    public List<ColumnDef> getColumns() {
+    public List<ColumnDesc> getColumns() {
         return columns;
     }
 
-    public static class ColumnDef{
+    public QueryScope getScope() {
+        return scope;
+    }
+
+    public @NonNull String getName() {
+        return name;
+    }
+
+    public static class ColumnDesc {
 
         @NonNull
         String name;
 
         ClassDef type;
 
-        public ColumnDef alias(String name) {
-            var r = new ColumnDef();
+        public ColumnDesc alias(String name) {
+            var r = new ColumnDesc();
             r.name = name;
             r.type = this.type;
             return r;
@@ -68,7 +78,7 @@ public class QueryResult {
         }
     }
 
-    public static class FieldColumnDef extends ColumnDef{
+    public static class FieldColumnDesc extends ColumnDesc {
 
         @NonNull
         Variable srcVariable;
@@ -86,7 +96,7 @@ public class QueryResult {
 //        }
     }
 
-    public static class IdColumnDef extends ColumnDef{
+    public static class IdColumnDesc extends ColumnDesc {
 
         @NonNull
         ClassDef ownerClass;
@@ -95,31 +105,3 @@ public class QueryResult {
 
 }
 
-class TableResult extends QueryResult {
-
-    @NonNull
-    ClassDef classDef;
-
-    TableResult(ClassDef classDef) throws CompilationError {
-        super();
-        this.classDef = classDef;
-        this.name = classDef.getFullname();
-        Compiler.processClassTillStage(classDef, CompilingStage.InheritsFields);
-
-        var idType = classDef.getRoot().getAnyEntityClass().asThatOrSuperOfThat(classDef).getGenericSource().typeArguments()[1];
-        var id = new IdColumnDef();
-        id.name = "id";
-        id.type = idType.getClassDefValue();
-        id.ownerClass = classDef;
-        columns.add(id);
-
-        for(var field : classDef.getFields().values()){
-            var c = new FieldColumnDef();
-            c.name = field.getName();
-            c.srcVariable = field;
-            c.ownerClass = classDef;
-            c.type = field.getType();
-            columns.add(c);
-        }
-    }
-}

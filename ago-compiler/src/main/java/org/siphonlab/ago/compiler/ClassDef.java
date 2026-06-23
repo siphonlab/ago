@@ -1793,7 +1793,8 @@ public class ClassDef extends ClassContainer {
                     }
                 } else {
                     if(!hasBody){
-                        if(functionDef.isConstructor() || functionDef.isGetter() || functionDef.isSetter() || functionDef instanceof DefaultValueFunDef){
+                        if(functionDef.isConstructor() || functionDef.isGetter() || functionDef.isSetter()
+                                || functionDef instanceof ManualCreatedFunction){
                             continue;
                         }
                         throw unit.syntaxError(functionDef.getDeclarationAst(), "method body not found for non-abstract method");

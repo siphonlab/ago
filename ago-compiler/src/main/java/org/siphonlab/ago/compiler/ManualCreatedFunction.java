@@ -13,29 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.compiler.sql;
+package org.siphonlab.ago.compiler;
 
-import org.siphonlab.ago.compiler.Variable;
-
-import java.util.Objects;
-
-public interface QueryValue {
-
-    public class ColumnValue implements QueryValue{
-        QueryResult.ColumnDesc columnDesc;
-
-        public ColumnValue(QueryResult.ColumnDesc columnDesc) {
-            this.columnDesc = Objects.requireNonNull(columnDesc);
-        }
-    }
-
-    public class VariableValue implements QueryValue{
-
-        final Variable variable;
-
-        public VariableValue(Variable variable) {
-            this.variable = Objects.requireNonNull(variable);
-        }
-    }
-
+public interface ManualCreatedFunction {
 }

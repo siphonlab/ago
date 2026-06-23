@@ -72,21 +72,7 @@ import net.sf.jsqlparser.statement.lock.LockStatement;
 import net.sf.jsqlparser.statement.merge.Merge;
 import net.sf.jsqlparser.statement.piped.FromQuery;
 import net.sf.jsqlparser.statement.refresh.RefreshMaterializedViewStatement;
-import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.select.FromItemVisitor;
-import net.sf.jsqlparser.statement.select.Join;
-import net.sf.jsqlparser.statement.select.LateralSubSelect;
-import net.sf.jsqlparser.statement.select.ParenthesedFromItem;
-import net.sf.jsqlparser.statement.select.ParenthesedSelect;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectItem;
-import net.sf.jsqlparser.statement.select.SelectVisitor;
-import net.sf.jsqlparser.statement.select.SetOperationList;
-import net.sf.jsqlparser.statement.select.TableFunction;
-import net.sf.jsqlparser.statement.select.TableStatement;
-import net.sf.jsqlparser.statement.select.Values;
-import net.sf.jsqlparser.statement.select.WithItem;
+import net.sf.jsqlparser.statement.select.*;
 import net.sf.jsqlparser.statement.show.ShowIndexStatement;
 import net.sf.jsqlparser.statement.show.ShowTablesStatement;
 import net.sf.jsqlparser.statement.truncate.Truncate;
@@ -99,7 +85,6 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.QueryDef;
-import org.siphonlab.ago.compiler.Variable;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
@@ -111,14 +96,14 @@ public class SchemaLineager
         StatementVisitor<QueryResult> {
 
     private final ClassDef scopeClass;
-    private final Set<Variable> bindParameters = new HashSet<>();
 
     private ValueVisitor valueVisitor;
 
     private QueryScope currentScope = new QueryScope();
-    private Map<Table, ClassDef> classMapping = new HashMap<>();
-    private Map<Column, QueryResult.FieldColumnDef> fieldMapping = new HashMap<>();
+
     private Statement statement;
+
+    private final SymbolMapping symbolMapping = new SymbolMapping();
 
     private static <T> void throwUnsupported(T type) {
         throw new UnsupportedOperationException(String.format(
@@ -127,7 +112,7 @@ public class SchemaLineager
 
     public SchemaLineager(QueryDef scopeClass){
         this.scopeClass = scopeClass;
-        this.valueVisitor = new ValueVisitor(scopeClass, fieldMapping, bindParameters);
+        this.valueVisitor = new ValueVisitor(scopeClass, symbolMapping);
     }
 
     public QueryResult resolve(Statement statement) {
@@ -146,7 +131,7 @@ public class SchemaLineager
             ClassDef classDef = scopeClass.getUnit().parseTypeName(scopeClass, new AgoParser(new CommonTokenStream(new AgoLexer(CharStreams.fromString(name)))).namePath(), true);
             if(classDef != null){
                 r = new TableResult(classDef);
-                this.classMapping.put(table, classDef);
+                this.symbolMapping.addClassMapping(table, classDef);
                 return r;
             }
         }
@@ -211,22 +196,6 @@ public class SchemaLineager
         SelectVisitor.super.visit(parenthesedSelect);
     }
 
-    public Map<Table, ClassDef> getClassMapping() {
-        return classMapping;
-    }
-
-    public Map<Column, QueryResult.FieldColumnDef> getFieldMapping() {
-        return fieldMapping;
-    }
-
-    public Set<Variable> getBindParameters() {
-        return bindParameters;
-    }
-
-    public Map<Expression, Variable> getNullableConditions() {
-        return valueVisitor.getNullableConditions();
-    }
-
     @Override
     public <S> QueryResult visit(PlainSelect plainSelect, S context) {
 //        String alias = plainSelect.getAlias().getName();
@@ -250,6 +219,7 @@ public class SchemaLineager
 //        }
 
         var result = new QueryResult();
+        result.scope = scope;
         if (plainSelect.getSelectItems() != null) {
             for (SelectItem<?> item : plainSelect.getSelectItems()) {
                 var v = item.getExpression().accept(valueVisitor, scope);
@@ -261,15 +231,15 @@ public class SchemaLineager
                         throw new IllegalArgumentException("column name expected");      // TODO generate a name
                     }
                 }
-                QueryResult.ColumnDef columnDef;
+                QueryResult.ColumnDesc columnDesc;
                 if(v instanceof QueryValue.ColumnValue columnValue){
-                    columnDef = columnValue.columnDef.alias(cname);
+                    columnDesc = columnValue.columnDesc.alias(cname);
                 } else {
-                    columnDef = new QueryResult.ColumnDef();
-                    columnDef.name = cname;
-                    columnDef.type = scopeClass.getRoot().getAnyClass();
+                    columnDesc = new QueryResult.ColumnDesc();
+                    columnDesc.name = cname;
+                    columnDesc.type = scopeClass.getRoot().getAnyClass();
                 }
-                result.columns.add(columnDef);
+                result.columns.add(columnDesc);
 
                 // TODO handle QueryValue depends on Variables
 //                if(item.getExpression() instanceof Column column){
@@ -297,6 +267,23 @@ public class SchemaLineager
         if (plainSelect.getOracleHierarchical() != null) {
             plainSelect.getOracleHierarchical().accept(valueVisitor, scope);
         }
+
+        symbolMapping.addSelectMapping(plainSelect, result);
+        if(plainSelect.getOrderByElements() != null) {
+            var mustOutputOrderBy = false;
+            var hasOrderByParam = false;
+            for (OrderByElement o : plainSelect.getOrderByElements()) {
+                if (o.getExpression() instanceof Column) {
+                    mustOutputOrderBy = true;
+                } else if(o.getExpression() instanceof JdbcNamedParameter) {
+                    hasOrderByParam = true;
+                }
+            }
+            if(hasOrderByParam) {
+                symbolMapping.addOrderBy(plainSelect, new OrderByDesc(result, scope, mustOutputOrderBy));
+            }
+        }
+
         return result;
     }
 
@@ -1109,5 +1096,9 @@ public class SchemaLineager
     @Override
     public void visit(CreatePolicy createPolicy) {
         StatementVisitor.super.visit(createPolicy);
+    }
+
+    public SymbolMapping getSymbolMapping() {
+        return symbolMapping;
     }
 }

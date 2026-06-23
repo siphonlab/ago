@@ -23,16 +23,34 @@ import org.siphonlab.ago.compiler.statement.Return;
 import java.util.Collections;
 import java.util.List;
 
-public class DefaultValueFunDef extends FunctionDef{
+public class DefaultValueFunDef extends FunctionDef implements ManualCreatedFunction{
 
     private final Parameter parameter;
 
     public DefaultValueFunDef(Root root, Parameter parameter, int index) {
         super(root, Parameter.composeDefaultValueFunctionName(parameter), null);
         this.parameter = parameter;
-        this.setCompilingStage(CompilingStage.CompileMethodBody);
+        this.setCompilingStage(CompilingStage.ParseFields);
         this.setModifiers(AgoClass.PRIVATE);
+    }
+
+    @Override
+    public boolean parseFields() throws CompilationError {
+        if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
+        if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
+        if(this.isInGenericInstantiation()){
+            this.nextCompilingStage(CompilingStage.ValidateHierarchy);
+            return true;
+        }
+
         this.setResultType(parameter.getType());
+
+        this.createFunctionInterface();
+        this.createFieldsOfTrait();
+
+        this.setCompilingStage(CompilingStage.AllocateSlots);
+
+        return true;
     }
 
     @Override

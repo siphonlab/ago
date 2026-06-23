@@ -204,7 +204,7 @@ public class FunctionDef extends ClassDef {
             }
         }
     }
-    private void createDefaultValueFunForParameters() {
+    protected void createDefaultValueFunForParameters() {
         List<Parameter> parameterList = this.parameters;
         for (int i = 0; i < parameterList.size(); i++) {
             Parameter parameter = parameterList.get(i);
@@ -722,4 +722,25 @@ public class FunctionDef extends ClassDef {
         variableScope.setParent(currVariableScope);
         currVariableScope = variableScope;
     }
+
+    protected Variable declareVariable(String variableName, ClassDef type, int visibility) {
+        var variable = new Variable();
+        variable.setName(variableName);
+        variable.setType(type);
+        variable.setOwnerClass(this);
+        variable.setModifiers(visibility);
+        this.addLocalVariable(variable);
+        return variable;
+    }
+
+    protected Parameter declareParameter(String parameterName, ClassDef type, int visibility) {
+        var parameter = new Parameter(this, parameterName,  null);
+        parameter.setName(parameterName);
+        parameter.setType(type);
+        parameter.setOwnerClass(this);
+        parameter.setModifiers(visibility);
+        this.addParameter(parameter);
+        return parameter;
+    }
+
 }

@@ -17,31 +17,32 @@ package org.siphonlab.ago.compiler;
 
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
+import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.invoke.Invoke;
+import org.siphonlab.ago.compiler.expression.literal.BooleanLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
+import org.siphonlab.ago.compiler.expression.logic.OrExpr;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
-import org.siphonlab.ago.compiler.sql.CodeGenerator;
-import org.siphonlab.ago.compiler.sql.QueryResult;
-import org.siphonlab.ago.compiler.sql.SchemaLineager;
+import org.siphonlab.ago.compiler.sql.*;
 import org.siphonlab.ago.compiler.statement.ExpressionStmt;
 import org.siphonlab.ago.compiler.statement.Return;
 import org.siphonlab.ago.compiler.statement.Statement;
+import org.siphonlab.ago.opcode.logic.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
-public class QueryDef extends FunctionDef{
+public class QueryDef extends FunctionDef implements ManualCreatedFunction{
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QueryDef.class);
 
@@ -64,6 +65,7 @@ public class QueryDef extends FunctionDef{
     }
 
     private void createSubClasses(){
+        // TODO for DML, the result type is int
         var result = new ClassDef(this.getRoot(), "Result");
         result.setModifiers(AgoClass.PUBLIC | AgoClass.FINAL);
         this.addChild(result);
@@ -113,6 +115,7 @@ public class QueryDef extends FunctionDef{
         var formalParameters = queryDeclaration.formalParameters();
         unit.parseFormalParameters(this, formalParameters);
         this.processFieldParameters();
+        this.createDefaultValueFunForParameters();
 
         var it = getOrCreateGenericInstantiationClassDef(getRoot().findByFullname("QueryResultIterator"), new ClassRefLiteral[]{queryResult.toClassRefLiteral()}, null);
         this.setResultType(it);
@@ -128,29 +131,14 @@ public class QueryDef extends FunctionDef{
     private void createLocalVarsForQuery() {
         for (Parameter parameter : this.getParameters()) {
             if(parameter.getType() instanceof NullableClassDef nullableClassDef) {
-                var isNull = new Variable();
-                isNull.setName(parameter.getName() + "IsNull");
-                isNull.setType(root.BOOLEAN());
-                isNull.setOwnerClass(this);
-                isNull.setModifiers(AgoClass.PRIVATE);
-                this.addLocalVariable(isNull);
+                declareVariable(parameter.getName() + "IsNull", root.BOOLEAN(), AgoClass.PRIVATE);
             }
         }
 
         // put to each dialect later
-        var sql = new Variable();
-        sql.setName("sql");
-        sql.setType(root.STRING());
-        sql.setOwnerClass(this);
-        sql.setModifiers(AgoClass.PRIVATE);
-        this.addLocalVariable(sql);
+        declareVariable("sql", root.STRING(), AgoClass.PRIVATE);
 
-        var args = new Variable();
-        args.setName("args");
-        args.setType(queryArgs);
-        args.setOwnerClass(this);
-        args.setModifiers(AgoClass.PRIVATE);
-        this.addLocalVariable(args);
+        declareVariable("args", queryArgs, AgoClass.PRIVATE);
     }
 
     @Override
@@ -168,7 +156,9 @@ public class QueryDef extends FunctionDef{
                 this.schemaLineager = new SchemaLineager(this);
                 var queryResult = schemaLineager.resolve(CCJSqlParserUtil.parse(sql));
                 buildQueryResult(queryResult);
-                buildArgs(schemaLineager.getBindParameters());
+                SymbolMapping symbolMapping = schemaLineager.getSymbolMapping();
+                buildArgs(symbolMapping.getBindParameters());
+                buildSortOutputtedVariables(symbolMapping);
             } catch (Exception e) {
                 throw new SyntaxError(e.getMessage(), getUnit().sourceLocation(sqlBlock));
             }
@@ -188,7 +178,7 @@ public class QueryDef extends FunctionDef{
     }
 
     private void buildQueryResult(QueryResult queryResult) {
-        for (QueryResult.ColumnDef column : queryResult.getColumns()) {
+        for (QueryResult.ColumnDesc column : queryResult.getColumns()) {
             var field = new Field(this.queryResult, column.getName(), null);
             field.setModifiers(AgoClass.PUBLIC | AgoClass.FINAL);
             ClassDef type = column.getType();
@@ -197,6 +187,38 @@ public class QueryDef extends FunctionDef{
             this.queryResult.addField(field);
         }
     }
+
+    private void buildSortOutputtedVariables(SymbolMapping symbolMapping) {
+        // sort functions, each select a function
+        for (Map.Entry<Select, OrderByDesc> entry : symbolMapping.getOrderByClauses().entrySet()) {
+            var select = entry.getKey();
+            var orderByDesc = entry.getValue();
+
+            if(!orderByDesc.isMustOutputOrderBy()) {
+                var isOrderByOutputted = this.declareVariable(orderByDesc.composeIsOrderByOutputtedVariableName(), getRoot().BOOLEAN(), AgoClass.PRIVATE);
+                orderByDesc.setIsOrderByOutputted(isOrderByOutputted);
+            }
+        }
+    }
+
+    @Override
+    public void inheritsChildClasses() throws CompilationError {
+        if(this.compilingStage != CompilingStage.InheritsInnerClasses) return;
+
+        super.inheritsChildClasses();
+
+        // sort functions, each select a function
+        var symbolMapping = schemaLineager.getSymbolMapping();
+        for (Map.Entry<Select, OrderByDesc> entry : symbolMapping.getOrderByClauses().entrySet()) {
+            var select = entry.getKey();
+            var orderByDesc = entry.getValue();
+
+            FunctionDef functionDef = generateSortFunction(symbolMapping, select, orderByDesc);
+            orderByDesc.setSortMappingFunction(functionDef);
+        }
+    }
+
+
 
     @Override
     public void compileBody() throws CompilationError {
@@ -237,8 +259,19 @@ public class QueryDef extends FunctionDef{
                         new Equals(this, Var.of(this, new Scope.Local(this), parameter), getRoot().nullLiteral(), Equals.Type.Equals))));
             }
         }
+        SymbolMapping symbolMapping = schemaLineager.getSymbolMapping();
 
-        var codeGen = new CodeGenerator(new StringBuilder(), this, schemaLineager.getClassMapping(), schemaLineager.getFieldMapping(), schemaLineager.getNullableConditions());
+        for (Map.Entry<Select, OrderByDesc> entry : symbolMapping.getOrderByClauses().entrySet()) {
+            var orderByDesc = entry.getValue();
+
+            if(!orderByDesc.isMustOutputOrderBy()) {
+                statements.add(new ExpressionStmt(this,
+                        assign(new Var.LocalVar(this, orderByDesc.getIsOrderByOutputted(), Var.LocalVar.VarMode.Existed),
+                                new BooleanLiteral(getRoot().BOOLEAN(), false)).transform()));
+            }
+        }
+
+        var codeGen = new CodeGenerator(new StringBuilder(), this, symbolMapping);
         codeGen.visit((PlainSelect) schemaLineager.getStatement());
         String code = "$\"" + codeGen.getBuilder().toString() + "\"$";
         if(LOGGER.isDebugEnabled()){
@@ -256,11 +289,12 @@ public class QueryDef extends FunctionDef{
         var execQueryInstantiation = this.getOrCreateGenericInstantiationClassDef(execQuery, new ClassRefLiteral[]{this.getQueryResult().toClassRefLiteral()}, null);
         registerConcreteType(execQueryInstantiation);
 
+        // init query args
         Expression queryArgs;
         if(!this.queryArgs.getFields().isEmpty()) {
             Var.LocalVar args = new Var.LocalVar(this, getVariable("args"), Var.LocalVar.VarMode.Existed);
             statements.add(new ExpressionStmt(this, assign(args, new Creator(this, ClassUnder.create(this, new Scope.Local(this), this.queryArgs), Collections.emptyList(), null))));
-            for (Variable parameter : schemaLineager.getBindParameters()) {
+            for (Variable parameter : symbolMapping.getBindParameters()) {
                 Var.Field field = new Var.Field(this, args, this.queryArgs.getFields().get(parameter.getName()));
                 Var value;
                 if(parameter instanceof Field f){
@@ -275,6 +309,7 @@ public class QueryDef extends FunctionDef{
             queryArgs = getRoot().nullLiteral();
         }
 
+
         statements.add(new Return(this, invoke(Invoke.InvokeMode.Invoke,
                     new ConstClass(execQueryInstantiation),
                     List.of(sql, queryArgs), unit.sourceLocation(this.queryDeclaration)
@@ -283,5 +318,130 @@ public class QueryDef extends FunctionDef{
         blockCompiler.compileExpressions(statements.stream().map(st -> (Expression)st).toList());
 
         this.nextCompilingStage(CompilingStage.Compiled);   // Compiled
+    }
+
+    private FunctionDef generateSortFunction(SymbolMapping symbolMapping, Select select, OrderByDesc orderByDesc) {
+        QueryResult queryResult = symbolMapping.getMappedSelect(select);
+        QueryScope scope = queryResult.getScope();
+        StringBuilder funName = new StringBuilder();
+        for (Map.Entry<String, QueryResult> entry : scope.getNames().entrySet()) {
+            String name = entry.getKey();
+            funName.append(name).append('_');
+        }
+        funName.append(orderByDesc.getId()).append("_scope_sort");       // u_scope_1_sort()
+
+        var fun = new SortDef(root, funName.toString(), queryResult);
+        this.addChild(fun);
+        return fun;
+    }
+
+
+    class SortDef extends FunctionDef implements ManualCreatedFunction{
+
+        private final QueryResult queryResult;
+
+        public SortDef(Root root, String name, QueryResult queryResult) {
+            super(root, name, null);
+            this.queryResult = queryResult;
+            this.setCompilingStage(CompilingStage.ParseFields);
+        }
+
+        @Override
+        public boolean parseFields() throws CompilationError {
+            if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
+            if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
+            if(this.isInGenericInstantiation()){
+                this.nextCompilingStage(CompilingStage.ValidateHierarchy);
+                return true;
+            }
+            this.declareParameter("sort", root.findByFullname("Sort"), AgoClass.PRIVATE);
+            this.setResultType(this.getOrCreateNullableType(getRoot().STRING(), null));
+
+            this.createFunctionInterface();
+            this.createFieldsOfTrait();
+
+            this.setCompilingStage(CompilingStage.AllocateSlots);
+            return true;
+        }
+
+        @Override
+        public void compileBody() throws CompilationError {
+            if(this.getCompilingStage() != CompilingStage.CompileMethodBody) return;
+            if(this.isGenericInstantiation()){
+                this.nextCompilingStage(CompilingStage.Compiled);
+                return;
+            }
+
+            var scope = queryResult.getScope();
+            Expression expr = null;
+            for (Map.Entry<String, QueryResult> entry : scope.getNames().entrySet()) {
+                String name = entry.getKey();
+                QueryResult qr = entry.getValue();
+                Invoke invokeSort;
+                Var sort = Var.of(this, new Scope.Local(this), this.getParameters().getFirst());
+                if(qr instanceof TableResult tableResult){
+                    // tableSortScope<User>('u', sort) or
+                    // tableSortScope<User>('u', ['calculation'], sort)
+                    var columns = qr.getColumns().stream().filter(c -> {
+                        if(c instanceof QueryResult.FieldColumnDesc fieldColumnDesc){
+                            return false;
+                        } else {
+                            // not field
+                            return true;
+                        }
+                    }).map(QueryResult.ColumnDesc::getName).toList();
+
+                    if(columns.isEmpty()){
+                        // tableSortScope<User>('u', sort)
+                        FunctionDef tableSortScope = getRoot().findByFullname("tableSortScope#");
+                        var instantiated = this.getOrCreateGenericInstantiationClassDef(tableSortScope, new ClassRefLiteral[]{
+                                tableResult.getClassDef().toClassRefLiteral()
+                        }, null);
+                        this.registerConcreteType(instantiated);
+                        invokeSort = invoke(Invoke.InvokeMode.Invoke, new ConstClass(instantiated),
+                                List.of(new StringLiteral(root.STRING(), name),sort),
+                                QueryDef.this.getSourceLocation());
+                    } else {
+                        // tableSortScope<User>('u', ['calculation'], sort)
+                        FunctionDef tableSortScope = getRoot().findByFullname("tableSortScope#columns");
+                        var instantiated = this.getOrCreateGenericInstantiationClassDef(tableSortScope, new ClassRefLiteral[]{
+                                tableResult.getClassDef().toClassRefLiteral()
+                        }, null);
+                        this.registerConcreteType(instantiated);
+                        invokeSort = invoke(Invoke.InvokeMode.Invoke, new ConstClass(instantiated),
+                                List.of(
+                                        new StringLiteral(root.STRING(), name),
+                                        new ArrayLiteral(this, getOrCreateArrayType(root.STRING(), null),
+                                                columns.stream().map(s -> (Expression)new StringLiteral(root.STRING(), s)).toList()),
+                                        sort
+                                ),
+                                QueryDef.this.getSourceLocation());
+                    }
+                } else {
+                    // querySortScope('q', ['col1', 'col2', 'col3', ...], sort)
+                    var columns = qr.getColumns().stream().map(QueryResult.ColumnDesc::getName)
+                            .map(s -> (Expression)new StringLiteral(root.STRING(), s)).toList();
+                    invokeSort = invoke(Invoke.InvokeMode.Invoke, new ConstClass(root.findByFullname("querySortScope#")),
+                            List.of(
+                                    new StringLiteral(root.STRING(), name),
+                                    new ArrayLiteral(this, getOrCreateArrayType(root.STRING(), null), columns),
+                                    sort
+                            ),
+                            QueryDef.this.getSourceLocation());
+                }
+                if(expr == null){
+                    expr = invokeSort;
+                } else {
+                    expr = new OrExpr(this, expr, invokeSort);
+                }
+            }
+
+            List<Expression> exprs = List.of(new Return(this, expr.transform()));
+
+            new BlockCompiler(QueryDef.this.getUnit(), this, Collections.emptyList()).compileExpressions(exprs);
+
+            this.nextCompilingStage(CompilingStage.Compiled);   // Compiled
+
+        }
     }
 }

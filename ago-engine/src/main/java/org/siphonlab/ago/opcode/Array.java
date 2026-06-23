@@ -317,6 +317,7 @@ public class Array implements GenericOpCode{
             case array_put_u_acn    -> "array_put_u_acn";
             case array_put_u_aco    -> "array_put_u_aco";
             case array_put_u_avn    -> "array_put_u_avn";
+            case array_put_u_avo    -> "array_put_u_avo";
 
             case array_get_S_vac   ->   "array_get_S_vac";
             case array_get_S_vav   ->   "array_get_S_vav";

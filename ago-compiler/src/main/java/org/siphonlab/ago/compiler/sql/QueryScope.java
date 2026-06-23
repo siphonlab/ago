@@ -33,7 +33,7 @@ import java.util.*;
  *
  * Group By will create a speicial kind of QueryScope, in this scope, the columns are only the group key and accumalting function
  */
-class QueryScope{
+public class QueryScope{
 
     final QueryScope parent;
 
@@ -59,11 +59,21 @@ class QueryScope{
         names.put(name, queryResult);
     }
 
+    /**
+     * we can resolve name(table/relation) from scope and parent scopes
+     * @param name
+     * @return
+     */
     QueryResult resolve(String name){
         return names.getOrDefault(name, parent == null ? null : parent.resolve(name));
     }
 
-    public QueryResult.ColumnDef resolveColumn(String columnName) {
+    /**
+     * but can only resolve column with this scope, cannot involve parent
+     * @param columnName
+     * @return
+     */
+    public QueryResult.ColumnDesc resolveColumn(String columnName) {
         return this.names.values().stream()
                 .map(queryResult -> queryResult.findColumn(columnName))
                 .filter(Objects::nonNull)
@@ -72,5 +82,9 @@ class QueryScope{
 
     public int size(){
         return names.size();
+    }
+
+    public Map<String, QueryResult> getNames() {
+        return names;
     }
 }

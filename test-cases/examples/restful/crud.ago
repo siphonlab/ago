@@ -86,7 +86,13 @@ fun main(){
     Trace.print(u2.age)
 
     Trace.print("----------- queryName ---------------------")
-    var it = await userByName('Tom', null, 30) via EntitySpace.new#();
+    var it = await userByName('Tom', null, 30, default) via EntitySpace.new#();
+    for(var item in it){
+        Trace.print(item.name)
+        Trace.print(item.age)
+    }
+
+    var it2 = await userByName('Tom', null, 30, null) via EntitySpace.new#()
     for(var item in it){
         Trace.print(item.name)
         Trace.print(item.age)
@@ -102,11 +108,25 @@ class Query<+R> from Function<R>{
     }
 }
 
-fun mapColumn<Table>(column as int) as string native "org.siphonlab.ago.runtime.db.sdk.Entity.mapColumn";
+fun mapColumn<EntityClass>(column as int) as string native "org.siphonlab.ago.runtime.db.sdk.Entity.mapColumn";
 
-fun mapTable<Table>() as string native "org.siphonlab.ago.runtime.db.sdk.Entity.mapTable";
+fun mapTable<EntityClass>() as string native "org.siphonlab.ago.runtime.db.sdk.Entity.mapTable";
 
 fun executeQuery<R>(sql as string, args as Object?) as QueryResultIterator<R> native "org.siphonlab.ago.runtime.db.sdk.Entity.executeQuery";
+
+class Sort{
+    enum Direction{
+        Asc,
+        Desc
+    }
+    fun new(field column as string, field direction as string){}
+}
+
+fun tableSortScope<EntityClass>(alias as string, sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.tableSortScope";
+
+fun tableSortScope#columns<EntityClass>(alias as string, columns as string[], sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.tableSortScope";
+
+fun querySortScope(alias as string, columns as string[], sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.querySortScope";
 
 // to fork entity runspace
 native class EntitySpace with ForkContext{
@@ -135,13 +155,17 @@ native class EntityWorkflowSpace with ForkContext{
         metaclass{
             dialects['pg'] = "select id, name from User where name = ?";
         }
+
+        sort = sort or defaultValue_sort();     // if null
+
         return executeQuery(dialects['pg'], new Args(name))
     }
 */
 
-query userByName(name as string?, minAge as int?, maxAge as int?) {
+query userByName(name as string?, minAge as int?, maxAge as int?, sort as Sort[]? = [Sort[] | new Sort('u.name', 'asc')]) {
     sql{.
         SELECT u.id, u.name, u.age FROM User u WHERE name = :name AND age >= :minAge AND age <= :maxAge
+        ORDER BY :sort ASC
     .}
 }
 
