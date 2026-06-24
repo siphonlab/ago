@@ -207,7 +207,7 @@ sqlAttrs:
     ;
 
 sqlBlock:
-        SQL SQL_TICK sqlAttrs? SQL_ATOM+ SQL_TICK
+        SQL_TICK sqlAttrs? SQL_ATOM+ SQL_TICK
     ;
 
 throwsPhrase:       THROWS declarationTypeList;

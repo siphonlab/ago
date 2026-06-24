@@ -35,7 +35,7 @@ public class ComplexMapLiteral extends ExpressionInFunctionBody {
     private final List<ObjectLiteralKVDef> kvDefs;
     private final ClassDef mapType;
 
-    public ComplexMapLiteral(FunctionDef ownerFunction, Expression mapTypeExpr, ClassDef keyType, ClassDef valueType, List<ObjectLiteralKVDef> kvDefs) throws SyntaxError {
+    public ComplexMapLiteral(FunctionDef ownerFunction, Expression mapTypeExpr, ClassDef keyType, ClassDef valueType, List<ObjectLiteralKVDef> kvDefs) throws CompilationError {
         super(ownerFunction);
         this.mapTypeExpr = mapTypeExpr;
         this.keyType = keyType;

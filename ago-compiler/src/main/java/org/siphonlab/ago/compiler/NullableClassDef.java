@@ -114,5 +114,8 @@ public class NullableClassDef extends UnionClassDef {
         return null;
     }
 
-
+    @Override
+    public boolean isObjectOrNullableObject() {
+        return nullableBaseClass.isObjectOrNullableObject();
+    }
 }

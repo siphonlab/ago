@@ -34,9 +34,14 @@ public class EntityRdbDDLGenerator<Id> extends RdbDDLGenerator<Id>{
     @Override
     protected void createInstanceColumns(RdbType idT, List<Column> cols, boolean slotsAsJson) {
         // id – PK
-        Column idCol = createColumn("id", idT.getTypeName());
+        var idColumnDesc = rdbAdapter.idColumnDesc();
+
+        Column idCol = idColumnDesc.toColumn();
         idCol.setPrimaryKey(true);
         cols.add(idCol);
+        if(idColumnDesc.getAdditional() != null){
+            cols.add(idColumnDesc.getAdditional().toColumn());
+        }
 
         // parent_scope_id / class + creator_id / class
         objectColumn(cols, "parent_scope", idT);

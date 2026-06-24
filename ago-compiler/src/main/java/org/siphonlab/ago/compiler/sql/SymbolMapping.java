@@ -34,7 +34,7 @@ public class SymbolMapping {
 
     private Map<Table, ClassDef> classMapping = new HashMap<>();
 
-    private Map<Column, QueryResult.FieldColumnDesc> fieldMapping = new HashMap<>();
+    private Map<Column, QueryResult.ColumnDesc> fieldMapping = new HashMap<>();
 
     private Map<Expression, Variable> nullableConditions = new HashMap<>();
 
@@ -50,11 +50,15 @@ public class SymbolMapping {
         fieldMapping.put(tableColumn, fieldColumnDef);
     }
 
+    public void addIdMapping(Column tableColumn, QueryResult.IdColumnDesc idColumnDef){
+        fieldMapping.put(tableColumn, idColumnDef);
+    }
+
     public Map<Table, ClassDef> getClassMapping() {
         return classMapping;
     }
 
-    public Map<Column, QueryResult.FieldColumnDesc> getFieldMapping() {
+    public Map<Column, QueryResult.ColumnDesc> getFieldMapping() {
         return fieldMapping;
     }
 
@@ -74,7 +78,7 @@ public class SymbolMapping {
         nullableConditions.put(topCondition, variable);
     }
 
-    public QueryResult.FieldColumnDesc getMappedField(Column tableColumn) {
+    public QueryResult.ColumnDesc getMappedField(Column tableColumn) {
         return fieldMapping.get(tableColumn);
     }
 
