@@ -408,18 +408,20 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
                 }
             }
             // the output cols of select
-            var columns = this.queryResult.getColumns().stream().map(QueryResult.ColumnDesc::getName)
+            var columns = this.queryResult.getColumns().stream().filter(c -> c.getClass() == QueryResult.ColumnDesc.class).map(QueryResult.ColumnDesc::getName)
                     .map(s -> (Expression)new StringLiteral(root.STRING(), s)).toList();
-            var querySortSelect = invoke(Invoke.InvokeMode.Invoke, new ConstClass(root.findByFullname("querySortSelect#")),
-                    List.of(
-                            new ArrayLiteral(this, getOrCreateArrayType(root.STRING(), null), columns),
-                            sort
-                    ),
-                    QueryDef.this.getSourceLocation());
-            if(expr == null){
-                expr = querySortSelect;
-            } else {
-                expr = new OrExpr(this, expr, querySortSelect);
+            if(!columns.isEmpty()) {
+                var querySortSelect = invoke(Invoke.InvokeMode.Invoke, new ConstClass(root.findByFullname("querySortSelect#")),
+                        List.of(
+                                new ArrayLiteral(this, getOrCreateArrayType(root.STRING(), null), columns),
+                                sort
+                        ),
+                        QueryDef.this.getSourceLocation());
+                if (expr == null) {
+                    expr = querySortSelect;
+                } else {
+                    expr = new OrExpr(this, expr, querySortSelect);
+                }
             }
 
 
