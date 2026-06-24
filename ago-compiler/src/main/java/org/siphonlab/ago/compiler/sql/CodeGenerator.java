@@ -19,6 +19,7 @@ import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.conditional.XorExpression;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.SupportsOldOracleJoinSyntax;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -136,8 +137,10 @@ public class CodeGenerator extends SelectDeParser {
                 builder.append(tableName).append(tableColumn.getTableDelimiter());
             }
 
-            if(variableColumnDef != null){
-                builder.append("${mapColumn<%s>(%d)}".formatted(variableColumnDef.ownerClass.getFullname(), variableColumnDef.srcVariable.getSlotIndex()));
+            if(variableColumnDef instanceof QueryResult.FieldColumnDesc fieldColumnDef) {
+                builder.append("${mapColumn<%s>(%d)}".formatted(fieldColumnDef.ownerClass.getFullname(), fieldColumnDef.srcVariable.getSlotIndex()));
+            } else if(variableColumnDef instanceof QueryResult.IdColumnDesc idColumnDef) {
+                builder.append("${mapIdColumn<%s>()}".formatted(idColumnDef.ownerClass.getFullname()));
             } else {
                 builder.append(tableColumn.getColumnName());
             }
@@ -203,7 +206,42 @@ public class CodeGenerator extends SelectDeParser {
             }
         }
 
-
+        @Override
+        public <S> StringBuilder visit(EqualsTo equalsTo, S context) {
+            if(equalsTo.getLeftExpression() instanceof Column leftCol && equalsTo.getRightExpression() instanceof Column rightCol) {
+                var left = symbolMapping.getMappedField(leftCol);
+                var right = symbolMapping.getMappedField(rightCol);
+                if(left instanceof QueryResult.FieldColumnDesc leftField && leftField.getType().isObjectOrNullableObject()) {
+                    if(right instanceof QueryResult.IdColumnDesc rightId) {
+                        builder.append("${idEquals<%s,%s>('%s', '%s', %d)}".formatted(
+                                rightId.ownerClass.getFullname(),
+                                leftField.ownerClass.getFullname(),
+                                rightCol.getTableName(), leftCol.getTableName(), leftField.srcVariable.getSlotIndex()
+                        ));
+                        return builder;
+                    } else if(right instanceof QueryResult.FieldColumnDesc rightField) {
+                        builder.append("${objectEquals<%s,%s>('%s', %d, '%s', %d)}".formatted(
+                                leftField.ownerClass.getFullname(),
+                                rightField.ownerClass.getFullname(),
+                                leftCol.getTableName(), leftField.srcVariable.getSlotIndex(),
+                                rightCol.getTableName(),rightField.srcVariable.getSlotIndex()
+                        ));
+                        return builder;
+                    }
+                } else if(left instanceof QueryResult.IdColumnDesc leftId) {
+                    if(right instanceof QueryResult.FieldColumnDesc rightField) {
+                        builder.append("${idEquals<%s,%s>('%s', '%s', %d)}".formatted(
+                                leftId.ownerClass.getFullname(),
+                                rightField.ownerClass.getFullname(),
+                                leftCol.getTableName(),
+                                rightCol.getTableName(), rightField.srcVariable.getSlotIndex()
+                        ));
+                        return builder;
+                    }
+                }
+            }
+            return super.visit(equalsTo, context);
+        }
     }
 
     static class MyOrderByDeParser extends OrderByDeParser {
@@ -259,8 +297,10 @@ public class CodeGenerator extends SelectDeParser {
                     builder.append(tableName).append(tableColumn.getTableDelimiter());
                 }
 
-                if(variableColumnDef != null){
-                    builder.append("${mapColumn<%s>(%d)}".formatted(variableColumnDef.ownerClass.getFullname(), variableColumnDef.srcVariable.getSlotIndex()));
+                if(variableColumnDef instanceof QueryResult.FieldColumnDesc fieldColumnDef) {
+                    builder.append("${mapColumn<%s>(%d)}".formatted(fieldColumnDef.ownerClass.getFullname(), fieldColumnDef.srcVariable.getSlotIndex()));
+                } else if(variableColumnDef instanceof QueryResult.IdColumnDesc idColumnDef) {
+                    builder.append("${mapIdColumn<%s>()}".formatted(idColumnDef.ownerClass.getFullname()));
                 } else {
                     builder.append(tableColumn.getColumnName());
                 }

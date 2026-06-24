@@ -150,13 +150,15 @@ public class FunctionInvocationResolver {
             try {
                 if(parameterType instanceof ClassIntervalClassDef classIntervalClassDef) {     // cast class to ScopedClassInterval
                     // Assign.processBoundClass -> CastToScopedClassRef, return parameterType
-                    if(this.ownerFunction.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(classIntervalClassDef.getLBoundClass())){
-                        argType = new Cast(ownerFunction, arguments.get(p), parameterType).transform().inferType();
-                    } else {
-                        ClassDef classDef = Creator.extractScopeAndClass(arguments.get(p), arguments.get(p).getSourceLocation(), false).getRight();
+                    Expression argAtP = arguments.get(p);
+//                    if(this.ownerFunction.getRoot().getFunctionBaseOfAnyClass().isThatOrSuperOfThat(classIntervalClassDef.getLBoundClass())){
+//                        argType = new Cast(ownerFunction, argAtP, parameterType).transform().inferType();
+//                    } else
+                    {
+                        ClassDef classDef = Creator.extractScopeAndClass(argAtP, argAtP.getSourceLocation(), false).getRight();
                         argType = classIntervalClassDef.asThatOrSuperOfThat(classDef);
                         if (argType == null) {
-                            resolveResult.error = new TypeMismatchError("argument type '%s' not match '%s'".formatted(classDef.getFullname(), parameterType.getFullname()), arguments.get(p).getSourceLocation());
+                            resolveResult.error = new TypeMismatchError("argument type '%s' not match '%s'".formatted(classDef.getFullname(), parameterType.getFullname()), argAtP.getSourceLocation());
                             return resolveResult;
                         }
                     }

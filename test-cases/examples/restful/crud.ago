@@ -1,13 +1,13 @@
-interface DbField{
-// DbField need support composeTypeName, however it can't constraint on metaclass
-// and for standard data types, it will translate to each database typename with its adapter
-// only db owned types need implement this interface, i.e. JSONB in PG
-//    metaclass{
-//        fun composeTypeName() as string {
-//        }
-//    }
-}
-
+//interface DbField{
+//// DbField need support composeTypeName, however it can't constraint on metaclass
+//// and for standard data types, it will translate to each database typename with its adapter
+//// only db owned types need implement this interface, i.e. JSONB in PG
+////    metaclass{
+////        fun composeTypeName() as string {
+////        }
+////    }
+//}
+//
 
 class VarChar from String{
     metaclass{
@@ -28,50 +28,55 @@ class BigInt from Boxer<long>{
 class User from Entity<User, long> {
     metaclass{
         class Name from VarChar::(100)
-        class Address from VarChar::(200)
+        class Phone from VarChar::(200)
         class Age from BigInt
     }
-    name as Name;
-    address as Address;
-    age as Age
+    public name as Name;
+    public phone as Phone;
+    public age as Age
 }
 
-fun createUser() as User {
-    var u = new User() with {
-        .name = "Tom";
-        .address = "liberation street 222";
-        .age = 20;
-    }
-    return u;
-}
+fun initData(){
+    // 1. Tom
+    var u1 = {User | name: "Tom", phone: "13344456666", age: 20}
+    var addr1_1 = {Address | user: u1, street: "No.10 Wenchang Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510000", country: 'China', isPrimary: true}
+    var addr1_2 = {Address | user: u1, street: "No.5 South Zhongshan Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510100", country: 'China', isPrimary: false}
 
-fun getUser(id as long) as User{
-    var u = User.of(id)
-    return u;
+    // 2. Alice
+    var u2 = {User | name: "Alice", phone: "13812345678", age: 28}
+    var addr2_1 = {Address | user: u2, street: "No.23 Yantian Rd.", city: "Shenzhen", state: "Guangdong", zipCode: "518000", country: 'China', isPrimary: true}
+
+    // 3. Bob
+    var u3 = {User | name: "Bob", phone: "13987654321", age: 35}
+    var addr3_1 = {Address | user: u3, street: "No.45 Nanshan Rd.", city: "Shenzhen", state: "Guangdong", zipCode: "518000", country: 'China', isPrimary: true}
+    var addr3_2 = {Address | user: u3, street: "No.7 Tianhe Ave.", city: "Shenzhen", state: "Guangdong", zipCode: "518001", country: 'China', isPrimary: false}
+
+    // 4. Carol
+    var u4 = {User | name: "Carol", phone: "13765432109", age: 22}
+    var addr4_1 = {Address | user: u4, street: "No.12 Huadu Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510300", country: 'China', isPrimary: true}
+
+    // 5. David
+    var u5 = {User | name: "David", phone: "13654321098", age: 30}
+    var addr5_1 = {Address | user: u5, street: "No.8 Haizhu Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510400", country: 'China', isPrimary: true}
+    var addr5_2 = {Address | user: u5, street: "No.15 Tianhe Ave.", city: "Shenzhen", state: "Guangdong", zipCode: "518001", country: 'China', isPrimary: false}
+
+    // 6. Eve
+    var u6 = {User | name: "Eve", phone: "13543210987", age: 27}
+    var addr6_1 = {Address | user: u6, street: "No.20 Nanshan Rd.", city: "Shenzhen", state: "Guangdong", zipCode: "518000", country: 'China', isPrimary: true}
+
+    // 7. Frank
+    var u7 = {User | name: "Frank", phone: "13432109876", age: 33}
+    var addr7_1 = {Address | user: u7, street: "No.9 Baiyun Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510500", country: 'China', isPrimary: true}
+    var addr7_2 = {Address | user: u7, street: "No.4 Tianhe Ave.", city: "Shenzhen", state: "Guangdong", zipCode: "518001", country: 'China', isPrimary: false}
 }
 
 fun main(){
-    var u = await createUser() via EntitySpace.new#();
+    await initData() via EntitySpace.new#();
 
-    Trace.print(u.name)
-    Trace.print(u.age)
-
-    // next time we can load from existed data
-    var u2 = await getUser(u.id) via EntitySpace.new#();
-    Trace.print(u2.name)
-    Trace.print(u2.age)
-
-    Trace.print("----------- queryName ---------------------")
-    var it = await userByName('Tom', null, 30, default) via EntitySpace.new#();
+    var it = await join_test('David') via EntitySpace.new#();
     for(var item in it){
-        Trace.print(item.name)
-        Trace.print(item.age)
-    }
-
-    var it2 = await userByName('Tom', null, 30, null) via EntitySpace.new#()
-    for(var item in it){
-        Trace.print(item.name)
-        Trace.print(item.age)
+        Trace.print(item.userName)
+        Trace.print(item.street)
     }
 
     Trace.print("DONE");
@@ -104,26 +109,25 @@ query userByName(name as string?, minAge as int?, maxAge as int?, sort as Sort[]
     .}
 }
 
-//query userByName2(name as string?) {
-//    sql{.
-//        SELECT
-//            u.id          AS userId,
-//            u.name        AS userName,
-//            a.street      AS street,
-//            a.city        AS city,
-//            a.state       AS state,
-//            a.zipCode     AS zip,
-//            a.country     AS country
-//        FROM
-//            User u
-//        JOIN
-//            Address a
-//        ON
-//            a.user = u.id
-//        WHERE
-//            a.isPrimary = true
-//    .}
-//}
+query join_test(name as string?) {
+    sql{.
+        SELECT
+            u.name        AS userName,
+            a.street      AS street,
+            a.city        AS city,
+            a.state       AS state,
+            a.zipCode     AS zip,
+            a.country     AS country
+        FROM
+            User u
+        JOIN
+            Address a
+        ON
+            a.user = u.id
+        WHERE
+            a.isPrimary = true AND u.name = :name
+    .}
+}
 //
 //query UserByName3(name as string?) {
 //    sql{.
@@ -144,15 +148,15 @@ query userByName(name as string?, minAge as int?, maxAge as int?, sort as Sort[]
 //}
 
 class Address from Entity<Address, long> {
-    user as User;
+    public user as User;
 
-    street      as string;
-    city        as string;
-    state       as string;
-    zipCode     as string;
-    country     as string;
+    public street      as string;
+    public city        as string;
+    public state       as string;
+    public zipCode     as string;
+    public country     as string;
 
-    isPrimary   as boolean;
+    public isPrimary   as boolean;
 }
 
 //class Order from Entity<Order, long> {

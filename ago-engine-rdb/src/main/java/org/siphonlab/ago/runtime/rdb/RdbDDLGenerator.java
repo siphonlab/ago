@@ -115,15 +115,17 @@ public abstract class RdbDDLGenerator<Id> {
     /** Common columns for all instance‑like tables (id, application, ... , slots) */
     protected void createInstanceColumns(RdbType idT, List<Column> cols, boolean slotsAsJson) {
         // id – PK
-        Column idCol = createColumn("id", idT.getTypeName());
+        var idColumnDesc = rdbAdapter.idColumnDesc();
+
+        Column idCol = idColumnDesc.toColumn();
         idCol.setPrimaryKey(true);
         cols.add(idCol);
+        if(idColumnDesc.getAdditional() != null){
+            cols.add(idColumnDesc.getAdditional().toColumn());
+        }
 
         // application (bigint in all tables that need it)
         cols.add(createColumn("application", idT.getTypeName()));
-
-        // ago_class text
-        cols.add(createColumn("ago_class", "text"));
 
         // parent_scope_id / class + creator_id / class
         objectColumn(cols, "parent_scope", idT);

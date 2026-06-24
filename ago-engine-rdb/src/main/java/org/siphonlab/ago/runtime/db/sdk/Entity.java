@@ -19,6 +19,7 @@ import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
@@ -94,6 +95,17 @@ public class Entity {
         var adapter = retrieveEntityAdapter(frame.getRunSpace());
         var entityClass = frame.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments()[0];
         var columnDesc = adapter.getColumnDesc(entityClass.getFullname(), slotIndex);
+        if(columnDesc.getAdditional() == null) {
+            frame.finishString(columnDesc.getName());
+        } else {
+            frame.finishString(columnDesc.getName() + "," + columnDesc.getAdditional().getName());
+        }
+    }
+
+    public static void mapIdColumn(NativeFrame frame){
+        var adapter = retrieveEntityAdapter(frame.getRunSpace());
+        var entityClass = frame.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments()[0];
+        var columnDesc = adapter.idColumnDesc();
         if(columnDesc.getAdditional() == null) {
             frame.finishString(columnDesc.getName());
         } else {
@@ -186,5 +198,48 @@ public class Entity {
             throw new RuntimeException(e);
         }
     }
+
+    public static void idEquals(NativeFrame frame, String selfAlias, String toAlias, int slotIndex){
+        var adapter = retrieveEntityAdapter(frame.getRunSpace());
+        AgoClass[] typeArgs = frame.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments();
+        var selfEntityClass = typeArgs[0];
+        var toEntityClass = typeArgs[1];
+
+        var idColumnDesc = adapter.idColumnDesc();
+        var toColumnDesc = adapter.getColumnDesc(toEntityClass.getFullname(), slotIndex);
+
+        var s = concatIfNotNull(selfAlias, idColumnDesc.getName()) + " = " + concatIfNotNull(toAlias, toColumnDesc.getName());
+
+        if(toColumnDesc.getAdditional() != null && idColumnDesc.getAdditional() != null) {
+            s += " AND " + concatIfNotNull(selfAlias, idColumnDesc.getAdditional().getName()) + " = " + concatIfNotNull(toAlias, toColumnDesc.getAdditional().getName());
+        }
+        frame.finishString(s);
+    }
+
+    static String concatIfNotNull(String s1, String s2){
+        if(StringUtils.isNotEmpty(s1)){
+            return s1 + "." + s2;
+        } else {
+            return s2;
+        }
+    }
+
+    public static void objectEquals(NativeFrame frame, String fromAlias, int fromSlot, String toAlias, int toSlot){
+        var adapter = retrieveEntityAdapter(frame.getRunSpace());
+        AgoClass[] typeArgs = frame.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments();
+        var fromEntityClass = typeArgs[0];
+        var toEntityClass = typeArgs[1];
+
+        var fromColumnDesc = adapter.getColumnDesc(fromEntityClass.getFullname(), fromSlot);
+        var toColumnDesc = adapter.getColumnDesc(toEntityClass.getFullname(), toSlot);
+
+        var s = concatIfNotNull(fromAlias, fromColumnDesc.getName()) + " = " + concatIfNotNull(toAlias, toColumnDesc.getName());
+
+        if(toColumnDesc.getAdditional() != null && fromColumnDesc.getAdditional() != null) {
+            s += " AND " + concatIfNotNull(fromAlias, fromColumnDesc.getAdditional().getName()) + " = " + concatIfNotNull(toAlias, toColumnDesc.getAdditional().getName());
+        }
+        frame.finishString(s);
+    }
+
 
 }

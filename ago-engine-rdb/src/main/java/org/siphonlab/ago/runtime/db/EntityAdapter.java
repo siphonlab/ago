@@ -38,5 +38,7 @@ public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
     ColumnDesc getColumnDesc(String className, int slot);
 
+    ColumnDesc idColumnDesc();
+
     ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace);
 }

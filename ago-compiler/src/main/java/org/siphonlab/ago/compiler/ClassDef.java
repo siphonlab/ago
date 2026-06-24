@@ -2090,4 +2090,9 @@ public class ClassDef extends ClassContainer {
         }
         return null;
     }
+
+    public boolean isObjectOrNullableObject() {
+        if(this.getTypeCode() == TypeCode.OBJECT) return true;
+        return false;
+    }
 }

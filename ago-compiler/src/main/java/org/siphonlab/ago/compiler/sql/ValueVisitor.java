@@ -58,6 +58,8 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
         if (col == null) return null;
         if (col instanceof QueryResult.FieldColumnDesc fieldColumnDef) {
             symbolMapping.addFiledMapping(tableColumn, fieldColumnDef);
+        } else if(col instanceof QueryResult.IdColumnDesc idColumnDef) {
+            symbolMapping.addIdMapping(tableColumn, idColumnDef);
         }
         return new QueryValue.ColumnValue(col);
     }
@@ -235,6 +237,7 @@ public class ValueVisitor implements ExpressionVisitor<QueryValue> {
 
     @Override
     public <S> QueryValue visit(EqualsTo equalsTo, S context) {
+
         visitBinaryExpression(equalsTo, context);
         return null;
     }

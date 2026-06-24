@@ -107,8 +107,10 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
 
     public RdbType idRdbType() {
         if (this.idRdbType == null){
-            this.idRdbType = typeMapping.mapType(idType, null);
-            assert idRdbType != null;
+            var t = typeMapping.mapType(idType, null);
+            t= t.clone();
+            t.setAdditional(typeMapping.mapType(STRING, null));     // class name
+            this.idRdbType = t;
         }
         return this.idRdbType;
     }
@@ -146,7 +148,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         columnDesc.setSlotDef(slotDef);
         columnDesc.setNotNull(!nullable);
 
-        if (columnDesc.getAdditional() != null) {
+        if (type.getAdditional() != null) {
             RdbType additional = type.getAdditional();
             assert additional.getTypeCode() == STRING;      // now it only class name behind object id
             var additionColumn = new ColumnDesc();
@@ -561,6 +563,25 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
 
     public ColumnDesc getColumnDesc(String className, int slot) {
         return tablesByClassName.get(className).columnDescOfSlot(slot);
+    }
+
+    public ColumnDesc idColumnDesc(){
+        var type = this.idRdbType();
+        var columnDesc = new ColumnDesc();
+        columnDesc.setRdbType(type);
+        columnDesc.setName("id");
+        columnDesc.setNotNull(true);
+        columnDesc.setPrimaryKey(true);
+
+        if (type.getAdditional() != null) {
+            RdbType additional = type.getAdditional();
+            assert additional.getTypeCode() == STRING;      // now it only class name behind object id
+            var additionColumn = new ColumnDesc();
+            additionColumn.setRdbType(additional);
+            additionColumn.setName("ago_class");
+            columnDesc.setAdditional(additionColumn);
+        }
+        return columnDesc;
     }
 
     public void fillPrimitiveParameter(PreparedStatement ps, int index, TypeCode typeCode, Object value) throws SQLException {

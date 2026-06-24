@@ -96,4 +96,8 @@ public class AnyClassDef extends ClassDef{
         return root;
     }
 
+    @Override
+    public boolean isObjectOrNullableObject() {
+        return true;
+    }
 }
