@@ -42,11 +42,11 @@ public class Instance<C extends AgoClass>  {
         this.agoClass = agoClass;
     }
 
-    public Instance getParentScope() {
+    public Instance<?> getParentScope() {
         return parentScope;
     }
 
-    public void setParentScope(Instance parentScope) {
+    public void setParentScope(Instance<?> parentScope) {
         this.parentScope = parentScope;
     }
 
@@ -61,7 +61,7 @@ public class Instance<C extends AgoClass>  {
 
     public void invokeMethod(CallFrame<?> caller, int reenterState, int additionalState, AgoFunction method, Object... arguments){
         var runSpace = caller.getRunSpace();
-        CallFrame<?> frame = runSpace.getAgoEngine().createFunctionInstance(this, method, caller, caller);
+        CallFrame<?> frame = runSpace.getAgoEngine().createFunctionInstance(this, method, runSpace);
         var interframe = new ReentrantProxyFrame<>(caller, frame, reenterState, additionalState);
         frame.assignArguments(arguments);
         runSpace.setCurrCallFrame(interframe);
@@ -137,6 +137,14 @@ public class Instance<C extends AgoClass>  {
 
     public void setObjectField(String fieldName, Instance<?> value) {
         this.getSlots().setObject(this.getAgoClass().findField(fieldName).getSlotIndex(), value);
+    }
+
+    public Object getUnionField(String fieldName) {
+        return this.getSlots().getUnion(this.getAgoClass().findField(fieldName).getSlotIndex());
+    }
+
+    public void setUnionField(String fieldName, Object value) {
+        this.getSlots().setUnion(this.getAgoClass().findField(fieldName).getSlotIndex(), value);
     }
 
     public AgoClass getClassRefField(String fieldName) {

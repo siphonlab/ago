@@ -16,6 +16,7 @@
 package org.siphonlab.ago.runtime.rdb;
 
 
+import io.ebeaninternal.dbmigration.migration.Column;
 import org.siphonlab.ago.AgoSlotDef;
 
 public class ColumnDesc {
@@ -106,4 +107,13 @@ public class ColumnDesc {
     public AgoSlotDef getSlotDef() {
         return slotDef;
     }
+
+    public Column toColumn() {
+        Column column = new Column();
+        column.setName(this.getName());
+        column.setType(this.getRdbType().getTypeName());
+        column.setNotnull(this.isNotNull());
+        return column;
+    }
+
 }

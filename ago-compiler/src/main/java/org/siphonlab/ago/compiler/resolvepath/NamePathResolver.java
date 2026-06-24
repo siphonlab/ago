@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.resolvepath;
 
 
+import org.jspecify.annotations.NonNull;
 import org.siphonlab.ago.compiler.SourceLocation;
 import org.siphonlab.ago.compiler.Package;
 
@@ -32,6 +33,7 @@ import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
+import org.siphonlab.ago.compiler.generic.GenericInstantiationFunctionDef;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -602,9 +604,6 @@ public class NamePathResolver {
                 if(atEnd || id instanceof ParameterizedClass){      // GClass<Dog>.create make it not the end
                     var c = resolveClassInScopeClass(id, true, true);
                     if (c != null) return c;
-                    if(id instanceof ParameterizedClass){
-                        resolveClassInScopeClass(id, true, true);
-                    }
                     var v = resolveVariableInScopeClass(id);
                     if (v != null) {
                         if (isClassInterval(v) || isFunction(v)) return v;    // TODO or type variable
@@ -829,15 +828,13 @@ public class NamePathResolver {
             if(! scopeClass.isInterfaceOrTrait()){
                 var r = resolveSubClassOfScope(new Scope.Local(scopeClass), id, allowMetaScan);
                 if(r!=null) return findNearestParameterizedInterface(r);
-            } else {
-                try {
-                    var r = resolveClassInPackage(scopeClass.getParent(), id);
-                    if(r!=null) return findNearestParameterizedInterface(r);
-                } catch (CompilationError e){
-                    this.error = e;
-                    return null;
-                }
             }
+        }
+        try {
+            var r = resolveClassInPackage(scopeClass.getParent(), id);
+            if(r!=null) return findNearestParameterizedInterface(r);
+        } catch (CompilationError e){
+            this.error = e;
         }
         return null;
     }
@@ -865,7 +862,7 @@ public class NamePathResolver {
 
     private Expression resolveVariableInScopeClass(Id id) throws CompilationError {
         if(id instanceof PrimitiveType || id instanceof ParameterizedClass){
-            this.error = new TypeMismatchError("variable expected", id.sourceLocation);
+            this.error = new TypeMismatchError("variable expected, but '%s' found".formatted(id), id.sourceLocation);
             return null;
         }
 
@@ -903,15 +900,15 @@ public class NamePathResolver {
 
     private ClassDef parameterizedClass(ClassDef classDef, Id id) throws CompilationError {
         if(id instanceof ParameterizedClass parameterizedClass){
-            ClassDef r = classDef;
+            ClassDef base = classDef;
             if(parameterizedClass.typeArguments != null){
-                r = genericTypedClass(classDef, parameterizedClass);     //G<Animal>::(1,2)
-                if(r instanceof GenericInstantiationPlaceHolder && this.ids.getLast() != id){
+                base = genericTypedClass(classDef, parameterizedClass);     //G<Animal>::(1,2)
+                if(base instanceof GenericInstantiationPlaceHolder && this.ids.getLast() != id){
                     throw new SyntaxError("empty type arguments template initialization must put at the last",id.sourceLocation);
                 }
             }
             if(parameterizedClass.classCreatorArguments != null) {
-                var placeHolder = new ParameterizedClassDef.PlaceHolder(r, parameterizedClass.classCreatorArguments, id.sourceLocation, scopeClass);
+                var placeHolder = new ParameterizedClassDef.PlaceHolder(base, parameterizedClass.classCreatorArguments, id.sourceLocation, scopeClass);
                 if(classDef.getCompilingStage().getValue() < CompilingStage.AllocateSlots.getValue()){
                     classDef.getRoot().addParameterizedClassDefPlaceHolder(placeHolder);
                     return placeHolder;
@@ -919,7 +916,7 @@ public class NamePathResolver {
                     return placeHolder.resolve();
                 }
             }
-            return r;
+            return base;
         }
         return classDef;
     }
@@ -933,8 +930,12 @@ public class NamePathResolver {
             //indicate by constructor parameters or assignee type
             typeArguments = resolveTypeArgsListFromAssigneeAST();
         }
-        if(typeArguments == null){  // resolve failed, indicate by constructor parameters
-            return new GenericInstantiationPlaceHolder(templateClass, parameterizedClass.sourceLocation, scopeClass);
+        if(typeArguments == null){  // resolve failed, indicate by constructor parameters or invocation
+            if(templateClass instanceof FunctionDef f){
+                return f;
+            } else {
+                return new GenericInstantiationPlaceHolder(templateClass, parameterizedClass.sourceLocation, scopeClass);
+            }
         } else if(typeArguments instanceof AgoParser.TypeArgsListContext typeArgs){
             var args = new ClassRefLiteral[typeArgs.typeArgument().size()];
             List<AgoParser.TypeArgumentContext> argument = typeArgs.typeArgument();
@@ -1270,7 +1271,10 @@ public class NamePathResolver {
             if(!text.contains("#")){
                 var set = parent.findMethods(text);
                 if(set.size() > 1){
-                    maybeFunction.setCandidates(set);
+                    set = filterGenericInstantiationCandidates(set, maybeFunction.getFunction());
+                    if(set.size() > 1) {
+                        maybeFunction.setCandidates(set);
+                    }
                 }
             }
         }
@@ -1279,15 +1283,35 @@ public class NamePathResolver {
 
     private Expression resolveCandidateFunctions(Expression expr, Id id) throws CompilationError {
         if(expr instanceof MaybeFunction maybeFunction && maybeFunction.isFunction()){
+            FunctionDef function = maybeFunction.getFunction();
             String text = id.text();
             if(!text.contains("#")){
-                var set = maybeFunction.getFunction().getParent().findMethods(text);
+                var set = function.getParent().findMethods(text);
                 if(set.size() > 1){
-                    maybeFunction.setCandidates(set);
+                    set = filterGenericInstantiationCandidates(set, function);
+                    if(set.size() > 1) {
+                        maybeFunction.setCandidates(set);
+                    }
                 }
             }
         }
         return expr;
+    }
+
+    private static @NonNull Collection filterGenericInstantiationCandidates(Collection<FunctionDef> candidates, FunctionDef function) {
+        if(candidates.size() > 1) {
+            if (function instanceof GenericInstantiationFunctionDef) {
+                var ls = new ArrayList<FunctionDef>(candidates.size());
+                for (Object o : candidates) {
+                    FunctionDef candidate = (FunctionDef) o;
+                    if(candidate instanceof GenericInstantiationFunctionDef && candidate.getName().equals(function.getName())){
+                        ls.add(candidate);
+                    }
+                }
+                candidates = ls;
+            }
+        }
+        return candidates;
     }
 
     private Expression resolveVariable(Expression curr, Id id, boolean allowMetaScan){

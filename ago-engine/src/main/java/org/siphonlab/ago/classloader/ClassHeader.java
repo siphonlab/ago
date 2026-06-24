@@ -225,16 +225,20 @@ public class ClassHeader {
     }
 
 
-    public boolean isInGenericTemplate() {
+    public boolean isInGenericTemplate(){
+        return isInGenericTemplate(new HashSet<>());
+    }
+
+    public boolean isInGenericTemplate(Set<String> visited) {
         for (var h = this; h != null; h = h.parent) {
             if(h instanceof ParameterizedClassHeader p){
                 h = this.classLoader.getClassHeader(p.baseClass);
             }
             if ((h.modifiers & GENERIC_TEMPLATE) == GENERIC_TEMPLATE) {
                 return true;
-            } else if(h.genericSource != null && !h.genericSource.instantiationArguments().isTerminated()) {
+            } else if(h.genericSource != null && !h.genericSource.instantiationArguments().isTerminated(visited)) {
                 return true;
-            } else if(h instanceof MetaClassHeader metaClassHeader && metaClassHeader.instanceClass instanceof ClassHeader i && i.isInGenericTemplate()){
+            } else if(h instanceof MetaClassHeader metaClassHeader && metaClassHeader.instanceClass instanceof ClassHeader i && i.isInGenericTemplate(visited)){
                 return true;
             }
         }
@@ -683,7 +687,13 @@ public class ClassHeader {
     }
 
     public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments){
+        return isAffectedByTypeArguments(typeArguments, new HashSet<>());
+    }
+
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments, Set<String> visited){
         if(this.type == TYPE_PRIMITIVE_CLASS || this.type == TYPE_ANY_CLASS) return false;
+        if(visited.contains(this.fullname)) return false;
+        visited.add(this.fullname);
 
         for(var p = this; p != null; p = p.parent){
             if(p.isGenericTemplate()){
@@ -694,23 +704,23 @@ public class ClassHeader {
         if(this.superClass != null && !this.superClass.equals(this.fullname)){
             var superClass = classLoader.getClassHeader(this.superClass);
             if(superClass != this) {
-                if (superClass.isAffectedByTypeArguments(typeArguments))return true;
+                if (superClass.isAffectedByTypeArguments(typeArguments, visited))return true;
             }
         }
         if(this.getInterfaces() != null){
             for (var anInterface : this.getInterfaces()) {
                 var i =  classLoader.getClassHeader(anInterface);
-                if(i.isAffectedByTypeArguments(typeArguments)) return true;
+                if(i.isAffectedByTypeArguments(typeArguments, visited)) return true;
             }
         }
         if(this.genericSource != null){
-            if(this.genericSource.instantiationArguments().canApply(typeArguments)){
+            if(this.genericSource.instantiationArguments().canApply(typeArguments, visited)){
                 return true;
             }
         }
         if(this.permitClass != null){
             var p =  classLoader.getClassHeader(this.permitClass);
-            if(p.isAffectedByTypeArguments(typeArguments)) return true;
+            if(p.isAffectedByTypeArguments(typeArguments, visited)) return true;
         }
         return false;
 
@@ -1150,22 +1160,29 @@ public class ClassHeader {
     }
 
     public boolean isGenericTerminated() {
-        if(this.isInGenericTemplate()) return false;
+        return isGenericTerminated(new HashSet<>());
+    }
+
+    public boolean isGenericTerminated(Set<String> visited) {
+        if(visited.contains(this.fullname)) return true;
+        visited.add(this.fullname);
+
+        if(this.isInGenericTemplate(visited)) return false;
         if(this.getSuperClass() != null && !this.superClass.equals(this.fullname)){
-            if(!classLoader.getClassHeader(this.getSuperClass()).isGenericTerminated()) return false;
+            if(!classLoader.getClassHeader(this.getSuperClass()).isGenericTerminated(visited)) return false;
         }
         if(this.getInterfaces() != null){
             for (var anInterface : this.getInterfaces()) {
-                if(!classLoader.getClassHeader(anInterface).isGenericTerminated()) return false;
+                if(!classLoader.getClassHeader(anInterface).isGenericTerminated(visited)) return false;
             }
         }
         if(this.genericSource != null){
-            if(!this.genericSource.instantiationArguments().isTerminated()){
+            if(!this.genericSource.instantiationArguments().isTerminated(visited)){
                 return false;
             }
         }
         if(this.permitClass != null){
-            if(!classLoader.getClassHeader(this.permitClass).isGenericTerminated()) return false;
+            if(!classLoader.getClassHeader(this.permitClass).isGenericTerminated(visited)) return false;
         }
         return true;
     }

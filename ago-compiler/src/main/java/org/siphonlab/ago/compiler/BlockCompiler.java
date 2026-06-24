@@ -20,6 +20,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -517,25 +518,30 @@ public class BlockCompiler {
         }
     }
 
-    private Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
+    Expression literalExpr(LiteralExprContext literalExpr) throws CompilationError {
         LiteralContext literal = literalExpr.literal();
         if(literal instanceof LArrayContext larr) {
             return arrayLiteral(larr, null, null);
         } else if(literal instanceof LObjectContext lobj){
             return objectLiteral(lobj, null, null);
         } else if(literal instanceof LTemplateStringContext lTemplateString){
-            return templateString(lTemplateString);
+                return templateString(lTemplateString.templateStringLiteral());
         } else {
             return Literal.parse(literal, unit.getRoot(), unit.sourceLocation(literalExpr));
         }
     }
 
-    private Expression templateString(LTemplateStringContext lTemplateString) throws CompilationError {
+    Expression templateString(TemplateStringLiteralContext lTemplateString) throws CompilationError {
         List<Expression> expressions = new ArrayList<>();
         var sb = new StringBuilder();
         TemplateStringAtomContext startAtom = null, endAtom = null;
 
-        var offset = lTemplateString.getStart().getCharPositionInLine() + 2;  // indent position
+        int offset;
+        if(lTemplateString.getText().contains("\n")) {
+            offset = lTemplateString.getStart().getCharPositionInLine() + 2;  // indent position
+        } else {
+            offset = 0;
+        }
 
         // If the first line has no content and directly transitions to a new line,
         // use the index of the first non-whitespace character from the next line as the indentation point.
@@ -545,20 +551,29 @@ public class BlockCompiler {
 
         boolean atFirstLineHead = true;
         boolean atLineHead = true;
-        for (var atom : lTemplateString.templateStringLiteral().templateStringAtom()) {
-            ExpressionContext atomExpr = atom.expression();
-            if(atomExpr != null){
+        for (var atom : lTemplateString.templateStringAtom()) {
+            if(atom instanceof ExpressionTempAtomContext exprAtom) {
                 atFirstLineHead = false;
-                if(!sb.isEmpty()){
+                if (!sb.isEmpty()) {
                     expressions.add(root.createStringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
                     sb.setLength(0);
                     startAtom = null;
                 }
-                expressions.add(this.expression(atomExpr));
-            } else {
+                expressions.add(this.expression(exprAtom.expression()));
+            } else if(atom instanceof CondExpressionTempAtomContext condExprAtom){
+                atFirstLineHead = false;
+                if (!sb.isEmpty()) {
+                    expressions.add(root.createStringLiteral(sb.toString()).setSourceLocation(unit.sourceLocation(startAtom, endAtom)));
+                    sb.setLength(0);
+                    startAtom = null;
+                }
+                expressions.add(null);
+                expressions.add(this.expression(condExprAtom.cond));
+                expressions.add(this.expression(condExprAtom.value));
+            } else if(atom instanceof LiteralTempAtomContext literalAtom){
                 if(startAtom == null) startAtom = atom;
                 endAtom = atom;
-                String text = atom.TemplateStringAtom().getText();
+                String text = literalAtom.TemplateStringAtom().getText();
                 charBuffer.append(text);
                 while(true) {
                     if (atFirstLineHead) {
@@ -596,12 +611,30 @@ public class BlockCompiler {
         }
         if(expressions.isEmpty()) return getRoot().createStringLiteral("").setSourceLocation(unit.sourceLocation(lTemplateString));
         if(expressions.size() == 1) return expressions.getFirst();
-        var r = expressions.getFirst();
-        for (int j = 1; j < expressions.size(); j++) {
-            Expression expr = expressions.get(j);
-            r = functionDef.concat(r, expr);
+
+        List<Statement> statements = new ArrayList<>();
+        var newStringBuilder = new Creator(functionDef, new ConstClass(getRoot().getStringBuilderClass()), Collections.emptyList(), unit.sourceLocation(lTemplateString));
+        var expression = new CurrWithExpression(functionDef, newStringBuilder);
+        ClassUnder append = ClassUnder.create(functionDef, expression, getRoot().getStringBuilderClass().findMethod("append#str"));
+        for (int i = 0; i < expressions.size(); i++) {
+            Expression expr = expressions.get(i);
+            if(expr == null) {
+                var cond = expressions.get(++i);
+                var value = expressions.get(++i);
+                Invoke invokeAppend = functionDef.invoke(Invoke.InvokeMode.Invoke,
+                        append,
+                        List.of(functionDef.cast(value, getRoot().STRING())), value.getSourceLocation()
+                );
+                statements.add(new IfThenElseStmt(functionDef, cond, new ExpressionStmt(functionDef, invokeAppend), null));
+            } else {
+                Invoke invokeAppend = functionDef.invoke(Invoke.InvokeMode.Invoke,
+                        append,
+                        List.of(functionDef.cast(expr, getRoot().STRING())), expr.getSourceLocation()
+                );
+                statements.add(new ExpressionStmt(functionDef, invokeAppend));
+            }
         }
-        return r;
+        return new ToString(functionDef, new WithExpr(functionDef, expression, new BlockStmt(functionDef, statements)));
     }
 
     public Root getRoot() {
@@ -1417,19 +1450,21 @@ public class BlockCompiler {
 
 
     private List<Expression> valueExpressions(ArgumentsContext arguments) throws CompilationError {
-        List<ExpressionContext> valueExprs;
-        if(arguments != null && arguments.expressionList() != null){
-            ExpressionListContext expressionList = arguments.expressionList();
-            valueExprs = expressionList.expression();
+        if(arguments != null && arguments.argList() != null){
+            var args = arguments.argList().argument();
+            List<Expression> values = new ArrayList<>();
+            for (int i = 0; i < args.size(); i++) {
+                ArgumentContext arg = args.get(i);
+                if (arg.DEFAULT() != null) {
+                    values.add(new DefaultParameterValue(functionDef, i));
+                } else {
+                    values.add(expression(arg.expression()));
+                }
+            }
+            return values;
         } else {
-            valueExprs = new ArrayList<>();
+            return Collections.emptyList();
         }
-
-        List<Expression> values = new ArrayList<>();
-        for (ExpressionContext valueExpr : valueExprs) {
-            values.add(expression(valueExpr));
-        }
-        return values;
     }
 
     private Expression create(Expression typeExpr, ParserRuleContext creatorContext, ArgumentsContext arguments, String constructorName) throws CompilationError {

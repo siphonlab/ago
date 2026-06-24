@@ -18,15 +18,29 @@ package org.siphonlab.ago.runtime.rdb;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.Instance;
+import org.siphonlab.ago.native_.NativeFrame;
+
+import java.sql.SQLException;
 
 public class QueryResult {
 
-    public static boolean hasNext(Instance scope) {
-        throw new RuntimeException("");
+    public static void hasNext(NativeFrame frame) {
+        ResultSetToQueryResultMapper<?> resultSetToQueryResultMapper = (ResultSetToQueryResultMapper<?>) frame.getParentScope().getNativePayload();
+        try {
+            boolean result = resultSetToQueryResultMapper.hasNext();
+            frame.finishBoolean(result);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static Instance<?> next(Instance scope) {
-        throw new RuntimeException("");
+    public static void next(NativeFrame frame) {
+        ResultSetToQueryResultMapper<?> resultSetToQueryResultMapper = (ResultSetToQueryResultMapper<?>) frame.getParentScope().getNativePayload();
+        try {
+            frame.finishObject(resultSetToQueryResultMapper.next());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

@@ -117,6 +117,10 @@ public class Root extends Namespace<Package> {
     private ClassDef ANY_MAP_CLASS;
     private ClassDef HASH_MAP_CLASS;
 
+    private ClassDef ENTITY_CLASS;
+
+    private ClassDef STRING_BUILDER_CLASS;
+
     private Map<String, ArrayClassDef> knownArrayTypes = new HashMap<>();
 
     private CompilingStage compilingStage = CompilingStage.ParseClassName;
@@ -621,10 +625,29 @@ public class Root extends Namespace<Package> {
             throw new RuntimeException(e);
         }
     }
+    public ClassDef getAnyEntityClass() {
+        if (ENTITY_CLASS != null) return ENTITY_CLASS;
+        try {
+            ClassDef entityClass = (ClassDef) findByFullname("lang.Entity");
+            return ENTITY_CLASS = entityClass.instantiate(
+                    new InstantiationArguments(entityClass.typeParamsContext,
+                            new ClassRefLiteral[]{
+                                    this.getAnyClass().toClassRefLiteral(),   // Table
+                                    this.getAnyClass().toClassRefLiteral()    // id
+                            }),
+                    null);
+        } catch (CompilationError e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public synchronized ClassDef getHashMapClass() {
         if (HASH_MAP_CLASS != null) return HASH_MAP_CLASS;
         return HASH_MAP_CLASS = findByFullname("lang.HashMap");
+    }
+
+    public ClassDef getStringBuilderClass(){
+        return STRING_BUILDER_CLASS;
     }
 
     public void resolveLangClasses() {
@@ -669,7 +692,7 @@ public class Root extends Namespace<Package> {
         if(this.NULL_CLASS == null) this.NULL_CLASS = findByFullname("lang.Null");
 
         if(this.ARRAY_CLASS == null) this.ARRAY_CLASS = findByFullname("lang.Array");
-
+        if(this.STRING_BUILDER_CLASS == null) this.STRING_BUILDER_CLASS = findByFullname("lang.StringBuilder");
     }
 
     public PrimitiveClassDef VOID() {
@@ -800,5 +823,13 @@ public class Root extends Namespace<Package> {
 
     public Map<Pair<ClassDef, ClassDef>, Boolean> getDependencyResultCache() {
         return dependencyResultCache;
+    }
+
+    public List<ClassDef> getEntityClasses() {
+        var entityClass = getAnyEntityClass();
+        return this.getAllDescendants().values().stream()
+                .filter(c -> c instanceof ClassDef cl && cl.isDeriveFrom(entityClass))
+                .map(c -> (ClassDef) c)
+                .toList();
     }
 }

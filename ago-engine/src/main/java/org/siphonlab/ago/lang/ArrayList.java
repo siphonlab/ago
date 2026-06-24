@@ -200,6 +200,14 @@ public class ArrayList {
         callFrame.finishVoid();
     }
 
+    public static void add(NativeFrame callFrame, Object item) {
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        Object payload = instance.getNativePayload();
+        ((java.util.ArrayList<Object>) payload).add(item);
+        callFrame.finishVoid();
+    }
+
+
     public static void contains(NativeFrame callFrame, Instance<?> item) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         Object payload = instance.getNativePayload();
@@ -207,6 +215,12 @@ public class ArrayList {
         callFrame.finishBoolean(res);
     }
 
+    public static void contains(NativeFrame callFrame, Object item) {
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        Object payload = instance.getNativePayload();
+        boolean res = ((java.util.ArrayList<Object>) payload).contains(item);
+        callFrame.finishBoolean(res);
+    }
     public static void contains(NativeFrame callFrame, int item) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         Object payload = instance.getNativePayload();
@@ -377,6 +391,13 @@ public class ArrayList {
         callFrame.finishBoolean(res);
     }
 
+    public static void remove(NativeFrame callFrame, Object item) {
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        Object payload = instance.getNativePayload();
+        boolean res = ((java.util.ArrayList<Object>) payload).remove(item);
+        callFrame.finishBoolean(res);
+    }
+
     public static void getAtIndex(NativeFrame callFrame, int index) {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         Object ls = instance.getNativePayload();
@@ -431,6 +452,13 @@ public class ArrayList {
         NativeInstance instance = (NativeInstance) callFrame.getParentScope();
         Object payload = instance.getNativePayload();
         ((java.util.ArrayList<Instance<?>>) payload).set(index, item);
+        callFrame.finishVoid();
+    }
+
+    public static void setAtIndex(NativeFrame callFrame, int index, Object item) {
+        NativeInstance instance = (NativeInstance) callFrame.getParentScope();
+        Object payload = instance.getNativePayload();
+        ((java.util.ArrayList<Object>) payload).set(index, item);
         callFrame.finishVoid();
     }
 

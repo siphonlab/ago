@@ -137,13 +137,13 @@ public class InstantiationArguments {
         return apply(parentTypeArguments, parentTypeArguments);
     }
 
-    public boolean canApply(InstantiationArguments next) {
+    public boolean canApply(InstantiationArguments next, Set<ClassDef> visited) {
         for (Map.Entry<GenericTypeCodeAvatarClassDef, ClassDef> map : this.typeMapping.entrySet()) {
             var to = map.getValue();
             var nextTo = to instanceof GenericTypeCodeAvatarClassDef g ? next.typeMapping.get(g) : null;
             if(nextTo != null) {
                 return true;
-            } else if(to.isAffectedByTypeArguments(next)){
+            } else if(to.isAffectedByTypeArguments(next, visited)){
                 return true;
             }
         }

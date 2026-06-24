@@ -273,6 +273,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, int key, byte  value){ putIntKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, int key, char  value){ putIntKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, int key, Instance<?> value){ putIntKey(callFrame, key, (Object) value); }
+        public static void put(NativeFrame callFrame, int key, Object value){ putIntKey(callFrame, key, value); }
 
         /* long key */
         public static void put(NativeFrame callFrame, long key, int   value){ putLongKey(callFrame, key, (Object) value); }
@@ -285,6 +286,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, long key, byte  value){ putLongKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, long key, char  value){ putLongKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, long key, Instance<?> value){ putLongKey(callFrame, key, (Object) value); }
+        public static void put(NativeFrame callFrame, long key, Object value){ putLongKey(callFrame, key, (Object) value); }
 
         /* float key */
         public static void put(NativeFrame callFrame, float key, int   value){ putIntKey(callFrame, Float.floatToIntBits(key), (Object) value); }
@@ -297,6 +299,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, float key, byte  value){ putIntKey(callFrame, Float.floatToIntBits(key), (Object) value); }
         public static void put(NativeFrame callFrame, float key, char  value){ putIntKey(callFrame, Float.floatToIntBits(key), (Object) value); }
         public static void put(NativeFrame callFrame, float key, Instance<?> value){ putIntKey(callFrame, Float.floatToIntBits(key), (Object) value); }
+        public static void put(NativeFrame callFrame, float key, Object value){ putIntKey(callFrame, Float.floatToIntBits(key), (Object) value); }
 
         /* double key */
         public static void put(NativeFrame callFrame, double key, int   value){ putLongKey(callFrame, Double.doubleToLongBits(key), (Object) value); }
@@ -309,6 +312,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, double key, byte  value){ putLongKey(callFrame, Double.doubleToLongBits(key), (Object) value); }
         public static void put(NativeFrame callFrame, double key, char  value){ putLongKey(callFrame, Double.doubleToLongBits(key), (Object) value); }
         public static void put(NativeFrame callFrame, double key, Instance<?> value){ putLongKey(callFrame, Double.doubleToLongBits(key), value); }
+        public static void put(NativeFrame callFrame, double key, Object value){ putLongKey(callFrame, Double.doubleToLongBits(key), value); }
 
         /* boolean key */
         public static void put(NativeFrame callFrame, boolean key, int   value){ putIntKey(callFrame, key ? 1 : 0, (Object) value); }
@@ -321,6 +325,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, boolean key, byte  value){ putIntKey(callFrame, key ? 1 : 0, (Object) value); }
         public static void put(NativeFrame callFrame, boolean key, char  value){ putIntKey(callFrame, key ? 1 : 0, (Object) value); }
         public static void put(NativeFrame callFrame, boolean key, Instance<?> value){ putIntKey(callFrame, key ? 1 : 0, (Object) value); }
+        public static void put(NativeFrame callFrame, boolean key, Object value){ putIntKey(callFrame, key ? 1 : 0, (Object) value); }
 
         /* String key */
         public static void put(NativeFrame callFrame, String key, int   value){ putObjectKey(callFrame, key, (Object) value); }
@@ -333,6 +338,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, String key, byte  value){ putObjectKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, String key, char  value){ putObjectKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, String key, Instance<?> value){ putObjectKey(callFrame, key, (Object) value); }
+        public static void put(NativeFrame callFrame, String key, Object value){ putObjectKey(callFrame, key, (Object) value); }
 
         /* short key */
         public static void put(NativeFrame callFrame, short key, int   value){ putIntKey(callFrame, key, (Object) value); }
@@ -345,6 +351,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, short key, byte  value){ putIntKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, short key, char  value){ putIntKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, short key, Instance<?> value){ putIntKey(callFrame, key, (Object) value); }
+        public static void put(NativeFrame callFrame, short key, Object value){ putIntKey(callFrame, key, (Object) value); }
 
         /* byte key */
         public static void put(NativeFrame callFrame, byte key, int   value){ putIntKey(callFrame, key, (Object) value); }
@@ -357,6 +364,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, byte key, byte  value){ putIntKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, byte key, char  value){ putIntKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, byte key, Instance<?> value){ putIntKey(callFrame, key, (Object) value); }
+        public static void put(NativeFrame callFrame, byte key, Object value){ putIntKey(callFrame, key, (Object) value); }
 
         /* char key */
         public static void put(NativeFrame callFrame, char key, int   value){ putIntKey(callFrame, key, (Object) value); }
@@ -369,6 +377,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, char key, byte  value){ putIntKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, char key, char  value){ putIntKey(callFrame, key, (Object) value); }
         public static void put(NativeFrame callFrame, char key, Instance<?> value){ putIntKey(callFrame, key, (Object) value); }
+        public static void put(NativeFrame callFrame, char key, Object value){ putIntKey(callFrame, key, (Object) value); }
 
         /* Instance<?> key */
         public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, int   value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
@@ -381,6 +390,7 @@ public class AgoHashMap {
         public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, byte  value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
         public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, char  value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
         public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, Instance<?> value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
+        public static void put(NativeFrame callFrame, Instance<?> key, int hashCode, Object value){ putObjectKey(callFrame, new InstanceKey(key, hashCode), (Object) value); }
 
 
         public static void put(NativeFrame callFrame, Instance<?> key, int   value){ throwIllegalCall(); }
@@ -678,7 +688,7 @@ public class AgoHashMap {
         var valueType = genericArgumentsInfo.getArguments()[1];
 
         AgoEngine agoEngine = callFrame.getAgoEngine();
-        var r = agoEngine.createInstance(KeyValuePairType, callFrame);
+        var r = agoEngine.createInstance(KeyValuePairType, callFrame.getRunSpace());
         Slots slots = r.getSlots();
 
         switch (keyType.getTypeCode().value) {

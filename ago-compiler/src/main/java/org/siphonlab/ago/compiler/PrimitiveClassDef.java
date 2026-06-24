@@ -97,7 +97,7 @@ public class PrimitiveClassDef extends ClassDef {
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
         return false;
     }
 

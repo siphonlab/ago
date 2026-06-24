@@ -19,6 +19,7 @@ import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.*;
 
 import java.util.Arrays;
+import java.util.Set;
 
 import static org.siphonlab.ago.classloader.LoadingStage.*;
 
@@ -35,17 +36,17 @@ public class MetaClassHeader extends ClassHeader {
     }
 
     @Override
-    public boolean isInGenericTemplate() {
-        if(super.isInGenericTemplate()) return true;
+    public boolean isInGenericTemplate(Set<String> visited) {
+        if(super.isInGenericTemplate(visited)) return true;
         if(this.instanceClass != null){
-            return this.instanceClass.isInGenericTemplate();
+            return this.instanceClass.isInGenericTemplate(visited);
         }
         return false;
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
-        return this.instanceClass.isAffectedByTypeArguments(typeArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments, Set<String> visited) {
+        return this.instanceClass.isAffectedByTypeArguments(typeArguments, visited);
     }
 
     public ClassHeader getInstanceClass() {
@@ -77,7 +78,7 @@ public class MetaClassHeader extends ClassHeader {
     }
 
     @Override
-    public boolean isGenericTerminated() {
+    public boolean isGenericTerminated(Set<String> visited) {
         return this.getInstanceClass().isGenericTerminated();
     }
 

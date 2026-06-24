@@ -999,7 +999,7 @@ public class ClassDef extends ClassContainer {
             var r = this.asThatOrSuperOfThat(p.baseClass, visited, depth);
             if(r != null) return r;
         } else if(anotherClass instanceof ParameterizedClassDef.PlaceHolder p){
-            var r = this.asThatOrSuperOfThat(p.getBaseClassDef(), visited, depth);
+            var r = this.asThatOrSuperOfThat(p.getBaseClass(), visited, depth);
             if(r != null) return r;
         }
 
@@ -1745,7 +1745,11 @@ public class ClassDef extends ClassContainer {
             var a2 = anotherArguments[i].getClassDefValue();
             switch (variance){
                 case Invariance:
-                    if(a1 != a2) return false;
+                    if(a1 instanceof ClassBound av1){
+                        if(!a1.isThatOrSuperOfThat(a2)) return false;
+                    } else {
+                        if (a1 != a2) return false;
+                    }
                     break;
                 case Covariance:
                     if(!a1.isThatOrSuperOfThat(a2)) return false;
@@ -1789,7 +1793,8 @@ public class ClassDef extends ClassContainer {
                     }
                 } else {
                     if(!hasBody){
-                        if(functionDef.isConstructor() || functionDef.isGetter() || functionDef.isSetter()){
+                        if(functionDef.isConstructor() || functionDef.isGetter() || functionDef.isSetter()
+                                || functionDef instanceof ManualCreatedFunction){
                             continue;
                         }
                         throw unit.syntaxError(functionDef.getDeclarationAst(), "method body not found for non-abstract method");
@@ -1817,7 +1822,13 @@ public class ClassDef extends ClassContainer {
         return child.getParent() != this && child.getParent() instanceof ClassDef classDef && this.isDeriveFrom(classDef);
     }
 
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments){
+        return isAffectedByTypeArguments(instantiationArguments, new HashSet<>());
+    }
+
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
+        if(visited.contains(this)) return false;
+        visited.add(this);
         for(ClassDef p = this; p != null; p = p.getParentClass()){
             if(p.isGenericTemplate()){
                 var r = instantiationArguments.canApplyOnTemplate(p);
@@ -1825,20 +1836,20 @@ public class ClassDef extends ClassContainer {
             }
         }
         if(this.getSuperClass() != null && this.getSuperClass() != this){
-            if(this.getSuperClass().isAffectedByTypeArguments(instantiationArguments)) return true;
+            if(this.getSuperClass().isAffectedByTypeArguments(instantiationArguments, visited)) return true;
         }
         if(this.getInterfaces() != null){
             for (ClassDef anInterface : this.getInterfaces()) {
-                if(anInterface.isAffectedByTypeArguments(instantiationArguments)) return true;
+                if(anInterface.isAffectedByTypeArguments(instantiationArguments, visited)) return true;
             }
         }
         if(this.genericSource != null){
-            if(this.genericSource.instantiationArguments().canApply(instantiationArguments)){
+            if(this.genericSource.instantiationArguments().canApply(instantiationArguments, visited)){
                 return true;
             }
         }
         if(this.permitClass != null){
-            if(this.permitClass.isAffectedByTypeArguments(instantiationArguments)) return true;
+            if(this.permitClass.isAffectedByTypeArguments(instantiationArguments, visited)) return true;
         }
 //        for (ClassDef child : this.getDirectChildren()) {
 //            if(child.isAffectedByTypeArguments(instantiationArguments)) return true;
@@ -2045,6 +2056,10 @@ public class ClassDef extends ClassContainer {
     }
 
     protected void addExtensionMethod(FunctionDef functionDef) throws DuplicatedKeyException {
+        if(this.isInGenericInstantiation()){
+            this.getTemplateClass().addExtensionMethod(functionDef);
+            return;
+        }
         if(extensionMethods.containsKey(functionDef.getName())){
             throw new DuplicatedKeyException("extension method '%s' for '%s' already exists".formatted(functionDef.getName(), this.getFullname()));
         }
@@ -2053,11 +2068,17 @@ public class ClassDef extends ClassContainer {
 
     public FunctionDef getExtensionMethod(String name) {
         for(var c = this; c!= null; c = c.getSuperClass()){
+            if(c.isInGenericInstantiation()){
+                c = c.getTemplateClass();
+            }
             var f = c.extensionMethods.get(name);
             if(f != null) return f;
 
             if(c.getInterfaces() != null) {
                 for (var i : c.getInterfaces()) {
+                    if(i.isInGenericInstantiation()){
+                        i = i.getTemplateClass();
+                    }
                     f = i.extensionMethods.get(name);
                     if(f != null) return f;
                 }

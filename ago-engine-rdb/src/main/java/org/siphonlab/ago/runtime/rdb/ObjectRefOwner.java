@@ -18,21 +18,16 @@ package org.siphonlab.ago.runtime.rdb;
 import org.siphonlab.ago.CallFrame;
 import org.siphonlab.ago.EntranceCallFrame;
 import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.runtime.rdb.lazy.DeferenceObject;
+import org.siphonlab.ago.runtime.db.ObjectRef;
 
 import java.util.Objects;
 
+// for ObjectRefInstance, ObjectRefCallFrame
 public interface ObjectRefOwner {
-    static ObjectRef extractCreator(Instance instance) {
-        if(instance instanceof DeferenceObject){
-            return ((DeferenceObject) instance).getDeferenceObjectState().getCreator();
-        }
-        return null;
-    }
 
-    ObjectRef getObjectRef();
+    ObjectRef<?> getObjectRef();
 
-    static ObjectRef extractObjectRef(Instance<?> instance) {
+    static ObjectRef<?> extractObjectRef(Instance<?> instance) {
         if (instance == null) return null;
         if (instance instanceof CallFrame<?> callFrame) {
             return extractObjectRef(callFrame);
@@ -45,7 +40,7 @@ public interface ObjectRefOwner {
         return null;
     }
 
-    static ObjectRef extractObjectRef(CallFrame<?> instance) {
+    static ObjectRef<?> extractObjectRef(CallFrame<?> instance) {
         if(instance instanceof EntranceCallFrame<?> entranceCallFrame){
             instance = entranceCallFrame.getInner();
         }
@@ -61,8 +56,8 @@ public interface ObjectRefOwner {
     static boolean equals(Instance<?> a, Instance<?> b){
         if(a == b) return true;
         if((a==null)!=(b==null)) return false;
-        ObjectRef aref = extractObjectRef(a);
-        ObjectRef bref = extractObjectRef(b);
+        var aref = extractObjectRef(a);
+        var bref = extractObjectRef(b);
         if ((aref == null) != (bref == null)) return false;
         if(aref == null) return Objects.equals(a,b);
         return Objects.equals(aref, bref);

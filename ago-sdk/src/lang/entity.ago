@@ -1,0 +1,73 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+native class QueryResultIterator<T> with Iterator<T>{
+    override hasNext() as boolean native "org.siphonlab.ago.runtime.rdb.QueryResult.hasNext"
+    override next() as T native "org.siphonlab.ago.runtime.rdb.QueryResult.next"
+}
+
+// everything stored in db, but only extends Table can have getRowById and table functions
+// and if GC enabled, if not extends Table the data will be clean by GC
+class Entity<T, Id as [Primitive]> from QueryResult{
+    get id() as Id native "org.siphonlab.ago.runtime.db.sdk.Entity.getId";
+
+    metaclass{
+        fun of(id as Id) as T native "org.siphonlab.ago.runtime.db.sdk.Entity.getEntityById";
+
+        fun fetchAll() as QueryResultIterator<T> native "org.siphonlab.ago.runtime.db.sdk.Entity.fetchAll"
+    }
+}
+
+// query result, sql result of SELECT and other CTE output QueryResultIterator<QueryResult> if not return Entity
+// that means query result are: QueryResultIterator<special Entity>, QueryResultIterator<special QueryResult>, and int (for update/delete count)
+// for SELECT and CTE, the result is typed QueryResult, i.e. for query `SELECT name FROM User`, the query result is: `class QueryFunctionNameResult{final name as User.Name}`
+// if the query works on *, the result is the Entity
+class QueryResult{
+
+}
+
+class Query<+R> from Function<R>{
+    metaclass{
+        protected dialects as Map<string, string?> = new HashMap<string, string?>();
+    }
+}
+
+fun mapColumn<EntityClass>(column as int) as string native "org.siphonlab.ago.runtime.db.sdk.Entity.mapColumn";
+
+fun mapTable<EntityClass>() as string native "org.siphonlab.ago.runtime.db.sdk.Entity.mapTable";
+
+fun executeQuery<R>(sql as string, args as Object?) as QueryResultIterator<R> native "org.siphonlab.ago.runtime.db.sdk.Entity.executeQuery";
+
+class Sort{
+    enum Direction{
+        Asc,
+        Desc
+    }
+    fun new(field column as string, field direction as string){}
+}
+
+fun tableSortScope<EntityClass>(alias as string, sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.tableSortScope";
+
+fun querySortScope(alias as string, columns as string[], sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.querySortScope";
+
+fun querySortSelect(columns as string[], sort as Sort) as string? native "org.siphonlab.ago.runtime.db.sdk.Entity.querySortSelect";
+
+// to fork entity runspace
+native class EntitySpace with ForkContext{
+    fun new#() native "org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace.create";
+}
+

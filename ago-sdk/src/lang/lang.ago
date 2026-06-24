@@ -441,5 +441,3 @@ class Trace{
         }
     }
 }
-
-interface Task {}

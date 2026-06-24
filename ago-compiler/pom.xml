@@ -44,6 +44,19 @@
             <artifactId>commons-cli</artifactId>
             <version>1.4</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.jsqlparser/jsqlparser -->
+        <dependency>
+            <groupId>com.manticore-projects.jsqlformatter</groupId>
+            <artifactId>jsqlparser</artifactId>
+            <version>5.3.218</version>
+        </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/ai.starlake.jsqltranspiler/jsqltranspiler -->
+        <dependency>
+            <groupId>ai.starlake.jsqltranspiler</groupId>
+            <artifactId>jsqltranspiler</artifactId>
+            <version>1.8</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

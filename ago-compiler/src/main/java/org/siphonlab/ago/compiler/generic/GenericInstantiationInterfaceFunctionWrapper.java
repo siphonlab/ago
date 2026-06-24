@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunctionWrapper implements GenericConcreteType {
@@ -115,10 +116,10 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
-        if(super.isAffectedByTypeArguments(instantiationArguments)) return true; //TODO already instantiated?
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
+        if(super.isAffectedByTypeArguments(instantiationArguments, visited)) return true; //TODO already instantiated?
         for (ClassRefLiteral typeArgument : this.getTypeArguments()) {
-            if(typeArgument.getClassDefValue().isAffectedByTypeArguments(instantiationArguments)){
+            if(typeArgument.getClassDefValue().isAffectedByTypeArguments(instantiationArguments, visited)){
                 return true;
             }
         }

@@ -89,36 +89,36 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
 
     public static class PlaceHolder extends ClassDef{
 
-        private final ClassDef baseClassDef;
+        private final ClassDef baseClass;
         private final AgoParser.ClassCreatorArgumentsContext classCreatorArguments;
         private final SourceLocation sourceLocation;
         private final ClassDef scopeClass;
 
         private final List<ReferencingObject> referencingObjects = new ArrayList<>();
 
-        public PlaceHolder(ClassDef baseClassDef, AgoParser.ClassCreatorArgumentsContext classCreatorArguments, SourceLocation sourceLocation, ClassDef scopeClass) {
-            super(baseClassDef.root, baseClassDef.getFullname());
-            this.baseClassDef = baseClassDef;
+        public PlaceHolder(ClassDef baseClass, AgoParser.ClassCreatorArgumentsContext classCreatorArguments, SourceLocation sourceLocation, ClassDef scopeClass) {
+            super(baseClass.root, baseClass.getFullname());
+            this.baseClass = baseClass;
             this.classCreatorArguments = classCreatorArguments;
             this.sourceLocation = sourceLocation;
             this.scopeClass = scopeClass;
 
-            this.setClassType(baseClassDef.getClassType());
+            this.setClassType(baseClass.getClassType());
             this.setUnit(scopeClass.getUnit());
-            this.setModifiers(baseClassDef.getModifiers());
-            this.setSuperClass(baseClassDef.getSuperClass());
-            this.setInterfaces(baseClassDef.getInterfaces());
-            this.setCompilingStage(baseClassDef.getCompilingStage());
-            this.parent = baseClassDef.parent;
+            this.setModifiers(baseClass.getModifiers());
+            this.setSuperClass(baseClass.getSuperClass());
+            this.setInterfaces(baseClass.getInterfaces());
+            this.setCompilingStage(baseClass.getCompilingStage());
+            this.parent = baseClass.parent;
         }
 
         @Override
         public AgoParser.ClassBodyContext getClassBody() {
-            return baseClassDef.getClassBody();
+            return baseClass.getClassBody();
         }
 
-        public ClassDef getBaseClassDef() {
-            return baseClassDef;
+        public ClassDef getBaseClass() {
+            return baseClass;
         }
 
         public void registerReference(ReferencingObject referencingObject){
@@ -126,18 +126,22 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
         }
 
         public ParameterizedClassDef resolve() throws CompilationError {
-            if(baseClassDef instanceof FunctionDef){
+            if(baseClass instanceof FunctionDef){
                 throw new TypeMismatchError("function cannot parameterized", sourceLocation);
             }
-            var expressionList = classCreatorArguments.arguments().expressionList();
+            var expressionList = classCreatorArguments.arguments().argList();
             Literal<?>[] literalArguments;
             if(expressionList == null){
                 throw new SyntaxError("no arguments provided", sourceLocation);
             } else {
-                var expressions = expressionList.expression();
-                literalArguments = new Literal[expressions.size()];
-                for (int i = 0; i < expressions.size(); i++) {
-                    AgoParser.ExpressionContext expression = expressions.get(i);
+                var arguments = expressionList.argument();
+                literalArguments = new Literal[arguments.size()];
+                for (int i = 0; i < arguments.size(); i++) {
+                    var arg = arguments.get(i);
+                    if(arg.DEFAULT() != null){
+                        throw new TypeMismatchError("parameterized class only accept literal, default value is not allowed", unit.sourceLocation(arg));
+                    }
+                    AgoParser.ExpressionContext expression = arg.expression();
                     boolean isLiteral = false;
                     if(expression instanceof AgoParser.PrimaryExprContext primaryExpr){
                         if(primaryExpr.primaryExpression() instanceof AgoParser.LiteralExprContext literalExpr){
@@ -158,10 +162,10 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                 }
 
                 ConstructorDef metaConstructorDef = null;
-                if(baseClassDef.getMetaClassDef() == null)
-                    throw new ResolveError("no metaclass for '%s'".formatted(baseClassDef.getFullname()), sourceLocation);
+                if(baseClass.getMetaClassDef() == null)
+                    throw new ResolveError("no metaclass for '%s'".formatted(baseClass.getFullname()), sourceLocation);
 
-                for (FunctionDef constructor : baseClassDef.getMetaClassDef().getConstructors()) {
+                for (FunctionDef constructor : baseClass.getMetaClassDef().getConstructors()) {
                     if(constructor.isInGenericInstantiation()){
                         if(constructor.getCompilingStage().lte(CompilingStage.InheritsFields)){
                             Compiler.processClassTillStage(constructor,CompilingStage.InheritsFields);
@@ -202,9 +206,9 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                     }
                 }
                 if(metaConstructorDef == null)
-                    throw scopeClass.unit.resolveError(classCreatorArguments, "no constructor in '%s' matched given arguments".formatted(baseClassDef.getFullname()));
+                    throw scopeClass.unit.resolveError(classCreatorArguments, "no constructor in '%s' matched given arguments".formatted(baseClass.getFullname()));
 
-                var pc = ((ClassContainer) baseClassDef.getParent()).getOrCreateParameterizedClass(baseClassDef, metaConstructorDef, literalArguments, null);
+                var pc = ((ClassContainer) baseClass.getParent()).getOrCreateParameterizedClass(baseClass, metaConstructorDef, literalArguments, null);
                 scopeClass.registerConcreteType((ConcreteType) pc);
 
                 for (ReferencingObject referencingObject : this.referencingObjects) {
@@ -227,6 +231,75 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
 
                 return pc;  // for use immediately
             }
+        }
+
+        @Override
+        public boolean parseFields() throws CompilationError {
+            if(this.compilingStage.gt(CompilingStage.ParseFields)) return true;
+            if(this.compilingStage.lt(CompilingStage.ParseFields)) return false;
+            if(this.baseClass.compilingStage == CompilingStage.ParseFields){
+                if(!this.baseClass.parseFields()) return false;
+            }
+            this.nextCompilingStage(CompilingStage.ValidateHierarchy);
+            return true;
+        }
+
+        @Override
+        public void inheritsFields() throws CompilationError {
+            if (this.compilingStage != CompilingStage.InheritsFields) return;
+
+            if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: inherits fields".formatted(this));
+            if (baseClass != null) {
+                if (baseClass.compilingStage == CompilingStage.InheritsFields) {
+                    baseClass.inheritsFields();
+                }
+                this.inheritsFields(baseClass.getFields(), baseClass);
+                if (baseClass.isInterfaceOrTrait()) {
+                    this.setFieldForPermitClass(baseClass.getFieldForPermitClass());
+                }
+            }
+            this.nextCompilingStage(CompilingStage.ValidateNewFunctions);
+        }
+
+        @Override
+        public void resolveHierarchicalClasses() throws CompilationError {
+            if(this.compilingStage != CompilingStage.ResolveHierarchicalClasses) return;
+            if(baseClass != null){
+                if(baseClass.compilingStage == CompilingStage.ResolveHierarchicalClasses){
+                    baseClass.resolveHierarchicalClasses();
+                }
+                if (baseClass.isInterfaceOrTrait()) {
+                    this.setPermitClass(baseClass.getPermitClass());
+                    this.setFieldForPermitClass(baseClass.getFieldForPermitClass());
+                }
+                this.setInterfaces(new ArrayList<>(baseClass.getInterfaces()));
+                this.setSuperClass(baseClass.getSuperClass());
+                this.setInterfaces(new ArrayList<>(baseClass.getInterfaces()));
+                this.setCompilingStage(CompilingStage.ParseFields);
+            }
+        }
+
+        @Override
+        public MetaClassDef resolveMetaclass() throws CompilationError {
+            return baseClass.resolveMetaclass();
+        }
+
+        @Override
+        public void inheritsChildClasses() throws CompilationError {
+            if(this.compilingStage != CompilingStage.InheritsInnerClasses) return;
+
+            if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: inherit child classes".formatted(this));
+
+            if(this.baseClass.compilingStage == CompilingStage.InheritsInnerClasses){
+                this.baseClass.inheritsChildClasses();
+            }
+            this.inheritsAllChildClasses(baseClass.getUniqueChildren());
+            this.nextCompilingStage(CompilingStage.ValidateMembers);
+        }
+
+        @Override
+        public void setCompilingStage(CompilingStage compilingStage) {
+            super.setCompilingStage(compilingStage);
         }
     }
 
@@ -355,11 +428,11 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
-        if(this.baseClass.isAffectedByTypeArguments(instantiationArguments)) return true;
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
+        if(this.baseClass.isAffectedByTypeArguments(instantiationArguments, visited)) return true;
         for (var arg : this.arguments) {
             if(arg instanceof ClassRefLiteral typeArgument) {
-                if (typeArgument.getClassDefValue().isAffectedByTypeArguments(instantiationArguments)) {
+                if (typeArgument.getClassDefValue().isAffectedByTypeArguments(instantiationArguments, visited)) {
                     return true;
                 }
             }

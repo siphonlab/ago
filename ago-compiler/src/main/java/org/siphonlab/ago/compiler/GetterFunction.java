@@ -25,7 +25,7 @@ import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.List;
 
-public class GetterFunction extends FunctionDef{
+public class GetterFunction extends FunctionDef implements ManualCreatedFunction{
 
     private Field field;
     private final AgoParser.GetterContext getterContext;
@@ -62,6 +62,7 @@ public class GetterFunction extends FunctionDef{
 
         this.createFunctionInterface();
         this.createFieldsOfTrait();
+        this.createDefaultValueFunForParameters();
 
         this.setCompilingStage(CompilingStage.ValidateNewFunctions);
         return true;

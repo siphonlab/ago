@@ -170,6 +170,9 @@ public class Unit {
             } else if(typeDecl instanceof AgoParser.EnumDeclContext enumDeclContext){
                 EnumDef enumDef = parseEnumDef(enumDeclContext.enumDeclaration(), pkg);
                 topClasses.add(enumDef);
+            } else if(typeDecl instanceof AgoParser.TopQueryDeclContext queryDeclContext){
+                var fun = parseQueryDef(queryDeclContext.queryDeclaration(), pkg);
+                topClasses.add(fun);
             }
         }
     }
@@ -583,6 +586,8 @@ public class Unit {
             parseClassDef(innerClassDecl.classDeclaration(),classDef);
         } else if (memberDeclaration instanceof AgoParser.MethodDeclContext methodDecl) {
             parseFunctionDef(methodDecl.methodDeclaration(), classDef);
+        } else if (memberDeclaration instanceof AgoParser.QueryDeclContext queryDecl) {
+            parseQueryDef(queryDecl.queryDeclaration(), classDef);
         } else if (memberDeclaration instanceof AgoParser.ConstructorDeclContext constructorDecl) {
             parseConstructorDef(constructorDecl.constructorDeclaration(), classDef);
         } else if (memberDeclaration instanceof AgoParser.MetaclassDeclContext metaclassDecl) {
@@ -658,6 +663,8 @@ public class Unit {
                     metaClass(fun, metaclassInBlock.metaclassDeclaration());
                 } else if (localTypeDeclaration instanceof AgoParser.MethodInBlockContext methodInBlock) {
                     parseFunctionDef(methodInBlock.methodDeclaration(), fun);
+                } else if (localTypeDeclaration instanceof AgoParser.QueryInBlockContext methodInBlock) {
+                    parseQueryDef(methodInBlock.queryDeclaration(), fun);
                 } else if (localTypeDeclaration instanceof AgoParser.EnumInBlockContext enumInBlockContext) {
                     parseEnumDef(enumInBlockContext.enumDeclaration(), fun);
                 }
@@ -688,6 +695,17 @@ public class Unit {
         if (constructorBody instanceof AgoParser.MBBLockContext mbbLockContext) {
             scanTypesInBlock(fun, mbbLockContext.block());
         }
+    }
+
+    private QueryDef parseQueryDef(AgoParser.QueryDeclarationContext queryDecl, ClassContainer classContainer) throws CompilationError {
+        var modifiers = Compiler.queryModifiers(this, queryDecl.queryModifier());
+        var fun = new QueryDef(root, queryDecl.methodName().getText(), queryDecl, modifiers);
+        fun.setUnit(this);
+        fun.setSourceLocation(sourceLocation(queryDecl));
+        functionDefs.add(fun);
+        classContainer.addChild(fun);
+        fun.nextCompilingStage(CompilingStage.ParseGenericParams);
+        return fun;
     }
 
     protected ClassDef parseType(ClassDef scopeClass, AgoParser.TypeOfVariableContext typeOfVariable, boolean allowGenericPlaceHolder) throws CompilationError {
@@ -914,9 +932,13 @@ public class Unit {
 //                            modifiers |= AgoClass.PUBLIC;
 //                        }
 //                    }
-                    parameter.setModifiers(modifiers);
+                    parameter.setModifiers(modifiers | AgoClass.PARAMETER);
                     parameter.setType(paramType);
                     parameter.setSourceLocation(sourceLocation(defaultParameter));
+                    if(defaultParameter.expression() != null){
+                        parameter.setDefaultValueAst(defaultParameter.expression());
+                        parameter.setModifiers(parameter.getModifiers() | AgoClass.DEFAULT_VALUE_PARAM);
+                    }
                     fun.addParameter(parameter);
                 } else if (param instanceof AgoParser.ReceiverParameterContext receiverParameter) {
                     if (paramList.indexOf(param) != 0) {

@@ -16,9 +16,7 @@
 package org.siphonlab.ago.compiler.expression;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
@@ -58,6 +56,7 @@ public class CastToScopedClassRef extends ExpressionInFunctionBody{
             if (!varType.isThatOrDerivedFromThat(getRoot().getScopedClassInterval()) && !varType.isThatOrDerivedFromThat(getRoot().getScopedClassRefClass())) {
                 throw new TypeMismatchError("a ScopedClassRef or ScopedClassInterval expression expected", this.getSourceLocation());
             }
+            Compiler.processClassTillStage(varType, CompilingStage.Compiled);
 
             var fld = new Var.Field(ownerFunction, localVar, varType.getVariable("scope"));
 
