@@ -32,7 +32,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
 
     public EntityRdbAdapter(ClassManager classManager, TypeCode idType, IdGenerator<Id> idGenerator, BoxTypes boxTypes, TypeMapping typeMapping, DataSource dataSource) {
         super(classManager, idType, idGenerator, boxTypes, typeMapping, dataSource);
-        this.entityClass = classManager.getClass("Entity");
+        this.entityClass = classManager.getClass("lang.Entity");
     }
 
     public ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace) {

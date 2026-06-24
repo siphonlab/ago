@@ -628,7 +628,7 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyEntityClass() {
         if (ENTITY_CLASS != null) return ENTITY_CLASS;
         try {
-            ClassDef entityClass = (ClassDef) findByFullname("Entity");
+            ClassDef entityClass = (ClassDef) findByFullname("lang.Entity");
             return ENTITY_CLASS = entityClass.instantiate(
                     new InstantiationArguments(entityClass.typeParamsContext,
                             new ClassRefLiteral[]{

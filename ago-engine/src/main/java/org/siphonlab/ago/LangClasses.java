@@ -132,7 +132,7 @@ public class LangClasses {
         this.mapClass = (AgoClass) classManager.getClass("lang.Map");
 
         this.taskInterface = (AgoInterface) classManager.getClass("lang.Task");
-        this.entityClass = classManager.getClass("Entity");
+        this.entityClass = classManager.getClass("lang.Entity");
     }
 
     public AgoClass getObjectClass() {

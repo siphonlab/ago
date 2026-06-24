@@ -390,7 +390,7 @@ localVariableDeclaration
 identifier
     : IDENTIFIER
      //| MODULE    | OPEN    | REQUIRES    | EXPORTS    | OPENS    | TO    | USES      | PROVIDES       | TRANSITIVE
-     | WITH| YIELD    | FROM      | FIELD     | RECORD  | GETTER | SETTER   | TO    | LIKE  | QUERY | SQL
+     | WITH| YIELD    | FROM      | FIELD     | RECORD  | GETTER | SETTER   | TO    | LIKE  | QUERY
 //    | SEALED   | PERMITS
     ;
 

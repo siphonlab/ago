@@ -90,7 +90,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
     @Override
     public void resolveHierarchicalClasses() throws CompilationError {
         super.resolveHierarchicalClasses();
-        queryResult.setSuperClass(root.findByFullname("QueryResult"));
+        queryResult.setSuperClass(root.findByFullname("lang.QueryResult"));
         queryArgs.setSuperClass(root.getObjectClass());
     }
 
@@ -117,7 +117,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
         this.processFieldParameters();
         this.createDefaultValueFunForParameters();
 
-        var it = getOrCreateGenericInstantiationClassDef(getRoot().findByFullname("QueryResultIterator"), new ClassRefLiteral[]{queryResult.toClassRefLiteral()}, null);
+        var it = getOrCreateGenericInstantiationClassDef(getRoot().findByFullname("lang.QueryResultIterator"), new ClassRefLiteral[]{queryResult.toClassRefLiteral()}, null);
         this.setResultType(it);
         this.registerConcreteType(it);
 
@@ -285,7 +285,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
         Var.LocalVar sql = new Var.LocalVar(this, getVariable("sql"), Var.LocalVar.VarMode.Existed);
         statements.add(new ExpressionStmt(this, assign(sql, templated)));
 
-        ClassDef execQuery = getRoot().findByFullname("executeQuery#");
+        ClassDef execQuery = getRoot().findByFullname("lang.executeQuery#");
         var execQueryInstantiation = this.getOrCreateGenericInstantiationClassDef(execQuery, new ClassRefLiteral[]{this.getQueryResult().toClassRefLiteral()}, null);
         registerConcreteType(execQueryInstantiation);
 
@@ -354,7 +354,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
                 this.nextCompilingStage(CompilingStage.ValidateHierarchy);
                 return true;
             }
-            this.declareParameter("sort", root.findByFullname("Sort"), AgoClass.PRIVATE);
+            this.declareParameter("sort", root.findByFullname("lang.Sort"), AgoClass.PRIVATE);
             this.setResultType(this.getOrCreateNullableType(getRoot().STRING(), null));
 
             this.createFunctionInterface();
@@ -381,7 +381,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
                 Invoke invokeSort;
                 if(qr instanceof TableResult tableResult){
                     // tableSortScope<User>('u', sort)
-                    FunctionDef tableSortScope = getRoot().findByFullname("tableSortScope#");
+                    FunctionDef tableSortScope = getRoot().findByFullname("lang.tableSortScope#");
                     var instantiated = this.getOrCreateGenericInstantiationClassDef(tableSortScope, new ClassRefLiteral[]{
                             tableResult.getClassDef().toClassRefLiteral()
                     }, null);
@@ -393,7 +393,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
                     // querySortScope('q', ['col1', 'col2', 'col3', ...], sort)
                     var columns = qr.getColumns().stream().map(QueryResult.ColumnDesc::getName)
                             .map(s -> (Expression)new StringLiteral(root.STRING(), s)).toList();
-                    invokeSort = invoke(Invoke.InvokeMode.Invoke, new ConstClass(root.findByFullname("querySortScope#")),
+                    invokeSort = invoke(Invoke.InvokeMode.Invoke, new ConstClass(root.findByFullname("lang.querySortScope#")),
                             List.of(
                                     new StringLiteral(root.STRING(), name),
                                     new ArrayLiteral(this, getOrCreateArrayType(root.STRING(), null), columns),
@@ -411,7 +411,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
             var columns = this.queryResult.getColumns().stream().filter(c -> c.getClass() == QueryResult.ColumnDesc.class).map(QueryResult.ColumnDesc::getName)
                     .map(s -> (Expression)new StringLiteral(root.STRING(), s)).toList();
             if(!columns.isEmpty()) {
-                var querySortSelect = invoke(Invoke.InvokeMode.Invoke, new ConstClass(root.findByFullname("querySortSelect#")),
+                var querySortSelect = invoke(Invoke.InvokeMode.Invoke, new ConstClass(root.findByFullname("lang.querySortSelect#")),
                         List.of(
                                 new ArrayLiteral(this, getOrCreateArrayType(root.STRING(), null), columns),
                                 sort

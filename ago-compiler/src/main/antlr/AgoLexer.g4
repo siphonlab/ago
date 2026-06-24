@@ -127,7 +127,6 @@ VAR: 'var'; // reserved type name
 FUN: 'fun';
 
 QUERY: 'query';
-SQL: 'sql';
 
 // Switch Expressions
 YIELD: 'yield'; // reserved type name from Java 14
@@ -198,7 +197,7 @@ TEXT_BLOCK: '"""' [ \t]* [\r\n] (. | EscapeSequence)*? '"""';
 LPAREN : '(';
 RPAREN : ')';
 
-SQL_TICK: '{.' -> pushMode(SQL_MODE);
+SQL_TICK: 'sql{.' -> pushMode(SQL_MODE);
 
 LBRACE : '{';
 TEMPLATE_CLOSE_BRACE :     {this.IsInTemplateString()}? '}' -> popMode;

@@ -26,7 +26,7 @@ fun main(){
     Trace.print(I.foo)
 
     var s = $"
-        let me say, ${if(a < b) $"${a} < ${b}"$}
+        let me say, ${if(a < b and a < b) $"${a} < ${b}"$}
     "$
     Trace.print(s);
 }
