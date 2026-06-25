@@ -321,9 +321,18 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         return parameterIndex + 1;
     }
 
-    public int fillId(PreparedStatement ps, int parameterIndex, Id id) throws SQLException {
-        ps.setLong(parameterIndex, (Long) id);
-        return parameterIndex + 1;
+    public int fillId(PreparedStatement ps, int parameterIndex, String className, Id id) throws SQLException {
+        if(idType == LONG) {
+            ps.setLong(parameterIndex++, (Long) id);
+        } else if(idType == STRING){
+            ps.setString(parameterIndex++,(String)id);
+        } else {
+            throw new SQLException("unsupported id type: " + idType);
+        }
+        if(this.idRdbType.getAdditional() != null){
+            ps.setString(parameterIndex ++,className);
+        }
+        return parameterIndex;
     }
 
     protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved) {
@@ -415,9 +424,13 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         var tableOfClass = tablesByClass.get(agoClass);
         StringBuilder sql = new StringBuilder("INSERT INTO " + tableOfClass.tableName()).append("(");
 
-        sql.append("id,");
-
         int parameterCount = 1;
+        sql.append("id,");
+        if (idRdbType.getAdditional() != null) {
+            sql.append("ago_class,");
+            parameterCount++;
+        }
+
         var columns = tableOfClass.columns();
 
         // save related Added items at first
@@ -440,7 +453,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         try(var conn = dataSource.getConnection()) {
             try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
                 int parameterIndex = 1;
-                parameterIndex = this.fillId(ps, parameterIndex, dbSlots.getObjectRef().id());
+                parameterIndex = this.fillId(ps, parameterIndex, agoClass.getFullname(), dbSlots.getObjectRef().id());
                 for (ColumnDesc column : columns) {
                     var slotDef = column.getSlotDef();
                     parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
@@ -499,7 +512,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
                     var slotDef = column.getSlotDef();
                     parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
                 }
-                this.fillId(ps, parameterIndex, dbSlots.getObjectRef().id());
+                this.fillId(ps, parameterIndex, agoClass.getFullname(), dbSlots.getObjectRef().id());
 
                 if (LOGGER.isDebugEnabled()) LOGGER.debug("{}{}", "EXECUTE UPDATE %s : ".formatted(dbSlots.getObjectRef()), updateSql);
 
@@ -524,6 +537,9 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         var tableOfClass = getTableOfClass(agoClass);
         StringBuilder sql = composeSelectFrom(tableOfClass);
         sql.append(" WHERE id=?");
+        if(idRdbType.getAdditional() != null){
+            sql.append(" AND ago_class=?");
+        }
 
         Connection connection = null;
         PreparedStatement ps = null;
@@ -532,7 +548,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
             connection = dataSource.getConnection();
             ps = connection.prepareStatement(sql.toString());
 
-            this.fillId(ps, 1, objectRef.id());
+            this.fillId(ps, 1, objectRef.className(), objectRef.id());
 
             PreparedStatement finalPs = ps;
             resultSet = finalPs.executeQuery();
