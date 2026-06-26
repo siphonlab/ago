@@ -166,13 +166,19 @@ fun main(){
 
 ### 运行空间（RunSpaces）
 
-ago 支持对 `RunSpace` 进行子类化，你可以在对应的引擎环境中使用一种或多种类型的 `RunSpace`。目前除默认的 `RunSpace` 外，`WorkflowEngine` 还提供了几种专用空间，如 `EntityRunSpace`、`WorkflowRunSpace` 和 `EntityWorkflowRunSpace`。
+ago 支持对 `RunSpace` 进行子类化，你可以在对应的引擎环境中使用一种或多种类型的 `RunSpace`。目前除默认的 `RunSpace` 外，`WorkflowEngine` 还提供了几种专用 RunSpaces，如 `EntityRunSpace`、`WorkflowRunSpace` 和 `EntityWorkflowRunSpace`。
 
 - **EntityRunSpace** – 处理带有 *Entity* 注解的类的 ORM 操作。当 `EntityRunSpace` 启动时会自动开启事务；结束时会自动提交所有对 *Entity* 类型对象的修改。
 
 例如：
 
 ```ago
+class User with Entity<User>{
+    public name as string;
+    public address as string;
+    public age as int;
+}
+
 fun createUser() as User {
     var u = new User() with {
         .name     = "Tom";
