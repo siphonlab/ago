@@ -27,6 +27,8 @@ ago is implemented with Java 22. You can embed it into any Java application or r
 > **Why use ago?**  
 > When your business logic involves long-running, event-driven workflows (e.g., approvals, payment processing, game animation), traditional languages force you to mix callbacks, state machines, or external workflow engines. ago lets you write those flows *directly* as ordinary functions with built-in suspension, resumption, and persistence.
 
+For a deeper understanding, please see the paper at https://doi.org/10.5281/zenodo.20919493. 
+
 ---
 
 ## Features
