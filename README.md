@@ -2,6 +2,8 @@
 
 # ago Programming Language
 
+[中文](README_zh_CN.md).
+
 > **FUNCTION IS CLASS, and CALLFRAME IS INSTANCE**
 
 ## Overview
@@ -14,10 +16,11 @@ Inspired by Process Philosophy, ago believes that real‑world “actions” sho
 
 This design gives you:
 
-* **Asynchronous actions** – Function invocations can suspend and resume like coroutines, but remain ordinary objects.
+* **Asynchronous actions** – Function invocations can suspend and resume like coroutines, since they are ordinary objects.
 * **Full persistence** – Every call frame is a heap object; its state can be stored in any database or key-value store and recovered after a crash.
 * **Distributed execution** – Because frames are objects they can be shipped across nodes.
 * **Object-oriented semantics everywhere** – Closures, generics, traits, meta-classes, and parameterized classes all live in the same type system.
+* **Heap‑based rather than stack‑based execution environment** – Ago designed a **RunSpace** based on iterative mechanism to execute call frames, thereby avoiding the use of thread stacks. As a kind of logical object, `RunSpace` can be migrated across different environments and can be subclassed.
 
 ago is implemented with Java 22. You can embed it into any Java application or run it as a standalone interpreter.
 
@@ -163,6 +166,82 @@ The library also provides:
 | `awaitMany(count as int)` | Suspends until *count* child tasks complete. |
 
 
+### RunSpaces
+
+ago supports subclassing `RunSpace`, and you can use one or more kinds of `RunSpace` within the corresponding engine environment. Currently, exclude the default `RunSpace`, `WorkflowEngine` also provides several specialized spaces such as `EntityRunSpace`, `WorkflowRunSpace`, and `EntityWorkflowRunSpace`.
+
+- **EntityRunSpace** – Handles ORM operations for classes marked with the *Entity* annotation. When an `EntityRunSpace` starts, it automatically opens a transaction; when it ends, it commits all changes made to objects of type *Entity*.
+
+For example:
+
+```ago
+fun createUser() as User {
+    var u = new User() with {
+        .name     = "Tom";
+        .address  = "liberation street 222";
+        .age      = 20;
+    }
+    return u;
+}
+
+fun main(){
+    // Run the function inside an EntityRunSpace
+    var u = await createUser() via EntitySpace.new#();
+
+    Trace.print(u.name)
+    Trace.print(u.age)
+}
+```
+
+- **WorkflowRunSpace** – Persists functions implemented *Task* interface. When a task reaches a *Task*-annotated function, its execution point is automatically saved so that the call can truly suspend—completely releasing memory. And `Task` provides subclasses such as `RunAt::(node)`, when encountering a `RunAt` task, the `WorkflowRunSpace` will migrate to another node in a distributed fashion.
+
+Below is an example of a simple crawler workflow written in ago. When `downloadImages` runs, the task is transferred to the *downloader* node:
+
+```ago
+fun downloadImages(images as ArrayList<string>) with RunAt::("downloader") {
+    for (var i = 0; i < images.size(); ++i) {
+        var url = images[i];
+        Trace.print("downloading " + url);
+        downloadImage(url);
+    }
+
+    Trace.print("download finished");
+}
+
+fun runPage(page as int) as int with RunAt::("page") {
+    var result = extractImages(page);
+    downloadImages(result.images);
+
+    Trace.print("fetch finished");
+
+    return result.curPage;
+}
+```
+
+Host language developers (currently Java) can treat ago as a DSL and write their own `RunSpace` to bring call permissions, scheduled triggers, and other activities under their control.
+
+For *Entity* types, ago supports SQL queries built on schema‑lineage technology:
+
+```ago
+// Automatically creates the class `userByName.Result` as its result type
+query userByName(name as string?, minAge as int?, maxAge as int?, sort as Sort[]? = [Sort[] | new Sort('u.name', 'asc')]) {
+    sql{.
+        SELECT u.id, u.name, u.age FROM User u WHERE name = :name AND age >= :minAge AND age <= :maxAge
+        ORDER BY :sort ASC
+    .}
+}
+
+fun main(){
+    var it2 = await userByName('Tom', null, 30, null) via EntitySpace.new#()
+    for(var item in it){
+        Trace.print(item.name)      // name comes with a typed query result
+        Trace.print(item.age)
+    }
+}
+```
+
+Host language developers (currently Java) can create their own `RunSpace` to manage permissions, timing triggers, and other concerns within their own ecosystem.
+
 ### 3. Meta-class & Parameterized Class
 
 ```ago
@@ -267,32 +346,6 @@ class Person{
 ```
 
 The compiler resolves calls based on argument count/types; explicit `f#2(1,2)` can be used to disambiguate.
-
-### Persistence
-
-`ago-engine-rdb` provides a complete implementation of persisting various ago objects using PostgreSQL, including `ago_class`, `ago_function`, `runspace`, `instances`, `call_frames`, etc., and maps Slots via JSON. These implementations allow ago programs to run with a database as the persistence backend without any modifications. For example, the `run` function in `test-cases` is designed like this:
-
-```java
-    // test-cases/src/test/java/org/siphonlab/ago/test/Util.java
-    public static void run(String filename, String entrance) throws CompilationError, IOException {
-        var selectedEngine = parseEngine();
-        switch (selectedEngine){
-            case NettyEngine:
-                runInNettySpace(filename, entrance);
-                break;
-
-            case VertxEngine:
-                runInVertxSpace(filename,entrance);
-                break;
-
-            case PGJsonLazyEngine:
-                runWithPGJsonLazy(filename, entrance);
-                break;
-        }
-
-    }
-```
-
 ---
 
 ## Examples
@@ -303,7 +356,7 @@ The compiler resolves calls based on argument count/types; explicit `f#2(1,2)` c
 
 ## Contributing
 
-The ago language opens a new domain; there are many interesting things to explore, and your participation is warmly welcomed. We urgently need help with compilers, game engines, workflow engines, low‑code platforms, and other areas; LLM applications will also be a direction for ago. 
+The ago language opens a new domain; there are too many interesting things to explore, and your participation is very welcome. We urgently need help with compilers, game engines, workflow engines, low‑code platforms, and other areas; LLM applications will also be a direction for ago. 
 The project is currently in the contributor sign‑up phase—feel free to register via an issue.
 
 ---
