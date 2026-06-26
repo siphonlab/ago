@@ -2,7 +2,7 @@
 
 # ago Programming Language
 
-[中文](README_zh_CN.md).
+[中文](README_zh_CN.md)
 
 > **FUNCTION IS CLASS, and CALLFRAME IS INSTANCE**
 
@@ -364,6 +364,12 @@ The compiler resolves calls based on argument count/types; explicit `f#2(1,2)` c
 
 The ago language opens a new domain; there are too many interesting things to explore, and your participation is very welcome. We urgently need help with compilers, game engines, workflow engines, low‑code platforms, and other areas; LLM applications will also be a direction for ago. 
 The project is currently in the contributor sign‑up phase—feel free to register via an issue.
+
+## Support this project
+
+If this project helps you, consider supporting it:
+
+- PayPal: https://paypal.me/inshua
 
 ---
 
