@@ -89,7 +89,7 @@ Because everything is an object:
 ### Build
 
 ```bash
-git clone https://github.com/inshua/ago.git
+git clone https://github.com/siphonlab/ago.git
 cd ago
 mvn clean package -DskipTests 
 ```
