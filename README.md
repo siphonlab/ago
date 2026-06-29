@@ -8,7 +8,7 @@
 
 ## Overview
 
-ago is an object-oriented static programming language designed around the idea that *"FUNCTION IS CLASS, and CALLFRAME IS INSTANCE"*, enabling functions and their invocations—the two core, ubiquitous elements of programming languages—to semantically model real‑world Actions.
+**ago**(named from `Action` in Esperanto) is an object-oriented static programming language designed around the idea that *"FUNCTION IS CLASS, and CALLFRAME IS INSTANCE"*, enabling functions and their invocations—the two core, ubiquitous elements of programming languages—to semantically model real‑world Actions.
 
 Inspired by Process Philosophy, ago believes that real‑world “actions” should have a complete lifecycle state—containing both start and end points as well as intermediate processes. Traditional programming models bind the CallFrame to an underlying stack structure, making it invisible and far from programmer. ago abstracts it as an object‑oriented concept:
 *   **FUNCTION IS CLASS**: Functions become classes. They are first-class citizens with lifecycle properties and method fields.
@@ -29,6 +29,8 @@ ago is implemented with Java 22. You can embed it into any Java application or r
 
 For a deeper understanding, please see the paper at https://doi.org/10.5281/zenodo.20919493. 
 
+> At present, ago is still in its early beta‑testing phase and requires substantial development work before it’s ready for production use. We therefore do not recommend deploying it in formal projects at this time.
+> We warmly invite you to join us in refining it! If you’re willing to contribute a pilot project, we are glad to grow together with you.
 ---
 
 ## Features
