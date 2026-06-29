@@ -111,7 +111,7 @@ Compile & run:
 java -cp path/to/ago-compiler/target/ago-compiler-<ver>.jar -agocp ago-sdk/lang.agopkg -i hello.ago
 
 # run
-java -jar path/to/ago-engine/target/ago-engine-1.0-SNAPSHOT.jar -agocp ago-sdk/lang.agopkg ./
+java -jar path/to/ago-engine/target/ago-engine-<ver>.jar -agocp ago-sdk/lang.agopkg ./
 ```
 
 You should see:

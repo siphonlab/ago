@@ -109,7 +109,7 @@ fun main(){
 java -cp path/to/ago-compiler/target/ago-compiler-<ver>.jar -agocp ago-sdk/lang.agopkg -i hello.ago
 
 # 运行
-java -jar path/to/ago-engine/target/ago-engine-1.0-SNAPSHOT.jar -agocp ago-sdk/lang.agopkg ./
+java -jar path/to/ago-engine/target/ago-engine-<ver>.jar -agocp ago-sdk/lang.agopkg ./
 ```
 
 你应该会看到：

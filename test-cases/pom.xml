@@ -21,24 +21,24 @@
     <parent>
         <groupId>org.siphonlab</groupId>
         <artifactId>ago</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>0.7.0-EA</version>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>org.siphonlab</groupId>
             <artifactId>ago-engine</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${ago-engine-version}</version>
         </dependency>
         <dependency>
             <groupId>org.siphonlab</groupId>
             <artifactId>ago-compiler</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${ago-compiler-version}</version>
         </dependency>
         <dependency>
             <groupId>org.siphonlab</groupId>
             <artifactId>ago-engine-rdb</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${ago-engine-rdb-version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/jakarta.el/jakarta.el-api -->
         <dependency>
@@ -156,6 +156,6 @@
     </build>
 
     <artifactId>test-cases</artifactId>
-    <name>Archetype - test-cases</name>
-    <url>http://maven.apache.org</url>
+    <name>test cases</name>
+    <url>http://github.com/siphonlab/ago</url>
 </project>

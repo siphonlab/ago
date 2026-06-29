@@ -23,17 +23,20 @@
 
     <groupId>org.siphonlab</groupId>
     <artifactId>ago</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.7.0-EA</version>
     <packaging>pom</packaging>
 
     <name>ago</name>
-    <!-- FIXME change it to the project's website -->
-    <url>http://www.example.com</url>
+    <url>http://github.com/siphonlab/ago</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>22</maven.compiler.source>
         <maven.compiler.target>22</maven.compiler.target>
+        <ago-compiler-version>${project.version}</ago-compiler-version>
+        <ago-engine-version>${project.version}</ago-engine-version>
+        <ago-engine-rdb-version>${project.version}</ago-engine-rdb-version>
+        <test-cases-version>${project.version}</test-cases-version>
     </properties>
 
     <modules>
