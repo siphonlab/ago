@@ -15,9 +15,13 @@
  */
 package org.siphonlab.ago.compiler;
 
+import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.delete.Delete;
+import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.update.Update;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.siphonlab.ago.AgoClass;
@@ -36,7 +40,6 @@ import org.siphonlab.ago.compiler.sql.*;
 import org.siphonlab.ago.compiler.statement.ExpressionStmt;
 import org.siphonlab.ago.compiler.statement.Return;
 import org.siphonlab.ago.compiler.statement.Statement;
-import org.siphonlab.ago.opcode.logic.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,25 +55,74 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
     private ClassDef queryArgs;
     private SchemaLineager schemaLineager;
 
-    public QueryDef(Root root, String name, AgoParser.QueryDeclarationContext queryDeclaration) {
+    enum ExecuteMode{
+        Select,
+        UpdateInsertDelete,
+        Execute
+    }
+
+    private ExecuteMode executeMode;
+
+    public QueryDef(Root root, String name, AgoParser.QueryDeclarationContext queryDeclaration) throws SyntaxError {
         super(root, name, null);
         this.queryDeclaration = queryDeclaration;
         createSubClasses();
     }
 
-    public QueryDef(Root root, String name, AgoParser.QueryDeclarationContext queryDeclaration, int modifiers) {
+    public QueryDef(Root root, String name, AgoParser.QueryDeclarationContext queryDeclaration, int modifiers) throws SyntaxError {
         super(root, name, null, modifiers);
         this.queryDeclaration = queryDeclaration;
         createSubClasses();
     }
 
-    private void createSubClasses(){
-        // TODO for DML, the result type is int
-        var result = new ClassDef(this.getRoot(), "Result");
-        result.setModifiers(AgoClass.PUBLIC | AgoClass.FINAL);
-        this.addChild(result);
-        this.queryResult = result;
-        result.setCompilingStage(CompilingStage.AllocateSlots);
+    private void createSubClasses() throws SyntaxError {
+        AgoParser.SqlBlockContext sqlBlock = this.queryDeclaration.sqlBlock().getFirst();
+
+        try {
+            String sql = sqlBlock.SQL_ATOM().getFirst().getText();
+            var expr = CCJSqlParserUtil.parse(sql);
+            if(expr instanceof Select){
+                executeMode = ExecuteMode.Select;
+            } else if(expr instanceof Insert insert){
+                if(insert.getReturningClause() != null){
+                    executeMode = ExecuteMode.Select;
+                } else {
+                    executeMode = ExecuteMode.UpdateInsertDelete;
+                }
+            } else if(expr instanceof Update update){
+                if(update.getReturningClause() != null){
+                    executeMode = ExecuteMode.Select;
+                } else {
+                    executeMode = ExecuteMode.UpdateInsertDelete;
+                }
+            } else if(expr instanceof Delete delete){
+                if(delete.getReturningClause() != null){
+                    executeMode = ExecuteMode.Select;
+                } else {
+                    executeMode = ExecuteMode.UpdateInsertDelete;
+                }
+            } else {
+                executeMode = ExecuteMode.Execute;
+            }
+        } catch (JSQLParserException e) {
+            throw new SyntaxError("SQL syntax error " + e.getMessage(), unit.sourceLocation(sqlBlock));
+        }
+
+        switch(executeMode){
+            case Select:
+                var result = new ClassDef(this.getRoot(), "Result");
+                result.setModifiers(AgoClass.PUBLIC | AgoClass.FINAL);
+                this.addChild(result);
+                this.queryResult = result;
+                result.setCompilingStage(CompilingStage.AllocateSlots);
+                break;
+            case UpdateInsertDelete:
+                this.queryResult = getRoot().INT();
+                break;
+            case Execute:
+                this.queryResult = getRoot().BOOLEAN();
+                break;
+        }
 
         var args = new ClassDef(this.getRoot(), "Args");
         args.setModifiers(AgoClass.PUBLIC | AgoClass.FINAL);
@@ -90,7 +142,9 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
     @Override
     public void resolveHierarchicalClasses() throws CompilationError {
         super.resolveHierarchicalClasses();
-        queryResult.setSuperClass(root.findByFullname("lang.QueryResult"));
+        if(executeMode == ExecuteMode.Select) {
+            queryResult.setSuperClass(root.findByFullname("lang.QueryResult"));
+        }
         queryArgs.setSuperClass(root.getObjectClass());
     }
 
@@ -117,9 +171,13 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
         this.processFieldParameters();
         this.createDefaultValueFunForParameters();
 
-        var it = getOrCreateGenericInstantiationClassDef(getRoot().findByFullname("lang.QueryResultIterator"), new ClassRefLiteral[]{queryResult.toClassRefLiteral()}, null);
-        this.setResultType(it);
-        this.registerConcreteType(it);
+        if(executeMode == ExecuteMode.Select) {
+            var it = getOrCreateGenericInstantiationClassDef(getRoot().findByFullname("lang.QueryResultIterator"), new ClassRefLiteral[]{queryResult.toClassRefLiteral()}, null);
+            this.setResultType(it);
+            this.registerConcreteType(it);
+        } else {
+            this.setResultType(queryResult);
+        }
 
 //        parseThrows(this.methodDecl.throwsPhrase());
         createLocalVarsForQuery();
@@ -150,7 +208,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
         if(this.compilingStage == CompilingStage.InheritsFields) {
             if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: parse query fields".formatted(this));
 
-            AgoParser.SqlBlockContext sqlBlock = this.queryDeclaration.sqlBlock().getFirst();
+            AgoParser.SqlBlockContext sqlBlock = this.queryDeclaration.sqlBlock().getFirst();       // TODO iterator each dialect
             try {
                 String sql = sqlBlock.SQL_ATOM().getFirst().getText();
                 this.schemaLineager = new SchemaLineager(this);
@@ -285,9 +343,23 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
         Var.LocalVar sql = new Var.LocalVar(this, getVariable("sql"), Var.LocalVar.VarMode.Existed);
         statements.add(new ExpressionStmt(this, assign(sql, templated)));
 
-        ClassDef execQuery = getRoot().findByFullname("lang.executeQuery#");
-        var execQueryInstantiation = this.getOrCreateGenericInstantiationClassDef(execQuery, new ClassRefLiteral[]{this.getQueryResult().toClassRefLiteral()}, null);
-        registerConcreteType(execQueryInstantiation);
+        ClassDef executeQuery;
+
+        switch (executeMode){
+            case Select:
+                ClassDef execQueryTempl = getRoot().findByFullname("lang.executeQuery#");
+                executeQuery = this.getOrCreateGenericInstantiationClassDef(execQueryTempl, new ClassRefLiteral[]{this.getQueryResult().toClassRefLiteral()}, null);
+                registerConcreteType(executeQuery);
+                break;
+            case UpdateInsertDelete:
+                executeQuery =  getRoot().findByFullname("lang.executeUpdate#");
+                break;
+            case Execute:
+                executeQuery =  getRoot().findByFullname("lang.executeSql#");
+                break;
+            default:
+                throw new IllegalStateException();
+        }
 
         // init query args
         Expression queryArgs;
@@ -311,7 +383,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
 
 
         statements.add(new Return(this, invoke(Invoke.InvokeMode.Invoke,
-                    new ConstClass(execQueryInstantiation),
+                    new ConstClass(executeQuery),
                     List.of(sql, queryArgs), unit.sourceLocation(this.queryDeclaration)
                 )));
 

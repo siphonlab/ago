@@ -81,14 +81,4 @@ public class EntityRunSpace<Id> extends RunSpace implements CreateInstanceRunSpa
         return inst;
     }
 
-    public static <Id> EntityAdapter<Id> retrieveEntityAdapter(RunSpace runSpace) {
-        if(runSpace instanceof EntityRunSpace<?> entityRunSpace){
-            return (EntityAdapter<Id>) entityRunSpace.getEntityAdapter();
-        }
-        if(runSpace instanceof EntityWorkflowRunSpace<?> entityWorkflowRunSpace){
-            return (EntityAdapter<Id>) entityWorkflowRunSpace.getEntityAdapter();
-        }
-        return null;
-    }
-
 }

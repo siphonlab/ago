@@ -25,22 +25,22 @@ import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.StringArrayInstance;
 import org.siphonlab.ago.runtime.db.DbSlots;
+import org.siphonlab.ago.runtime.db.EntityAdapter;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.siphonlab.ago.runtime.rdb.RdbAdapter;
-import org.siphonlab.ago.runtime.rdb.ResultSetToEntityMapper;
 import org.siphonlab.ago.runtime.rdb.ResultSetToQueryResultMapper;
 
 import java.util.Map;
 
 import static net.sf.jsqlparser.parser.CCJSqlParserUtil.parseCondExpression;
-import static org.siphonlab.ago.runtime.db.EntityRunSpace.retrieveEntityAdapter;
+import static org.siphonlab.ago.runtime.rdb.EntityRdbAdapter.retrieveEntityAdapter;
 
 public class Entity {
 
     public static void getEntityById(NativeFrame callFrame, long id) {
         AgoClass entityClass = callFrame.getAgoClass().getResultClass();
-        var adapter = retrieveEntityAdapter(callFrame.getRunSpace());
+        var adapter = EntityAdapter.retrieveEntityAdapter(callFrame.getRunSpace());
         callFrame.finishObject(adapter.getById(ObjectRef.create(entityClass.getFullname(), id), callFrame.getRunSpace()));
     }
 
@@ -90,6 +90,29 @@ public class Entity {
         queryResultIteratorInstance.setNativePayload(mapper);
         frame.finishObject(queryResultIteratorInstance);
     }
+
+    public static void executeUpdate(NativeFrame frame, String sql, Object arguments){
+        var adapter = retrieveEntityAdapter(frame.getRunSpace());
+        Map<String,Object> argMap;
+        if(arguments != null){
+            argMap = new InstanceAsMap((Instance<?>) arguments);
+        } else {
+            argMap = null;
+        }
+        frame.finishInt(adapter.executeUpdate(sql, argMap));
+    }
+
+    public static void execute(NativeFrame frame, String sql, Object arguments){
+        var adapter = retrieveEntityAdapter(frame.getRunSpace());
+        Map<String,Object> argMap;
+        if(arguments != null){
+            argMap = new InstanceAsMap((Instance<?>) arguments);
+        } else {
+            argMap = null;
+        }
+        frame.finishBoolean(adapter.execute(sql, argMap));
+    }
+
 
     public static void mapColumn(NativeFrame frame, int slotIndex){
         var adapter = retrieveEntityAdapter(frame.getRunSpace());

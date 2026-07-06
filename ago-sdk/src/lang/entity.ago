@@ -58,6 +58,10 @@ fun objectEquals<FromEntity, ToEntity>(fromAlias as string, fromCol as int, toAl
 
 fun executeQuery<R>(sql as string, args as Object?) as QueryResultIterator<R> native "org.siphonlab.ago.runtime.db.sdk.Entity.executeQuery";
 
+fun executeSql(sql as string, args as Object?) as boolean native "org.siphonlab.ago.runtime.db.sdk.Entity.execute";
+
+fun executeUpdate(sql as string, args as Object?) as int native "org.siphonlab.ago.runtime.db.sdk.Entity.executeUpdate";
+
 class Sort{
     enum Direction{
         Asc,

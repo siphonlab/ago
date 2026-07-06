@@ -35,6 +35,16 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
         this.entityClass = classManager.getClass("lang.Entity");
     }
 
+    public static <Id> EntityRdbAdapter<Id> retrieveEntityAdapter(RunSpace runSpace) {
+        if(runSpace instanceof EntityRunSpace<?> entityRunSpace){
+            return (EntityRdbAdapter<Id>) entityRunSpace.getEntityAdapter();
+        }
+        if(runSpace instanceof EntityWorkflowRunSpace<?> entityWorkflowRunSpace){
+            return (EntityRdbAdapter<Id>) entityWorkflowRunSpace.getEntityAdapter();
+        }
+        return null;
+    }
+
     public ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace) {
         var tableOfClass = getTableOfClass(agoClass);
 
@@ -62,7 +72,6 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
         }
     }
 
-    @Override
     public ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace) {
         if(LOGGER.isDebugEnabled()) LOGGER.debug("EXEC Query: " + sql);
         Connection connection = null;
@@ -129,6 +138,31 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
             return new SqlWithParams(preCheck.getSql(), getUpdatedParams(params, indexPropList));
         }
     }
+
+    public int executeUpdate(String sql, Map<String, Object> arguments) {
+        if(LOGGER.isDebugEnabled()) LOGGER.debug("EXEC Query: " + sql);
+        Connection connection = null;
+        try {
+            connection = dataSource.getConnection();
+            return new Sql(connection).executeUpdate(arguments, sql);
+        } catch (SQLException e) {
+            closeQuietly(connection);
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean execute(String sql, Map<String, Object> arguments) {
+        if(LOGGER.isDebugEnabled()) LOGGER.debug("EXEC Query: " + sql);
+        Connection connection = null;
+        try {
+            connection = dataSource.getConnection();
+            return new Sql(connection).execute(arguments, sql);
+        } catch (SQLException e) {
+            closeQuietly(connection);
+            throw new RuntimeException(e);
+        }
+    }
+
 
     @Override
     protected void insert(Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
