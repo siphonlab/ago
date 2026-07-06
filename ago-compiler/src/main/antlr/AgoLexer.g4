@@ -197,7 +197,7 @@ TEXT_BLOCK: '"""' [ \t]* [\r\n] (. | EscapeSequence)*? '"""';
 LPAREN : '(';
 RPAREN : ')';
 
-SQL_TICK: 'sql{.' -> pushMode(SQL_MODE);
+SQL_TICK: '{.' -> pushMode(SQL_MODE);
 
 LBRACE : '{';
 TEMPLATE_CLOSE_BRACE :     {this.IsInTemplateString()}? '}' -> popMode;

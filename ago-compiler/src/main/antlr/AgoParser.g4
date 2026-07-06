@@ -198,16 +198,8 @@ queryDeclaration
         '{' sqlBlock+ '}'
     ;
 
-sqlAttr:
-        IDENTIFIER '=' IDENTIFIER
-    ;
-
-sqlAttrs:
-        '(' sqlAttr (',' sqlAttr)* ')'
-    ;
-
 sqlBlock:
-        SQL_TICK sqlAttrs? SQL_ATOM+ SQL_TICK
+        dialect=IDENTIFIER SQL_TICK SQL_ATOM+ SQL_TICK
     ;
 
 throwsPhrase:       THROWS declarationTypeList;
