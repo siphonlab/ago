@@ -177,7 +177,7 @@ ago 支持对 `RunSpace` 进行子类化，你可以在对应的引擎环境中�
 例如：
 
 ```ago
-class User with Entity<User>{
+class User from Entity<User, long>{
     public name as string;
     public address as string;
     public age as int;
