@@ -179,7 +179,7 @@ ago supports subclassing `RunSpace`, and you can use one or more kinds of `RunSp
 For example:
 
 ```ago
-class User with Entity<User>{
+class User from Entity<User, long>{
     public name as string;
     public address as string;
     public age as int;
