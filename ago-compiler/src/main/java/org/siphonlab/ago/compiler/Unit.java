@@ -136,7 +136,7 @@ public class Unit {
                 String className = fullName(importDecl.qualifiedNameAllowPostfix());
                 ClassDef cls = root.findByFullname(className);
                 if (cls != null) {
-                    this.importedClasses.put(className, cls);
+                    this.importClass(cls);
                 } else {
                     // maybe not declared yet
                     this.unsolvedImports.add(new UnsolvedImport(className, importDecl, pkg));
@@ -258,7 +258,7 @@ public class Unit {
         for (UnsolvedImport unsolvedImport : unsolvedImports) {
             var c = root.findByFullname(unsolvedImport.classFullName);
             if (c instanceof ClassDef classDef) {
-                importedClasses.put(c.getName(), classDef);
+                importClass(classDef);
                 solved.add(unsolvedImport);
             }
         }

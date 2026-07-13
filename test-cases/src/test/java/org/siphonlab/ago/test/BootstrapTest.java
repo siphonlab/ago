@@ -15,15 +15,28 @@
  */
 package org.siphonlab.ago.test;
 
+import io.vertx.core.Vertx;
+import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.siphonlab.ago.test.Util.run;
 
+import org.siphonlab.ago.AgoEngine;
+import org.siphonlab.ago.classloader.AgoClassLoader;
+import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.ClassFile;
+import org.siphonlab.ago.compiler.Compiler;
+import org.siphonlab.ago.compiler.Unit;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
+import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.zip.ZipInputStream;
 
 public class BootstrapTest {
 
@@ -259,6 +272,59 @@ public class BootstrapTest {
         Util.run("bootstrap/32.dynamic.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("meow", "3", "true", "true", "John", "20", "name: John do coding, already 60 min"));
+    }
+
+    @Test
+    public void package_test() throws CompilationError, IOException {
+        String filename = "ref1/entrance.ago";
+
+        Compiler compiler = new Compiler();
+        Collection<ClassDef> rtClasses = null;
+        AgoClassLoader agoClassLoader = new AgoClassLoader();
+        if(new File("../ago-sdk/compiled/lang/").exists()) {
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/");
+        } else {
+            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+        }
+
+        // compile unit1, unit2
+        rtClasses = compiler.load(agoClassLoader);
+        Unit[] units = compiler.compile(new File[]{
+                    new File("examples/%s".formatted("ref1/unit1.ago")),
+                    new File("examples/%s".formatted("ref1/unit2.ago"))
+                }, rtClasses.toArray(new ClassDef[0]));
+
+        var dir = new File("output/ref1/");
+        if (!dir.exists()) dir.mkdirs();
+        else PathUtils.cleanDirectory(dir.toPath());
+        ClassFile.saveToDirectory(units, dir.getAbsolutePath());
+
+        // compile entrance
+        agoClassLoader = new AgoClassLoader();
+        if(new File("../ago-sdk/compiled/lang/").exists()) {
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/ref1");
+        } else {
+            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadClasses("output/ref1");
+        }
+
+        units = compiler.compile(new File[]{
+                new File("examples/%s".formatted("ref1/entrance.ago")),
+        }, rtClasses.toArray(new ClassDef[0]));
+        ClassFile.saveToDirectory(units, dir.getAbsolutePath());
+
+        AgoEngine engine = new AgoEngine(new VertxRunSpaceHost(Vertx.vertx()));
+        agoClassLoader = new AgoClassLoader();
+        if(new File("../ago-sdk/compiled/lang/").exists()) {
+            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/ref1");
+        } else {
+            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadClasses("output/ref1");
+        }
+        engine.load(agoClassLoader);
+        agoClassLoader.loadClasses();
+
+        engine.run("main#");
     }
 
 

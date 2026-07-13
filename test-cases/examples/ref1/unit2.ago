@@ -3,12 +3,11 @@ class C3{
 
 }
 
-class C2.C4{
-
-}
-
-class C2.C4.C5{
-
+class C2{
+    class C4{
+        class C5{
+        }
+    }
 }
 
 
