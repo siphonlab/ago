@@ -15,7 +15,11 @@
  */
 package org.siphonlab.ago.compiler;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 
 public class UnitSource {
     private String fileName;
@@ -24,6 +28,10 @@ public class UnitSource {
     public UnitSource(String fileName, Reader reader) {
         this.fileName = fileName;
         this.reader = reader;
+    }
+
+    public UnitSource(String file) throws IOException {
+        this(file, new FileReader(file, StandardCharsets.UTF_8));
     }
 
     public String getFileName() {

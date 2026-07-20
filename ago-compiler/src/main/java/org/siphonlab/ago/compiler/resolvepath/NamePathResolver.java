@@ -950,7 +950,7 @@ public class NamePathResolver {
                 throw unit.syntaxError(typeArgs, "type argument size mismatch, expected '%d', pass '%d'".formatted(templateClass.getTypeParamsContext().getGenericTypeParams().size(), args.length));
             }
 
-            var pc = ((ClassContainer) templateClass.getParent()).getOrCreateGenericInstantiationClassDef(templateClass, args, typeArgs, null);
+            var pc = ((ClassContainer) templateClass.getParent()).getOrCreateGenericInstantiationClassDef(templateClass, args, typeArgs, null, scopeClass.getModule());
             if(pc instanceof ConcreteType c) scopeClass.registerConcreteType(c);
             scopeClass.idOfClass(templateClass);
             Compiler.processClassTillStage((ClassDef) pc,scopeClass.getCompilingStage());

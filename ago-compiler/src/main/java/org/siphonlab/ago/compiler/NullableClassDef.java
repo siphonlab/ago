@@ -20,6 +20,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 
 import java.util.Set;
 
@@ -66,8 +67,8 @@ public class NullableClassDef extends UnionClassDef {
         }
     }
 
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
-        var newBaseType = nullableBaseClass.instantiate(instantiationArguments, returnExisted);
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+        var newBaseType = nullableBaseClass.instantiate(project, instantiationArguments, returnExisted);
         if(newBaseType == nullableBaseClass) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;

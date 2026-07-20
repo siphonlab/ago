@@ -21,6 +21,7 @@ public final class GenericSource {
     private final String sourceTemplate;
     private final InstantiationArguments instantiationArguments;
     private final ClassRefValue[] typeArguments;
+    private boolean isTemplateDefaultArgs = false;
 
     public GenericSource(String sourceTemplate, InstantiationArguments instantiationArguments, ClassRefValue[] typeArguments) {
         this.sourceTemplate = sourceTemplate;
@@ -33,6 +34,14 @@ public final class GenericSource {
     public InstantiationArguments instantiationArguments() {return instantiationArguments;}
 
     public ClassRefValue[] typeArguments() {return typeArguments;}
+
+    public boolean isTemplateDefaultArgs() {
+        return isTemplateDefaultArgs;
+    }
+
+    public void setTemplateDefaultArgs(boolean templateDefaultArgs) {
+        isTemplateDefaultArgs = templateDefaultArgs;
+    }
 
     @Override
     public boolean equals(Object obj) {

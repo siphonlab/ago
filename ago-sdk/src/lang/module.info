@@ -1,0 +1,26 @@
+module:
+  name: lang
+  version: "0.7.0"
+  author: Inshua
+  license: Apache 2.0
+
+repository:
+  url: https://github.com/siphonlab/ago/tree/master/ago-sdk
+
+units:
+  - lang.ago
+  - primitive.ago
+  - types.ago
+  - collection.ago
+  - runspace.ago
+  - atomic.ago
+  - tuple.ago
+  - reflection.ago
+  - util.ago
+  - entity.ago
+  - workflow.ago
+
+description: |
+    ago lang module
+    Provides core language primitives, collections, and workflow utilities.
+    Designed for high-performance scripting environments.

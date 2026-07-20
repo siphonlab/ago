@@ -16,14 +16,15 @@
 package org.siphonlab.ago.compiler.generic;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.ClassContainer;
 import org.siphonlab.ago.compiler.ClassDef;
+import org.siphonlab.ago.compiler.ConcreteType;
 import org.siphonlab.ago.compiler.ConstructorDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ByteLiteral;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.Set;
@@ -61,15 +62,16 @@ public class SharedGenericTypeParameterClassDef extends ClassIntervalClassDef{
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         SharedGenericTypeParameterClassDef c = null;
         try {
-            c = this.getParentClass().getOrCreateGenericTypeParameter(baseClass, constructor,
-                    this.getLBoundClass().instantiate(instantiationArguments, null),
-                    this.getUBoundClass().instantiate(instantiationArguments, null),
-                    this.variance,
-                    returnExisted);
+            c = this.getParentClass().getOrCreateGenericTypeParameter(project, baseClass,
+                    constructor,
+                    this.getLBoundClass().instantiate(project, instantiationArguments, null),
+                    this.getUBoundClass().instantiate(project, instantiationArguments, null),
+                    this.variance, returnExisted);
             if(c.getUnit() == null) c.setUnit(this.getUnit());
+            this.registerConcreteType((ConcreteType) c);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }

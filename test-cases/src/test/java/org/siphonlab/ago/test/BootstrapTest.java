@@ -16,7 +16,6 @@
 package org.siphonlab.ago.test;
 
 import io.vertx.core.Vertx;
-import org.apache.commons.io.file.PathUtils;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,13 +26,14 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.ClassFile;
 import org.siphonlab.ago.compiler.Compiler;
-import org.siphonlab.ago.compiler.Unit;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.module.UnnamedProject;
 import org.siphonlab.ago.lang.Trace;
 import org.siphonlab.ago.runtime.vertx.VertxRunSpaceHost;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.zip.ZipInputStream;
@@ -278,51 +278,59 @@ public class BootstrapTest {
     public void package_test() throws CompilationError, IOException {
         String filename = "ref1/entrance.ago";
 
-        Compiler compiler = new Compiler();
+        var project = new UnnamedProject(
+            new File("examples/%s".formatted("ref1/unit1.ago")),
+            new File("examples/%s".formatted("ref1/unit2.ago"))
+        );
+        Compiler compiler = new Compiler(project);
         Collection<ClassDef> rtClasses = null;
         AgoClassLoader agoClassLoader = new AgoClassLoader();
         if(new File("../ago-sdk/compiled/lang/").exists()) {
-            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/");
+            agoClassLoader.loadModuleFromDirectory("../ago-sdk/compiled/lang/");
         } else {
-            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
         }
 
         // compile unit1, unit2
         rtClasses = compiler.load(agoClassLoader);
-        Unit[] units = compiler.compile(new File[]{
-                    new File("examples/%s".formatted("ref1/unit1.ago")),
-                    new File("examples/%s".formatted("ref1/unit2.ago"))
-                }, rtClasses.toArray(new ClassDef[0]));
+        project.importClasses(rtClasses.toArray(new ClassDef[0]));
+        compiler.compile();
 
         var dir = new File("output/ref1/");
+        var unitsPkg = new File(dir, "units.agopkg");
+        var entrancePkg = new File(dir, "entrance.agopkg");
+
         if (!dir.exists()) dir.mkdirs();
-        else PathUtils.cleanDirectory(dir.toPath());
-        ClassFile.saveToDirectory(units, dir.getAbsolutePath());
+        unitsPkg.deleteOnExit();
+        new ClassFile(project).createPackage(new FileOutputStream(unitsPkg));
 
         // compile entrance
         agoClassLoader = new AgoClassLoader();
         if(new File("../ago-sdk/compiled/lang/").exists()) {
-            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/ref1");
+            agoClassLoader.loadModules("../ago-sdk/compiled/lang/", "output/ref1/units.agopkg");
         } else {
-            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
-            agoClassLoader.loadClasses("output/ref1");
+            agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadModuleFromDirectory("output/ref1/units.agopkg");
         }
 
-        units = compiler.compile(new File[]{
-                new File("examples/%s".formatted("ref1/entrance.ago")),
-        }, rtClasses.toArray(new ClassDef[0]));
-        ClassFile.saveToDirectory(units, dir.getAbsolutePath());
+        project = new UnnamedProject(
+                new File("examples/%s".formatted("ref1/entrance.ago"))
+        );
+        project.importClasses(rtClasses.toArray(new ClassDef[0]));
+        compiler = new Compiler(project);
+        compiler.load(agoClassLoader);
+        compiler.compile();
+        new ClassFile(project).createPackage(new FileOutputStream(entrancePkg));
 
         AgoEngine engine = new AgoEngine(new VertxRunSpaceHost(Vertx.vertx()));
         agoClassLoader = new AgoClassLoader();
         if(new File("../ago-sdk/compiled/lang/").exists()) {
-            agoClassLoader.loadClasses("../ago-sdk/compiled/lang/", "output/ref1");
+            agoClassLoader.loadModules("../ago-sdk/compiled/lang/", "output/ref1/units.agopkg", "output/ref1/entrance.agopkg");
         } else {
-            agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
-            agoClassLoader.loadClasses("output/ref1");
+            agoClassLoader.loadModules("../ago-sdk/lang.agopkg", "output/ref1/units.agopkg", "output/ref1/entrance.agopkg");
         }
         engine.load(agoClassLoader);
-        agoClassLoader.loadClasses();
+        agoClassLoader.loadModules();
 
         engine.run("main#");
     }

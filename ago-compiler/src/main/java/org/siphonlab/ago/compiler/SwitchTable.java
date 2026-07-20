@@ -43,6 +43,6 @@ public abstract class SwitchTable {
     public abstract void composeBlob();
 
     public IoBuffer getComposedBlob() {
-        return composedBlob;
+        return composedBlob.duplicate();
     }
 }

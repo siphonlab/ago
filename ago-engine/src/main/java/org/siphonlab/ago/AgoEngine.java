@@ -138,7 +138,7 @@ public class AgoEngine implements ClassManager{
         this.theMata = classLoader.getTheMeta();
 
         this.classes = classLoader.getClasses().toArray(new AgoClass[0]);
-        this.strings = classLoader.getStrings().toArray(new String[0]);
+        this.strings = classLoader.getStrings();
         this.classByName = classLoader.getClassByName();
         this.blobs = classLoader.getBlobs().toArray(new byte[0][]);
 

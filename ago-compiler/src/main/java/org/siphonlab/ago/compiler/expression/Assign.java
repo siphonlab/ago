@@ -24,6 +24,7 @@ import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.dynamic.ObjectMember;
 import org.siphonlab.ago.compiler.expression.dynamic.SetObjectMember;
 
+import java.nio.file.attribute.FileOwnerAttributeView;
 import java.util.Objects;
 
 public abstract class Assign extends ExpressionInFunctionBody {
@@ -103,7 +104,10 @@ public abstract class Assign extends ExpressionInFunctionBody {
                 return new CastToScopedClassRef(ownerFunction, expression, classRefType).transform();
             } else if (root.getScopedClassInterval().isDeriveFrom(classRefType)) {
                 var p = Creator.extractScopeAndClass(expression, expression.getSourceLocation(), false);
-                var t = root.getOrCreateScopedClassInterval(p.getRight(), p.getRight(), null);
+                ClassDef b = p.getRight();
+                var t = root.getOrCreateScopedClassInterval(b, b, null);
+                ownerFunction.registerConcreteType((ConcreteType) t);
+                if(b instanceof ConcreteType c) ownerFunction.registerConcreteType(c);
                 //TODO register concrete type
                 return new ForceCast(ownerFunction, new CastToScopedClassRef(ownerFunction, expression, t).transform(), classRefType, ForceCast.CastMode.WearClassMask);
             } else if (classRefType.isClassRef()) {

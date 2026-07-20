@@ -20,6 +20,8 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.module.Module;
+import org.siphonlab.ago.module.ModuleParser;
 import org.siphonlab.ago.native_.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,11 +49,13 @@ public class AgoClassLoader implements ClassManager{
     private Map<String, ClassHeader> headers = new TreeMap<>();
 
     protected List<byte[]> blobs = new ArrayList<>();
+    protected int blobOffset = 0;
 
     protected Map<String, AgoClass> classByName = new HashMap<>();
     protected List<AgoClass> classes;
 
-    private List<String> strings = new ArrayList<>();       // merged const strings
+    private String[] strings;
+    private List<String> stringList = new ArrayList<>();       // merged const strings
     private Map<String, Integer> stringTable = new HashMap<>();
 
     final CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
@@ -61,7 +65,6 @@ public class AgoClassLoader implements ClassManager{
 
     Map<String, ConcreteTypeDesc> concreteTypeDescs = new HashMap<>();
     private List<TypeDesc> typeDescs = new ArrayList<>();
-
 
     public AgoClassLoader(MetaClass theMeta, SlotsCreatorFactory slotsCreatorFactory) {
         this.theMeta = theMeta;
@@ -87,15 +90,146 @@ public class AgoClassLoader implements ClassManager{
         return theMeta;
     }
 
-    public void loadClasses(File[] files) throws IOException {
-        IoBuffer[] buffers = new IoBuffer[files.length];
-        for (int i = 0; i < files.length; i++) {
-            File file = files[i];
+
+    public Module[] loadModules(String... directoryOrPkg) throws IOException {
+        Module[] modules = new Module[directoryOrPkg.length];
+        int i = 0;
+        for (String d : directoryOrPkg) {
+            var f = new File(d);
+            if(f.isDirectory()) {
+                modules[i++] = loadModuleFromDirectory(d);
+            } else {
+                modules[i++] = loadModuleFromPackage(new ZipInputStream( new FileInputStream(f)));
+            }
+        }
+        return modules;
+    }
+
+    public Module loadModuleFromDirectory(String directory) throws IOException {
+        var dir = new File(directory);
+        File file;
+        file = new File(dir, "[module.info]");
+        MutableObject<List<String>> mutableClassFiles = new MutableObject<>();
+        var module = new ModuleParser(){
+            @Override
+            protected void processUnits(Module module, List<String> files) throws IOException {
+                mutableClassFiles.setValue(files);
+            }
+        }.parse(file);
+        file = new File(dir, "[strings]");
+        String[] strings;
+        try(var fs = new FileInputStream(file)) {
+            strings = readStrings(fs);
+        }
+        file = new File(dir, "[blobs]");
+        blobOffset = this.blobs.size();
+        List<byte[]> blobs;
+        try(var fs = new FileInputStream(file)){
+            blobs = readBlobs(fs);
+        }
+        file = new File(dir, "[concrete_types]");
+        try(var fs = new FileInputStream(file)) {
+            readConcreteTypes(IoBuffer.wrap(fs.readAllBytes()), strings, blobs);
+        }
+
+        List<String> files = mutableClassFiles.get();
+        IoBuffer[] buffers = new IoBuffer[files.size()];
+        for (int i = 0; i < files.size(); i++) {
+            file =  new File(directory, files.get(i));
             try(FileInputStream fileInputStream = new FileInputStream(file)) {
                 buffers[i] = IoBuffer.wrap(fileInputStream.readAllBytes());
             }
         }
-        loadClasses(buffers);
+        loadClasses(buffers, strings, blobs);
+        return module;
+    }
+
+    public Module loadModuleFromPackage(ZipInputStream packageStream) throws IOException {
+        Map<String, IoBuffer> streams = new HashMap<>();
+        ZipEntry entry;
+        Module module = null;
+        List<ConcreteTypeDesc> concreteTypeDescs = null;
+        MutableObject<List<String>> classFiles = new MutableObject<>();
+        blobOffset = blobs.size();
+        String[] strings = null;
+        List<byte[]> blobs = null;
+        IoBuffer concreteTypeDescsBuffer = null;
+        while ((entry = packageStream.getNextEntry()) != null) {
+            if (entry.isDirectory()) {
+                packageStream.closeEntry();
+                continue;
+            }
+
+            if(entry.getName().endsWith("[module.info]")) {
+                var parser = new ModuleParser() {
+                    @Override
+                    protected void processUnits(Module module, List<String> files) throws IOException {
+                        classFiles.setValue(files);
+                    }
+                };
+                module = parser.parse(packageStream);
+            } else if(entry.getName().equals("[strings]")) {
+                strings = readStrings(packageStream);
+            } else if(entry.getName().equals("[blobs]")) {
+                blobs = readBlobs(packageStream);
+            } else if(entry.getName().equals("[concrete_types]")) {
+                concreteTypeDescsBuffer = IoBuffer.wrap(packageStream.readAllBytes());
+            } else {
+                streams.put(entry.getName(), IoBuffer.wrap(packageStream.readAllBytes()));
+            }
+            packageStream.closeEntry();
+        }
+
+        readConcreteTypes(concreteTypeDescsBuffer, strings, blobs);
+
+        var buffers = classFiles.get().stream().map(f -> streams.get(f)).toArray(IoBuffer[]::new);
+        loadClasses(buffers, Objects.requireNonNull(strings), blobs);
+        return module;
+    }
+
+    private String[] readStrings(InputStream inputStream) throws IOException {
+        var d = new DataInputStream(inputStream);
+        int size = d.readInt();
+        String[] strings = new String[size];
+        for (int i = 0; i < size; i++) {
+            strings[i] = d.readUTF();
+        }
+        if(this.stringList.isEmpty()) {
+            this.stringList.addAll(Arrays.asList(strings));
+            for(int i = 0; i< strings.length; i++) {
+                this.stringTable.put(strings[i], i);
+            }
+        } else {
+            int index = this.stringList.size();
+            for (String string : strings) {
+                if(!stringTable.containsKey(string)) {
+                    this.stringList.add(string);
+                    this.stringTable.put(string, index++);
+                }
+            }
+        }
+        this.strings = this.stringList.toArray(String[]::new);
+        return strings;
+    }
+
+    private List<byte[]> readBlobs(InputStream inputStream) throws IOException {
+        var d = new DataInputStream(inputStream);
+        int size = d.readInt();
+        byte[][] blobs = new byte[size][];
+        for (int i = 0; i < size; i++) {
+            int length = d.readInt();
+            blobs[i] = d.readNBytes(length);
+        }
+        List<byte[]> lsBlob = Arrays.asList(blobs);
+        this.blobs.addAll(lsBlob);
+        return lsBlob;
+    }
+
+    private void readConcreteTypes(IoBuffer buffer, String[] strings, List<byte[]> blobs) throws IOException {
+        int cnt = buffer.getInt();
+        for (int i = 0; i < cnt; i++) {
+            readConcreteType(buffer, strings, blobs);
+        }
     }
 
     ClassHeader getClassHeader(String className) {
@@ -106,10 +240,10 @@ public class AgoClassLoader implements ClassManager{
         return headers;
     }
 
-    public void loadClasses(IoBuffer[] buffers) throws IOException {
+    public void loadClasses(IoBuffer[] buffers, String[] strings, List<byte[]> blobs) throws IOException {
         // stage: LoadClassNames
         for (IoBuffer buffer : buffers) {
-            loadClassNames(buffer);
+            loadClassNames(buffer, strings, blobs);
         }
         processConcreteTypes();
         var solvedTypes = new ArrayList<TypeDesc>();
@@ -253,16 +387,16 @@ public class AgoClassLoader implements ClassManager{
 
     }
 
-    private void loadClassNames(IoBuffer buffer) throws IOException{
+    private void loadClassNames(IoBuffer buffer, String[] strings, List<byte[]> blobs) throws IOException{
         int headerEnd = buffer.getInt();
         String sourceFileName = buffer.getPrefixedString(decoder);
         // read all headers
         while(buffer.position() < headerEnd){
-            readClassName(buffer, null, sourceFileName);
+            readClassName(buffer, strings, blobs, sourceFileName);
         }
     }
 
-    private ClassHeader readClassName(IoBuffer buffer, String[] stringsOfParent, String sourceFileName) throws CharacterCodingException {
+    private ClassHeader readClassName(IoBuffer buffer, String[] strings, List<byte[]> blobs, String sourceFileName) throws CharacterCodingException {
         byte type = buffer.get();
         int modifiers = buffer.getInt();
         String classFullName = buffer.getPrefixedString(decoder);
@@ -274,35 +408,6 @@ public class AgoClassLoader implements ClassManager{
             className = extractName(classFullName);
         }
         SourceLocation sourceLocation = readSourceLocation(buffer, sourceFileName);
-
-        // const strings
-        int stringPos = buffer.getInt();
-        buffer.mark().position(stringPos);
-
-        int stringsSize = buffer.getInt();
-        String[] strings;
-        if (stringsOfParent != null && type != AgoClass.TYPE_METACLASS)     // metaclass are top classes
-            strings = stringsOfParent;
-        else
-            strings = new String[stringsSize];
-        if(stringsOfParent != null && type != AgoClass.TYPE_METACLASS) assert stringsSize == 0;
-        if(stringsSize > 0){
-            for (int i = 0; i < stringsSize; i++) {
-                strings[i] = buffer.getPrefixedString(decoder);
-            }
-        }
-        int stringEnd = buffer.position();
-        buffer.position(buffer.markValue());
-
-        // array blob
-        int blobCount = buffer.getInt();
-        List<byte[]> blobs = new ArrayList<>();
-        for (int i = 0; i < blobCount; i++) {
-            int length = buffer.getInt();
-            byte[] blob = new byte[length];
-            buffer.get(blob);
-            blobs.add(blob);
-        }
 
         // dependencies
         String[] dependencies = null;
@@ -322,7 +427,7 @@ public class AgoClassLoader implements ClassManager{
             enumValues = new LinkedHashMap<>();
             for (int i = 0; i < size; i++) {
                 String key = buffer.getPrefixedString(decoder);
-                var literal = readLiteral(buffer,strings);
+                var literal = readLiteral(buffer,strings, blobs);
                 enumValues.put(key, literal);
             }
         }
@@ -345,11 +450,6 @@ public class AgoClassLoader implements ClassManager{
         // superclass
         var permitClassId = buffer.getInt();
         String permitClass = permitClassId == -1 ? null : strings[permitClassId];
-        // concrete types, array type, parameterized class, generic instantiation, generic param type
-        cnt = buffer.getInt();
-        for (int i = 0; i < cnt; i++) {
-            readConcreteType(buffer, strings);
-        }
         // generic type params
         cnt = buffer.getInt();
         var typeParams = new GenericTypeCodeAvatarClassHeader[cnt];
@@ -405,13 +505,9 @@ public class AgoClassLoader implements ClassManager{
         } else {
             header.genericTypeParams = null;
         }
-        if(stringsOfParent == null || type == TYPE_METACLASS) {
-            header.strings = strings;
-        }
-        if(!blobs.isEmpty()){
-            header.blobOffset = this.blobs.size();
-            this.blobs.addAll(blobs);
-        }
+        header.strings = strings;
+        header.blobs = blobs;
+        header.blobOffset = this.blobOffset;
 
         if(headers.containsKey(classFullName)){
             throw new RuntimeException(format("class %s already existed", classFullName));
@@ -422,7 +518,7 @@ public class AgoClassLoader implements ClassManager{
         ClassHeader[] children = new ClassHeader[childrenCount];
         if(childrenCount > 0){
             for (int i = 0; i < childrenCount; i++) {
-                ClassHeader child = readClassName(buffer, strings, sourceFileName);
+                ClassHeader child = readClassName(buffer, strings, blobs, sourceFileName);
                 if(child instanceof MetaClassHeader) {
                     i--;       // meta of children
                 } else {
@@ -432,9 +528,6 @@ public class AgoClassLoader implements ClassManager{
             }
         }
         header.children = new ArrayList<>(Arrays.asList(children));
-
-        assert buffer.position() == stringPos;
-        buffer.position(stringEnd);
 
         return header;
     }
@@ -600,7 +693,7 @@ public class AgoClassLoader implements ClassManager{
         this.concreteTypeDescs.clear();
     }
 
-    private void readConcreteType(IoBuffer buffer, String[] strings) throws CharacterCodingException {
+    private void readConcreteType(IoBuffer buffer, String[] strings, List<byte[]> blobs) throws CharacterCodingException {
         int kind = buffer.get();
         if(kind == 1){
             String arrayClassFullName = strings[buffer.getInt()];
@@ -608,13 +701,13 @@ public class AgoClassLoader implements ClassManager{
             var elementType = readType(buffer, strings);
             this.concreteTypeDescs.put(arrayClassFullName, new ArrayConcreteTypeDesc(arrayClassFullName, arrayClassName, elementType));
         } else if(kind == 2) {
-            readParameterizedClass(buffer, strings);
+            readParameterizedClass(buffer, strings, blobs);
         } else if(kind == 3) {
             readGenericParameterizedClass(buffer, strings);
         }
     }
 
-    private void readParameterizedClass(IoBuffer buffer, String[] strings) throws CharacterCodingException {
+    private void readParameterizedClass(IoBuffer buffer, String[] strings, List<byte[]> blobs) throws CharacterCodingException {
         byte specialType = buffer.get();
         String fullname = buffer.getPrefixedString(decoder);
         String baseClass = buffer.getPrefixedString(decoder);
@@ -623,12 +716,12 @@ public class AgoClassLoader implements ClassManager{
         int argumentLength = buffer.getInt();
         Object[] arguments = new Object[argumentLength];
         for (int i = 0; i < argumentLength; i++) {
-            arguments[i] = readLiteral(buffer,strings);
+            arguments[i] = readLiteral(buffer,strings, blobs);
         }
         this.concreteTypeDescs.put(fullname, new ParameterizedClassConcreteTypeDesc(specialType, fullname, baseClass, metaClass, constructor, arguments));
     }
 
-    public Object readLiteral(IoBuffer buffer, String[] strings){
+    public Object readLiteral(IoBuffer buffer, String[] strings, List<byte[]> blobs){
         var typeCode = of(buffer.getInt());
         return switch (typeCode.value){
                     case VOID_VALUE -> null;
@@ -662,15 +755,31 @@ public class AgoClassLoader implements ClassManager{
     // className must come within template, and maybe already instantiated, but only associated with instantiationArguments
     // i.e. class H<U> from G<U>.Inner, now to instantiate H<U=Dog>, the className must be G<U>.Inner, no G<T>.Inner nor G<Dog>.Inner
     // and the instantiationArguments must be U=Dog
-    public ClassHeader instantiateReferenceClass(String className, InstantiationArguments instantiationArguments){
+    public ClassHeader instantiateReferenceClass(String className, InstantiationArguments arguments){
         var h = getClassHeader(className);
-        if(h instanceof GenericTypeCodeAvatarClassHeader g){
-            return instantiationArguments.mapType(g);
+        if(!h.isAffectedByTypeArguments(arguments)) return h;
+
+        ClassHeader templ;
+        InstantiationArguments args;
+        GenericSource genericSource = h.genericSource;
+
+        if(genericSource != null && !genericSource.isTemplateDefaultArgs()) {     // instantiation and generic template
+            templ = getClassHeader(genericSource.sourceTemplate());
+            var myArgs = genericSource.instantiationArguments();
+            args = myArgs.applyParent(arguments, this);     // args become (args for me)+my parents, `arguments` still preserve child args
+            if(myArgs.equals(args)){
+                return h;
+            }
+        } else {
+            templ = h;
+            args = arguments;
         }
-        if(h != null) {
-            if(!h.isAffectedByTypeArguments(instantiationArguments)) return h;
-            var existed = h.getSourceTemplate().getCachedInstantiatedClass(instantiationArguments);
-            if (existed != null) return existed;
+        var existed = templ.getCachedInstantiatedClass(args);
+        if(existed != null) {
+            if (!args.equals(existed.genericSource.instantiationArguments()) && !h.instantiatingChildren.contains(args)) {    // arguments changed, try children
+                h.instantiateChildren(existed, arguments);
+            }
+            return existed;
         }
         List<String> path  = new LinkedList<>();
         while(true) {
@@ -691,7 +800,7 @@ public class AgoClassLoader implements ClassManager{
         ClassHeader header;
         String el = path.getFirst();     // the most out class
         header = getClassHeader(el);
-        InstantiationArguments args = instantiationArguments;
+        args = arguments;
 
         h = header.instantiate(args, null, null, null);
 
@@ -714,7 +823,7 @@ public class AgoClassLoader implements ClassManager{
             if(child == null){
                 child = getClassHeader(sourceTemplate.fullname + "." + extractName(name));
             }
-            h = sourceTemplate.instantiateChild(parent, instantiationArguments, Objects.requireNonNull(child));
+            h = sourceTemplate.instantiateChild(parent, arguments, Objects.requireNonNull(child));
         }
 
         return Objects.requireNonNull(h);
@@ -757,7 +866,7 @@ public class AgoClassLoader implements ClassManager{
         var filedCount = buffer.getInt();
         var fields = new VariableDesc[filedCount];
         for (int i = 0; i < filedCount; i++) {
-            fields[i] = readVariable(buffer, strings, header.sourceFilename);
+            fields[i] = readVariable(buffer, strings, header.blobs, header.sourceFilename);
         }
         header.fields = fields;
 
@@ -768,7 +877,7 @@ public class AgoClassLoader implements ClassManager{
             var paramCount = buffer.getInt();
             var parameters = new VariableDesc[paramCount];
             for (int i = 0; i < paramCount; i++) {
-                parameters[i] = readVariable (buffer, strings, header.sourceFilename);
+                parameters[i] = readVariable (buffer, strings, header.blobs, header.sourceFilename);
             }
             header.functionParams = parameters;
             if ((header.modifiers & NATIVE) == NATIVE) {
@@ -780,7 +889,7 @@ public class AgoClassLoader implements ClassManager{
                 var variablesCount = buffer.getInt();
                 var variables = new VariableDesc[variablesCount];
                 for (int i = 0; i < variablesCount; i++) {
-                    variables[i] = readVariable(buffer, strings, header.sourceFilename);
+                    variables[i] = readVariable(buffer, strings, header.blobs, header.sourceFilename);
                 }
                 header.functionVariables = variables;
             }
@@ -855,14 +964,18 @@ public class AgoClassLoader implements ClassManager{
         if(header.loadingStage != LoadingStage.BuildVariablesAndFunctionBody)
             return;
 
-        if(header instanceof ParameterizedClassHeader parameterizedClassHeader) {
+        if(header.agoClass.slotDefs != null){
+            header.setLoadingStage(LoadingStage.Done);
+        }
+
+        if(header instanceof NullableTypeHeader nullableTypeHeader) {
+            buildVariablesAndFunctionBodyForNullable(nullableTypeHeader);
+            return;
+        } if(header instanceof ParameterizedClassHeader parameterizedClassHeader) {
             buildVariablesAndFunctionBodyForParameterized(parameterizedClassHeader);
             return;
         } else if(header instanceof ArrayTypeHeader arrayTypeHeader) {
             buildVariablesAndFunctionBodyForArray(arrayTypeHeader);
-            return;
-        } else if(header instanceof NullableTypeHeader nullableTypeHeader) {
-            buildVariablesAndFunctionBodyForNullable(nullableTypeHeader);
             return;
         } else if(header.getSourceHeader() != null && header.genericSource == null){        // a cloner
             if(header.getSourceHeader().getLoadingStage() == LoadingStage.BuildVariablesAndFunctionBody){
@@ -1048,9 +1161,10 @@ public class AgoClassLoader implements ClassManager{
         if(i != null){
             return i;
         }
-        int pos = this.strings.size();
+        int pos = this.stringList.size();
         this.stringTable.put(string, pos);
-        this.strings.add(string);
+        this.stringList.add(string);
+        this.strings = this.stringList.toArray(String[]::new);
         return pos;
     }
 
@@ -1073,7 +1187,7 @@ public class AgoClassLoader implements ClassManager{
         return result;
     }
 
-    private VariableDesc readVariable(IoBuffer buff, String[] strings, String sourceFilename){
+    private VariableDesc readVariable(IoBuffer buff, String[] strings, List<byte[]> blobs, String sourceFilename){
         var type = buff.get();
         int modifiers = buff.getInt();
         String name = strings[buff.getInt()];
@@ -1089,7 +1203,7 @@ public class AgoClassLoader implements ClassManager{
 
         Object constLiteralValue;
         if(hasConstLiteralValue){
-            constLiteralValue = readLiteral(buff,strings);
+            constLiteralValue = readLiteral(buff,strings, blobs);
         } else {
             constLiteralValue = null;
         }
@@ -1132,7 +1246,7 @@ public class AgoClassLoader implements ClassManager{
         }).toArray(AgoClass[]::new));
     }
 
-    private void resolveFunctionIndex(ClassHeader header){
+    void resolveFunctionIndex(ClassHeader header){
         if(header.loadingStage != LoadingStage.ResolveFunctionIndex) return;
 
         ClassHeader superHeader = null;
@@ -1198,36 +1312,6 @@ public class AgoClassLoader implements ClassManager{
 
     }
 
-    public void loadClasses(String directory) throws IOException {
-        var dir = new File(directory);
-        loadClasses(Objects.requireNonNull(dir.listFiles((dir1, name) -> name.endsWith(".agoc"))));
-    }
-
-    public void loadClasses(ZipInputStream packageStream) throws IOException {
-        List<IoBuffer> streams = new ArrayList<>();
-        ZipEntry entry;
-
-        while ((entry = packageStream.getNextEntry()) != null) {
-            if (entry.isDirectory()) {
-                packageStream.closeEntry();
-                continue;
-            }
-
-            streams.add(IoBuffer.wrap(packageStream.readAllBytes()));
-
-            packageStream.closeEntry();
-        }
-        loadClasses(streams.toArray(new IoBuffer[0]));
-    }
-
-    public void loadClasses(String... directory) throws IOException {
-        List<File> files = new ArrayList<>();
-        for (String d : directory) {
-            Collections.addAll(files, Objects.requireNonNull(new File(d).listFiles((dir, name) -> name.endsWith(".agoc"))));
-        }
-        loadClasses(files.toArray(new File[0]));
-    }
-
     public Map<String, AgoClass> getClassByName() {
         return classByName;
     }
@@ -1236,7 +1320,11 @@ public class AgoClassLoader implements ClassManager{
         return classes;
     }
 
-    public List<String> getStrings() {
+    public List<String> getStringList() {
+        return stringList;
+    }
+
+    public String[] getStrings(){
         return strings;
     }
 

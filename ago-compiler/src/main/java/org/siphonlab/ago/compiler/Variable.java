@@ -23,6 +23,7 @@ import org.siphonlab.ago.compiler.expression.CastStrategy;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 public class Variable {
@@ -125,17 +126,17 @@ public class Variable {
         }
     }
 
-    public Variable applyTemplate(InstantiationArguments instantiationArguments, ClassDef ownerClass) throws CompilationError {
+    public Variable applyTemplate(InstantiationArguments instantiationArguments, ClassDef ownerClass, Project project) throws CompilationError {
         // must always clone, for its own class was affected by generic
         var clone = new Variable();
         clone.setName(this.name);
         clone.setOwnerClass(ownerClass);
-        applyTemplate(clone, instantiationArguments);
+        applyTemplate(clone, instantiationArguments, project);
         return clone;
     }
 
-    protected void applyTemplate(Variable clone, InstantiationArguments instantiationArguments) throws CompilationError {
-        var newType = this.type.instantiateAsReferenceClass(instantiationArguments, null);
+    protected void applyTemplate(Variable clone, InstantiationArguments instantiationArguments, Project project) throws CompilationError {
+        var newType = this.type.instantiateAsReferenceClass(project, instantiationArguments, null);
         clone.setModifiers(this.modifiers);
         clone.setType(newType);
         clone.setSourceLocation(this.sourceLocation);

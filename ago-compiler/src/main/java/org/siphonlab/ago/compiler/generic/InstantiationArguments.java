@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.generic;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.module.Project;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -108,11 +109,11 @@ public class InstantiationArguments {
         return false;
     }
 
-    public InstantiationArguments apply(InstantiationArguments next) throws CompilationError {
-        return apply(next, null);
+    public InstantiationArguments apply(Project project, InstantiationArguments next) throws CompilationError {
+        return apply(project, next, null);
     }
     // a reduce procedure
-    public InstantiationArguments apply(InstantiationArguments next, InstantiationArguments parent) throws CompilationError {
+    public InstantiationArguments apply(Project project, InstantiationArguments next, InstantiationArguments parent) throws CompilationError {
         var r = new TreeMap<GenericTypeCodeAvatarClassDef, ClassDef>();
         for (Map.Entry<GenericTypeCodeAvatarClassDef, ClassDef> map : this.typeMapping.entrySet()) {
             var to = map.getValue();
@@ -120,21 +121,23 @@ public class InstantiationArguments {
             if(nextTo != null) {
                 r.put(map.getKey(), nextTo);
             } else if(to.isAffectedByTypeArguments(next)){
-                r.put(map.getKey(), to.instantiateAsReferenceClass(next, null));
+                r.put(map.getKey(), to.instantiateAsReferenceClass(project, next, null));
             } else {
                 r.put(map.getKey(), to);
             }
         }
         if(parent != null){
-            r.putAll(parent.typeMapping);
+            for(var entry : parent.typeMapping.entrySet()){
+                r.putIfAbsent(entry.getKey(), entry.getValue());
+            }
         }
         return new InstantiationArguments(r);
     }
 
     // inner template apply parent type arguments
     // first apply, then mix parent params
-    public InstantiationArguments applyParent(InstantiationArguments parentTypeArguments) throws CompilationError{
-        return apply(parentTypeArguments, parentTypeArguments);
+    public InstantiationArguments applyParent(Project project, InstantiationArguments parentTypeArguments) throws CompilationError{
+        return apply(project, parentTypeArguments, parentTypeArguments);
     }
 
     public boolean canApply(InstantiationArguments next, Set<ClassDef> visited) {

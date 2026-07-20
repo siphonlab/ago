@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import static org.siphonlab.ago.AgoClass.VAR_ARGS;
@@ -47,12 +48,12 @@ public class Parameter extends Field {
     }
 
     @Override
-    public Parameter applyTemplate(InstantiationArguments instantiationArguments, ClassDef ownerClass) throws CompilationError {
+    public Parameter applyTemplate(InstantiationArguments instantiationArguments, ClassDef ownerClass, Project project) throws CompilationError {
         var clone = new Parameter(ownerClass, this.name, this.fieldVariableDeclarator);
         clone.parameterContext = this.parameterContext;
         clone.setName(this.name);
         clone.setOwnerClass(ownerClass);
-        applyTemplate(clone, instantiationArguments);
+        applyTemplate(clone, instantiationArguments, project);
         if(getterSetterDisabled) clone.disableGetterSetter();
         return clone;
     }

@@ -22,9 +22,10 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
+import org.siphonlab.ago.module.Module;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -53,10 +54,10 @@ public class UnionClassDef extends ParameterizedClassDef {
     }
 
 
-    @Override
-    public List<ClassDef> getConcreteDependencyClasses() {
-        return List.of(classes);
-    }
+//    @Override
+//    public List<ClassDef> getConcreteDependencyClasses() {
+//        return List.of(classes);
+//    }
 
     @Override
     public void acceptRegisterConcreteType(ClassDef hostClass) {
@@ -64,21 +65,21 @@ public class UnionClassDef extends ParameterizedClassDef {
     }
 
     @Override
-    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        return instantiate(arguments, returnExisted);
+    public ClassDef instantiateAsReferenceClass(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return instantiate(project, arguments, returnExisted);
     }
 
     @Override
-    public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef instantiate(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
         if(!this.isAffectedByTypeArguments(arguments)) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;
         }
-        return cloneForInstantiate(arguments, (ClassContainer) this.parent, returnExisted);
+        return cloneForInstantiate(project, arguments, (ClassContainer) this.parent, returnExisted);
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 

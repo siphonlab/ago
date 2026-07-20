@@ -21,6 +21,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.*;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.*;
@@ -103,7 +104,7 @@ public class ClassContainer extends Namespace<ClassDef>{
         return pc;
     }
 
-    public ClassIntervalClassDef getOrCreateClassInterval(ClassDef baseClassDef, ConstructorDef constructorDef, ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
+    public ClassIntervalClassDef getOrCreateClassInterval(Project project, ClassDef baseClassDef, ConstructorDef constructorDef, ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
         String className = ParameterizedClassDef.composeName(baseClassDef, new Literal[]{lBound.toClassRefLiteral(),  uBound.toClassRefLiteral()});
         var existed = this.getChild(className);
         if(existed != null) {
@@ -113,11 +114,15 @@ public class ClassContainer extends Namespace<ClassDef>{
 
         var pc = new ClassIntervalClassDef(baseClassDef, constructorDef, lBound, uBound);
         this.addChild(pc);
-
+        if(project != null) {
+            project.registerConcreteType(pc);
+            if(lBound instanceof ConcreteType c) project.registerConcreteType(c);
+            if(uBound instanceof ConcreteType c) project.registerConcreteType(c);
+        }
         return pc;
     }
 
-    public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(ClassDef baseClassDef, ConstructorDef constructorDef, ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
+    public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(Project project, ClassDef baseClassDef, ConstructorDef constructorDef, ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
         String className = ScopedClassIntervalClassDef.composeName(lBound, uBound);
         var existed = this.getChild(className);
         if(existed != null) {
@@ -127,12 +132,16 @@ public class ClassContainer extends Namespace<ClassDef>{
 
         var pc = new ScopedClassIntervalClassDef(baseClassDef, constructorDef, lBound, uBound);
         this.addChild(pc);
-
+        if(project != null) {
+            project.registerConcreteType(pc);
+            if(lBound instanceof ConcreteType c) project.registerConcreteType(c);
+            if(uBound instanceof ConcreteType c) project.registerConcreteType(c);
+        }
         return pc;
     }
 
     // call template.getTypeParamsContext.addGenericTypeParam() instead
-    public SharedGenericTypeParameterClassDef getOrCreateGenericTypeParameter(ClassDef langGenericTypeParameter, ConstructorDef constructorDef,
+    public SharedGenericTypeParameterClassDef getOrCreateGenericTypeParameter(Project project, ClassDef langGenericTypeParameter, ConstructorDef constructorDef,
                                                                               ClassDef lBound, ClassDef uBound, Variance variance,
                                                                               MutableBoolean returnExisted) throws CompilationError {
         var arguments = new Literal[]{lBound.toClassRefLiteral(), uBound.toClassRefLiteral(), langGenericTypeParameter.root.createByteLiteral(variance.byteValue())};
@@ -145,11 +154,16 @@ public class ClassContainer extends Namespace<ClassDef>{
 
         var pc = new SharedGenericTypeParameterClassDef(langGenericTypeParameter, constructorDef, arguments);
         this.addChild(pc);
+        if(project != null) {
+            project.registerConcreteType(pc);
+            if(lBound instanceof ConcreteType c) project.registerConcreteType(c);
+            if(uBound instanceof ConcreteType c) project.registerConcreteType(c);
+        }
 
         return pc;
     }
 
-    public GenericTypeCodeAvatarClassDef getOrCreateGenericTypeAvatarClassDef(ClassDef langGenericTypeAvatar,
+    public GenericTypeCodeAvatarClassDef getOrCreateGenericTypeAvatarClassDef(Project project, ClassDef langGenericTypeAvatar,
                                                                               SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef,
                                                                               ClassDef templateClass,
                                                                               int paramIndex,
@@ -165,20 +179,24 @@ public class ClassContainer extends Namespace<ClassDef>{
 
         var pc = new GenericTypeCodeAvatarClassDef(langGenericTypeAvatar, sharedGenericTypeParameterClassDef, templateClass, paramIndex, typeCode, paramName);
         this.addChild(pc);
+        if(project != null) {
+            project.registerConcreteType(sharedGenericTypeParameterClassDef);
+            project.registerConcreteType(pc);
+        }
 
         return pc;
     }
 
-    public ClassDef getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, MutableBoolean returnExisted, Project project) throws CompilationError {
         // template class is not intermediate template class
         InstantiationArguments args = new InstantiationArguments(templateClass.isGenericTemplate() ? templateClass.getTypeParamsContext() : templateClass.getGenericSource().originalTemplate().getTypeParamsContext(), typeArguments);
-        return templateClass.instantiate(args, returnExisted);
+        return templateClass.instantiate(project, args, returnExisted);
     }
 
-    public ClassDef getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, AgoParser.TypeArgsListContext typeArgsListContext, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, AgoParser.TypeArgsListContext typeArgsListContext, MutableBoolean returnExisted, Project project) throws CompilationError {
         // template class is not intermediate template class
         InstantiationArguments args = new InstantiationArguments(templateClass.isGenericTemplate() ? templateClass.getTypeParamsContext() : templateClass.getGenericSource().originalTemplate().getTypeParamsContext(), typeArguments);
-        var r = templateClass.instantiate(args, returnExisted);
+        var r = templateClass.instantiate(project, args, returnExisted);
         if(r instanceof GenericConcreteType g){
             g.setTypeArgsListAst(typeArgsListContext);
         }

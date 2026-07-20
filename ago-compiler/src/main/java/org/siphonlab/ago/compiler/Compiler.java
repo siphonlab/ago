@@ -15,7 +15,6 @@
  */
 package org.siphonlab.ago.compiler;
 
-import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
@@ -25,43 +24,34 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.LiteralParser;
 import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.ago.module.Module;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 
 public class Compiler {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ClassDef.class);
+    private final Project project;
 
-    private Root root = new Root();
+    private final Root root;
 
     protected List<String> names = new ArrayList<>();
     protected Map<String, Integer> namesIndex = new HashMap<>();
 
-    public Unit[] compile(File[] files) throws IOException, CompilationError {
-        return compile(files, null);
+    public Compiler(Project project) {
+        this.project = project;
+        this.root = project.getRoot();
     }
 
-    public Unit[] compile(UnitSource[] unitSources, ClassDef[] rtClasses) throws IOException, CompilationError{
-        Unit[] units = new Unit[unitSources.length];
-        for (int i = 0; i < unitSources.length; i++) {
-            UnitSource unitSource = unitSources[i];
-            var unit = new Unit(unitSource.getFileName(), CharStreams.fromReader(unitSource.getReader()), root);
-            if (rtClasses != null) {
-                for (ClassDef rtClass : rtClasses) {
-                    unit.importClass(rtClass);
-                }
-            }
-            units[i] = unit;
-        }
+    public Unit[] compile() throws IOException, CompilationError{
+        Unit[] units = project.getUnits().toArray(new Unit[0]);
 
         for (var unit : units) {
             unit.packageDecl();
@@ -143,15 +133,6 @@ public class Compiler {
         root.setCompilingStage(CompilingStage.Compiled);
 
         return units;
-    }
-
-    public Unit[] compile(File[] files, ClassDef[] rtClasses) throws IOException, CompilationError {
-        UnitSource[] unitSources = new UnitSource[files.length];
-        for (int i = 0; i < files.length; i++) {
-            File file = files[i];
-            unitSources[i] = new UnitSource(file.getPath(), new FileReader(file, StandardCharsets.UTF_8));
-        }
-        return compile(unitSources, rtClasses);
     }
 
     private void setupBoxTypes() {
@@ -256,8 +237,9 @@ public class Compiler {
                     }
 
                     var gt = root.getGenericTypeParameter();
-                    var pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt, gt.getMetaClassDef().getConstructor(), bound[0], bound[1], variance, null);
-                    templClass.getTypeParamsContext().createGenericTypeParam(name, pc, i);
+                    var pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(this.project, gt, gt.getMetaClassDef().getConstructor(), bound[0], bound[1], variance, null);
+                    templClass.registerConcreteType((ConcreteType) pc);
+                    templClass.getTypeParamsContext().createGenericTypeParam(null, name, pc, i);
                     if (pc.getUnit() == null) {
                         pc.setUnit(templClass.getUnit());
                         pc.setSourceLocation(templClass.getUnit().sourceLocation(typeOfGenericParam));
@@ -411,8 +393,12 @@ public class Compiler {
         }
     }
 
-    public Collection<ClassDef> load(AgoClassLoader classLoader) throws CompilationError {
-        return new AgoClassParser(classLoader, this, this.root).load();
+    public Collection<ClassDef> load(AgoClassLoader classLoader) throws CompilationError {      // TODO load class loader will lose the original module of AgoClass
+        Root root = this.getRoot();
+        root.setProject(null);
+        var r = new AgoClassParser(classLoader, this, root).load();
+        root.setProject(this.project);
+        return r;
     }
 
     enum ModifierTarget {

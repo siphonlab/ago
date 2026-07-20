@@ -18,11 +18,11 @@ package org.siphonlab.ago.compiler.expression.literal;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
-import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.PrimitiveClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.Literal;
+import org.siphonlab.ago.compiler.module.Project;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -73,9 +73,9 @@ public class DecimalLiteral extends Literal<BigDecimal> {
         return blobIndex;
     }
 
-    public DecimalLiteral ensureBlobCreated(ClassDef ownerClass) throws TypeMismatchError {
+    public DecimalLiteral ensureBlobCreated(Project project) throws TypeMismatchError {
         if(this.blobIndex == -1) {
-            this.blobIndex = ownerClass.getOrCreateBLOB(this);
+            this.blobIndex = project.getOrCreateBLOB(this);
         }
         return this;
     }

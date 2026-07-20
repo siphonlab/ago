@@ -21,6 +21,7 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,9 +155,9 @@ public class TraitDef extends ClassDef{
         }
     }
 
-    public TraitDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+    public TraitDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var clone = new TraitDef(root, name, this.traitDeclaration);
-        this.cloneTo(instantiationArguments, clone, parent);
+        this.cloneTo(project, instantiationArguments, clone, parent);
         return clone;
     }
 
@@ -168,7 +169,7 @@ public class TraitDef extends ClassDef{
 
         var templ = this.getTemplateClass();
         var instantiationArguments = this.getGenericSource().instantiationArguments();
-        this.setPermitClass(templ.getPermitClass().instantiateAsReferenceClass(instantiationArguments, null));
+        this.setPermitClass(templ.getPermitClass().instantiateAsReferenceClass(getRoot().getProject(), instantiationArguments, null));
 
         this.setCompilingStage(CompilingStage.ParseFields);
     }
