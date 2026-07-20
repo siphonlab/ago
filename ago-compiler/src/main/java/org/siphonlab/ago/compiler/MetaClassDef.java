@@ -21,7 +21,9 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.ago.module.Module;
 
 import java.util.Set;
 
@@ -114,21 +116,21 @@ public class MetaClassDef extends ClassDef{
         return this.getInstanceClassDef().isAffectedByTypeArguments(instantiationArguments, visited);
     }
 
-    public MetaClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+    public MetaClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var instanceClass = this.instanceClassDef.getCachedInstantiatedClass(instantiationArguments);
         var clone = new MetaClassDef(root, instanceClass, metaLevel, metaclassDeclaration);
-        super.cloneTo(instantiationArguments, clone, (ClassContainer) this.getParent());
+        super.cloneTo(project, instantiationArguments, clone, (ClassContainer) this.getParent());
         return clone;
     }
 
     @Override
-    public MetaClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        return (MetaClassDef) super.instantiateAsReferenceClass(arguments, returnExisted);
+    public MetaClassDef instantiateAsReferenceClass(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return (MetaClassDef) super.instantiateAsReferenceClass(project, arguments, returnExisted);
     }
 
     @Override
-    public MetaClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        return (MetaClassDef) super.instantiate(arguments, returnExisted);
+    public MetaClassDef instantiate(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return (MetaClassDef) super.instantiate(project, arguments, returnExisted);
     }
 
     @Override

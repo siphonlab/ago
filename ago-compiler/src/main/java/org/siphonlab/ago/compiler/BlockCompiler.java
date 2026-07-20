@@ -20,7 +20,6 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -298,13 +297,6 @@ public class BlockCompiler {
 
         if (LOGGER.isDebugEnabled()) LOGGER.debug(functionDef.getFullname());
 
-        List<String> ls = new ArrayList<>();
-        List<String> topStrings = functionDef.getTopStrings();
-        for (int i = 0; i < topStrings.size(); i++) {
-            ls.add("\t" + i + ":\t" + topStrings.get(i));
-        }
-        if (LOGGER.isDebugEnabled()) LOGGER.debug(ls.stream().collect(Collectors.joining("\n")));
-
         var slots = functionDef.getSlotsAllocator().getSlots();
         if (LOGGER.isDebugEnabled()) LOGGER.debug(slots.stream().map(slot -> "\t" + slot.getIndex() + "\t" + slot.getName() + "\t" + slot.getTypeCode() + "\t" + slot.getClassDef()).collect(Collectors.joining("\n")));
 
@@ -363,6 +355,7 @@ public class BlockCompiler {
                     var t = initializerExpr.inferType();
                     var scopedClassIntervalClassDef = root.getOrCreateScopedClassInterval(t, t, null);
                     functionDef.registerConcreteType((ConcreteType) scopedClassIntervalClassDef);
+                    if(t instanceof ConcreteType c) functionDef.registerConcreteType(c);
                     inferred = t;
                     initializerExpr = new CastToScopedClassRef(functionDef, initializerExpr, scopedClassIntervalClassDef).transform();
                 } else {

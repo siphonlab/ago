@@ -19,7 +19,6 @@ import io.ebean.platform.h2.H2Platform;
 import io.ebean.platform.postgres.PostgresPlatform;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.FileUtils;
-import org.siphonlab.ago.BoxTypes;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -31,7 +30,6 @@ import org.siphonlab.ago.runtime.rdb.json.JsonPGAdapter;
 import org.siphonlab.ago.runtime.rdb.json.PGJsonDDLGenerator;
 import org.siphonlab.ago.runtime.rdb.pg.PGEntityAdapter;
 import org.siphonlab.ago.test.Util;
-import org.siphonlab.ago.web.RestfulService;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -62,8 +60,8 @@ public class RdbDdlTest {
 
     public void runWithH2Db(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader(new DbSlotsCreatorFactory<Long>());
-        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
-        agoClassLoader.loadClasses(output);
+        agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+        agoClassLoader.loadModuleFromDirectory(output);
 
         H2Platform platform = new H2Platform();
         var outputSqlFile = new File(new File(output), "create_tables_%s.sql".formatted(platform.name()));
@@ -91,8 +89,8 @@ public class RdbDdlTest {
 
     public static void generateDDL(String output) throws IOException {
         var agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
-        agoClassLoader.loadClasses(output);
+        agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+        agoClassLoader.loadModuleFromDirectory(output);
 
         var platform = new PostgresPlatform();
         var outputSqlFile = new File(new File(output), "create_tables_%s.sql".formatted(platform.name()));

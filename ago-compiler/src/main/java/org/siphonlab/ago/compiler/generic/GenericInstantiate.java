@@ -152,35 +152,35 @@ public class GenericInstantiate {
         return true;
     }
 
-    public static List<ClassDef> getConcreteDependencyClasses(ClassDef genericInstantiationClassDef) {
-        List<ClassDef> r = new ArrayList<>();
-        var genericSource = genericInstantiationClassDef.getGenericSource();
-        ClassDef template = genericSource.originalTemplate();
-        r.add(template);
-        TypeParamsContext typeParamsContext = template.getTypeParamsContext();
-        for (int i = 0; i < typeParamsContext.size(); i++) {
-            r.add(typeParamsContext.get(i));
-        }
-
-        if(template instanceof ConcreteType c){
-            r.addAll(c.getConcreteDependencyClasses());
-        }
-        for(var p = genericInstantiationClassDef.getParentClass(); p != null; p = p.getParentClass()){
-            if(p instanceof ConcreteType pc){
-                r.add((ClassDef) pc);
-                r.addAll(pc.getConcreteDependencyClasses());
-            }
-        }
-
-        for (ClassRefLiteral typeArgument : genericSource.typeArguments()) {
-            var v = typeArgument.getClassDefValue();
-            r.add(v);
-            if(typeArgument.getClassDefValue() instanceof ConcreteType a){
-                r.addAll(a.getConcreteDependencyClasses());
-            }
-        }
-        r.addAll(genericInstantiationClassDef.getConcreteTypes().values().stream().map(c -> (ClassDef)c).toList());
-        return r;
-    }
+//    public static List<ClassDef> getConcreteDependencyClasses(ClassDef genericInstantiationClassDef) {
+//        List<ClassDef> r = new ArrayList<>();
+//        var genericSource = genericInstantiationClassDef.getGenericSource();
+//        ClassDef template = genericSource.originalTemplate();
+//        r.add(template);
+//        TypeParamsContext typeParamsContext = template.getTypeParamsContext();
+//        for (int i = 0; i < typeParamsContext.size(); i++) {
+//            r.add(typeParamsContext.get(i));
+//        }
+//
+//        if(template instanceof ConcreteType c){
+//            r.addAll(c.getConcreteDependencyClasses());
+//        }
+//        for(var p = genericInstantiationClassDef.getParentClass(); p != null; p = p.getParentClass()){
+//            if(p instanceof ConcreteType pc){
+//                r.add((ClassDef) pc);
+//                r.addAll(pc.getConcreteDependencyClasses());
+//            }
+//        }
+//
+//        for (ClassRefLiteral typeArgument : genericSource.typeArguments()) {
+//            var v = typeArgument.getClassDefValue();
+//            r.add(v);
+//            if(typeArgument.getClassDefValue() instanceof ConcreteType a){
+//                r.addAll(a.getConcreteDependencyClasses());
+//            }
+//        }
+//        r.addAll(genericInstantiationClassDef.getConcreteTypes().values().stream().map(c -> (ClassDef)c).toList());
+//        return r;
+//    }
 
 }

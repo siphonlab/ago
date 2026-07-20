@@ -19,6 +19,7 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.Collection;
@@ -133,8 +134,8 @@ public class TraitDefInScope extends TraitDef{
     }
 
     @Override
-    public TraitDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
-        var r = super.cloneForInstantiate(instantiationArguments, parent, returnExisted);
+    public TraitDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+        var r = super.cloneForInstantiate(project, instantiationArguments, parent, returnExisted);
         return new TraitDefInScope(r);
     }
 

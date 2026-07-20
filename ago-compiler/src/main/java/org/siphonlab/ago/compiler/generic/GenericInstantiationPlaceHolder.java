@@ -46,7 +46,7 @@ public class GenericInstantiationPlaceHolder extends ClassDef {
     }
 
     public ClassDef resolve(ClassRefLiteral[] args) throws CompilationError {
-        var pc = ((ClassContainer) templateClass.getParent()).getOrCreateGenericInstantiationClassDef(templateClass, args, null);
+        var pc = ((ClassContainer) templateClass.getParent()).getOrCreateGenericInstantiationClassDef(templateClass, args, null, scopeClass.getModule());
         if(pc instanceof ConcreteType c) scopeClass.registerConcreteType(c);
         scopeClass.idOfClass(templateClass);
         return (ClassDef) pc;

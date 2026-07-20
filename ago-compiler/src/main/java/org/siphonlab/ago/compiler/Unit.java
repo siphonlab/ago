@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -68,6 +69,7 @@ public class Unit {
 
     private Set<ClassDef> solvedMetaClasses = new HashSet<ClassDef>();
 
+    private Project project;
 
 
     public Package getPackage() {
@@ -114,6 +116,14 @@ public class Unit {
         if(varType instanceof NullClassDef || varType == getRoot().getPrimitiveType() || varType == getRoot().getPrimitiveNumberType()){
             throw new TypeMismatchError("variable type cannot be null, lang.Primitive, lang.PrimitiveNumber", sourceLocation);
         }
+    }
+
+    public Project getModule() {
+        return this.project;
+    }
+
+    public void setModule(Project project) {
+        this.project = project;
     }
 
     record UnsolvedImport(String classFullName, AgoParser.ImportDeclarationContext importDeclaration,
@@ -277,12 +287,12 @@ public class Unit {
             depth = 2;
         }
         var metaclass = new MetaClassDef(root, instanceClass, depth, metaclassDecl);
+        instanceClass.getPackage().addChild(metaclass);
         instanceClass.setMetaClassDef(metaclass);
         metaclass.setUnit(this);
         metaclass.setSourceLocation(sourceLocation(metaclassDecl));
 //        metaclass.setSuperClass();       // meta class needn't superclass by default, the super class of a metaclass is the metaclass of superclass of its instance class
         metaclass.setCompilingStage(CompilingStage.ParseFields);      // direct jump to parse fields for metaclass
-        instanceClass.getPackage().addChild(metaclass);
         classes.add(metaclass);
         addChildClasses(metaclass, metaclassDecl.classBody());
     }
@@ -734,8 +744,10 @@ public class Unit {
                 throw new RuntimeException("impossible");
             }
             ClassDef classInterval = root.getScopedClassInterval();
-            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
+            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(project, classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
             scopeClass.registerConcreteType((ConcreteType) pc);
+            if(lBound instanceof ConcreteType l) this.getModule().registerConcreteType(l);
+            if(uBound instanceof ConcreteType u) this.getModule().registerConcreteType(u);
             return pc;
         }
     }
@@ -762,8 +774,10 @@ public class Unit {
                 throw new RuntimeException("impossible");
             }
             ClassDef classInterval = root.getScopedClassInterval();
-            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
+            var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(project, classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
             scopeClass.registerConcreteType((ConcreteType) pc);
+            if(lBound instanceof ConcreteType l) this.getModule().registerConcreteType(l);
+            if(uBound instanceof ConcreteType u) this.getModule().registerConcreteType(u);
             return pc;
         }
     }

@@ -21,14 +21,13 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 
 import static org.siphonlab.ago.compiler.generic.GenericInstantiate.composeName;
 
@@ -40,13 +39,13 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
 
     private AgoParser.TypeArgsListContext typeArgsListContext;
 
-    public GenericInstantiationFunctionDef(FunctionDef templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
-        super(templateClass.getRoot(), composeName(templateClass, instantiationArguments.takeFor(templateClass)), templateClass.getMethodDecl());
+    public GenericInstantiationFunctionDef(FunctionDef templateClass, ClassContainer parent, InstantiationArguments instantiationArguments, Project project) throws CompilationError {
+        super(project == null ? templateClass.getRoot() : project.getRoot(), composeName(templateClass, instantiationArguments.takeFor(templateClass)), templateClass.getMethodDecl());
         this.templateClass = templateClass;
         this.instantiationArguments = instantiationArguments;
         this.setGenericSource(new GenericSource(templateClass, instantiationArguments, instantiationArguments.takeFor(templateClass)));
         this.setClassType(templateClass.getClassType());
-        templateClass.cloneTo(instantiationArguments, this, parent);
+        templateClass.cloneTo(project, instantiationArguments, this, parent);
         if(templateClass.getCompilingStage() == CompilingStage.Compiled || templateClass.getCompilingStage() == CompilingStage.CompileMethodBody){
             GenericInstantiate.syncCompilingStage(this, templateClass.getCompilingStage());
         }
@@ -82,42 +81,16 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
         return templateClass;
     }
 
-    @Override
-    public List<ClassDef> getConcreteDependencyClasses() {
-        return GenericInstantiate.getConcreteDependencyClasses(this);
-    }
+//    @Override
+//    public List<ClassDef> getConcreteDependencyClasses() {
+//        return GenericInstantiate.getConcreteDependencyClasses(this);
+//    }
 
     //    @Override
 //    public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) {
 //        var newArgs = this.instantiationArguments.applyIntermediate(arguments);
 //        return this.templateClass.instantiate(newArgs, returnExisted);
 //    }
-
-    @Override
-    public void registerConcreteType(ConcreteType concreteType) {
-        if(concreteType == this) return;
-        if (this.getParentClass() != null) {
-            this.getParentClass().registerConcreteType(concreteType);
-            return;
-        }
-        var stack = new Stack<ConcreteType>();
-        stack.addAll(this.getConcreteTypes().values());
-        while(!stack.isEmpty()){
-            var value = stack.pop();
-            if(this.getConcreteTypes().containsKey(value.getFullname()) || value == this) continue;
-            super.registerConcreteType(value);
-
-            ClassDef c = (ClassDef) value;
-            Collection<ConcreteType> cts = c.getConcreteTypes().values();
-            for (ConcreteType ct : cts) {
-                if(!getConcreteTypes().containsKey(ct.getFullname()) && ct != this){
-                    stack.add(ct);
-                }
-            }
-        }
-
-        super.registerConcreteType(concreteType);
-    }
 
     @Override
     public void allocateSlotsForFields() throws CompilationError {

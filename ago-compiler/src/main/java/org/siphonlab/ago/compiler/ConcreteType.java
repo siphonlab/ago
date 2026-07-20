@@ -34,7 +34,7 @@ public interface ConcreteType {
 
     String getFullname();
 
-    List<ClassDef> getConcreteDependencyClasses();
+//    List<ClassDef> getConcreteDependencyClasses();
 
     void acceptRegisterConcreteType(ClassDef hostClass);
 }

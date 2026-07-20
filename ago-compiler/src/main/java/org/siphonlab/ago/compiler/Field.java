@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 public class Field extends Variable {
@@ -64,11 +65,11 @@ public class Field extends Variable {
     }
 
     @Override
-    public Field applyTemplate(InstantiationArguments instantiationArguments, ClassDef ownerClass) throws CompilationError {
+    public Field applyTemplate(InstantiationArguments instantiationArguments, ClassDef ownerClass, Project project) throws CompilationError {
         var clone = new Field(ownerClass, this.name, this.fieldVariableDeclarator);
         clone.setName(this.name);
         clone.setOwnerClass(ownerClass);
-        applyTemplate(clone, instantiationArguments);
+        applyTemplate(clone, instantiationArguments, project);
         return clone;
     }
 

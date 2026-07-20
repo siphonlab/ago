@@ -31,6 +31,7 @@ import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.logic.Not;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.resolvepath.VariableScope;
 import org.siphonlab.ago.compiler.statement.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -364,19 +365,19 @@ public class FunctionDef extends ClassDef {
                     var resultSlot = this.slotsAllocator.allocateRegisterSlot(this.resultType);
                     this.setNativeResultSlot(resultSlot.getIndex());
                 } else {
-                    this.slotsAllocator.allocateRegisterSlot(slot.getClassDef().instantiateAsReferenceClass(args, null));
+                    this.slotsAllocator.allocateRegisterSlot(slot.getClassDef().instantiateAsReferenceClass(getModule(), args, null));
                 }
             } else if(variable instanceof Field field){
                 var myFld = this.fields.get(variable.name);
                 if(myFld == null){
-                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(args, null));
+                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(getModule(), args, null));
                 } else {
                     myFld.setSlot(this.slotsAllocator.allocateSlot(myFld));
                 }
             } else if(variable != null && this.localVariables.containsKey(variable.name)){
                 var myvar = this.localVariables.get(variable.name);
                 if(myvar == null) {
-                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(args, null));
+                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(getModule(), args, null));
                 } else {
                     myvar.setSlot(this.slotsAllocator.allocateSlot(myvar));
                 }
@@ -442,9 +443,9 @@ public class FunctionDef extends ClassDef {
         return true;
     }
 
-    public FunctionDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+    public FunctionDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var clone = new FunctionDef(root, name, methodDecl);
-        cloneTo(instantiationArguments, clone, parent);
+        cloneTo(project, instantiationArguments, clone, parent);
         return clone;
     }
 
@@ -463,13 +464,13 @@ public class FunctionDef extends ClassDef {
 
         var instantiationArguments = this.getGenericSource().instantiationArguments();
 
-        this.setResultType(templ.getResultType().instantiateAsReferenceClass(instantiationArguments, null));
+        this.setResultType(templ.getResultType().instantiateAsReferenceClass(this.getModule(), instantiationArguments, null));
         this.resolveSuperClass();
 
         Map<Parameter, Parameter> ps = new HashMap<>();
         for (Map.Entry<String, Field> fieldEntry : templ.getFields().entrySet()) {
             Field field = fieldEntry.getValue();
-            Field newField = field.applyTemplate(instantiationArguments, this);
+            Field newField = field.applyTemplate(instantiationArguments, this, getRoot().getProject());
             this.addField(newField);
             if (newField instanceof Parameter p) {
                 ps.put((Parameter) field, p);
@@ -478,14 +479,14 @@ public class FunctionDef extends ClassDef {
         for (Parameter parameter : templ.getParameters()) {
             Parameter instantiated = ps.get(parameter);
             if(instantiated.hasDefaultValue()){
-                instantiated.setDefaultValueFun((FunctionDef) parameter.getDefaultValueFun().instantiate(instantiationArguments, null));
+                instantiated.setDefaultValueFun((FunctionDef) parameter.getDefaultValueFun().instantiate(this.getModule(), instantiationArguments, null));
             }
             this.addParameter(instantiated);
         }
 
         for (var entry : templ.getLocalVariables().entrySet()) {
             Variable variable = entry.getValue();
-            this.addLocalVariable(variable.applyTemplate(instantiationArguments, this));
+            this.addLocalVariable(variable.applyTemplate(instantiationArguments, this, getRoot().getProject()));
         }
         this.instantiateFieldsForInterfacesAndTraits();
         this.createFunctionInterface();
@@ -506,7 +507,7 @@ public class FunctionDef extends ClassDef {
             list.add(refLiteral);
         }
         var args = list.toArray(new ClassRefLiteral[0]);
-        var instantiated = interface_.instantiateAsReferenceClass(new InstantiationArguments(interface_.getTypeParamsContext(), args), null);
+        var instantiated = interface_.instantiateAsReferenceClass(getRoot().getProject(), new InstantiationArguments(interface_.getTypeParamsContext(), args), null);
         if(instantiated instanceof ConcreteType c) this.registerConcreteType(c);
         this.addImplementedInterface(instantiated);
         assert this.functionInterfaceInstantiation == null;
@@ -524,7 +525,7 @@ public class FunctionDef extends ClassDef {
         } else {
             functionBaseClass = getRoot().getFunctionBaseClass();
         }
-        ClassDef instantiatedFunctionBase = functionBaseClass.instantiateAsReferenceClass(new InstantiationArguments(functionBaseClass.getTypeParamsContext(), new ClassRefLiteral[]{this.getResultType().toClassRefLiteral()}), null);
+        ClassDef instantiatedFunctionBase = functionBaseClass.instantiateAsReferenceClass(getRoot().getProject(), new InstantiationArguments(functionBaseClass.getTypeParamsContext(), new ClassRefLiteral[]{this.getResultType().toClassRefLiteral()}), null);
         if(instantiatedFunctionBase.getCompilingStage().lt(functionBaseClass.getCompilingStage())) {
             Compiler.processClassTillStage(instantiatedFunctionBase, functionBaseClass.getCompilingStage());
         }

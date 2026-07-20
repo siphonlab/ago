@@ -113,6 +113,8 @@ public class ArrayTypeHeader extends ClassHeader {
                 m -> new MethodDesc(m.getName(),m.getFullname())
                 ).toList());
         this.strings = arrayBase.strings;
+        this.blobs = arrayBase.blobs;
+        this.blobOffset = arrayBase.blobOffset;
         var instantiationMetaClass = classLoader.getClassHeader(instantiation.getMetaClass());
         String metaFullname = this.extractPackagePrefix() + "Meta@<" + this.name + ">";
         var existed = classLoader.getClassHeader(metaFullname);

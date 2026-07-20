@@ -108,7 +108,9 @@ public class InstantiationArguments {
             }
         }
         if(parent != null){
-            r.putAll(parent.typeMapping);
+            for(var entry : parent.typeMapping.entrySet()){
+                r.putIfAbsent(entry.getKey(), entry.getValue());
+            }
         }
         return new InstantiationArguments(r);
     }
@@ -133,9 +135,10 @@ public class InstantiationArguments {
 
     Map<ClassHeader, ClassRefValue[]> takeForCache = new HashMap<>();
 
-    public ClassRefValue[] takeFor(ClassHeader templ) {
-        Objects.requireNonNull(templ);
-        if(!templ.isGenericTemplate()) return null;
+    public ClassRefValue[] takeFor(ClassHeader template) {
+        Objects.requireNonNull(template);
+        if(!template.isGenericTemplate()) return null;
+        var templ = template.getSourceTemplate();
         return takeForCache.computeIfAbsent(templ, _ -> {
             var typeParams = templ.genericTypeParams;
             var typeArgumentsArray = new ClassRefValue[typeParams.length];

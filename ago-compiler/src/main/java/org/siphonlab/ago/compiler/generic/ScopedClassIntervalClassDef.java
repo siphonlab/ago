@@ -18,6 +18,7 @@ package org.siphonlab.ago.compiler.generic;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.module.Project;
 
 public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
 
@@ -27,14 +28,14 @@ public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         ScopedClassIntervalClassDef c = null;
         try {
-            c = ((ClassContainer)this.getParent()).getOrCreateScopedClassInterval(baseClass.instantiate(instantiationArguments, null),
+            c = ((ClassContainer)this.getParent()).getOrCreateScopedClassInterval(project,
+                    baseClass.instantiate(project, instantiationArguments, null),
                     this.parameterizedConstructor,
-                    this.getLBoundClass().instantiate(instantiationArguments, null),
-                    this.getUBoundClass().instantiate(instantiationArguments, null),
-                    returnExisted);
+                    this.getLBoundClass().instantiate(project, instantiationArguments, null),
+                    this.getUBoundClass().instantiate(project, instantiationArguments, null), returnExisted);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }

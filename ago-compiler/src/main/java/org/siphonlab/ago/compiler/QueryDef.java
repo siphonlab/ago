@@ -36,7 +36,6 @@ import org.siphonlab.ago.compiler.sql.*;
 import org.siphonlab.ago.compiler.statement.ExpressionStmt;
 import org.siphonlab.ago.compiler.statement.Return;
 import org.siphonlab.ago.compiler.statement.Statement;
-import org.siphonlab.ago.opcode.logic.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -382,7 +381,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
                 if(qr instanceof TableResult tableResult){
                     // tableSortScope<User>('u', sort)
                     FunctionDef tableSortScope = getRoot().findByFullname("lang.tableSortScope#");
-                    var instantiated = this.getOrCreateGenericInstantiationClassDef(tableSortScope, new ClassRefLiteral[]{
+                    var instantiated = QueryDef.this.getOrCreateGenericInstantiationClassDef(tableSortScope, new ClassRefLiteral[]{
                             tableResult.getClassDef().toClassRefLiteral()
                     }, null);
                     this.registerConcreteType(instantiated);

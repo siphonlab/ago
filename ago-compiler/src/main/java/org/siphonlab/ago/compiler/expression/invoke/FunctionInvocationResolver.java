@@ -129,7 +129,7 @@ public class FunctionInvocationResolver {
             var parameterType = parameterTypes[p];
             if(resolveResult.hasBoundTypeArgs()){
                 try {
-                    var pi = parameterType.instantiate(resolveResult.toTypeArgs(), null);
+                    var pi = parameterType.instantiate(functionDef.getModule(), resolveResult.toTypeArgs(), null);
                     if(pi != parameterType){
                         parameterTypes[p] = parameterType = pi;
                     }

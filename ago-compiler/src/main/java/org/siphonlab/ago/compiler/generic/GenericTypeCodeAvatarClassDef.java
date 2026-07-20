@@ -26,6 +26,7 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.IntLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
+import org.siphonlab.ago.compiler.module.Project;
 
 import java.util.Set;
 
@@ -87,12 +88,12 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
     }
 
     @Override
-    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        return this.instantiate(arguments, returnExisted);
+    public ClassDef instantiateAsReferenceClass(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return this.instantiate(project, arguments, returnExisted);
     }
 
     @Override
-    public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef instantiate(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
         if(!this.isAffectedByTypeArguments(arguments)) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;
@@ -100,10 +101,10 @@ public class GenericTypeCodeAvatarClassDef extends ParameterizedClassDef  implem
         if(arguments.typeMapping.containsKey(this)){
             return arguments.typeMapping.get(this);
         }
-        var r = (SharedGenericTypeParameterClassDef) this.sharedGenericTypeParameterClassDef.instantiate(arguments, returnExisted);
+        var r = (SharedGenericTypeParameterClassDef) this.sharedGenericTypeParameterClassDef.instantiate(project, arguments, returnExisted);
         if(r == this.sharedGenericTypeParameterClassDef) return this;
-        return ((ClassContainer)this.baseClass.getParent()).getOrCreateGenericTypeAvatarClassDef(this.baseClass,
-                r, this.templateClass, this.paramIndex, this.typeCode.value, this.typeCode.getName(), returnExisted);
+        return ((ClassContainer)this.baseClass.getParent()).getOrCreateGenericTypeAvatarClassDef(project,
+                this.baseClass, r, this.templateClass, this.paramIndex, this.typeCode.value, this.typeCode.getName(), returnExisted);
     }
 
     public static String composeName(SharedGenericTypeParameterClassDef sharedGenericTypeParameterClassDef, ClassDef templateClass, String typeParamName, int paramIndex, int genericTypeCodeValue) {
