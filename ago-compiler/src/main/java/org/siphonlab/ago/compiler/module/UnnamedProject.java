@@ -16,11 +16,9 @@
 package org.siphonlab.ago.compiler.module;
 
 import org.semver4j.Semver;
-import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.UnitSource;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
@@ -36,7 +34,7 @@ public class UnnamedProject extends Project {
             UnitSource unitSource = new UnitSource(f.getName(), new FileReader(f));
             list.add(unitSource);
         }
-        this.loadUnits(list.toArray(new UnitSource[0]));
+        this.appendUnits(list.toArray(new UnitSource[0]));
     }
 
 

@@ -77,12 +77,6 @@ public class InspectUtil {
             sb.append("\t".repeat(tabDepth + 2));
             sb.append("arguments: ").append(classDef.getGenericSource().instantiationArguments()).append('\n');
         }
-        if(!classDef.getConcreteTypes().isEmpty() && classDef.getParentClass() == null){
-            sb.append("\t".repeat(tabDepth + 1)).append("concrete types:\n");
-            for (var entry : classDef.getConcreteTypes().entrySet()) {
-                sb.append("\t".repeat(tabDepth + 2)).append(entry.getValue()).append('\n');
-            }
-        }
         if(!classDef.fields.isEmpty()) {
             sb.append("\t".repeat(tabDepth + 1)).append("fields:\n");
             for (Field field : classDef.fields.values()) {

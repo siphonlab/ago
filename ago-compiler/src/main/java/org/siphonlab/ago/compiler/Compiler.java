@@ -393,7 +393,7 @@ public class Compiler {
         }
     }
 
-    public Collection<ClassDef> load(AgoClassLoader classLoader) throws CompilationError {      // TODO load class loader will lose the original module of AgoClass
+    public Collection<ClassDef> load(AgoClassLoader classLoader) throws CompilationError, IOException {      // TODO load class loader will lose the original module of AgoClass
         Root root = this.getRoot();
         root.setProject(null);
         var r = new AgoClassParser(classLoader, this, root).load();

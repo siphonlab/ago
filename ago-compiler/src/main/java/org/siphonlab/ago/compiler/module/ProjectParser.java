@@ -68,7 +68,7 @@ public class ProjectParser extends ModuleParser {
                 UnitSource unitSource = new UnitSource(s, new FileReader(new File(baseDirectory, s), StandardCharsets.UTF_8));
                 arr[i++]= (unitSource);
             }
-            project.loadUnits(arr);
+            project.appendUnits(arr);
         }
     }
 

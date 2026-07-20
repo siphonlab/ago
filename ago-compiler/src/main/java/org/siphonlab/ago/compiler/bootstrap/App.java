@@ -1,21 +1,13 @@
 package org.siphonlab.ago.compiler.bootstrap;
 
 import org.apache.commons.cli.*;
-import org.apache.commons.io.file.PathUtils;
 import org.siphonlab.ago.classloader.AgoClassLoader;
-import org.siphonlab.ago.compiler.ClassDef;
-import org.siphonlab.ago.compiler.ClassFile;
-import org.siphonlab.ago.compiler.Compiler;
-import org.siphonlab.ago.compiler.Unit;
+import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.module.UnnamedProject;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
+import java.io.*;
+import java.util.*;
 import java.util.zip.ZipInputStream;
 
 /**
@@ -103,28 +95,28 @@ public class App {
     }
 
     private static void compile(File[] inputFiles, File out, String[] classPaths) throws IOException, CompilationError {
-        Compiler compiler = new Compiler();
         Collection<ClassDef> rtClasses;
         AgoClassLoader agoClassLoader = new AgoClassLoader();
-        Unit[] units;
+
+        var module = new UnnamedProject();
+        var compiler = new Compiler(module);
         if(classPaths != null && classPaths.length > 0) {
             for (String classPath : classPaths) {
                 if (classPath.endsWith(".agopkg")) {
-                    agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream(classPath)));
+                    agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream(classPath)));
                 } else {
-                    agoClassLoader.loadClasses(classPath);
+                    agoClassLoader.loadModuleFromDirectory(classPath);
                 }
             }
-            rtClasses = compiler.load(agoClassLoader);
-            units = compiler.compile(inputFiles, rtClasses.toArray(new ClassDef[0]));
-        } else {
-            units = compiler.compile(inputFiles);
+            compiler.load(agoClassLoader);
         }
+        module.appendUnits(inputFiles);
+        compiler.compile();
 
         if(out.getName().endsWith(".agopkg")) {
-            ClassFile.createPackage(units, new FileOutputStream(out));
+            new ClassFile(module).createPackage(new FileOutputStream(out));
         } else {
-            ClassFile.saveToDirectory(units, out.getAbsolutePath());
+            new ClassFile(module).saveToDirectory(out.getAbsolutePath());
         }
     }
 

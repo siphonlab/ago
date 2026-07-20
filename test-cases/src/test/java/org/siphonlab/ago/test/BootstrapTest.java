@@ -292,8 +292,7 @@ public class BootstrapTest {
         }
 
         // compile unit1, unit2
-        rtClasses = compiler.load(agoClassLoader);
-        project.importClasses(rtClasses.toArray(new ClassDef[0]));
+        compiler.load(agoClassLoader);
         compiler.compile();
 
         var dir = new File("output/ref1/");
@@ -316,7 +315,6 @@ public class BootstrapTest {
         project = new UnnamedProject(
                 new File("examples/%s".formatted("ref1/entrance.ago"))
         );
-        project.importClasses(rtClasses.toArray(new ClassDef[0]));
         compiler = new Compiler(project);
         compiler.load(agoClassLoader);
         compiler.compile();
@@ -330,7 +328,6 @@ public class BootstrapTest {
             agoClassLoader.loadModules("../ago-sdk/lang.agopkg", "output/ref1/units.agopkg", "output/ref1/entrance.agopkg");
         }
         engine.load(agoClassLoader);
-        agoClassLoader.loadModules();
 
         engine.run("main#");
     }

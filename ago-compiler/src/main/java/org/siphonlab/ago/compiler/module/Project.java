@@ -26,8 +26,9 @@ import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.DecimalLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
-import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetEncoder;
@@ -60,47 +61,8 @@ public class Project extends Module {
     public void registerConcreteType(ConcreteType concreteType) {
         if(concreteTypes.containsKey(concreteType.getFullname())) return;
         this.idOfClass((ClassDef) concreteType);
-        // this.addDependency((ClassDef) concreteType);
-//        for (ClassDef concreteDependencyClass : concreteType.getConcreteDependencyClasses()) {
-//            this.addDependency(concreteDependencyClass);
-//        }
-//        concreteType.acceptRegisterConcreteType(this);
 
         concreteTypes.put(concreteType.getFullname(), concreteType);
-
-//        if(concreteType instanceof GenericConcreteType genericConcreteType){
-//            var temp = ((ClassDef) concreteType).getTemplateClass();
-//            for(ClassDef p = temp; p != null; p = p.getParent() instanceof ClassDef p2 ? p2 : null){
-//                if(p instanceof ConcreteType c) {
-//                    registerConcreteType(c);
-//                }
-//            }
-//        }
-//
-//        if(concreteType instanceof ParameterizedClassDef p){
-//            for (Literal<?> arg : p.getArguments()) {
-//                if(arg instanceof ClassRefLiteral r && r.getClassDefValue() instanceof ConcreteType cr){
-//                    registerConcreteType(cr);
-//                }
-//            }
-//        }
-//        else
-//            if(concreteType instanceof GenericConcreteType) {
-//            for (ClassRefLiteral r : ((ClassDef) concreteType).getGenericSource().typeArguments()) {
-//                if (r.getClassDefValue() instanceof ConcreteType cr) {
-//                    registerConcreteType(cr);
-//                }
-//            }
-//        }
-//        } else if(concreteType instanceof ArrayClassDef arrayClassDef){
-//            if(arrayClassDef.getElementType() instanceof ConcreteType ce){
-//                registerConcreteType(ce);
-//            }
-//        } else if(concreteType instanceof NullableClassDef nullableClassDef){
-//            if(nullableClassDef.getBaseClass() instanceof ConcreteType nv){
-//                registerConcreteType(nv);
-//            }
-//        }
     }
 
     public int getOrCreateBLOB(List<? extends Literal<?>> literals, ArrayLiteral arrayLiteral) throws TypeMismatchError {
@@ -158,18 +120,6 @@ public class Project extends Module {
 //        if (classDef.isPrimitive()) throw new UnsupportedOperationException(classDef + " is primary type");
 
         id = idOfConstString(classDef.getFullname());
-//        if (classDef instanceof ConcreteType c) {
-//            for (ClassDef concreteDependencyClass : c.getConcreteDependencyClasses()) {
-//                this.idOfClass(concreteDependencyClass);
-//            }
-//            if (c instanceof GenericConcreteType genericConcreteType) {
-//                for (ClassRefLiteral typeArgument : genericConcreteType.getGenericInstantiate().getTypeArguments()) {
-//                    if (typeArgument.getClassDefValue().getTypeCode() instanceof GenericTypeCode genericTypeCode) {
-//                        this.idOfClass(genericTypeCode.getTemplateClass());
-//                    }
-//                }
-//            }
-//        }
         return id;
     }
 
@@ -208,7 +158,7 @@ public class Project extends Module {
         return concreteTypes;
     }
 
-    public void loadUnits(UnitSource[] unitSources) throws IOException {
+    public void appendUnits(UnitSource[] unitSources) throws IOException {
         for (int i = 0; i < unitSources.length; i++) {
             UnitSource unitSource = unitSources[i];
             var unit = new Unit(unitSource.getFileName(), CharStreams.fromReader(unitSource.getReader()), root);
@@ -216,12 +166,14 @@ public class Project extends Module {
             this.units.add(unit);
         }
     }
-    public void importClasses(ClassDef[] classDefs) throws IOException {
-        for (Unit unit : this.units) {
-            for(var classDef : classDefs){
-                unit.importClass(classDef);
-            }
+
+    public void appendUnits(File[] files) throws IOException {
+        var unitSources = new UnitSource[files.length];
+        for (int i = 0; i < files.length; i++) {
+            UnitSource unitSource = new UnitSource(files[i].getName(), new FileReader(files[i]));
+            unitSources[i] = unitSource;
         }
+        appendUnits(unitSources);
     }
 
     public Root getRoot() {

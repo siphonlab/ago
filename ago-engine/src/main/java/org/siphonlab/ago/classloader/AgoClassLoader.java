@@ -90,23 +90,31 @@ public class AgoClassLoader implements ClassManager{
         return theMeta;
     }
 
-
-    public Module[] loadModules(String... directoryOrPkg) throws IOException {
-        Module[] modules = new Module[directoryOrPkg.length];
+    public Module[] loadModules(String... directoryOrPackages) throws IOException{
+        var files = new File[directoryOrPackages.length];
+        for (int i = 0; i < directoryOrPackages.length; i++) {
+            files[i] = new File(directoryOrPackages[i]);
+        }
+        return loadModules(files);
+    }
+    public Module[] loadModules(File... directoryOrPackages) throws IOException {
+        Module[] modules = new Module[directoryOrPackages.length];
         int i = 0;
-        for (String d : directoryOrPkg) {
-            var f = new File(d);
+        for (File f : directoryOrPackages) {
             if(f.isDirectory()) {
-                modules[i++] = loadModuleFromDirectory(d);
+                modules[i++] = loadModuleFromDirectory(f);
             } else {
-                modules[i++] = loadModuleFromPackage(new ZipInputStream( new FileInputStream(f)));
+                modules[i++] = loadModuleFromPackage(new ZipInputStream(new FileInputStream(f)));
             }
         }
         return modules;
     }
 
     public Module loadModuleFromDirectory(String directory) throws IOException {
-        var dir = new File(directory);
+        return loadModuleFromDirectory(new File(directory));
+    }
+
+    public Module loadModuleFromDirectory(File dir) throws IOException {
         File file;
         file = new File(dir, "[module.info]");
         MutableObject<List<String>> mutableClassFiles = new MutableObject<>();
@@ -135,7 +143,7 @@ public class AgoClassLoader implements ClassManager{
         List<String> files = mutableClassFiles.get();
         IoBuffer[] buffers = new IoBuffer[files.size()];
         for (int i = 0; i < files.size(); i++) {
-            file =  new File(directory, files.get(i));
+            file =  new File(dir, files.get(i));
             try(FileInputStream fileInputStream = new FileInputStream(file)) {
                 buffers[i] = IoBuffer.wrap(fileInputStream.readAllBytes());
             }

@@ -141,8 +141,7 @@ public class Util {
 
         var project = new UnnamedProject(new File("examples/%s".formatted(filename)));
         Compiler compiler = new Compiler(project);
-        rtClasses = compiler.load(agoClassLoader);
-        project.importClasses(rtClasses.toArray(new ClassDef[0]));
+        compiler.load(agoClassLoader);
         compiler.compile();
 
         var dir = new File("output/%s".formatted(filename));
