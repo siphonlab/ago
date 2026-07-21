@@ -209,6 +209,10 @@ class Throwable {
     }
     fun fillStackTrace()
             native "org.siphonlab.ago.lang.Lang.Throwable_fillStackTrace"
+
+    override toString() as string{
+        return message;
+    }
 }
 
 class StackTraceElement{
@@ -219,6 +223,10 @@ class StackTraceElement{
 
 class Exception from Throwable{
 
+}
+
+class NativeException from Throwable {
+    override fillStackTrace() native "org.siphonlab.ago.lang.Lang.Throwable_fillStackTraceFromJavaException";
 }
 
 class RuntimeException from Exception {

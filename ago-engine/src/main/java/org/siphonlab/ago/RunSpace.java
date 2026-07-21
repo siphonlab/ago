@@ -486,10 +486,10 @@ public class RunSpace implements Runnable{
         var caller = this.currCallFrame;
         if (caller.handleException(exception)) {
             this.setCurrCallFrame(caller);
-            resumeByAcceptResult();
         } else {
             caller.finishException(exception);
         }
+        resumeByAcceptResult();
     }
 
     protected void setException(Instance<?> exception) {
