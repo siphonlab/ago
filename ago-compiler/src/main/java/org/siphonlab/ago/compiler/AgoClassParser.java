@@ -22,8 +22,8 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.native_.AgoNativeFunction;
-import org.siphonlab.collection.DuplicatedKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -285,24 +285,24 @@ public class AgoClassParser {
             if(constructor == null) return null;
             Literal<?>[] args = mapLiteralArguments(pInfo.getArguments(), pInfo.getParameterizedConstructor().getParameters());
             if(base == root.getGenericTypeParameter()){
-                r = ((ClassContainer)base.getParent()).getOrCreateGenericTypeParameter(base, constructor,
-                            ((ClassRefLiteral)args[0]).getClassDefValue(),
-                            ((ClassRefLiteral)args[1]).getClassDefValue(),
-                            Variance.of(((ByteLiteral)args[2]).value), null);
+                r = ((ClassContainer)base.getParent()).getOrCreateGenericTypeParameter(null, base,
+                        constructor,
+                        ((ClassRefLiteral)args[0]).getClassDefValue(),
+                        ((ClassRefLiteral)args[1]).getClassDefValue(), Variance.of(((ByteLiteral)args[2]).value), null);
             } else if(base == root.getGenericTypeCodeAvatar()) {     // create it, but not register into the template
-                r = ((ClassContainer) base.getParent()).getOrCreateGenericTypeAvatarClassDef(base, (SharedGenericTypeParameterClassDef) ((ClassRefLiteral) args[0]).getClassDefValue(),
+                r = ((ClassContainer) base.getParent()).getOrCreateGenericTypeAvatarClassDef(null, base,
+                        (SharedGenericTypeParameterClassDef) ((ClassRefLiteral) args[0]).getClassDefValue(),
                         ((ClassRefLiteral) args[1]).getClassDefValue(),
                         ((IntLiteral) args[2]).value,
-                        ((IntLiteral) args[3]).value,
-                        ((StringLiteral) args[4]).getString(), null);
+                        ((IntLiteral) args[3]).value, ((StringLiteral) args[4]).getString(), null);
             } else if(base == root.getClassInterval()){
-                r = ((ClassContainer) base.getParent()).getOrCreateClassInterval(base, constructor,
-                                    ((ClassRefLiteral)args[0]).getClassDefValue(),
-                                    ((ClassRefLiteral)args[1]).getClassDefValue(), null);
+                r = ((ClassContainer) base.getParent()).getOrCreateClassInterval(null, base,
+                        constructor,
+                        ((ClassRefLiteral)args[0]).getClassDefValue(), ((ClassRefLiteral)args[1]).getClassDefValue(), null);
             } else if(base == root.getScopedClassInterval()){
-                r = ((ClassContainer) base.getParent()).getOrCreateScopedClassInterval(base, constructor,
-                        ((ClassRefLiteral)args[0]).getClassDefValue(),
-                        ((ClassRefLiteral)args[1]).getClassDefValue(), null);
+                r = ((ClassContainer) base.getParent()).getOrCreateScopedClassInterval(null, base,
+                        constructor,
+                        ((ClassRefLiteral)args[0]).getClassDefValue(), ((ClassRefLiteral)args[1]).getClassDefValue(), null);
             } else {
                 r = ((ClassContainer) base.getParent()).getOrCreateParameterizedClass(base, constructor, args, null);
             }
@@ -322,7 +322,7 @@ public class AgoClassParser {
                 args[i] = mapClass(arg).toClassRefLiteral();
             }
             ClassContainer parent = agoClass.getParent() == null ? (ClassContainer) templateClass.getParent() : mapClass(agoClass.getParent());
-            r = (ClassDef) parent.getOrCreateGenericInstantiationClassDef(templateClass, args, null);
+            r = (ClassDef) parent.getOrCreateGenericInstantiationClassDef(templateClass, args, null, (Project) null);
             classes.put(agoClass, r);
         } else {
             throw new RuntimeException("unexpected class " + agoClass);
@@ -362,7 +362,7 @@ public class AgoClassParser {
             if (typeCode == TypeCode.INT) {
                 return getRoot().createIntLiteral(i);
             } else if (typeCode == TypeCode.CLASS_REF) {
-                String className = classLoader.getStrings().get(i);
+                String className = classLoader.getStringList().get(i);
                 return mapClass(classLoader.getClass(className)).toClassRefLiteral();
             }
         } else if(argument instanceof ClassRefValue classRefValue) {
@@ -708,13 +708,13 @@ public class AgoClassParser {
                     resolveHierarchy(genericTypeCodeAvatar.getParameterizedBaseClass(), avatar);
                 }
 
-                SharedGenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(gt,
+                SharedGenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(null,
+                        gt,
                         gt.getMetaClassDef().getConstructor(),
                         mapClass(sharedGenericTypeParameterClass.lBound()),
-                        mapClass(sharedGenericTypeParameterClass.uBound()),
-                        sharedGenericTypeParameterClass.variance(), null);
-
-                templClass.getTypeParamsContext().createGenericTypeParam(avatarInfo.name(), pc, avatarInfo.index());
+                        mapClass(sharedGenericTypeParameterClass.uBound()), sharedGenericTypeParameterClass.variance(), null);
+                // needn't register concrete type, for it's loading
+                templClass.getTypeParamsContext().createGenericTypeParam(null, avatarInfo.name(), pc, avatarInfo.index());
             }
             templClass.createTemplateDefaultGenericSource();
         }

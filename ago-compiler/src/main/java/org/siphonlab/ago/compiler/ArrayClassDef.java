@@ -15,15 +15,15 @@
  */
 package org.siphonlab.ago.compiler;
 
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationClassDef;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
+import org.siphonlab.ago.module.Module;
 
-import java.util.List;
 import java.util.Set;
 
 public class ArrayClassDef extends ClassDef implements ConcreteType{
@@ -59,9 +59,9 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
 
         ClassDef arrayClass = root.getArrayClass();
         this.setSourceLocation(arrayClass.getSourceLocation());
-        ClassDef arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{elementType.toClassRefLiteral()}), null);
+        ClassDef arrayInstantiationType = arrayClass.instantiate(getRoot().getProject(), new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{elementType.toClassRefLiteral()}), null);
         if(!(arrayInstantiationType instanceof GenericInstantiationClassDef)){
-            arrayInstantiationType = arrayClass.instantiate(new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{elementType.toClassRefLiteral()}), null);
+            arrayInstantiationType = arrayClass.instantiate(getRoot().getProject(), new InstantiationArguments(arrayClass.getTypeParamsContext(), new ClassRefLiteral[]{elementType.toClassRefLiteral()}), null);
         }
         this.setSuperClass(arrayInstantiationType);
         if(arrayInstantiationType instanceof ConcreteType c) this.registerConcreteType(c);
@@ -81,31 +81,23 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public List<ClassDef> getConcreteDependencyClasses() {
-        if(this.elementType instanceof ConcreteType c){
-            return ListUtils.union(List.of(this.elementType), c.getConcreteDependencyClasses());
-        }
-        return List.of(this.elementType);
+    public ClassDef instantiateAsReferenceClass(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return instantiate(project, arguments, returnExisted);
     }
 
     @Override
-    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        return instantiate(arguments, returnExisted);
-    }
-
-    @Override
-    public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef instantiate(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
         if(!this.isAffectedByTypeArguments(arguments)) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;
         }
-        return cloneForInstantiate(arguments, (ClassContainer) this.parent, returnExisted);
+        return cloneForInstantiate(project, arguments, (ClassContainer) this.parent, returnExisted);
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         // when T[] works on T=int, apply template got a new type `int[]`
-        var newEleType = elementType.instantiate(instantiationArguments, returnExisted);
+        var newEleType = elementType.instantiate(project, instantiationArguments, returnExisted);
         if(newEleType == elementType) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;

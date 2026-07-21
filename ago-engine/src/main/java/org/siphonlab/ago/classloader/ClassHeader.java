@@ -53,8 +53,9 @@ public class ClassHeader {
 
     protected int classId;
 
-    protected String[] strings;
-    public int blobOffset = -1;
+    protected String[] strings;     // strings of module
+    protected List<byte[]> blobs;       // blobs in this module
+    public int blobOffset = -1;     // blob offset of module
     protected String name;
     private int buffStart;
     private int buffEnd;
@@ -262,6 +263,7 @@ public class ClassHeader {
             }
         }
         this.genericSource = new GenericSource(this.fullname, instantiationArguments, Arrays.stream(genericTypeParams).map(t -> new ClassRefValue(t.fullname)).toArray(ClassRefValue[]::new));
+        this.genericSource.setTemplateDefaultArgs(true);
         this.putInstantiatedClassToCache(instantiationArguments, this);
     }
 
@@ -287,6 +289,8 @@ public class ClassHeader {
     }
     protected void copyToClone(ClassHeader inst){
         inst.strings = this.strings;
+        inst.blobs = this.blobs;
+        inst.blobOffset = this.blobOffset;
         inst.genericTypeParams = this.genericTypeParams;
         inst.setSuperClass(this.superClass);
         inst.setPermitClass(this.permitClass);
@@ -311,7 +315,7 @@ public class ClassHeader {
         }
     }
 
-    private Set<InstantiationArguments> instantiatingChildren = new HashSet<>();
+    Set<InstantiationArguments> instantiatingChildren = new HashSet<>();
 
     protected ClassHeader instantiate(InstantiationArguments typeArguments, ClassHeader parentInstantiation, String suggestionName, String suggestionFullName) {
         if(parentInstantiation == null && !this.isAffectedByTypeArguments(typeArguments)) return this;
@@ -321,7 +325,7 @@ public class ClassHeader {
         ClassHeader templ;
         InstantiationArguments args;
         GenericSource genericSource = this.genericSource;
-        if(genericSource != null){
+        if(genericSource != null && !genericSource.isTemplateDefaultArgs()){
             templ = Objects.requireNonNull(classLoader.getClassHeader(genericSource.sourceTemplate()));
             var myArgs = genericSource.instantiationArguments();
             args = myArgs.apply(typeArguments, classLoader);        // args become args for me+my parents, typeArguments still keep child args
@@ -420,7 +424,7 @@ public class ClassHeader {
 
     public ClassHeader instantiateChild(ClassHeader instantiatedClass, InstantiationArguments arguments, ClassHeader child) {
         InstantiationArguments childArgs;
-        if(child.genericSource != null){
+        if(child.genericSource != null && !child.genericSource.isTemplateDefaultArgs()){
             childArgs = child.genericSource.instantiationArguments().applyParent(arguments, classLoader);
         } else {
             childArgs = arguments;
@@ -453,6 +457,9 @@ public class ClassHeader {
         MethodDesc methodDesc = new MethodDesc(inst.name, inst.fullname);
         this.addMethod(methodDesc);
         assert this.findMethod(methodDesc) != null;
+        if(loadingStage.value > CollectMethods.value){
+            this.setLoadingStage(CollectMethods);       // collect methods again
+        }
     }
 
     private void addMethod(MethodDesc methodDesc) {
@@ -461,6 +468,7 @@ public class ClassHeader {
         if(this.methods == null) this.methods = new ArrayList<>();
         this.methods.add(methodDesc);
         this.methodsByName.put(methodDesc.getName(), methodDesc);
+        methodDesc.setMethodIndex(this.methods.size());
     }
 
     void instantiateFunctionFamily(ClassHeader parent, ClassHeader instantiationOfThis, int depth, InstantiationArguments instantiationArguments) {
@@ -579,6 +587,8 @@ public class ClassHeader {
         inst.genericSource = new GenericSource(this.fullname, typeArguments, typeArguments.takeFor(this));
         this.putInstantiatedClassToCache(typeArguments, inst);
         inst.strings = this.strings;
+        inst.blobs = this.blobs;
+        inst.blobOffset = this.blobOffset;
         inst.parent = newParent;
         if (newParent != null) newParent.addChild(inst);
         // create slots later
@@ -588,6 +598,9 @@ public class ClassHeader {
             inst.modifiers = (this.modifiers & GENERIC_TEMPLATE_NEG) | AgoClass.GENERIC_INSTANTIATION;
         } else {
             inst.modifiers = this.modifiers;
+//            if(inst.isGenericTemplate()){
+//                inst.genericTypeParams = this.genericTypeParams;
+//            }
         }
         inst.setSourceLocation(this.sourceLocation);
         inst.setInterfaces(this.interfaces);    // apply instantiation for interface at resolveHierarchicalClasses, LN748
@@ -713,7 +726,7 @@ public class ClassHeader {
                 if(i.isAffectedByTypeArguments(typeArguments, visited)) return true;
             }
         }
-        if(this.genericSource != null){
+        if(this.genericSource != null && !genericSource.isTemplateDefaultArgs()){
             if(this.genericSource.instantiationArguments().canApply(typeArguments, visited)){
                 return true;
             }
@@ -1176,7 +1189,7 @@ public class ClassHeader {
                 if(!classLoader.getClassHeader(anInterface).isGenericTerminated(visited)) return false;
             }
         }
-        if(this.genericSource != null){
+        if(this.genericSource != null && !genericSource.isTemplateDefaultArgs()){
             if(!this.genericSource.instantiationArguments().isTerminated(visited)){
                 return false;
             }

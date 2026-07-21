@@ -18,36 +18,31 @@ package org.siphonlab.ago.compiler;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.Equals;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.mina.util.IdentityHashSet;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.DecimalLiteral;
-import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.*;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.siphonlab.collection.DuplicatedKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.siphonlab.ago.AgoClass.*;
-import static org.siphonlab.ago.compiler.ClassFile.putLiteral;
 
 public class ClassDef extends ClassContainer {
 
@@ -78,12 +73,6 @@ public class ClassDef extends ClassContainer {
     protected final SlotsAllocator slotsAllocator;
 
     protected ConstructorDef constructor;
-
-    protected Map<String, Integer> stringTable = new HashMap<>();
-    protected List<String> strings = new ArrayList<>();
-
-    // class fullname -> ConcreteType
-    protected Map<String, ConcreteType> concreteTypes = new LinkedHashMap<>();
 
     protected Set<ClassDef> dependencies = new HashSet<>();
     protected Unit unit;
@@ -168,7 +157,7 @@ public class ClassDef extends ClassContainer {
         this.idOfConstString(field.name);       // update const pool
         if (field.getType().getTypeCode() == TypeCode.OBJECT) {
             if(field.getType() instanceof ConcreteType c){
-                this.registerConcreteType(c);
+                this.registerConcreteType((ClassDef)c);
             } else {
                 this.idOfClass(field.getType());
             }
@@ -219,7 +208,7 @@ public class ClassDef extends ClassContainer {
             if(variable instanceof Field field){
                 var myFld = this.fields.get(variable.name);
                 if(myFld == null) {         // maybe private
-                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(args, null));
+                    this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(this.getModule(), args, null));
                 } else {
                     myFld.setSlot(this.slotsAllocator.allocateSlot(myFld));
                 }
@@ -604,43 +593,6 @@ public class ClassDef extends ClassContainer {
         throw new UnsupportedOperationException("Root not found");
     }
 
-    public int idOfConstString(String s){
-        if(this.parent != null && this.parent instanceof ClassDef c){
-            return c.idOfConstString(s);
-        }
-        Integer i = this.stringTable.get(s);
-        if(i != null){
-            return i;
-        }
-        int pos = this.strings.size();
-        this.stringTable.put(s, pos);
-        this.strings.add(s);
-        return pos;
-    }
-
-    public int idOfKnownConstString(String s){
-        return idOfConstString(s);
-//        if(this.parent != null && this.parent instanceof ClassDef c){
-//            return c.idOfKnownConstString(s);
-//        }
-//        Integer i = this.stringTable.get(s);
-//        if(i != null){
-//            return i;
-//        }
-//        throw new IndexOutOfBoundsException(s + " not existed");
-    }
-
-    public int idOfKnownClass(ClassDef classDef) {
-        return idOfKnownConstString(classDef.getFullname());
-    }
-
-    public List<String> getTopStrings(){
-        if(this.parent != null && this.parent instanceof ClassDef c){
-            return c.getTopStrings();
-        }
-        return this.strings;
-    }
-
     /**
      * find out the distance from outerClass or outer to this class
      * @return
@@ -656,10 +608,6 @@ public class ClassDef extends ClassContainer {
             }
         }
         return -1;
-    }
-
-    public List<String> getStrings() {
-        return strings;
     }
 
     public boolean isNative() {
@@ -857,6 +805,13 @@ public class ClassDef extends ClassContainer {
             this.addDependency(superClass);
             this.idOfClass(superClass);
         }
+    }
+
+    public int idOfClass(ClassDef classDef) {
+        if(this.unit != null){
+            return this.unit.getModule().idOfClass(classDef);
+        }
+        return -1;      // no unit, I am imported class
     }
 
     @Override
@@ -1113,7 +1068,7 @@ public class ClassDef extends ClassContainer {
         this.dependencies.add(dependency);
         getRoot().getDependencyResultCache().put(Pair.of(this, dependency), true);
         if(dependency instanceof ConcreteType cd) {     // GenericTypeAvatarClassDef included
-            registerConcreteType(cd);
+            registerConcreteType((ClassDef)cd);
         } else {
             if(!dependency.isPrimitive())
                 this.idOfClass(dependency);
@@ -1123,9 +1078,6 @@ public class ClassDef extends ClassContainer {
 
     public boolean isDependingOn(ClassDef classDef, int depth) {
 //        if(LOGGER.isDebugEnabled()) LOGGER.debug("%stest %s depend on %s".formatted("\t".repeat(depth), this, classDef));
-        if(depth > 100){
-            System.out.println(1);
-        }
         if(this == classDef) return false;
         var dependencyResultCache = root.getDependencyResultCache();
         Pair<ClassDef, ClassDef> p = Pair.of(this, classDef);
@@ -1168,32 +1120,6 @@ public class ClassDef extends ClassContainer {
         return this.name.equals(text);
     }
 
-    public int idOfClass(ClassDef classDef) {
-        if(this.parent != null && this.parent instanceof ClassDef c){
-            return c.idOfClass(classDef);
-        }
-
-        var id = this.stringTable.get(classDef.getFullname());
-        if(id != null) return id;
-
-//        if (classDef.isPrimitive()) throw new UnsupportedOperationException(classDef + " is primary type");
-
-        id = idOfConstString(classDef.getFullname());
-//        if (classDef instanceof ConcreteType c) {
-//            for (ClassDef concreteDependencyClass : c.getConcreteDependencyClasses()) {
-//                this.idOfClass(concreteDependencyClass);
-//            }
-//            if (c instanceof GenericConcreteType genericConcreteType) {
-//                for (ClassRefLiteral typeArgument : genericConcreteType.getGenericInstantiate().getTypeArguments()) {
-//                    if (typeArgument.getClassDefValue().getTypeCode() instanceof GenericTypeCode genericTypeCode) {
-//                        this.idOfClass(genericTypeCode.getTemplateClass());
-//                    }
-//                }
-//            }
-//        }
-        return id;
-    }
-
     public int simpleNameOfFunction(FunctionDef functionDef) {
         return this.idOfConstString(functionDef.getName());
     }
@@ -1203,9 +1129,6 @@ public class ClassDef extends ClassContainer {
             return this.getParentClass().getOrCreateArrayType(elementType, returnExisted);
         }
         ArrayClassDef arrayType = this.unit.getRoot().getOrCreateArrayType(elementType, returnExisted);
-        if(arrayType instanceof ConcreteType c){
-            this.registerConcreteType(c);
-        }
         if(!elementType.isPrimitive()) this.idOfConstString(elementType.getFullname());
         return arrayType;
     }
@@ -1216,19 +1139,19 @@ public class ClassDef extends ClassContainer {
         }
         var nullableType = this.unit.getRoot().getOrCreateNullableType(baseType, returnExisted);
         if(nullableType instanceof ConcreteType c){
-            this.registerConcreteType(c);
+            this.registerConcreteType((ClassDef) c);
         }
         if(!baseType.isPrimitive()) this.idOfConstString(baseType.getFullname());
         return nullableType;
     }
 
-
-    public Map<String, ConcreteType> getConcreteTypes() {
-        if(this.getParentClass() != null){
-            return this.getParentClass().getConcreteTypes();
+    public int idOfConstString(String constString) {
+        if(this.getModule() != null){
+            return this.getModule().idOfConstString(constString);
         }
-        return concreteTypes;
+        return -1;
     }
+
 
     public void shiftToTemplate() throws CompilationError {
         this.setModifiers(this.modifiers | AgoClass.GENERIC_TEMPLATE);
@@ -1268,108 +1191,40 @@ public class ClassDef extends ClassContainer {
         return typeParamsContext;
     }
 
+    public Project getModule(){
+        if(this.unit != null){
+            return this.unit.getModule();
+        }
+        return null;
+    }
+
     public void registerConcreteType(ClassDef classDef) {
         for(var c = classDef; c!= null; c = c.getParentClass()){
             if(c instanceof ConcreteType concreteType){
-                registerConcreteType(concreteType);
-            } else {
-                if(c.getConcreteTypes() != null){
-                    for (ConcreteType concreteType : c.getConcreteTypes().values()) {
-                        registerConcreteType(concreteType);
-                    }
+                if(getModule() != null){
+                    getModule().registerConcreteType(concreteType);
                 }
             }
         }
     }
 
-    public void registerConcreteType(ConcreteType concreteType) {
-        if(this.getParentClass() != null){
-            this.getParentClass().registerConcreteType(concreteType);
-            return;
-        }
-        if(concreteTypes.containsKey(concreteType.getFullname())) return;
-        this.idOfClass((ClassDef) concreteType);
-        // this.addDependency((ClassDef) concreteType);
-        for (ClassDef concreteDependencyClass : concreteType.getConcreteDependencyClasses()) {
-            this.addDependency(concreteDependencyClass);
-        }
-        concreteType.acceptRegisterConcreteType(this);
-
-        concreteTypes.put(concreteType.getFullname(), concreteType);
-
-        if(concreteType instanceof GenericConcreteType genericConcreteType){
-            var temp = ((ClassDef) concreteType).getTemplateClass();
-            for(ClassDef p = temp; p != null; p = p.parent instanceof ClassDef p2 ? p2 : null){
-                if(p instanceof ConcreteType c) {
-                    registerConcreteType(c);
-                }
-            }
-        }
+    public void registerConcreteType(ConcreteType classDef) {
+        registerConcreteType((ClassDef) classDef);
     }
 
-
-    private Map<Object, Integer> blobsIndex = new HashMap<>();
-    private List<byte[]> blobs = new ArrayList<>();
-    public int getOrCreateBLOB(List<? extends Literal<?>> literals, ArrayLiteral arrayLiteral) throws TypeMismatchError {
-        if(!this.isTop()) return this.getParentClass().getOrCreateBLOB(literals, arrayLiteral);
-        var existed = blobsIndex.get(arrayLiteral);
-        if(existed != null) return existed;
-
-        var buff = IoBuffer.allocate(512).setAutoExpand(true);
-        buff.putInt(0);     // length placeholder
-        TypeCode prev = literals.get(0).getTypeCode();
-        CharsetEncoder encoder = StandardCharsets.UTF_8.newEncoder();
-        for (Literal<?> literal : literals) {
-            if(literal.getTypeCode() != prev) {
-                throw new TypeMismatchError("literal type mismatch with %s".formatted(prev), literal.getSourceLocation());
-            }
-            try {
-                if(literal instanceof StringLiteral stringLiteral){
-                    this.idOfConstString(stringLiteral.getString());
-                } else if(literal instanceof ClassRefLiteral classRefLiteral){
-                    this.idOfClass(classRefLiteral.getClassDefValue());
-                }
-                putLiteral(literal, buff, false, false, this);
-            } catch (CharacterCodingException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        buff.flip();
-        buff.putInt(0, buff.limit() - 4);
-        byte[] data = new byte[buff.limit()];
-        buff.get(data);
-        int index = blobs.size();
-        blobsIndex.put(arrayLiteral, index);
-        blobs.add(data);
-        return index;
-    }
-
-    public int getOrCreateBLOB(DecimalLiteral literal) throws TypeMismatchError {
-        if(!this.isTop()) return this.getParentClass().getOrCreateBLOB(literal);
-        var existed = blobsIndex.get(literal);
-        if(existed != null) return existed;
-
-        var arr = literal.toArray();
-        int index = blobs.size();
-        blobsIndex.put(literal, index);
-        blobs.add(arr);
-        return index;
-    }
-
-    public List<byte[]> getBlobs() {
-        return blobs;
-    }
-
-    @Override
     public ClassDef getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, MutableBoolean returnExisted) throws CompilationError {
         InstantiationArguments args = new InstantiationArguments(templateClass.getTemplateClass().getTypeParamsContext(), typeArguments);
         if(this.getGenericSource() != null){
-            args = args.applyParent(this.getGenericSource().instantiationArguments());
+            args = args.applyParent(getModule(), this.getGenericSource().instantiationArguments());
         }
-        return templateClass.instantiate(args, returnExisted);
+        return templateClass.instantiate(this.getModule(), args, returnExisted);
     }
 
-    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef getOrCreateGenericInstantiationClassDef(ClassDef templateClass, ClassRefLiteral[] typeArguments, AgoParser.TypeArgsListContext typeArgsListContext, MutableBoolean returnExisted, Project project) throws CompilationError {
+       return super.getOrCreateGenericInstantiationClassDef(templateClass, typeArguments, typeArgsListContext, returnExisted, this.getModule());
+    }
+
+    public ClassDef instantiateAsReferenceClass(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
         if(!this.isAffectedByTypeArguments(arguments)) return this;
 
         ClassDef templ;
@@ -1379,7 +1234,7 @@ public class ClassDef extends ClassContainer {
         if(genericSource != null) {     // instantiation and generic template
             templ = genericSource.originalTemplate();
             var myArgs = genericSource.instantiationArguments();
-            args = myArgs.apply(arguments);     // args become args for me+my parents, `arguments` still preserve child args
+            args = myArgs.applyParent(project, arguments);     // args become args for me+my parents, `arguments` still preserve child args
             if(myArgs.equals(args)){
                 if (returnExisted != null) returnExisted.setTrue();
                 return this;
@@ -1391,7 +1246,7 @@ public class ClassDef extends ClassContainer {
         var existed = templ.getCachedInstantiatedClass(args);
         if(existed != null) {
             if (!args.equals(existed.getGenericSource().instantiationArguments()) && !this.instantiatingChildren.contains(args)) {    // arguments changed, try children
-                this.instantiateChildren(existed, arguments);
+                this.instantiateChildren(project, existed, arguments);
             }
             if (returnExisted != null) returnExisted.setTrue();
             return existed;
@@ -1404,16 +1259,16 @@ public class ClassDef extends ClassContainer {
         ClassDef parentInstantiation = null;
         for(var p : path){
             var e = new MutableBoolean();
-            parentInstantiation = p.instantiate(args, parentInstantiation, e);
+            parentInstantiation = p.instantiate(project, args, parentInstantiation, e);
         }
-        return this.instantiate(arguments, parentInstantiation, returnExisted);
+        return this.instantiate(project, arguments, parentInstantiation, returnExisted);
     }
 
-    public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        return instantiate(arguments, null, returnExisted);
+    public ClassDef instantiate(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return instantiate(project, arguments, null, returnExisted);
     }
 
-    public ClassDef instantiate(InstantiationArguments arguments, ClassDef parentInstantiation, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef instantiate(Project project, InstantiationArguments arguments, ClassDef parentInstantiation, MutableBoolean returnExisted) throws CompilationError {
         if(parentInstantiation == null && !this.isAffectedByTypeArguments(arguments)) {
             if(returnExisted != null) returnExisted.setTrue();
             return this;
@@ -1425,14 +1280,14 @@ public class ClassDef extends ClassContainer {
         if(genericSource != null) {     // instantiation and generic template
             templ = genericSource.originalTemplate();
             var myArgs = genericSource.instantiationArguments();
-            args = myArgs.apply(arguments);     // args become args for me+my parents, `arguments` still preserve child args
+            args = myArgs.apply(project, arguments);     // args become args for me+my parents, `arguments` still preserve child args
             if(myArgs.equals(args)){
                 if(this.parent == parentInstantiation) {
                     if (returnExisted != null) returnExisted.setTrue();
                     return this;
                 } else {
                     if(parentInstantiation != null && parentInstantiation.getGenericSource() != null)
-                        args = args.applyParent(parentInstantiation.getGenericSource().instantiationArguments());
+                        args = args.applyParent(project, parentInstantiation.getGenericSource().instantiationArguments());
                 }
             }
         } else {
@@ -1443,7 +1298,7 @@ public class ClassDef extends ClassContainer {
         var existed = templ.getCachedInstantiatedClass(args);
         if(existed != null) {
             if (!args.equals(existed.getGenericSource().instantiationArguments()) && !this.instantiatingChildren.contains(args)) {    // arguments changed, try children
-                this.instantiateChildren(existed, args);
+                this.instantiateChildren(project, existed, args);
             }
             if(returnExisted != null) returnExisted.setTrue();
             return existed;
@@ -1456,35 +1311,38 @@ public class ClassDef extends ClassContainer {
                 if (argsForTempl != null && !Arrays.equals(templ.genericSource.typeArguments(),  argsForTempl)) {       // if still the template, but whole type arguments changed, make a clone
                     if (templ instanceof FunctionDef templFun) {
                         if (templFun instanceof InterfaceFunctionWrapper interfaceFunctionWrapper) {
-                            result = new GenericInstantiationInterfaceFunctionWrapper(interfaceFunctionWrapper, parent, args);
+                            result = new GenericInstantiationInterfaceFunctionWrapper(interfaceFunctionWrapper, parent, args, project);
                         } else {
-                            result = new GenericInstantiationFunctionDef(templFun, parent, args);
+                            result = new GenericInstantiationFunctionDef(templFun, parent, args, project);
                         }
                     } else {
-                        result = new GenericInstantiationClassDef(templ, parent, args);
+                        result = new GenericInstantiationClassDef(templ, parent, args, project);
                     }
                 } else {
-                    result = cloneForInstantiate(args, parent , childExisted);
+                    result = cloneForInstantiate(project, args, parent, childExisted);
                 }
             } else {
-                result = cloneForInstantiate(args, parent, childExisted);
+                result = cloneForInstantiate(project, args, parent, childExisted);
+            }
+            if(project != null && result instanceof ConcreteType c){
+                project.registerConcreteType(c);
             }
             return result;
         }
     }
 
-    protected void instantiateChildren(ClassDef instantiatedClass, InstantiationArguments arguments) throws CompilationError {
+    protected void instantiateChildren(Project project, ClassDef instantiatedClass, InstantiationArguments arguments) throws CompilationError {
         this.instantiatingChildren.add(arguments);
         for (ClassDef child : this.getUniqueChildren()) {
             if(!this.gotFromInherited(child)){
                 InstantiationArguments childArgs;
                 if(child.getGenericSource() != null){
-                    childArgs = child.getGenericSource().instantiationArguments().applyParent(arguments);
+                    childArgs = child.getGenericSource().instantiationArguments().applyParent(project, arguments);
                 } else {
                     childArgs = arguments;
                 }
 
-                child.instantiate(childArgs, instantiatedClass, null);
+                child.instantiate(project, childArgs, instantiatedClass, null);
             }
         }
         this.instantiatingChildren.remove(arguments);
@@ -1495,18 +1353,19 @@ public class ClassDef extends ClassContainer {
      * only child classes of a generic-template-class can enter this invocation, and
      * all child classes of a generic-template-class MUST enter this invocation
      *
+     * @param project
      * @param instantiationArguments
      * @param parent
      * @param returnExisted
      * @return
      */
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var clone = new ClassDef(root, name, classDeclaration);
-        cloneTo(instantiationArguments, clone, parent);
+        cloneTo(project, instantiationArguments, clone, parent);
         return clone;
     }
 
-    public void cloneTo(InstantiationArguments instantiationArguments, ClassDef instantiateClass, ClassContainer parent) throws CompilationError {
+    public void cloneTo(Project project, InstantiationArguments instantiationArguments, ClassDef instantiateClass, ClassContainer parent) throws CompilationError {
         if(LOGGER.isDebugEnabled()) LOGGER.debug("apply template instantiation class %s via %s".formatted(instantiateClass, getGenericSource()));
 
         if(instantiateClass.getGenericSource() == null) {       // GenericInstantiationClassDef set generic source by itself
@@ -1537,7 +1396,7 @@ public class ClassDef extends ClassContainer {
 
         if(parent != null) parent.addChild(instantiateClass);
 
-        instantiateChildren(instantiateClass, instantiationArguments);
+        instantiateChildren(project, instantiateClass, instantiationArguments);
     }
 
     public GenericTypeCodeAvatarClassDef findGenericType(String genericTypeName) {
@@ -1603,24 +1462,24 @@ public class ClassDef extends ClassContainer {
         List<ClassDef> list = new ArrayList<>();
         for (ClassDef i : templ.getInterfaces()) {
             var existed = new MutableBoolean();
-            ClassDef instantiate = i.instantiateAsReferenceClass(instantiationArguments, existed);
+            ClassDef instantiate = i.instantiateAsReferenceClass(this.getModule(), instantiationArguments, existed);
             if(existed.isFalse() && instantiate instanceof GenericConcreteType genericConcreteType){
-                this.registerConcreteType(genericConcreteType);
+                this.registerConcreteType((ClassDef) genericConcreteType);
             }
             list.add(instantiate);
         }
         this.setInterfaces(list);
         if(templ.getSuperClass() != null) {
-            ClassDef instantiated = templ.getSuperClass().instantiateAsReferenceClass(instantiationArguments, null);
+            ClassDef instantiated = templ.getSuperClass().instantiateAsReferenceClass(getModule(), instantiationArguments, null);
             if(instantiated instanceof ConcreteType concreteType){
-                this.registerConcreteType(concreteType);
+                this.registerConcreteType((ClassDef)concreteType);
             }
             this.setSuperClass(instantiated);       // TODO and parameterized superclass
         }
         if(templ.isInterfaceOrTrait() && templ.getPermitClass() != null){
-            ClassDef instantiated = templ.getPermitClass().instantiateAsReferenceClass(instantiationArguments, null);
+            ClassDef instantiated = templ.getPermitClass().instantiateAsReferenceClass(getModule(), instantiationArguments, null);
             if(instantiated instanceof ConcreteType concreteType){
-                this.registerConcreteType(concreteType);
+                this.registerConcreteType((ClassDef)concreteType);
             }
             this.setPermitClass(instantiated);
         }
@@ -1680,7 +1539,7 @@ public class ClassDef extends ClassContainer {
         var instantiationArguments = this.getGenericSource().instantiationArguments();
 
         MutableBoolean returnExisted = new MutableBoolean();
-        MetaClassDef metaClassDef = templateMetaClass.instantiate(instantiationArguments, returnExisted);
+        MetaClassDef metaClassDef = templateMetaClass.instantiate(getModule(), instantiationArguments, returnExisted);
         this.setMetaClassDef(metaClassDef);
         if(returnExisted.isTrue()) return metaClassDef;
 
@@ -1708,7 +1567,7 @@ public class ClassDef extends ClassContainer {
 
         for (Map.Entry<String, Field> fieldEntry : templ.getFields().entrySet()) {
             Field field = fieldEntry.getValue();
-            Field newField = field.applyTemplate(instantiationArguments, this);
+            Field newField = field.applyTemplate(instantiationArguments, this, getRoot().getProject());
             this.addField(newField);
         }
         this.instantiateFieldsForInterfacesAndTraits();
@@ -1723,7 +1582,7 @@ public class ClassDef extends ClassContainer {
             this.setFieldForPermitClass(this.getFields().get(templ.fieldForPermitClass.name));
         }
         for (Map.Entry<ClassDef, Field> entry : templ.traitFields.entrySet()) {
-            this.traitFields.put(entry.getKey().instantiateAsReferenceClass(instantiationArguments, null), this.getFields().get(entry.getValue().name));
+            this.traitFields.put(entry.getKey().instantiateAsReferenceClass(getModule(), instantiationArguments, null), this.getFields().get(entry.getValue().name));
         }
         //TODO wrapper interfaces
     }
@@ -2094,5 +1953,25 @@ public class ClassDef extends ClassContainer {
     public boolean isObjectOrNullableObject() {
         if(this.getTypeCode() == TypeCode.OBJECT) return true;
         return false;
+    }
+
+    public int idOfKnownConstString(String string) {
+        if(getModule() != null) {
+            return getModule().idOfKnownConstString(string);
+        } else {
+            return -1;
+        }
+    }
+
+    public int getOrCreateBLOB(List<? extends Literal<?>> literals, ArrayLiteral arrayLiteral) throws TypeMismatchError {
+        return getModule().getOrCreateBLOB(literals, arrayLiteral);
+    }
+
+    public int getOrCreateBLOB(DecimalLiteral literal) throws TypeMismatchError {
+        return getModule().getOrCreateBLOB(literal);
+    }
+
+    public int idOfKnownClass(ClassDef classDef) {
+        return getModule().idOfKnownClass(classDef);
     }
 }

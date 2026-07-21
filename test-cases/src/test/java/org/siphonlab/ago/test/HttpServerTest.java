@@ -47,8 +47,8 @@ public class HttpServerTest {
 
         AgoEngine engine = new AgoEngine();
         AgoClassLoader agoClassLoader = new AgoClassLoader();
-        agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
-        agoClassLoader.loadClasses("output/%s".formatted(filename));
+        agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+        agoClassLoader.loadModuleFromDirectory("output/%s".formatted(filename));
 
         engine.load(agoClassLoader);
 

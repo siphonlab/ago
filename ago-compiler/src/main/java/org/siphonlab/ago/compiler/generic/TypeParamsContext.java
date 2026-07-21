@@ -23,6 +23,7 @@ import org.siphonlab.ago.compiler.ConcreteType;
 import org.siphonlab.ago.compiler.Root;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.module.Project;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,12 +51,12 @@ public class TypeParamsContext {
         this.nextGenericTypeCode = parent.nextGenericTypeCode;
     }
 
-    public GenericTypeCodeAvatarClassDef createGenericTypeParam(String paramName, SharedGenericTypeParameterClassDef genericTypeParameter, int paramIndex) throws CompilationError {
+    public GenericTypeCodeAvatarClassDef createGenericTypeParam(Project project, String paramName, SharedGenericTypeParameterClassDef genericTypeParameter, int paramIndex) throws CompilationError {
 
         Root root = templateClass.getRoot();
 
         var exists = new MutableBoolean();
-        var r = ((ClassContainer) root.getGenericTypeCodeAvatar().getParent()).getOrCreateGenericTypeAvatarClassDef(root.getGenericTypeCodeAvatar(), genericTypeParameter, templateClass, paramIndex, nextGenericTypeCode.getAndIncrement(), paramName, exists);
+        var r = ((ClassContainer) root.getGenericTypeCodeAvatar().getParent()).getOrCreateGenericTypeAvatarClassDef(project, root.getGenericTypeCodeAvatar(), genericTypeParameter, templateClass, paramIndex, nextGenericTypeCode.getAndIncrement(), paramName, exists);
 
         templateClass.idOfClass(templateClass);
         templateClass.registerConcreteType((ConcreteType) r);
@@ -70,7 +71,7 @@ public class TypeParamsContext {
 
         var r = new InstantiationArguments(this, args);
         if(this.parent != null){
-            r = r.applyParent(this.parent.defaultInstantiationArguments);
+            r = r.applyParent(null, this.parent.defaultInstantiationArguments);
         }
         return r;
     }

@@ -22,9 +22,9 @@ import org.junit.jupiter.api.Disabled;
 import org.siphonlab.ago.compiler.ClassFile;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.Compiler;
-import org.siphonlab.ago.compiler.Unit;
+import org.siphonlab.ago.compiler.module.ProjectParser;
 
-import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 public class CompilerTest {
@@ -41,22 +41,11 @@ public class CompilerTest {
 
     @Test @Disabled
     public void langCompile() throws CompilationError, IOException {
-        Compiler compiler = new Compiler();
-        Unit[] units = compiler.compile(new File[]{
-                new File("../ago-sdk/src/lang/lang.ago"),
-                new File("../ago-sdk/src/lang/primitive.ago"),
-                new File("../ago-sdk/src/lang/types.ago"),
-                new File("../ago-sdk/src/lang/collection.ago"),
-                new File("../ago-sdk/src/lang/runspace.ago"),
-                new File("../ago-sdk/src/lang/atomic.ago"),
-                new File("../ago-sdk/src/lang/tuple.ago"),
-                new File("../ago-sdk/src/lang/reflection.ago"),
-                new File("../ago-sdk/src/lang/util.ago"),
-
-                new File("../ago-sdk/src/lang/entity.ago"),
-                new File("../ago-sdk/src/lang/workflow.ago")
-        });
-        ClassFile.saveToDirectory(units, "../ago-sdk/compiled/lang/");
+        var module = new ProjectParser().parse("../ago-sdk/src/lang/module.info");
+        Compiler compiler = new Compiler(module);
+        compiler.compile();
+        new ClassFile(module).saveToDirectory("../ago-sdk/compiled/lang/");
+        new ClassFile(module).createPackage(new FileOutputStream("../ago-sdk/lang.agopkg"));
     }
 
 

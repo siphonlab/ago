@@ -83,7 +83,7 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
 
         boolean loadFromDb = (classLoader instanceof JsonAgoClassLoader);
         if (!loadFromDb) {
-            workflowAdapter.saveStrings(classLoader.getStrings());
+            workflowAdapter.saveStrings(classLoader.getStringList());
             workflowAdapter.saveBlobs(classLoader.getBlobs());
         }
 

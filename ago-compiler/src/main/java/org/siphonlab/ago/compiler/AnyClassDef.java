@@ -20,7 +20,9 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.ago.module.Module;
 
 import java.util.Set;
 
@@ -71,19 +73,19 @@ public class AnyClassDef extends ClassDef{
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         return this;
     }
 
     @Override
-    public ClassDef instantiate(InstantiationArguments arguments, MutableBoolean returnExisted) {
+    public ClassDef instantiate(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) {
         if(returnExisted!=null) returnExisted.setTrue();
         return this;
     }
 
     @Override
-    public ClassDef instantiateAsReferenceClass(InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
-        return instantiate(arguments, returnExisted);
+    public ClassDef instantiateAsReferenceClass(Project project, InstantiationArguments arguments, MutableBoolean returnExisted) throws CompilationError {
+        return instantiate(project, arguments, returnExisted);
     }
 
     @Override

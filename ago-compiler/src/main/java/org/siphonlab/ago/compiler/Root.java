@@ -23,6 +23,7 @@ import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
+import org.siphonlab.ago.compiler.module.Project;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -121,6 +122,8 @@ public class Root extends Namespace<Package> {
 
     private ClassDef STRING_BUILDER_CLASS;
 
+    private Project project;
+
     private Map<String, ArrayClassDef> knownArrayTypes = new HashMap<>();
 
     private CompilingStage compilingStage = CompilingStage.ParseClassName;
@@ -134,6 +137,16 @@ public class Root extends Namespace<Package> {
 
     public Root() {
         super("");
+        this.project = null;
+    }
+
+    public Root(Project project){
+        super("");
+        this.project = project;
+    }
+
+    public Project getProject(){
+        return this.project;
     }
 
     public Package createPackage(String packageName) {
@@ -228,7 +241,7 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyArrayClass() {
         if (ANY_ARRAY_CLASS != null) return ANY_ARRAY_CLASS;
         try {
-            return ANY_ARRAY_CLASS = getArrayClass().instantiate(new InstantiationArguments(getArrayClass().typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
+            return ANY_ARRAY_CLASS = getArrayClass().instantiate(project, new InstantiationArguments(getArrayClass().typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -298,7 +311,7 @@ public class Root extends Namespace<Package> {
         if (FUNCTION_BASE_OF_ANY != null) return FUNCTION_BASE_OF_ANY;
         ClassDef functionBaseClass = getFunctionBaseClass();
         try {
-            return FUNCTION_BASE_OF_ANY = functionBaseClass.instantiate(new InstantiationArguments(functionBaseClass.typeParamsContext,
+            return FUNCTION_BASE_OF_ANY = functionBaseClass.instantiate(project, new InstantiationArguments(functionBaseClass.typeParamsContext,
                     new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
@@ -319,7 +332,7 @@ public class Root extends Namespace<Package> {
         if (GENERATOR_OF_ANY != null) return GENERATOR_OF_ANY;
         ClassDef generatorClass = getGeneratorClass();
         try {
-            return GENERATOR_OF_ANY = generatorClass.instantiate(new InstantiationArguments(generatorClass.typeParamsContext,
+            return GENERATOR_OF_ANY = generatorClass.instantiate(project, new InstantiationArguments(generatorClass.typeParamsContext,
                     new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
@@ -368,6 +381,10 @@ public class Root extends Namespace<Package> {
         if (this.getCompilingStage().getValue() > arrayClassDef.getCompilingStage().getValue()) {
             Compiler.processClassTillStage(arrayClassDef, this.getCompilingStage());
             Compiler.processClassTillStage(arrayClassDef.getMetaClassDef(), this.getCompilingStage());
+        }
+        if(project != null){
+            project.registerConcreteType(arrayClassDef);
+            if(elementType instanceof ConcreteType c) project.registerConcreteType(c);
         }
         return arrayClassDef;
     }
@@ -443,7 +460,7 @@ public class Root extends Namespace<Package> {
         if(ITERABLE_INTERFACE != null) return ITERABLE_INTERFACE;
         ClassDef iterableInterface = findByFullname("lang.Iterable");
         try {
-            return ITERABLE_INTERFACE = iterableInterface.instantiate(new InstantiationArguments(iterableInterface.typeParamsContext,
+            return ITERABLE_INTERFACE = iterableInterface.instantiate(project, new InstantiationArguments(iterableInterface.typeParamsContext,
                     new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
@@ -453,7 +470,7 @@ public class Root extends Namespace<Package> {
         if (ITERATOR_INTERFACE != null) return ITERATOR_INTERFACE;
         ClassDef iterator = findByFullname("lang.Iterator");
         try {
-            return ITERATOR_INTERFACE = iterator.instantiate(new InstantiationArguments(iterator.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
+            return ITERATOR_INTERFACE = iterator.instantiate(project, new InstantiationArguments(iterator.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -463,7 +480,7 @@ public class Root extends Namespace<Package> {
         if(KEY_VALUE_PAIR_CLASS != null) return  KEY_VALUE_PAIR_CLASS;
         ClassDef keyValuePair = findByFullname("lang.KeyValuePair");
         try {
-            return KEY_VALUE_PAIR_CLASS = keyValuePair.instantiate(new InstantiationArguments(
+            return KEY_VALUE_PAIR_CLASS = keyValuePair.instantiate(project, new InstantiationArguments(
                     keyValuePair.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral(), this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
@@ -485,7 +502,7 @@ public class Root extends Namespace<Package> {
     public ScopedClassIntervalClassDef getOrCreateScopedClassInterval(ClassDef lBound, ClassDef uBound, MutableBoolean returnExisted) throws CompilationError {
         ClassDef baseClassDef = getScopedClassInterval();
         ConstructorDef constructor = baseClassDef.getMetaClassDef().getConstructor();
-        return ((ClassContainer)baseClassDef.getParent()).getOrCreateScopedClassInterval(baseClassDef,constructor, lBound, uBound, returnExisted);
+        return ((ClassContainer)baseClassDef.getParent()).getOrCreateScopedClassInterval(getProject(), baseClassDef, constructor, lBound, uBound, returnExisted);
     }
 
     private List<ParameterizedClassDef.PlaceHolder> parameterizedClassDefPlaceHolders = new ArrayList<>();
@@ -505,10 +522,9 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyReadonlyList() {
         if (ANY_READONLY_LIST_CLASS != null) return ANY_READONLY_LIST_CLASS;
         try {
-            return ANY_READONLY_LIST_CLASS = getReadonlyListClass().instantiate(
+            return ANY_READONLY_LIST_CLASS = getReadonlyListClass().instantiate(project,
                     new InstantiationArguments(READONLY_LIST_CLASS.typeParamsContext,
-                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}),
-                    null);
+                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -522,10 +538,9 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyReadwriteList() {
         if (ANY_READWRITE_LIST_CLASS != null) return ANY_READWRITE_LIST_CLASS;
         try {
-            return ANY_READWRITE_LIST_CLASS = getReadwriteListClass().instantiate(
+            return ANY_READWRITE_LIST_CLASS = getReadwriteListClass().instantiate(project,
                     new InstantiationArguments(READWRITE_LIST_CLASS.typeParamsContext,
-                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}),
-                    null);
+                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -539,13 +554,12 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyReadonlyMap() {
         if (ANY_READONLY_MAP_CLASS != null) return ANY_READONLY_MAP_CLASS;
         try {
-            return ANY_READONLY_MAP_CLASS = getReadonlyMapClass().instantiate(
+            return ANY_READONLY_MAP_CLASS = getReadonlyMapClass().instantiate(project,
                     new InstantiationArguments(READONLY_MAP_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{
                                     this.getAnyClass().toClassRefLiteral(),   // K
                                     this.getAnyClass().toClassRefLiteral()    // V
-                            }),
-                    null);
+                            }), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -559,13 +573,12 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyReadwriteMap() {
         if (ANY_READWRITE_MAP_CLASS != null) return ANY_READWRITE_MAP_CLASS;
         try {
-            return ANY_READWRITE_MAP_CLASS = getReadwriteMapClass().instantiate(
+            return ANY_READWRITE_MAP_CLASS = getReadwriteMapClass().instantiate(project,
                     new InstantiationArguments(READWRITE_MAP_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{
                                     this.getAnyClass().toClassRefLiteral(),   // K
                                     this.getAnyClass().toClassRefLiteral()    // V
-                            }),
-                    null);
+                            }), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -579,10 +592,9 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyListClass() {
         if (ANY_LIST_CLASS != null) return ANY_LIST_CLASS;
         try {
-            return ANY_LIST_CLASS = getListClass().instantiate(
+            return ANY_LIST_CLASS = getListClass().instantiate(project,
                     new InstantiationArguments(LIST_CLASS.typeParamsContext,
-                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}),
-                    null);
+                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -596,10 +608,9 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyCollectionClass() {
         if (ANY_COLLECTION_CLASS != null) return ANY_COLLECTION_CLASS;
         try {
-            return ANY_COLLECTION_CLASS = getCollectionClass().instantiate(
+            return ANY_COLLECTION_CLASS = getCollectionClass().instantiate(project,
                     new InstantiationArguments(COLLECTION_CLASS.typeParamsContext,
-                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}),
-                    null);
+                            new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -614,13 +625,12 @@ public class Root extends Namespace<Package> {
     public ClassDef getAnyMapClass() {
         if (ANY_MAP_CLASS != null) return ANY_MAP_CLASS;
         try {
-            return ANY_MAP_CLASS = getMapClass().instantiate(
+            return ANY_MAP_CLASS = getMapClass().instantiate(project,
                     new InstantiationArguments(MAP_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{
                                     this.getAnyClass().toClassRefLiteral(),   // K
                                     this.getAnyClass().toClassRefLiteral()    // V
-                            }),
-                    null);
+                            }), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -629,13 +639,12 @@ public class Root extends Namespace<Package> {
         if (ENTITY_CLASS != null) return ENTITY_CLASS;
         try {
             ClassDef entityClass = (ClassDef) findByFullname("lang.Entity");
-            return ENTITY_CLASS = entityClass.instantiate(
+            return ENTITY_CLASS = entityClass.instantiate(project,
                     new InstantiationArguments(entityClass.typeParamsContext,
                             new ClassRefLiteral[]{
                                     this.getAnyClass().toClassRefLiteral(),   // Table
                                     this.getAnyClass().toClassRefLiteral()    // id
-                            }),
-                    null);
+                            }), null);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
@@ -803,19 +812,23 @@ public class Root extends Namespace<Package> {
         return NULL;
     }
 
-    public NullableClassDef getOrCreateNullableType(ClassDef classDef, MutableBoolean returnExisted) throws CompilationError {
-        var name = NullableClassDef.composeName(classDef.getFullname());
+    public NullableClassDef getOrCreateNullableType(ClassDef baseClass, MutableBoolean returnExisted) throws CompilationError {
+        var name = NullableClassDef.composeName(baseClass.getFullname());
 
         var existed = this.findByFullname(name);
         if(existed != null){
             if(returnExisted != null) returnExisted.setTrue();
             return (NullableClassDef) existed;
         }
-        var n = new NullableClassDef(this, classDef);
+        var n = new NullableClassDef(this, baseClass);
         getDefaultPackage().addChild(n);
         if (this.getCompilingStage().getValue() > n.getCompilingStage().getValue()) {
             Compiler.processClassTillStage(n, this.getCompilingStage());
             Compiler.processClassTillStage(n.getMetaClassDef(), this.getCompilingStage());
+        }
+        if(project != null){
+            project.registerConcreteType(n);
+            if(baseClass instanceof ConcreteType c) project.registerConcreteType(c);
         }
         return n;
 
@@ -831,5 +844,9 @@ public class Root extends Namespace<Package> {
                 .filter(c -> c instanceof ClassDef cl && cl.isDeriveFrom(entityClass))
                 .map(c -> (ClassDef) c)
                 .toList();
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
     }
 }

@@ -21,13 +21,13 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 
 public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunctionWrapper implements GenericConcreteType {
     private final static Logger LOGGER = LoggerFactory.getLogger(GenericInstantiationInterfaceFunctionWrapper.class);
@@ -36,15 +36,15 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
     private final InstantiationArguments instantiationArguments;
     private AgoParser.TypeArgsListContext typeArgsListContext;
 
-    public GenericInstantiationInterfaceFunctionWrapper(InterfaceFunctionWrapper templateClass, ClassContainer parent, InstantiationArguments instantiationArguments) throws CompilationError {
-        super(templateClass.getRoot(), parent, (FunctionDef) templateClass.getInterfaceFun().instantiateAsReferenceClass(instantiationArguments,null), templateClass.getWrapperField(), templateClass.getIdentifierContext());
+    public GenericInstantiationInterfaceFunctionWrapper(InterfaceFunctionWrapper templateClass, ClassContainer parent, InstantiationArguments instantiationArguments, Project project) throws CompilationError {
+        super(project == null ? templateClass.getRoot() : project.getRoot(), parent, (FunctionDef) templateClass.getInterfaceFun().instantiateAsReferenceClass(project, instantiationArguments,null), templateClass.getWrapperField(), templateClass.getIdentifierContext());
         this.templateClass = templateClass;
         this.instantiationArguments = instantiationArguments;
         this.setGenericSource(new GenericSource(templateClass, instantiationArguments, instantiationArguments.takeFor(templateClass)));
         this.setClassType(templateClass.getClassType());
         if(parent != null) parent.addChild(this);
 
-        templateClass.cloneTo(instantiationArguments, this, parent);
+        templateClass.cloneTo(project, instantiationArguments, this, parent);
         if(templateClass.getCompilingStage() == CompilingStage.Compiled || templateClass.getCompilingStage() == CompilingStage.CompileMethodBody){
             GenericInstantiate.syncCompilingStage(this, templateClass.getCompilingStage());
         }
@@ -81,10 +81,10 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
         return templateClass;
     }
 
-    @Override
-    public List<ClassDef> getConcreteDependencyClasses() {
-        return GenericInstantiate.getConcreteDependencyClasses(this);
-    }
+//    @Override
+//    public List<ClassDef> getConcreteDependencyClasses() {
+//        return GenericInstantiate.getConcreteDependencyClasses(this);
+//    }
 
     @Override
     public ClassDef getResultType() {
@@ -96,24 +96,6 @@ public class GenericInstantiationInterfaceFunctionWrapper extends InterfaceFunct
 //        var newArgs = this.instantiationArguments.applyIntermediate(arguments);
 //        return this.templateClass.instantiate(newArgs, returnExisted);
 //    }
-
-    @Override
-    public void registerConcreteType(ConcreteType concreteType) {
-        if(concreteType == this) return;
-
-        var stack = new Stack<ConcreteType>();
-        stack.addAll(this.getConcreteTypes().values());
-        while(!stack.isEmpty()){
-            var value = stack.pop();
-            if(concreteTypes.containsKey(value.getFullname()) && value != this) continue;
-            super.registerConcreteType(value);
-
-            ClassDef c = (ClassDef) value;
-            stack.addAll(c.getConcreteTypes().values());
-        }
-
-        super.registerConcreteType(concreteType);
-    }
 
     @Override
     public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {

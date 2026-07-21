@@ -43,7 +43,7 @@ public class DynamicCreator extends ExpressionInFunctionBody {
             list.add(refLiteral);
         }
         var args = list.toArray(new ClassRefLiteral[0]);
-        var instantiated = tuple.instantiateAsReferenceClass(new InstantiationArguments(tuple.getTypeParamsContext(), args), null);
+        var instantiated = tuple.instantiateAsReferenceClass(ownerFunction.getModule(), new InstantiationArguments(tuple.getTypeParamsContext(), args), null);
         if(instantiated instanceof ConcreteType c) ownerFunction.registerConcreteType(c);
         this.tupleClass = instantiated;
         return this;

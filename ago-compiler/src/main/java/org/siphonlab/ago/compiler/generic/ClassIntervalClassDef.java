@@ -22,6 +22,7 @@ import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.module.Project;
 
 import java.util.Set;
 
@@ -124,13 +125,13 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         ClassIntervalClassDef c = null;
         try {
-            c = this.getParentClass().getOrCreateClassInterval(baseClass.instantiate(instantiationArguments, null), constructor,
-                                    this.getLBoundClass().instantiate(instantiationArguments, null),
-                                    this.getUBoundClass().instantiate(instantiationArguments, null),
-                                    returnExisted);
+            c = this.getParentClass().getOrCreateClassInterval(project, baseClass.instantiate(project, instantiationArguments, null),
+                    constructor,
+                    this.getLBoundClass().instantiate(project, instantiationArguments, null),
+                    this.getUBoundClass().instantiate(project, instantiationArguments, null), returnExisted);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }

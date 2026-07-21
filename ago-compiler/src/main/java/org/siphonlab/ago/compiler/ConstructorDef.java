@@ -21,6 +21,7 @@ import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,11 +155,11 @@ public class ConstructorDef extends FunctionDef{
         return null;
     }
 
-    public ConstructorDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+    public ConstructorDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var clone = this.constructorDeclaration != null ?
                 new ConstructorDef(root, this.modifiers, this.constructorDeclaration):
                 new ConstructorDef(root, this.modifiers,name);
-        this.cloneTo(instantiationArguments, clone, parent);
+        this.cloneTo(project, instantiationArguments, clone, parent);
         return clone;
     }
 

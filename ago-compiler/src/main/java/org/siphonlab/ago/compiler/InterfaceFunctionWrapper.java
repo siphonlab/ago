@@ -22,6 +22,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 import org.siphonlab.ago.compiler.generic.*;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.statement.Return;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
@@ -40,7 +41,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
         this.setInterfaceFun(interfaceFun);
         this.field = field;
         this.identifierContext = identifierContext;
-        this.setUnit(interfaceFun.getUnit());
+        this.setUnit(field.getOwnerClass().getUnit());
 //        this.idOfClass(interfaceFun);  it will invoke in compileBody
         assert interfaceFun.getCompilingStage().getValue() > CompilingStage.ParseFields.getValue();
     }
@@ -61,7 +62,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
             this.shiftToTemplate();
             for (int i = 0; i < templateTypeParamsContext.size(); i++) {
                 var g = templateTypeParamsContext.get(i);
-                this.typeParamsContext.createGenericTypeParam(g.getName(), g.getSharedGenericTypeParameterClassDef(), g.getParamIndex());
+                this.typeParamsContext.createGenericTypeParam(getRoot().getProject(), g.getName(), g.getSharedGenericTypeParameterClassDef(), g.getParamIndex());
             }
             this.createTemplateDefaultGenericSource();
             var instantiatedFun = this.getOrCreateGenericInstantiationClassDef(interfaceFun, this.typeParamsContext.createDefaultArgumentsArray(), null);
@@ -173,7 +174,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
     }
 
     @Override
-    public void cloneTo(InstantiationArguments instantiationArguments, ClassDef instantiateClass, ClassContainer parent) throws CompilationError {
+    public void cloneTo(Project project, InstantiationArguments instantiationArguments, ClassDef instantiateClass, ClassContainer parent) throws CompilationError {
 
         instantiateClass.setGenericSource(new GenericSource(this, instantiationArguments, null));
         this.putInstantiatedClassToCache(instantiationArguments, instantiateClass);
@@ -191,7 +192,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
 
         if(parent != null) parent.addChild(instantiateClass);
 
-        instantiateChildren(instantiateClass, instantiationArguments);
+        instantiateChildren(project, instantiateClass, instantiationArguments);
 
     }
 }

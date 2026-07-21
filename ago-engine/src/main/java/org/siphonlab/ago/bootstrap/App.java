@@ -7,7 +7,6 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.zip.ZipInputStream;
@@ -108,14 +107,15 @@ public class App {
         if(classPaths != null) {
             for (String classPath : classPaths) {
                 if (classPath.endsWith(".agopkg")) {
-                    agoClassLoader.loadClasses(new ZipInputStream(new FileInputStream(classPath)));
+                    agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream(classPath)));
                 } else {
-                    agoClassLoader.loadClasses(classPath);
+                    agoClassLoader.loadModuleFromDirectory(classPath);
                 }
             }
         }
-        if(inputFiles != null)
-            agoClassLoader.loadClasses(inputFiles);
+        if(inputFiles != null) {
+            agoClassLoader.loadModules(inputFiles);
+        }
 
         engine.load(agoClassLoader);
 

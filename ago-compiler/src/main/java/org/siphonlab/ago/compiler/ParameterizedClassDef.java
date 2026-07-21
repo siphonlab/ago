@@ -15,7 +15,6 @@
  */
 package org.siphonlab.ago.compiler;
 
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.siphonlab.ago.compiler.exception.CompilationError;
@@ -28,6 +27,7 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
 import org.siphonlab.ago.compiler.generic.InstantiationArguments;
+import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.resolvepath.NamePathResolver;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.slf4j.Logger;
@@ -419,13 +419,13 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
         return baseClass.getName() + "::(" + Arrays.stream(arguments).map(Literal::getId).collect(Collectors.joining(",")) + ")";
     }
 
-    @Override
-    public List<ClassDef> getConcreteDependencyClasses() {
-        if(this.baseClass instanceof ConcreteType c){
-            return ListUtils.union(List.of(this.baseClass), c.getConcreteDependencyClasses());
-        }
-        return List.of(this.baseClass);
-    }
+//    @Override
+//    public List<ClassDef> getConcreteDependencyClasses() {
+//        if(this.baseClass instanceof ConcreteType c){
+//            return ListUtils.union(List.of(this.baseClass), c.getConcreteDependencyClasses());
+//        }
+//        return List.of(this.baseClass);
+//    }
 
     @Override
     public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
@@ -454,24 +454,24 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         ParameterizedClassDef c = null;
         try {
-            var n = baseClass.instantiateAsReferenceClass(instantiationArguments, returnExisted);
-            c = ((ClassContainer)this.getParent()).getOrCreateParameterizedClass(n, constructor, mapArguments(instantiationArguments), returnExisted);
+            var n = baseClass.instantiateAsReferenceClass(project, instantiationArguments, returnExisted);
+            c = ((ClassContainer)this.getParent()).getOrCreateParameterizedClass(n, constructor, mapArguments(project, instantiationArguments), returnExisted);
         } catch (CompilationError e) {
             throw new RuntimeException(e);
         }
         return c;
     }
 
-    protected Literal<?>[] mapArguments(InstantiationArguments instantiationArguments) throws CompilationError {
+    protected Literal<?>[] mapArguments(Project project, InstantiationArguments instantiationArguments) throws CompilationError {
         Literal<?>[] args = new Literal[arguments.length];
         for (int i = 0; i < arguments.length; i++) {
             Literal<?> a = arguments[i];
             args[i] = a;
             if (a instanceof ClassRefLiteral classRefLiteral) {
-                var a2 = classRefLiteral.getClassDefValue().instantiate(instantiationArguments, null);
+                var a2 = classRefLiteral.getClassDefValue().instantiate(project, instantiationArguments, null);
                 if (a2 != classRefLiteral.getClassDefValue()) {
                     args[i] = a2.toClassRefLiteral();
                 }

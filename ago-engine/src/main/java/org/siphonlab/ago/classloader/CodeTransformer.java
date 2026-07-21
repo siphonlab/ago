@@ -46,7 +46,7 @@ public class CodeTransformer {
         String s = strings[codeBuffer.getInt()];
         int v = classLoader.idOfString(s);
         codeBuffer.skip(-4).putInt(v);
-        assert Objects.equals(classLoader.getStrings().get(v), s);
+        assert Objects.equals(classLoader.getStrings()[v], s);
         codeBuffer.position(pos + size * 4);
     }
 
