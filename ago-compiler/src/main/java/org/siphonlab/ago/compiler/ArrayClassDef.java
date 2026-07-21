@@ -118,8 +118,8 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
-        return this.elementType.isAffectedByTypeArguments(instantiationArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
+        return this.elementType.isAffectedByTypeArguments(instantiationArguments, visited);
     }
 
     @Override

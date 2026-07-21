@@ -20,8 +20,6 @@ import org.siphonlab.ago.opcode.*;
 import org.siphonlab.ago.opcode.arithmetic.*;
 import org.siphonlab.ago.opcode.compare.*;
 
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 

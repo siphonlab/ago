@@ -61,7 +61,7 @@ public class GenericInstantiationPlaceHolder extends ClassDef {
         var r = resolver.resolve(resolveResult -> {
             if (!resolveResult.allFound(paramsContext)) {
                 resolveResult.error = new ResolveError("not all generic type params provided concrete argument, expected:%d provided:'%d'"
-                        .formatted(paramsContext.size(), resolveResult.providedArguments.size()), sourceLocation);
+                        .formatted(paramsContext.size(), resolveResult.boundArguments.size()), sourceLocation);
             }
         });
         ClassRefLiteral[] typeArgs = r.toTypeArgs(paramsContext);

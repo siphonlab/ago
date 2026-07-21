@@ -1,13 +1,13 @@
-interface DbField{
-// DbField need support composeTypeName, however it can't constraint on metaclass
-// and for standard data types, it will translate to each database typename with its adapter
-// only db owned types need implement this interface, i.e. JSONB in PG
-//    metaclass{
-//        fun composeTypeName() as string {
-//        }
-//    }
-}
-
+//interface DbField{
+//// DbField need support composeTypeName, however it can't constraint on metaclass
+//// and for standard data types, it will translate to each database typename with its adapter
+//// only db owned types need implement this interface, i.e. JSONB in PG
+////    metaclass{
+////        fun composeTypeName() as string {
+////        }
+////    }
+//}
+//
 
 class VarChar from String{
     metaclass{
@@ -19,91 +19,213 @@ class VarChar from String{
 }
 
 class BigInt from Boxer<long>{
-}
-
-native class QueryResult<T> with Iterator<T>{
-    override hasNext() as boolean native "org.siphonlab.ago.runtime.rdb.QueryResult.hasNext"
-    override next() as T native "org.siphonlab.ago.runtime.rdb.QueryResult.next"
-}
-
-// everything stored in db, but only extends Table can have getRowById and table functions
-// and if GC enabled, if not extends Table the data will be clean by GC
-class Table<T>{
-    metaclass{
-        fun of(id as long) as T native "org.siphonlab.ago.runtime.rdb.Table.getRowById";
-
-        fun fetchAll() as QueryResult<User> native "org.siphonlab.ago.runtime.rdb.Table.fetchAll"
-
+    override toString() as string{
+        return "" + this.value
     }
 }
 
 
-class User from Table<User> {
+class User from Entity<User, long> {
     metaclass{
         class Name from VarChar::(100)
-        class Address from VarChar::(200)
+        class Phone from VarChar::(200)
         class Age from BigInt
-
-        // fun findByName(name as User.Name) as Iterable<User> native "org.siphonlab.ago.rdb.Table.findBy"
     }
-    name as Name;
-    address as Address;
-    age as Age
+    public name as Name;
+    public phone as Phone;
+    public age as Age
+}
+
+fun initData(){
+    // 1. Tom
+    var u1 = {User | name: "Tom", phone: "13344456666", age: 20}
+    var addr1_1 = {Address | user: u1, street: "No.10 Wenchang Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510000", country: 'China', isPrimary: true}
+    var addr1_2 = {Address | user: u1, street: "No.5 South Zhongshan Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510100", country: 'China', isPrimary: false}
+
+    // 2. Alice
+    var u2 = {User | name: "Alice", phone: "13812345678", age: 28}
+    var addr2_1 = {Address | user: u2, street: "No.23 Yantian Rd.", city: "Shenzhen", state: "Guangdong", zipCode: "518000", country: 'China', isPrimary: true}
+
+    // 3. Bob
+    var u3 = {User | name: "Bob", phone: "13987654321", age: 35}
+    var addr3_1 = {Address | user: u3, street: "No.45 Nanshan Rd.", city: "Shenzhen", state: "Guangdong", zipCode: "518000", country: 'China', isPrimary: true}
+    var addr3_2 = {Address | user: u3, street: "No.7 Tianhe Ave.", city: "Shenzhen", state: "Guangdong", zipCode: "518001", country: 'China', isPrimary: false}
+
+    // 4. Carol
+    var u4 = {User | name: "Carol", phone: "13765432109", age: 22}
+    var addr4_1 = {Address | user: u4, street: "No.12 Huadu Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510300", country: 'China', isPrimary: true}
+
+    // 5. David
+    var u5 = {User | name: "David", phone: "13654321098", age: 30}
+    var addr5_1 = {Address | user: u5, street: "No.8 Haizhu Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510400", country: 'China', isPrimary: true}
+    var addr5_2 = {Address | user: u5, street: "No.15 Tianhe Ave.", city: "Shenzhen", state: "Guangdong", zipCode: "518001", country: 'China', isPrimary: false}
+
+    // 6. Eve
+    var u6 = {User | name: "Eve", phone: "13543210987", age: 27}
+    var addr6_1 = {Address | user: u6, street: "No.20 Nanshan Rd.", city: "Shenzhen", state: "Guangdong", zipCode: "518000", country: 'China', isPrimary: true}
+
+    // 7. Frank
+    var u7 = {User | name: "Frank", phone: "13432109876", age: 33}
+    var addr7_1 = {Address | user: u7, street: "No.9 Baiyun Rd.", city: "Guangzhou", state: "Guangdong", zipCode: "510500", country: 'China', isPrimary: true}
+    var addr7_2 = {Address | user: u7, street: "No.4 Tianhe Ave.", city: "Shenzhen", state: "Guangdong", zipCode: "518001", country: 'China', isPrimary: false}
 }
 
 fun main(){
-    var u = new User() with {
-        .name = "Tom";
-        .address = "liberation street 222";
-        .age = 20;
+    await initData() via EntitySpace.new#();
+
+    var it = await join_test('David') via EntitySpace.new#();
+    for(var item in it){
+        Trace.print(item.userName)
+        Trace.print(item.street)
     }
 
-//    // next time we can load from existed data
-//    var u = User.of(1)
-
-    Trace.print(u.name)
-    Trace.print(u.age)
+    Trace.print("DONE");
 }
 
-enum HttpMethod{
-    Get, Post, Put, Delete, Patch, Options, Head
-}
 
-native trait RestService<R> for Function0<R>{
-    metaclass{
-        httpMethod as HttpMethod
-        path as string
-        fun new#GET(path as string){
-            this.httpMethod = HttpMethod.Get
-            this.path = path
+/*
+    fun UserByName(dialect as string, name as string?) as Iterator<UserByNameResult>{
+        class Result{
+            final id as int;
+            final name as User.Name;
         }
-        fun new#method(httpMethod as HttpMethod, path as string){
-            this.httpMethod = httpMethod
-            this.path = path
+        class Args{
+            final name as string?
         }
+        metaclass{
+            dialects['pg'] = "select id, name from User where name = ?";
+        }
+
+        sort = sort or defaultValue_sort();     // if null
+
+        return executeQuery(dialects['pg'], new Args(name))
     }
-    // JSON
-    fun payload<T>() as T native "org.siphonlab.ago.web.RestfulService.payload"
+*/
+
+query userByName(name as string?, minAge as int?, maxAge as int?, sort as Sort[]? = [Sort[] | new Sort('u.name', 'asc')]) {
+    sql{.
+        SELECT u.id, u.name, u.age FROM User u WHERE name = :name AND age >= :minAge AND age <= :maxAge
+        ORDER BY :sort ASC
+    .}
 }
 
-fun listUsers() as QueryResult<User> with RestService<Iterator<User>>::('/list_users'){
-    return User.fetchAll()
+query join_test(name as string?) {
+    sql{.
+        SELECT
+            u.name        AS userName,
+            a.street      AS street,
+            a.city        AS city,
+            a.state       AS state,
+            a.zipCode     AS zip,
+            a.country     AS country
+        FROM
+            User u
+        JOIN
+            Address a
+        ON
+            a.user = u.id
+        WHERE
+            a.isPrimary = true AND u.name = :name
+    .}
+}
+//
+//query UserByName3(name as string?) {
+//    sql{.
+//        SELECT
+//            u.id          AS userId,
+//            u.name        AS userName,
+//            a.street      AS street,
+//            a.city        AS city,
+//            a.state       AS state,
+//            a.zipCode     AS zip,
+//            a.country     AS country
+//        FROM
+//            User u, Address a
+//        WHERE
+//            a.user = u.id
+//            AND a.isPrimary = true
+//    .}
+//}
+
+class Address from Entity<Address, long> {
+    public user as User;
+
+    public street      as string;
+    public city        as string;
+    public state       as string;
+    public zipCode     as string;
+    public country     as string;
+
+    public isPrimary   as boolean;
 }
 
-fun getUserById(id as long) as User with RestService<User>::('/user/{id}'){
-    return User.of(id)
-}
+//class Order from Entity<Order, long> {
+//    user as User;
+//
+//    orderNumber  as string unique;
+//    totalAmount  as decimal(10,2);
+//    status       as enum('Pending','Processing','Shipped','Delivered','Cancelled');
+//    createdAt    as datetime;
+//    updatedAt    as datetime;
+//}
+//
+//// ---------- 4️⃣ OrderItem ----------
+//class OrderItem from Entity<OrderItem, long> {
+//    order as Order
+//
+////    productId as long;       // 假设产品在别处定义
+//    quantity  as int;
+//    unitPrice as decimal(10,2);
+//}
 
-fun create_user() as User with RestService<User>::(HttpMethod.Post, '/create_user'){
-    var input = fun.this.payload<User>()        // decoded json, to User
-    var u = new User()
-    u o= input
-    return u
-}
+//// ---------- 5️⃣ UserLoginLog ----------
+//class UserLoginLog from Entity<UserLoginLog, long> {
+//    user as User;
+//
+//    loginAt     as datetime;
+//    ipAddress   as string;
+//    deviceInfo  as string;   // 浏览器/设备信息
+//}
 
-fun update_user(id as long) as User with RestService<User>::(HttpMethod.Put, '/update_user/{id}'){
-    var input = fun.this.payload<User>();
-    var u = User.of(id)
-    u o= input
-    return u;
-}
+//enum HttpMethod{
+//    Get, Post, Put, Delete, Patch, Options, Head
+//}
+//
+//native trait RestService<R> for Function0<R>{
+//    metaclass{
+//        httpMethod as HttpMethod
+//        path as string
+//        fun new#GET(path as string){
+//            this.httpMethod = HttpMethod.Get
+//            this.path = path
+//        }
+//        fun new#method(httpMethod as HttpMethod, path as string){
+//            this.httpMethod = httpMethod
+//            this.path = path
+//        }
+//    }
+//    // JSON
+//    fun payload<T>() as T native "org.siphonlab.ago.web.RestfulService.payload"
+//}
+//
+//fun listUsers() as QueryResult<User> with RestService<Iterator<User>>::('/list_users'){
+//    return User.fetchAll()
+//}
+//
+//fun getUserById(id as long) as User with RestService<User>::('/user/{id}'){
+//    return User.of(id)
+//}
+//
+//fun create_user() as User with RestService<User>::(HttpMethod.Post, '/create_user'){
+//    var input = fun.this.payload<User>()        // decoded json, to User
+//    var u = new User()
+//    u o= input
+//    return u
+//}
+//
+//fun update_user(id as long) as User with RestService<User>::(HttpMethod.Put, '/update_user/{id}'){
+//    var input = fun.this.payload<User>();
+//    var u = User.of(id)
+//    u o= input
+//    return u;
+//}

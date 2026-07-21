@@ -86,6 +86,43 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
 
     }
 
+    public boolean contains(ClassDef classDef){
+        ClassDef lBound = this.getLBoundClass();
+        ClassDef uBound = this.getUBoundClass();
+        ClassDef any = getRoot().getAnyClass();
+        if(lBound == any && uBound == any) return true;
+        if(lBound != any){
+            if(!lBound.isThatOrSuperOfThat(classDef)) return false;
+        }
+        if(uBound != any){
+            if(!classDef.isThatOrSuperOfThat(uBound)) return false;
+        }
+        return true;
+    }
+
+    public ClassDef findAcceptableClass(ClassDef classDef){
+        ClassDef lBound = this.getLBoundClass();
+        ClassDef uBound = this.getUBoundClass();
+        ClassDef any = getRoot().getAnyClass();
+        if(lBound == any && uBound == any) return classDef;
+        ClassDef result ;
+        if(lBound != any){
+            result = lBound.asThatOrSuperOfThat(classDef);
+            if(result == null) return null;
+        } else {
+            result = null;
+        }
+        if(uBound != any){
+            var resultU = classDef.asThatOrSuperOfThat(uBound);
+            if(resultU == null) {
+                return null;
+            } else if(result == null) {
+                result = resultU;
+            }
+        }
+        return result;
+    }
+
     @Override
     public ClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
         ClassIntervalClassDef c = null;

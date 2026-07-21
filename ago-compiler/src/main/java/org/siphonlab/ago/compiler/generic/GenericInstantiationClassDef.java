@@ -146,10 +146,10 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
-        if(super.isAffectedByTypeArguments(instantiationArguments)) return true; //TODO already instantiated?
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
+        if(super.isAffectedByTypeArguments(instantiationArguments, visited)) return true; //TODO already instantiated?
         for (ClassRefLiteral typeArgument : this.getTypeArguments()) {
-            if(typeArgument.getClassDefValue().isAffectedByTypeArguments(instantiationArguments)){
+            if(typeArgument.getClassDefValue().isAffectedByTypeArguments(instantiationArguments, visited)){
                 return true;
             }
         }

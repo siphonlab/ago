@@ -27,190 +27,228 @@ import org.siphonlab.ago.runtime.rdb.RdbType;
 
 import java.util.List;
 
-public class PGJsonDDLGenerator extends RdbDDLGenerator {
+public class PGJsonDDLGenerator<Id> extends RdbDDLGenerator<Id> {
 
-    public PGJsonDDLGenerator(AgoClassLoader classLoader, RdbAdapter rdbAdapter, DatabasePlatform databasePlatform) {
+    public PGJsonDDLGenerator(AgoClassLoader classLoader,
+                              RdbAdapter<Id> rdbAdapter,
+                              DatabasePlatform databasePlatform) {
         super(classLoader, rdbAdapter, databasePlatform);
     }
 
-    // we always generate 3 tables, ago_class, ago_instance, ago_callframe, however, they are all instances indeed
     @Override
     protected void generate(BaseTableDdl ddlGen, DdlWrite writer) {
+        // 1. runspace table – must be first because other tables refer to it
+        ddlGen.generate(writer, createRunspaceTable());
+
+        // 2. string / blob tables (no PK on id column)
         ddlGen.generate(writer, createStringsTable());
         ddlGen.generate(writer, createBlobsTable());
 
+        // 3. class & function – both inherit the instance columns
         ddlGen.generate(writer, createClassTable());
         ddlGen.generate(writer, createFunctionTable());
 
-        ddlGen.generate(writer,createInstanceTable());
+        // 4. instance table
+        ddlGen.generate(writer, createInstanceTable());
+
+        // 5. frame (callframe) table
         ddlGen.generate(writer, createCallFrameTable());
     }
 
-    CreateTable createInstanceTable() {
-        CreateTable createTable = new CreateTable();
-        createTable.setName("ago_instance");
-        createTable.setPkName("pk_ago_instance");
-        List<Column> columns = createTable.getColumn();
-        RdbType idType = rdbAdapter.idType();
+    /* ------------------------------------------------------------------ */
+    /* runspace table                                                     */
+    /* ------------------------------------------------------------------ */
 
-        createInstanceColumns(idType, columns);
+    private CreateTable createRunspaceTable() {
+        CreateTable ct = new CreateTable();
+        ct.setName("ago_runspace");
+        ct.setPkName("pk_ago_runspace");
 
-        createCallFrameTable();
+        List<Column> cols = ct.getColumn();
+        RdbType idT = rdbAdapter.idRdbType();
 
-        return createTable;
+        // primary key
+        Column idCol = createColumn("id", idT.getTypeName());
+        idCol.setPrimaryKey(true);
+        cols.add(idCol);
+
+        // other columns
+        cols.add(createColumn("application", idT.getTypeName()));
+        cols.add(createColumn("native_host_class", "text"));
+        cols.add(createColumn("curr_frame_table", "varchar(1024)"));
+        cols.add(createColumn("curr_frame_id", "bigint"));
+        cols.add(createColumn("result_slots", "json"));
+        cols.add(createColumn("running_state", "smallint"));
+        cols.add(createColumn("exception_id", "bigint"));
+
+        cols.add(createColumn("pausing_parents", "bigint[]"));
+        cols.add(createColumn("forked_runspaces", "bigint[]"));
+        cols.add(createColumn("parent_runspace", "bigint"));
+
+        return ct;
     }
 
-    CreateTable createCallFrameTable() {
-        CreateTable createTable = new CreateTable();
-        createTable.setName("ago_frame");
-        createTable.setPkName("pk_ago_frame");
-        List<Column> columns = createTable.getColumn();
-        RdbType idType = rdbAdapter.idType();
+    /* ------------------------------------------------------------------ */
+    /* string table                                                       */
+    /* ------------------------------------------------------------------ */
 
-        createInstanceColumns(idType, columns);
+    private CreateTable createStringsTable() {
+        CreateTable ct = new CreateTable();
+        ct.setName("ago_string");
+        ct.setPkName("pk_ago_string");
 
-        objectColumn(columns, "caller", idType);
-        columns.add(createColumn("state", "int"));
-        columns.add(createColumn("pc", "int"));
-        columns.add(createColumn("receiver_slot", "int"));
-        objectColumn(columns,"exception",idType);
-        columns.add(createColumn("runspace","text"));
+        List<Column> cols = ct.getColumn();
 
-        return createTable;
+        RdbType idT = rdbAdapter.idRdbType();
+
+        // primary key
+        Column idCol = createColumn("id", idT.getTypeName());
+        idCol.setPrimaryKey(true);
+        cols.add(idCol);
+
+        Column app = createColumn("application", "int");
+        Column idx = createColumn("index", "int");
+
+        cols.add(app);
+        cols.add(idx);
+        cols.add(createColumn("value", "text"));
+
+        return ct;
     }
 
+    /* ------------------------------------------------------------------ */
+    /* blob table                                                        */
+    /* ------------------------------------------------------------------ */
 
-    CreateTable createClassTable(){
-        CreateTable createTable = new CreateTable();
-        createTable.setName("ago_class");
-        createTable.setPkName("pk_ago_class");
-        List<Column> columns = createTable.getColumn();
-        RdbType idType = rdbAdapter.idType();
+    private CreateTable createBlobsTable() {
+        CreateTable ct = new CreateTable();
+        ct.setName("ago_blob");
+        ct.setPkName("pk_ago_blob");
 
-        createInstanceColumns(idType, columns);
-        createClassColumns(columns);
+        List<Column> cols = ct.getColumn();
 
-        return createTable;
+        RdbType idT = rdbAdapter.idRdbType();
+
+        // primary key
+        Column idCol = createColumn("id", idT.getTypeName());
+        idCol.setPrimaryKey(true);
+        cols.add(idCol);
+
+        Column app = createColumn("application", "int");
+        Column idx = createColumn("index", "int");
+//        app.setPrimaryKey(true);
+//        idx.setPrimaryKey(true);
+
+        cols.add(app);
+        cols.add(idx);
+        cols.add(createColumn("data", "bytea"));
+
+        return ct;
     }
 
-    CreateTable createStringsTable() {
-        CreateTable createTable = new CreateTable();
-        createTable.setName("ago_string");
-        createTable.setPkName("pk_ago_string");
-        List<Column> columns = createTable.getColumn();
-        RdbType idType = rdbAdapter.idType();
+    /* ------------------------------------------------------------------ */
+    /* class table                                                        */
+    /* ------------------------------------------------------------------ */
 
-        columns.add(createColumn("id", idType.getTypeName()));
-        var app = createColumn("application", "int");
-        columns.add(app);
-        var index = createColumn("index", "int");
-        columns.add(index);
-        app.setPrimaryKey(true);
-        index.setPrimaryKey(true);
+    private CreateTable createClassTable() {
+        CreateTable ct = new CreateTable();
+        ct.setName("ago_class");
+        ct.setPkName("pk_ago_class");
 
-        columns.add(createColumn("value","text"));
+        List<Column> cols = ct.getColumn();
 
-        return createTable;
+        // id + instance‑common columns
+        createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
+
+        // class‑specific columns
+        createClassColumns(cols);
+
+        return ct;
     }
 
-    CreateTable createBlobsTable() {
-        CreateTable createTable = new CreateTable();
-        createTable.setName("ago_blob");
-        createTable.setPkName("pk_ago_blob");
-        List<Column> columns = createTable.getColumn();
-        RdbType idType = rdbAdapter.idType();
+    /* ------------------------------------------------------------------ */
+    /* function table                                                    */
+    /* ------------------------------------------------------------------ */
 
-        columns.add(createColumn("id", idType.getTypeName()));
-        var app = createColumn("application", "int");
-        columns.add(app);
-        var index = createColumn("index", "int");
-        columns.add(index);
-        app.setPrimaryKey(true);
-        index.setPrimaryKey(true);
-        columns.add(createColumn("data", "bytea"));
+    private CreateTable createFunctionTable() {
+        CreateTable ct = new CreateTable();
+        ct.setName("ago_function");
+        ct.setPkName("pk_ago_function");
 
-        return createTable;
+        List<Column> cols = ct.getColumn();
+
+        // id + instance‑common columns
+        createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
+
+        // class‑specific columns (same as ago_class)
+        createClassColumns(cols);
+
+        // function‑specific columns
+        cols.add(createColumn("variables", "json[]"));
+        cols.add(createColumn("parameters", "json[]"));
+        cols.add(createColumn("switch_tables", "json[]"));
+        cols.add(createColumn("try_catch_items", "json[]"));
+        cols.add(createColumn("source_map_entries", "json[]"));
+        cols.add(createColumn("code", "int[]"));
+        cols.add(createColumn("native_function_entrance", "varchar(1024)"));
+        cols.add(createColumn("native_function_result_slot", "int"));
+        cols.add(createColumn("result_type", "text"));
+
+        return ct;
     }
 
-    private static void createClassColumns(List<Column> columns) {
-        columns.add(createColumn("fullname","text"));
-        columns.add(createColumn("class_id", "int"));
-        columns.add(createColumn("class_type", "int"));
-        columns.add(createColumn("name","varchar(1024)"));
-        columns.add(createColumn("fields", "jsonb[]"));
-        columns.add(createColumn("slotDefs", "jsonb[]"));
-        columns.add(createColumn("has_slots_creator", "bool"));
-        columns.add(createColumn("modifiers", "int"));
-        columns.add(createColumn("super_class", "text"));
-        columns.add(createColumn("interfaces", "text[]"));
-        columns.add(createColumn("children", "text[]"));
-        columns.add(createColumn("methods", "text[]"));
-        columns.add(createColumn("parent", "text"));
-        columns.add(createColumn("permit_class", "text"));
-        columns.add(createColumn("parameterized_base_class", "text"));
-        columns.add(createColumn("concrete_type_info", "jsonb"));
-        columns.add(createColumn("source_location", "jsonb"));
+    /* ------------------------------------------------------------------ */
+    /* instance table                                                    */
+    /* ------------------------------------------------------------------ */
+
+    private CreateTable createInstanceTable() {
+        CreateTable ct = new CreateTable();
+        ct.setName("ago_instance");
+        ct.setPkName("pk_ago_instance");
+
+        List<Column> cols = ct.getColumn();
+
+        // id + instance‑common columns
+        createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
+        cols.add(createColumn("payload", "json"));
+
+        return ct;
     }
 
-    CreateTable createFunctionTable() {
-        CreateTable createTable = new CreateTable();
-        createTable.setName("ago_function");
-        createTable.setPkName("pk_ago_function");
-        List<Column> columns = createTable.getColumn();
-        RdbType idType = rdbAdapter.idType();
+    /* ------------------------------------------------------------------ */
+    /* frame (callframe) table                                           */
+    /* ------------------------------------------------------------------ */
 
-        createInstanceColumns(idType, columns);
+    private CreateTable createCallFrameTable() {
+        CreateTable ct = new CreateTable();
+        ct.setName("ago_frame");
+        ct.setPkName("pk_ago_frame");
 
-        createClassColumns(columns);
+        List<Column> cols = ct.getColumn();
 
-        columns.add(createColumn("variables","jsonb[]"));
-        columns.add(createColumn("parameters", "jsonb[]"));
-        columns.add(createColumn("switch_tables", "jsonb[]"));
-        columns.add(createColumn("try_catch_items", "jsonb[]"));
-        columns.add(createColumn("source_map_entries", "jsonb[]"));
-        columns.add(createColumn("code","int[]"));
-        columns.add(createColumn("native_function_entrance", "varchar(1024)"));
-        columns.add(createColumn("native_function_result_slot", "int"));
-        columns.add(createColumn("result_type", "jsonb"));
+        // id + instance‑common columns
+        createInstanceColumns(rdbAdapter.idRdbType(), cols, true);
 
-        return createTable;
+        // caller_* columns (id + class)
+        objectColumn(cols, "caller", rdbAdapter.idRdbType());
+
+        // frame‑specific columns
+        cols.add(createColumn("suspended", "bool"));
+        cols.add(createColumn("state", "int"));
+        cols.add(createColumn("pc", "int"));
+        cols.add(createColumn("receiver_slot", "int"));
+        cols.add(createColumn("exception_id", "bigint"));
+        cols.add(createColumn("exception_class", "text"));
+        cols.add(createColumn("runspace", "text"));
+
+        // payload
+        cols.add(createColumn("payload", "json"));
+
+        // entrance flags
+        cols.add(createColumn("is_entrance", "bool"));
+        cols.add(createColumn("is_async_entrance", "bool"));
+
+        return ct;
     }
 
-
-    private static void createInstanceColumns(RdbType idType, List<Column> columns) {
-        var id = createColumn("id", idType.getTypeName());
-        id.setPrimaryKey(true);
-
-        columns.add(id);
-
-        columns.add(createColumn("application", idType.getTypeName()));        // application id, each app has an id, which means a storage space
-
-        columns.add(createColumn("ago_class","text"));
-
-        objectColumn(columns, "parent_scope", idType);
-
-        objectColumn(columns,"creator",idType);
-
-        columns.add(createColumn("slots", "jsonb"));
-
-    }
-
-    static Column createColumn(String columnName, String type){
-        var col = new Column();
-        col.setName(columnName);
-        col.setType(type);
-        return col;
-    }
-
-    static void objectColumn(List<Column> columns, String fieldName, RdbType idType){
-        var id = new Column();
-        id.setName(fieldName + "_id");
-        id.setType(idType.getTypeName());
-        columns.add(id);
-
-        var className = new Column();
-        className.setName(fieldName + "_class");
-        className.setType("text");
-        columns.add(className);
-    }
 }

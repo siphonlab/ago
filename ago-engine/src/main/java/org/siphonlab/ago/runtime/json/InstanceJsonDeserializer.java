@@ -22,11 +22,8 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import org.agrona.collections.IntArrayList;
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.commons.collections4.IteratorUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.eclipse.collections.api.PrimitiveIterable;
-import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.impl.list.mutable.primitive.*;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.*;
@@ -37,7 +34,7 @@ import java.util.*;
 
 import static org.siphonlab.ago.TypeCode.*;
 
-public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
+public class InstanceJsonDeserializer<Id> extends JsonDeserializer<Instance<?>> {
     protected final AgoEngine agoEngine;
 
     enum ParseState {
@@ -112,8 +109,23 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         }
     }
 
-    public InstanceJsonDeserializer(AgoEngine agoEngine) {
+    private final Object sampleId;
+
+    public InstanceJsonDeserializer(AgoEngine agoEngine, Object sampleId) {
         this.agoEngine = agoEngine;
+        this.sampleId = sampleId;
+    }
+
+    protected Id readId(AgoJsonParser ajp) throws IOException {
+        if(sampleId instanceof Long){
+            return (Id)(Long)ajp.getLongValue();
+        } else if(sampleId instanceof String){
+            return (Id) ajp.getValueAsString();
+        } else if(sampleId instanceof Integer){
+            return (Id) (Integer)ajp.getIntValue();
+        } else {
+            throw new IllegalArgumentException("Unsupported id type: " + sampleId.getClass());
+        }
     }
 
     @Override
@@ -291,7 +303,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         if(expectedClass instanceof AgoEnum agoEnum){
             return deserializeEnumValue(ajp, agoEnum);
         } else {
-            var instance = agoEngine.createInstance(expectedClass, creator);
+            var instance = agoEngine.createInstance(expectedClass, creator.getRunSpace());
             readPrimitiveSlot(ajp, token, instance.getSlots(), expectedClass.getSlotDefs()[0]);
             if (expectedClass == agoEngine.getLangClasses().getClassRefClass()) {
                 instance.getSlots().setObject(1, agoEngine.getClass(instance.getSlots().getClassRef(0)));
@@ -319,7 +331,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
     }
 
     private Instance<?> deserializeComplexBoxedValue(AgoJsonParser ajp, AgoClass expectedClass, CallFrame<?> creator, DeserializationContext ctxt) throws IOException {
-        var instance = agoEngine.createInstance(expectedClass, creator);
+        var instance = agoEngine.createInstance(expectedClass, creator.getRunSpace());
 
         Map<String, AgoSlotDef> map = new HashMap<>();
         AgoSlotDef[] slotDefs = expectedClass.getSlotDefs();
@@ -345,7 +357,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
             for (AgoSlotDef slotDef : slotDefs)
                 map.put(slotDef.getName() + '_' + slotDef.getIndex(), slotDef);
         }
-        var instance = agoEngine.createInstance(agoClass, creator);
+        var instance = agoEngine.createInstance(agoClass, creator.getRunSpace());
         deserializeSlots(ajp, ctxt, creator, instance.getSlots(), map);
         return instance;
     }
@@ -416,7 +428,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
             if (token == JsonToken.FIELD_NAME) {
                 if (ajp.getValueAsString().equals("@id")) {
                     if (result == null) {
-                        result = deserializeClassRef(baseClass, ajp.getValueAsLong());
+                        result = deserializeClassRef(baseClass, readId(ajp), ajp.getCallFrame().getRunSpace());
                     }
                 } else if (ajp.getValueAsString().equals("scope")) {
                     var scope = deserializeAny(ajp, ctxt, null, creator, null, null);
@@ -451,7 +463,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         while((token = ajp.nextToken()) != JsonToken.END_ARRAY) {
             if (token == JsonToken.VALUE_NUMBER_INT) {      // id
                 if(result == null)
-                    result = deserializeClassRef(baseClass, ajp.getValueAsLong());
+                    result = deserializeClassRef(baseClass, readId(ajp), ajp.getCallFrame().getRunSpace());
             } else if(token == JsonToken.START_OBJECT){
                 var scope = deserializeAny(ajp, ctxt, null, creator, null, null);
                 if(result == null)
@@ -465,7 +477,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
         return result == null ? baseClass : result;
     }
 
-    protected AgoClass deserializeClassRef(AgoClass baseClass, long id) {
+    protected AgoClass deserializeClassRef(AgoClass baseClass, Id id, RunSpace runSpace) {
         throw new UnsupportedOperationException();
     }
 
@@ -486,7 +498,7 @@ public class InstanceJsonDeserializer extends JsonDeserializer<Instance<?>> {
                 throw new IllegalStateException("unsupported collection type '%s'".formatted(collectionType.getFullname()));
             }
             var ls = deserializeList(ajp, ctxt, elementType, creator);
-            var instance = this.agoEngine.createNativeInstance(creator, collectionType, creator);
+            var instance = this.agoEngine.createNativeInstance(null, collectionType, creator.getRunSpace());    //TODO parentScope of Collection Class
             if(collectionType.getConcreteTypeInfoAsGenericArguments().getTemplateClass() == agoEngine.getLangClasses().getArrayListClass()){
                 instance.setNativePayload(ls);
             } else if(collectionType.getConcreteTypeInfoAsGenericArguments().getTemplateClass() == agoEngine.getLangClasses().getLinkedListClass()) {

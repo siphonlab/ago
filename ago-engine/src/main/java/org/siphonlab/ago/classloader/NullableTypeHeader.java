@@ -21,6 +21,7 @@ import org.siphonlab.ago.*;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.siphonlab.ago.classloader.LoadingStage.*;
 
@@ -42,7 +43,7 @@ public class NullableTypeHeader extends UnionTypeHeader {
     }
 
     @Override
-    public boolean isGenericTerminated() {
+    public boolean isGenericTerminated(Set<String> visited) {
         return this.getNullableBaseClass().isGenericTerminated();
     }
 
@@ -75,8 +76,8 @@ public class NullableTypeHeader extends UnionTypeHeader {
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
-        return this.getNullableBaseClass().isAffectedByTypeArguments(typeArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments, Set<String> visited) {
+        return this.getNullableBaseClass().isAffectedByTypeArguments(typeArguments, visited);
     }
 
     @Override

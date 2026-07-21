@@ -73,7 +73,8 @@ public class AgoClass extends Instance<MetaClass>{
     public static final int GENERIC_TEMPLATE_NEG   = 0b1111_1111_1101_1111_1111_1111_1111_1111;
     public static final int GENERIC_INSTANTIATION  = 0x0040_0000;     // this class/function come from a template class/function
 
-    public static final int GENERATOR       = 0x0080_0000;
+    public static final int GENERATOR               = 0x0080_0000;
+    public static final int DEFAULT_VALUE_PARAM     = 0x0100_0000;      // this parameter has default value, an inner function according param index, named as defaultValue@N
 
     protected byte type;
 
@@ -323,7 +324,11 @@ public class AgoClass extends Instance<MetaClass>{
             var a2 = anotherArguments[i];
             switch (variance){
                 case Invariance:
-                    if(!Objects.equals(a1, a2)) return false;
+                    if(ClassBound.isClassBound(a1)){
+                        if(!a1.isThatOrSuperOfThat(a2)) return false;
+                    } else {
+                        if (!Objects.equals(a1, a2)) return false;
+                    }
                     break;
                 case Covariance:
                     if(!a1.isThatOrSuperOfThat(a2)) return false;
@@ -370,6 +375,10 @@ public class AgoClass extends Instance<MetaClass>{
 
     public boolean isFunction() {
         return this.type == TYPE_FUNCTION;
+    }
+
+    public void initSlots(Slots dbSlots) {
+        this.slots = dbSlots;
     }
 
     public static class DefaultSlots implements Slots{

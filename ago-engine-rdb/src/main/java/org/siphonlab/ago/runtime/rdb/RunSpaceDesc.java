@@ -16,28 +16,28 @@
 package org.siphonlab.ago.runtime.rdb;
 
 import org.siphonlab.ago.ResultSlots;
+import org.siphonlab.ago.runtime.db.ObjectRef;
 
 import java.util.List;
-import java.util.Objects;
 
-public final class RunSpaceDesc {
-    private long id;
+public final class RunSpaceDesc<Id> {
+    private Id id;
     private String runSpaceHostClass;
-    private ObjectRef currFrame;
+    private ObjectRef<Id> currFrame;
     private ResultSlots resultSlots;
     private byte runningState;
-    private ObjectRef exception;
+    private ObjectRef<Id> exception;
 
-    private List<RunSpaceDesc> pausingParents;
+    private List<RunSpaceDesc<Id>> pausingParents;
 
-    private List<RunSpaceDesc> forkedRunSpaces;
-    private RunSpaceDesc parentRunSpace;
+    private List<RunSpaceDesc<Id>> forkedRunSpaces;
+    private RunSpaceDesc<Id> parentRunSpace;
 
-    public long getId() {
+    public Id getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Id id) {
         this.id = id;
     }
 
@@ -49,11 +49,11 @@ public final class RunSpaceDesc {
         this.runSpaceHostClass = runSpaceHostClass;
     }
 
-    public ObjectRef getCurrFrame() {
+    public ObjectRef<Id> getCurrFrame() {
         return currFrame;
     }
 
-    public void setCurrFrame(ObjectRef currFrame) {
+    public void setCurrFrame(ObjectRef<Id> currFrame) {
         this.currFrame = currFrame;
     }
 
@@ -73,35 +73,35 @@ public final class RunSpaceDesc {
         this.runningState = runningState;
     }
 
-    public ObjectRef getException() {
+    public ObjectRef<Id> getException() {
         return exception;
     }
 
-    public void setException(ObjectRef exception) {
+    public void setException(ObjectRef<Id> exception) {
         this.exception = exception;
     }
 
-    public List<RunSpaceDesc> getPausingParents() {
+    public List<RunSpaceDesc<Id>> getPausingParents() {
         return pausingParents;
     }
 
-    public void setPausingParents(List<RunSpaceDesc> pausingParents) {
+    public void setPausingParents(List<RunSpaceDesc<Id>> pausingParents) {
         this.pausingParents = pausingParents;
     }
 
-    public List<RunSpaceDesc> getForkedRunSpaces() {
+    public List<RunSpaceDesc<Id>> getForkedRunSpaces() {
         return forkedRunSpaces;
     }
 
-    public void setForkedRunSpaces(List<RunSpaceDesc> forkedRunSpaces) {
+    public void setForkedRunSpaces(List<RunSpaceDesc<Id>> forkedRunSpaces) {
         this.forkedRunSpaces = forkedRunSpaces;
     }
 
-    public RunSpaceDesc getParentRunSpace() {
+    public RunSpaceDesc<Id> getParentRunSpace() {
         return parentRunSpace;
     }
 
-    public void setParentRunSpace(RunSpaceDesc parentRunSpace) {
+    public void setParentRunSpace(RunSpaceDesc<Id> parentRunSpace) {
         this.parentRunSpace = parentRunSpace;
     }
 

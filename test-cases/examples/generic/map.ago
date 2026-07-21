@@ -1,0 +1,69 @@
+// the original function `map` moved to lang
+fun myMap<T, R>(this as Array<T>, mapper as [Function1<R,T>]) as R[] {
+    var l = this.length;
+    var arr = new R[l];
+    for(var i=0; i<l;i++){
+        arr[i] = mapper(this[i]);
+    }
+    return arr;
+}
+
+class Animal{
+    get name() as string{
+        return "Animal"
+    }
+    fun bark(){
+    }
+}
+class Cat from Animal{
+    override get name() as string{
+        return "Cat"
+    }
+    override bark(){
+        Trace.print("meow")
+    }
+}
+class Dog from Animal{
+    override get name() as string{
+        return "Dog"
+    }
+    override bark(){
+        Trace.print("woof")
+    }
+}
+
+class Bird from Animal{
+    override get name() as string{
+        return "Bird"
+    }
+    override bark(){
+        Trace.print("tweet")
+    }
+}
+
+class Samoyed from Dog{
+    override get name() as string{
+        return "Samoyed"
+    }
+    override bark(){
+        Trace.print("Samoyed")
+    }
+}
+
+fun main(){
+    var arr = [1,2,3]
+
+    fun s(i as int) as string{
+        return i|string;
+    }
+
+    var els = arr.myMap<>(s)
+    Trace.print(els)
+
+    var dogs = [Dog[]|new Samoyed(), new Dog()];
+    fun p(a as Animal) as string{       // `as Animal`, `as Dog` allowed, `as Samoyed` `as Bird` throws compliant error
+        return a.name
+    }
+    var names = dogs.myMap(p)
+    Trace.print(names)
+}

@@ -126,6 +126,8 @@ VIA        : 'via';
 VAR: 'var'; // reserved type name
 FUN: 'fun';
 
+QUERY: 'query';
+
 // Switch Expressions
 YIELD: 'yield'; // reserved type name from Java 14
 OVERRIDE: 'override';
@@ -194,9 +196,13 @@ TEXT_BLOCK: '"""' [ \t]* [\r\n] (. | EscapeSequence)*? '"""';
 
 LPAREN : '(';
 RPAREN : ')';
+
+SQL_TICK: 'sql{.' -> pushMode(SQL_MODE);
+
 LBRACE : '{';
 TEMPLATE_CLOSE_BRACE :     {this.IsInTemplateString()}? '}' -> popMode;
 RBRACE : '}';
+//RBRACE_DOT: '.}';
 
 LBRACK : '[';
 RBRACK : ']';
@@ -327,3 +333,17 @@ fragment Letter:
     | ~[\u0000-\u007F\uD800-\uDBFF]   // covers all characters above 0x7F which are not a surrogate
     | [\uD800-\uDBFF] [\uDC00-\uDFFF] // covers UTF-16 surrogate pairs encodings for U+10000 to U+10FFFF
 ;
+
+
+mode SQL_MODE;
+
+BackSqlInside                : '.}'  -> type(SQL_TICK), popMode;
+
+SQL_ATOM
+    :   ( ~[.}] | '.' { _input.LA(1) != '}' }? ) +;
+
+SQL_COMMENT      : '/*' .*? '*/'    -> channel(HIDDEN);
+SQL_LINE_COMMENT : '--' ~[\r\n]*    -> channel(HIDDEN);
+
+SQL_IDENTIFIER: IdentifierStart IdentifierPart*;
+

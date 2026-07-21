@@ -17,6 +17,8 @@ package org.siphonlab.ago.classloader;
 
 import org.siphonlab.ago.Variance;
 
+import java.util.Set;
+
 public class SharedGenericTypeParameterClassHeader extends ParameterizedClassHeader{
 
     public final String lBoundClassName;
@@ -54,7 +56,7 @@ public class SharedGenericTypeParameterClassHeader extends ParameterizedClassHea
     }
 
     @Override
-    public boolean isGenericTerminated() {
+    public boolean isGenericTerminated(Set<String> visited) {
         return false;
     }
 }

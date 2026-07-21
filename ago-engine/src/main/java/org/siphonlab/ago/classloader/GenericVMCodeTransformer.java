@@ -94,7 +94,7 @@ public class GenericVMCodeTransformer {
 
                             case Array.array_create_vCc:
                             case Array.array_create_vCv: {
-                                if (instruction == Array.array_create_g_vCc || instruction == Array.array_create_g_vCv) {
+                                if (instruction2 == Array.array_create_g_vCc || instruction2 == Array.array_create_g_vCv) {
                                     // replace opcode to array_create_o
                                     code.putInt(code.position() - 4, instruction == Array.array_create_g_vCc ? Array.array_create_o_vCc : Array.array_create_o_vCv);
                                     var c = (ArrayTypeHeader)instantiateClassName(code, 1, strings, instantiationArguments, instantFunction);
@@ -103,6 +103,7 @@ public class GenericVMCodeTransformer {
                                     }
                                 } else {
                                     code.putInt(code.position() - 4, instruction2 | (instantiationArguments.mapTypeCode(type) << 16));
+                                    instantiateClassName(code, 1, strings, instantiationArguments, instantFunction);
                                 }
                                 break;
                             }

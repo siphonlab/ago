@@ -1,0 +1,5 @@
+import a.C1;
+
+fun main(){
+    var c = new C1()
+}

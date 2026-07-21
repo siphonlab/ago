@@ -25,6 +25,10 @@ import static org.siphonlab.ago.AgoClass.VAR_ARGS;
 public class Parameter extends Field {
     private boolean getterSetterDisabled;
 
+    // default value of Parameter, will compile to an inner function, named as defaultValue_N
+    private AgoParser.ExpressionContext defaultValueAst;
+    private FunctionDef defaultValueFun;
+
     public Parameter(String fieldName, AgoParser.FormalParameterContext parameterContext) {
         super(fieldName, parameterContext);
     }
@@ -36,6 +40,10 @@ public class Parameter extends Field {
     @Override
     public String toString() {
         return this.getName() + " as " + this.getType();
+    }
+
+    public static String composeDefaultValueFunctionName(Parameter parameter){
+        return "defaultValue_" + parameter.getName() + "#";
     }
 
     @Override
@@ -65,5 +73,25 @@ public class Parameter extends Field {
 
     public boolean isReceiverParameter() {
         return (this.modifiers & AgoClass.THIS_PARAM) != 0;
+    }
+
+    public boolean hasDefaultValue(){
+        return (this.modifiers & AgoClass.DEFAULT_VALUE_PARAM) != 0;
+    }
+
+    public void setDefaultValueAst(AgoParser.ExpressionContext defaultValueAst) {
+        this.defaultValueAst = defaultValueAst;
+    }
+
+    public AgoParser.ExpressionContext getDefaultValueAst() {
+        return defaultValueAst;
+    }
+
+    public void setDefaultValueFun(FunctionDef defaultValueFun) {
+        this.defaultValueFun = defaultValueFun;
+    }
+
+    public FunctionDef getDefaultValueFun() {
+        return defaultValueFun;
     }
 }

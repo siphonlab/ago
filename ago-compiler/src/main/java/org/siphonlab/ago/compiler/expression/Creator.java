@@ -26,6 +26,7 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.invoke.FunctionCreator;
 import org.siphonlab.ago.compiler.expression.invoke.Invoke;
+import org.siphonlab.ago.compiler.generic.ClassIntervalClassDef;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
 import org.siphonlab.ago.compiler.generic.GenericTypeCodeAvatarClassDef;
 import org.siphonlab.ago.compiler.generic.ScopedClassIntervalClassDef;
@@ -105,7 +106,7 @@ public class Creator extends ExpressionInFunctionBody{
         }
     }
 
-    public static Pair<Expression, ClassDef> extractScopeAndClass(Expression typeExpr, SourceLocation sourceLocation, boolean forCreation) throws SyntaxError {
+    public static Pair<Expression, ClassDef> extractScopeAndClass(Expression typeExpr, SourceLocation sourceLocation, boolean forCreation) throws CompilationError {
         Expression scope;
         ClassDef classDef;
         if(typeExpr instanceof ConstClass constClass){
@@ -129,6 +130,9 @@ public class Creator extends ExpressionInFunctionBody{
         } else if(typeExpr instanceof ClassUnder.ClassUnderInstance classUnderInstance) {
             scope = classUnderInstance.getScope();
             classDef = classUnderInstance.getClassDef();
+        } else if(typeExpr instanceof Var var && var.inferType() instanceof ClassIntervalClassDef classIntervalClassDef){
+            scope = null;
+            classDef = classIntervalClassDef.getLBoundClass();
         } else {
             throw new UnsupportedOperationException("unsupported creator for " + typeExpr);
         }

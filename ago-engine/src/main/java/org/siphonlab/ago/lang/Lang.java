@@ -81,7 +81,7 @@ public class Lang {
         AgoField length = StackTraceElementClass.findField("length");
         List<Instance<?>> stackElements = new ArrayList<>();
         for(var c = creator; c!= null && c.getAgoClass() != null; c = c.getCaller()) {
-            var inst = agoEngine.createInstance(StackTraceElementClass, callFrame);
+            var inst = agoEngine.createInstance(StackTraceElementClass, callFrame.getRunSpace());
             //     fun new(field functionName as string, field fileName as string, field lineNumber as int, field column as int, field length as int){
             SourceLocation sourceLocation = c.resolveSourceLocation();
             inst.getSlots().setString(functionName.getSlotIndex(), c.getAgoClass().getFullname());

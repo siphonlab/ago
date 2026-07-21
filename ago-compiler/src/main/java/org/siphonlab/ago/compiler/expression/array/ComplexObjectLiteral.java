@@ -36,7 +36,7 @@ public class ComplexObjectLiteral extends ExpressionInFunctionBody {
     private final List<ObjectLiteralKVDef> kvDefs;
     private final ClassDef objectType;
 
-    public ComplexObjectLiteral(FunctionDef ownerFunction, Expression objectTypeExpr, List<ObjectLiteralKVDef> kvDefs) throws SyntaxError {
+    public ComplexObjectLiteral(FunctionDef ownerFunction, Expression objectTypeExpr, List<ObjectLiteralKVDef> kvDefs) throws CompilationError {
         super(ownerFunction);
         this.objectTypeExpr = objectTypeExpr;
         this.kvDefs = kvDefs;

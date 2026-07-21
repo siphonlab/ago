@@ -255,7 +255,7 @@ public class RunSpace implements Runnable{
     }
 
     public Object awaitTillComplete(CallFrame<?> frame){
-        var space = agoEngine.createRunSpace(runSpaceHost);
+        var space = agoEngine.createRunSpace(runSpaceHost, null);
         try {
             frame.setRunSpace(space);
             space.startAsync(frame).get();
@@ -313,7 +313,7 @@ public class RunSpace implements Runnable{
     }
 
     public RunSpace createChildRunSpace(ForkContext forkContext) {
-        var space = agoEngine.createRunSpace(runSpaceHost);
+        var space = agoEngine.createRunSpace(runSpaceHost, forkContext);
         this.forkedSpaces.add(space);
         space.setParent(this);
         return space;
@@ -518,6 +518,14 @@ public class RunSpace implements Runnable{
 
     public void setRunningState(byte runningState) {
         this.runningState = runningState;
+    }
+
+    public Set<RunSpace> getPausingParents() {
+        return pausingParents;
+    }
+
+    public Set<RunSpace> getForkedSpaces() {
+        return forkedSpaces;
     }
 
 }

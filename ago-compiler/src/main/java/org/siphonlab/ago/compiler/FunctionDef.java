@@ -162,6 +162,8 @@ public class FunctionDef extends ClassDef {
         this.createFunctionInterface();
         this.createFieldsOfTrait();
 
+        this.createDefaultValueFunForParameters();
+
         this.nextCompilingStage(CompilingStage.ValidateHierarchy);
         return true;
     }
@@ -199,6 +201,18 @@ public class FunctionDef extends ClassDef {
                 } catch (DuplicatedKeyException e) {
                     throw unit.resolveError(parameter.parameterContext, e.getMessage());
                 }
+            }
+        }
+    }
+    protected void createDefaultValueFunForParameters() {
+        List<Parameter> parameterList = this.parameters;
+        for (int i = 0; i < parameterList.size(); i++) {
+            Parameter parameter = parameterList.get(i);
+            if (parameter.hasDefaultValue() && parameter.getDefaultValueAst() != null) {
+                var fun = new DefaultValueFunDef(root, parameter, i);
+                fun.setUnit(this.getUnit());
+                parameter.setDefaultValueFun(fun);
+                this.addChild(fun);
             }
         }
     }
@@ -462,7 +476,11 @@ public class FunctionDef extends ClassDef {
             }
         }
         for (Parameter parameter : templ.getParameters()) {
-            this.addParameter(ps.get(parameter));
+            Parameter instantiated = ps.get(parameter);
+            if(instantiated.hasDefaultValue()){
+                instantiated.setDefaultValueFun((FunctionDef) parameter.getDefaultValueFun().instantiate(instantiationArguments, null));
+            }
+            this.addParameter(instantiated);
         }
 
         for (var entry : templ.getLocalVariables().entrySet()) {
@@ -536,6 +554,7 @@ public class FunctionDef extends ClassDef {
 
         var body = methodDecl.methodBody();
         compileBody(body);
+
         this.nextCompilingStage(CompilingStage.Compiled);   // Compiled
     }
 
@@ -703,4 +722,25 @@ public class FunctionDef extends ClassDef {
         variableScope.setParent(currVariableScope);
         currVariableScope = variableScope;
     }
+
+    protected Variable declareVariable(String variableName, ClassDef type, int visibility) {
+        var variable = new Variable();
+        variable.setName(variableName);
+        variable.setType(type);
+        variable.setOwnerClass(this);
+        variable.setModifiers(visibility);
+        this.addLocalVariable(variable);
+        return variable;
+    }
+
+    protected Parameter declareParameter(String parameterName, ClassDef type, int visibility) {
+        var parameter = new Parameter(this, parameterName,  null);
+        parameter.setName(parameterName);
+        parameter.setType(type);
+        parameter.setOwnerClass(this);
+        parameter.setModifiers(visibility);
+        this.addParameter(parameter);
+        return parameter;
+    }
+
 }

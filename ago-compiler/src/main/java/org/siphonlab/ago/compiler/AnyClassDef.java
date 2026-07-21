@@ -66,7 +66,7 @@ public class AnyClassDef extends ClassDef{
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
         return false;
     }
 
@@ -96,4 +96,8 @@ public class AnyClassDef extends ClassDef{
         return root;
     }
 
+    @Override
+    public boolean isObjectOrNullableObject() {
+        return true;
+    }
 }

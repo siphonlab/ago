@@ -445,5 +445,3 @@ class Trace{
         }
     }
 }
-
-interface Task {}

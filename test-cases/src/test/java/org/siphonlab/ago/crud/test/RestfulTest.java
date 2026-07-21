@@ -30,6 +30,7 @@ public class RestfulTest {
     @Test
     public void crud() throws CompilationError, IOException {
         run("restful/crud.ago");
+        System.in.read();
     }
 
 

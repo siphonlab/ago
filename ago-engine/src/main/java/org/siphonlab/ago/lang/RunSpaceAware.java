@@ -38,7 +38,7 @@ public class RunSpaceAware {
         RunSpace runSpace = fun.getRunSpace();
 
         AgoEngine agoEngine = runSpace.getAgoEngine();
-        NativeInstance runspaceObj = (NativeInstance) agoEngine.createNativeInstance(null, agoEngine.getRunSpaceClass(), nativeFrame);
+        NativeInstance runspaceObj = (NativeInstance) agoEngine.createNativeInstance(null, agoEngine.getRunSpaceClass(), nativeFrame.getRunSpace());
         runspaceObj.setNativePayload(runSpace);
 
         nativeFrame.finishObject(runspaceObj);
@@ -68,7 +68,7 @@ public class RunSpaceAware {
         var newRunSpace = runSpace.createChildRunSpace(null);
 
         AgoEngine agoEngine = runSpace.getAgoEngine();
-        NativeInstance runspaceObj = (NativeInstance) agoEngine.createNativeInstance(null, agoEngine.getRunSpaceClass(), nativeFrame);
+        NativeInstance runspaceObj = (NativeInstance) agoEngine.createNativeInstance(null, agoEngine.getRunSpaceClass(), nativeFrame.getRunSpace());
         runspaceObj.setNativePayload(newRunSpace);
 
         nativeFrame.finishObject(runspaceObj);

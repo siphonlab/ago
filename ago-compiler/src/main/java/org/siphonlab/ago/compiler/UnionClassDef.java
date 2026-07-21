@@ -83,9 +83,9 @@ public class UnionClassDef extends ParameterizedClassDef {
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
         for (ClassDef aClass : this.classes) {
-            if(aClass.isAffectedByTypeArguments(instantiationArguments)) return true;
+            if(aClass.isAffectedByTypeArguments(instantiationArguments, visited)) return true;
         }
         return false;
     }

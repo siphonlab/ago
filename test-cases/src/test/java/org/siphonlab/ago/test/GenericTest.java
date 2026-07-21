@@ -83,4 +83,13 @@ public class GenericTest {
         assertTrue(Trace.outputted("3", "10.1", "6.28", "4", "1", "-8", "now i is 0", "eq false", "neq true", "gt false", "ge false", "lt true", "le true", "now i is 1", "eq true", "neq false", "gt false", "ge true", "lt false", "le true"));
     }
 
+    @Test
+    public void map() throws CompilationError, IOException {
+        run("generic/map.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("[1,2,3]", "[Samoyed,Dog]"));
+    }
+
+
+
 }

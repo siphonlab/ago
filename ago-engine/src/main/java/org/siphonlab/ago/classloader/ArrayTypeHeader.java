@@ -19,10 +19,10 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.ArrayInfo;
-import org.siphonlab.ago.TypeCode;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.siphonlab.ago.AgoClass.*;
 import static org.siphonlab.ago.classloader.LoadingStage.*;
@@ -46,7 +46,7 @@ public class ArrayTypeHeader extends ClassHeader {
     }
 
     @Override
-    public boolean isGenericTerminated() {
+    public boolean isGenericTerminated(Set<String> visited) {
         return this.getElementType().isGenericTerminated();
     }
 
@@ -84,8 +84,8 @@ public class ArrayTypeHeader extends ClassHeader {
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments) {
-        return this.getElementType().isAffectedByTypeArguments(typeArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments typeArguments, Set<String> visited) {
+        return this.getElementType().isAffectedByTypeArguments(typeArguments, visited);
     }
 
     @Override

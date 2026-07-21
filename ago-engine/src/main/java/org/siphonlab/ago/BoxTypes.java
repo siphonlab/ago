@@ -55,6 +55,8 @@ public class BoxTypes {
         if(t != null) boxTypes.put(t, FLOAT);
         t = classByName.get("lang.Double");
         if(t != null) boxTypes.put(t, DOUBLE);
+        t = classByName.get("lang.Decimal");
+        if(t != null) boxTypes.put(t, DECIMAL);
         t = classByName.get("lang.Character");
         if(t != null) boxTypes.put(t, CHAR);
         t = classByName.get("lang.Byte");
@@ -76,6 +78,8 @@ public class BoxTypes {
         if(t != null) boxTypesInterfaces.put(t, FLOAT);
         t = classByName.get("lang.Boxer<double>");
         if(t != null) boxTypesInterfaces.put(t, DOUBLE);
+        t = classByName.get("lang.Boxer<decimal>");
+        if(t != null) boxTypesInterfaces.put(t, DECIMAL);
         t = classByName.get("lang.Boxer<boolean>");
         if(t != null) boxTypesInterfaces.put(t, BOOLEAN);
         t = classByName.get("lang.Boxer<char>");
@@ -86,8 +90,6 @@ public class BoxTypes {
         if(t != null) boxTypesInterfaces.put(t, SHORT);
         t = classByName.get("lang.Boxer<classref>");
         if (t != null) boxTypesInterfaces.put(t, CLASS_REF);
-        t = classByName.get("lang.Boxer<decimal>");
-        if (t != null) boxTypesInterfaces.put(t, DECIMAL);
 
         t = classByName.get("lang.Enum<int>");
         if (t != null) boxTypesInterfaces.put(t, INT);

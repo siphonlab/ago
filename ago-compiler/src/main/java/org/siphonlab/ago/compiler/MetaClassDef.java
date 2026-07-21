@@ -110,8 +110,8 @@ public class MetaClassDef extends ClassDef{
     }
 
     @Override
-    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments) {
-        return this.getInstanceClassDef().isAffectedByTypeArguments(instantiationArguments);
+    public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
+        return this.getInstanceClassDef().isAffectedByTypeArguments(instantiationArguments, visited);
     }
 
     public MetaClassDef cloneForInstantiate(InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {

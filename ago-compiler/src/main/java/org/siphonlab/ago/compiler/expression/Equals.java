@@ -160,7 +160,7 @@ public class Equals extends BiExpression{
     }
 
     private Expression narrowTyping(Var.LocalVar localVar, Expression value) throws CompilationError {
-        if(blockCompiler == null) return super.transformInner();
+        if(blockCompiler == null) return localVar;
 
         NarrowTyper narrowTyper = blockCompiler.getNarrowTyper();
         var variable = localVar.variable;

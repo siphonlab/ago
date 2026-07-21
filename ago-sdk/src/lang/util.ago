@@ -1,0 +1,38 @@
+package lang
+
+native class StringBuilder{
+    fun new() native "org.siphonlab.ago.lang.StringBuilder.create"
+
+    fun new#str(s as string) native "org.siphonlab.ago.lang.StringBuilder.create";
+
+    fun append#str(s as string) as StringBuilder
+        native "org.siphonlab.ago.lang.StringBuilder.append";
+
+    fun append#obj(obj as Object) as StringBuilder{
+        return append(obj.toString())
+    }
+
+    override toString() as string
+        native "org.siphonlab.ago.lang.StringBuilder.toString"
+}
+
+fun map<T, R>(this as Array<T>, mapper as [Function1<R,T>]) as R[] {
+    var l = this.length;
+    var arr = new R[l];
+    for(var i=0; i<l;i++){
+        arr[i] = mapper(this[i]);
+    }
+    return arr;
+}
+
+fun join<T>(this as Array<T>, separator as string = ',') as string {
+    var l = this.length;
+    if(l == 0) return '';
+
+    var sb = new StringBuilder()
+    for(var i=0; i<l-1;i++){
+        sb.append(this[i]|string).append(separator)
+    }
+    sb.append(this[l-1]);
+    return sb.toString();
+}

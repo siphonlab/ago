@@ -40,6 +40,24 @@ public class ScopedClassIntervalClassHeader extends ParameterizedClassHeader{
     }
 
     public static String composeName(String lBound, String uBound){
-        return '[' + composeNameOfClassInClassInterval(lBound) + '~' + composeNameOfClassInClassInterval(uBound) + ']';
+        return "lang.[" + composeNameOfClassInClassInterval(lBound) + '~' + composeNameOfClassInClassInterval(uBound) + ']';
+    }
+
+    @Override
+    protected ClassHeader instantiate(InstantiationArguments typeArguments, ClassHeader parentInstantiation, String suggestionName, String suggestionFullName) {
+        var baseClass = classLoader.instantiateReferenceClass(this.baseClass, typeArguments);
+        var lBoundClass = classLoader.instantiateReferenceClass(this.lBoundClassName, typeArguments);
+        var uBoundClass = classLoader.instantiateReferenceClass(this.uBoundClassName, typeArguments);
+        String fullname = composeName(lBoundClassName, uBoundClassName);
+        var existed = this.classLoader.getClassHeader(fullname);
+        if(existed != null){
+            return existed;
+        }
+        var r = new ScopedClassIntervalClassHeader(fullname, baseClass.fullname, getMetaClass(), constructor, new ClassRefValue[]{
+                        new ClassRefValue(lBoundClass.fullname), new ClassRefValue(uBoundClass.fullname)
+                }, classLoader);
+        this.getSourceTemplate().putInstantiatedClassToCache(typeArguments, r);
+        this.classLoader.registerNewClass(r);
+        return r;
     }
 }
