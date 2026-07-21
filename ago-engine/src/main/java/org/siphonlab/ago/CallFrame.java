@@ -282,6 +282,18 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         }
     }
 
+    protected void finishExceptionAsync(Instance<?> exception){
+        CallFrame<?> caller = getCaller();
+        RunSpace runSpace = getRunSpace();
+        if(caller != null) {
+            RunSpace callerRunSpace = caller.getRunSpace();
+            if (callerRunSpace != runSpace) runSpace.setCurrCallFrame(null);
+            if (callerRunSpace != null) callerRunSpace.acceptExceptionByAsync(exception);
+        } else {
+            runSpace.acceptExceptionByAsync(exception);
+        }
+    }
+
     public boolean isSuspended() {
         return suspended;
     }
@@ -383,11 +395,13 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
     }
 
     protected boolean reenter(ReentrantProxyFrame<?> reentrantProxyFrame, int state, int additionalState) {
+        getRunSpace().setCurrCallFrame(this);
         switch (state){
-            case REENTER_RAISE_EXCEPTION:
+            case REENTER_RAISE_EXCEPTION: {
                 var exception = reentrantProxyFrame.getParentScope();
                 reentrantProxyFrame.finishException(exception);       // waitingReentrantFrame will throw error back to its caller, that's me
                 return true;
+            }
         }
         return false;
     }
@@ -399,17 +413,22 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         exception.invokeMethod(self, REENTER_RAISE_EXCEPTION, 0, ExceptionClass.findMethod("new#message"), message);
     }
 
-    public void raiseJavaException(CallFrame<?> self, java.lang.Exception ex) {
+    public void raiseJavaException(CallFrame<?> self, java.lang.Exception ex, boolean async) {
         var engine = this.getAgoEngine();
         var exceptionType = engine.getClass("lang.NativeException");
-        var exceptionInstance = engine.createNativeInstance(null, exceptionType, this);
+        var exceptionInstance = engine.createNativeInstance(null, exceptionType, this.getRunSpace());
         exceptionInstance.setNativePayload(ex);
         exceptionInstance.invokeMethod(
                 self,
                 REENTER_RAISE_EXCEPTION,
-                0,
+                async ? 1 : 0,
                 exceptionType.findMethod("new#message"),
                 ex.getMessage()
         );
+        if(async){
+            getRunSpace().resumeByAcceptResult();
+        }
     }
+
+
 }

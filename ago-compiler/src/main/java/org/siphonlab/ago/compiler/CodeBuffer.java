@@ -61,7 +61,9 @@ public class CodeBuffer {
         if(lastSourceMapEntry != null && lastSourceMapEntry.codeOffset() == ls.size()){     // no code output for this source location
             sourceMapEntries.removeLast();
         }
-        sourceMapEntries.add(lastSourceMapEntry = new SourceMapEntry(ls.size(),currSourceLocation));
+        if(currSourceLocation != org.siphonlab.ago.compiler.SourceLocation.UNKNOWN) {
+            sourceMapEntries.add(lastSourceMapEntry = new SourceMapEntry(ls.size(), currSourceLocation));
+        }
     }
 
     private void slot(SlotDef slotDef){

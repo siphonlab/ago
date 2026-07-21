@@ -1,5 +1,22 @@
 fun failed() throws NativeException native "org.siphonlab.ago.test.TestFunctions.throwJavaError";
+fun failed2() throws NativeException native "org.siphonlab.ago.test.TestFunctions.throwJavaErrorByRaise";
+fun failed3() throws NativeException native "org.siphonlab.ago.test.TestFunctions.throwAsyncJavaError";
+
 
 fun main() throws NativeException {
-    failed();
+    try{
+        failed();
+    } catch(ex as NativeException){
+        Trace.print(ex)
+    }
+    try{
+        failed2();
+    } catch(ex as NativeException){
+        Trace.print(ex)
+    }
+    try{
+        failed3();
+    } catch(ex as NativeException){
+        Trace.print(ex)
+    }
 }

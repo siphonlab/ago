@@ -209,6 +209,10 @@ class Throwable {
     }
     fun fillStackTrace()
             native "org.siphonlab.ago.lang.Lang.Throwable_fillStackTrace"
+
+    override toString() as string{
+        return message;
+    }
 }
 
 class StackTraceElement{

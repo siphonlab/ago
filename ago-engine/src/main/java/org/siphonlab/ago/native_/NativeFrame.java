@@ -47,9 +47,8 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         // the native function f(NativeFrame frame, param1, param2), end with `frame.finish(result)`
         try {
             nativeFunctionCaller.invoke(this, this.slots);
-        }
-        catch (java.lang.Exception javaException) {
-            this.raiseJavaException(self, javaException);
+        } catch (java.lang.Exception javaException) {
+            this.raiseJavaException(self, javaException, false);
         }
     }
 

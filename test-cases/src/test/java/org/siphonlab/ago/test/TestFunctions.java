@@ -80,9 +80,25 @@ public class TestFunctions {
         frame.finishBoolean(content.isEmpty());
     }
 
-    public static void throwJavaError(NativeFrame frame) {
-        throw new RuntimeException("java exceptions");
-        // frame.finishVoid();
+    public static void throwJavaError(NativeFrame frame) throws Exception {
+        throw new Exception("java exception");
+    }
+
+    public static void throwJavaErrorByRaise(NativeFrame frame)  {
+        try {
+            throw new Exception("java exception from raiseJavaException");
+        } catch (Exception e) {
+            frame.raiseJavaException(frame, e, false);
+        }
+    }
+
+    public static void throwAsyncJavaError(NativeFrame nativeFrame) throws Exception {
+        var runSpaceHost = nativeFrame.getRunSpace().getRunSpaceHost();
+        nativeFrame.beginAsync();
+        Object obj = runSpaceHost.setTimer(2000, ()->{
+            System.out.println("after 2s");
+            nativeFrame.raiseJavaException(nativeFrame, new Exception("test exception"), true);
+        });
     }
 
     //TODO auto convert enum to primitive type

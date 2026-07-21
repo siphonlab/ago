@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.lang;
 
+import org.jspecify.annotations.NonNull;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.native_.NativeFrame;
@@ -72,25 +73,16 @@ public class Lang {
         var scope = callFrame.getParentScope();
         var agoEngine = callFrame.getAgoEngine();
 
-        CallFrame<?> creator = callFrame.getCaller().getCaller().getCaller();   // new# -> caller
+        CallFrame<?> creator = callFrame.getCaller().getCaller();   // new# -> caller
         AgoClass StackTraceElementClass = agoEngine.getClass("lang.StackTraceElement");
         AgoField functionName = StackTraceElementClass.findField("functionName");
         AgoField fileName = StackTraceElementClass.findField("fileName");
         AgoField lineNumber = StackTraceElementClass.findField("lineNumber");
         AgoField column = StackTraceElementClass.findField("column");
         AgoField length = StackTraceElementClass.findField("length");
-        List<Instance<?>> stackElements = new ArrayList<>();
-        for(var c = creator; c!= null && c.getAgoClass() != null; c = c.getCaller()) {
-            var inst = agoEngine.createInstance(StackTraceElementClass, callFrame.getRunSpace());
-            //     fun new(field functionName as string, field fileName as string, field lineNumber as int, field column as int, field length as int){
-            SourceLocation sourceLocation = c.resolveSourceLocation();
-            inst.getSlots().setString(functionName.getSlotIndex(), c.getAgoClass().getFullname());
-            inst.getSlots().setString(fileName.getSlotIndex(), sourceLocation.getFilename());
-            inst.getSlots().setInt(lineNumber.getSlotIndex(), sourceLocation.getLine());
-            inst.getSlots().setInt(column.getSlotIndex(), sourceLocation.getColumn());
-            inst.getSlots().setInt(length.getSlotIndex(), sourceLocation.getLength());
-            stackElements.add(inst);
-        }
+
+        List<Instance<?>> stackElements = fillAgoStackTrace(callFrame, creator, agoEngine, StackTraceElementClass, functionName, fileName, lineNumber, column, length);
+
         AgoClass arrClass = agoEngine.getClass("[lang.StackTraceElement;");
         var arrayInst = new ObjectArrayInstance(arrClass.createSlots(), arrClass, stackElements.size());
         for (int i = 0; i < stackElements.size(); i++) {
@@ -104,22 +96,39 @@ public class Lang {
         callFrame.finishVoid();
     }
 
+    private static @NonNull List<Instance<?>> fillAgoStackTrace(NativeFrame callFrame, CallFrame<?> creator, AgoEngine agoEngine, AgoClass StackTraceElementClass, AgoField functionName, AgoField fileName, AgoField lineNumber, AgoField column, AgoField length) {
+        List<Instance<?>> stackElements = new ArrayList<>();
+        for(var c = creator; c!= null && c.getAgoClass() != null; c = c.getCaller()) {
+            var inst = agoEngine.createInstance(StackTraceElementClass, callFrame.getRunSpace());
+            //     fun new(field functionName as string, field fileName as string, field lineNumber as int, field column as int, field length as int){
+            SourceLocation sourceLocation = c.resolveSourceLocation();
+            inst.getSlots().setString(functionName.getSlotIndex(), c.getAgoClass().getFullname());
+            inst.getSlots().setString(fileName.getSlotIndex(), sourceLocation.getFilename());
+            inst.getSlots().setInt(lineNumber.getSlotIndex(), sourceLocation.getLine());
+            inst.getSlots().setInt(column.getSlotIndex(), sourceLocation.getColumn());
+            inst.getSlots().setInt(length.getSlotIndex(), sourceLocation.getLength());
+            stackElements.add(inst);
+        }
+        return stackElements;
+    }
+
     public static void Throwable_fillStackTraceFromJavaException(NativeFrame callFrame) {
         var scope = callFrame.getParentScope();
         var javaException = (java.lang.Exception) scope.getNativePayload();
         var agoEngine = callFrame.getAgoEngine();
 
+        CallFrame<?> creator = callFrame.getCaller().getCaller();   // new# -> caller
         AgoClass StackTraceElementClass = agoEngine.getClass("lang.StackTraceElement");
         AgoField functionName = StackTraceElementClass.findField("functionName");
         AgoField fileName = StackTraceElementClass.findField("fileName");
         AgoField lineNumber = StackTraceElementClass.findField("lineNumber");
         AgoField column = StackTraceElementClass.findField("column");
         AgoField length = StackTraceElementClass.findField("length");
-        List<Instance<?>> stackElements = new ArrayList<>();
+        List<Instance<?>> stackElements = fillAgoStackTrace(callFrame, creator, agoEngine, StackTraceElementClass, functionName, fileName, lineNumber, column, length);
 
         var c = callFrame.resolveSourceLocation();
         for (var trace : javaException.getStackTrace()) {
-            var inst = agoEngine.createInstance(StackTraceElementClass, callFrame);
+            var inst = agoEngine.createInstance(StackTraceElementClass, callFrame.getRunSpace());
             //     fun new(field functionName as string, field fileName as string, field lineNumber as int, field column as int, field length as int){
 
             inst.getSlots().setString(functionName.getSlotIndex(), trace.getMethodName());
