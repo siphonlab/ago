@@ -16,6 +16,7 @@
 package org.siphonlab.ago.test;
 
 import org.junit.jupiter.api.Disabled;
+import org.siphonlab.ago.compiler.CompliationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -30,61 +31,61 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class GenericTest {
 
     @Test
-    public void intermedia_test() throws CompilationError, IOException {
+    public void intermedia_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/intermedia.ago");
         assertTrue(Trace.outputted("Samoyed"));
     }
 
     @Test
-    public void metaclass_test() throws CompilationError, IOException {
+    public void metaclass_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/metaclass.ago");
         assertTrue(Trace.outputted("Samoyed"));
     }
 
     @Test
-    public void tuple_test() throws CompilationError, IOException {
+    public void tuple_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/tuple.ago");
         assertTrue(Trace.outputted("CatLeft", "meow", "woof", "CatRight", "woof", "meow", "CatDog", "meow", "woof", "DogCat", "woof", "meow", "Last", "meow", "woof"));
     }
 
     @Test
-    public void triple_test() throws CompilationError, IOException {
+    public void triple_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/triple.ago");
         assertTrue(Trace.outputted("Triple", "woof", "meow", "tweet", "DogXX", "woof", "meow", "tweet", "XDogX", "meow", "woof", "tweet", "XXDog", "meow", "tweet", "woof", "CatXDog", "meow", "tweet", "woof", "CatBirdDog", "meow", "tweet", "woof"));
     }
 
     @Test
-    public void inner_test() throws CompilationError, IOException {
+    public void inner_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/inner.ago");
         assertTrue(Trace.outputted("meow", "meow", "tweet", "meow", "meow", "tweet"));
     }
 
     @Test
-    public void inner2_test() throws CompilationError, IOException {
+    public void inner2_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/inner2.ago");
         assertTrue(Trace.outputted("meow", "tweet", "meow", "tweet"));
     }
 
     @Test
-    public void class_constructor_test() throws CompilationError, IOException {
+    public void class_constructor_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/class_constructor.ago");
         assertTrue(Trace.outputted("Samoyed", "Samoyed", "Samoyed"));
     }
 
     @Test
-    public void function_test() throws CompilationError, IOException {
+    public void function_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/function.ago");
         assertTrue(Trace.outputted("1", "woof", "Samoyed"));
     }
 
     @Test
-    public void numbers_test() throws CompilationError, IOException {
+    public void numbers_test() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/numbers.ago");
         assertTrue(Trace.outputted("3", "10.1", "6.28", "4", "1", "-8", "now i is 0", "eq false", "neq true", "gt false", "ge false", "lt true", "le true", "now i is 1", "eq true", "neq false", "gt false", "ge true", "lt false", "le true"));
     }
 
     @Test
-    public void map() throws CompilationError, IOException {
+    public void map() throws CompilationError, CompliationErrorsException, IOException {
         run("generic/map.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("[1,2,3]", "[Samoyed,Dog]"));

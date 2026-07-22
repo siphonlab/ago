@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.test;
 
+import org.siphonlab.ago.compiler.CompliationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -29,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ExprTest {
 
     @Test
-    public void self_op_test() throws CompilationError, IOException {
+    public void self_op_test() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/self_expr.ago");
         assertTrue(Trace.outputted(
                 "i=3 j=2",
@@ -53,7 +54,7 @@ public class ExprTest {
     }
 
     @Test
-    public void logic_op_test() throws CompilationError, IOException {
+    public void logic_op_test() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/logic_op.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -123,13 +124,13 @@ public class ExprTest {
     }
 
     @Test
-    public void generic_cond() throws CompilationError, IOException {
+    public void generic_cond() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/generic_cond.ago");
         assertTrue(Trace.outputted("true", "true", "true", "false"));
     }
 
     @Test
-    public void bit_op_test() throws CompilationError, IOException {
+    public void bit_op_test() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/bit_op.ago");
         assertTrue(Trace.outputted("t.a  band t.b = 12",
                 "t.a  bor t.b = 61",
@@ -155,7 +156,7 @@ public class ExprTest {
     }
 
     @Test
-    public void if_else_test() throws CompilationError, IOException {
+    public void if_else_test() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/if_else.ago");
         assertTrue(Trace.outputted("42 是 偶数",
                 "成绩 85 对应等级: 及格",
@@ -167,32 +168,32 @@ public class ExprTest {
     }
 
     @Test
-    public void instanceof_test() throws CompilationError, IOException {
+    public void instanceof_test() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/instanceof.ago");
         assertTrue(Trace.outputted("圆的面积: 78.539815", "矩形的面积: 24.0", "未知形状"));
     }
 
     @Test
-    public void generic_instanceof_test() throws CompilationError, IOException {
+    public void generic_instanceof_test() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/generic_instanceof.ago");
         assertTrue(Trace.outputted("20"));
     }
 
     @Test
-    public void chain_creator() throws CompilationError, IOException {
+    public void chain_creator() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/chain_creator.ago");
         assertTrue(Trace.outputted("a dog woof", "a dog woof", "Dog name George", "George woof", "a dog yum", "Dog name George", "George yum"));
     }
 
     @Test
-    public void high_prior_cast() throws CompilationError, IOException {
+    public void high_prior_cast() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/high_prior_cast.ago");
 //        assertTrue(Trace.outputted("woof"));
         Trace.printOutput();
     }
 
     @Test
-    public void copy_assign() throws CompilationError, IOException {
+    public void copy_assign() throws CompilationError, CompliationErrorsException, IOException {
         run("expr/copy_assign.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("name: Tom  gender: M  workNo: 1234", "{lang.HashMap<string,lang.Object>|workNo=1234,gender=M,name=Tom,age=44}", "{lang.HashMap<string,lang.Object>|workNo=1234,name=Tom,gender=M,age=44}", "name: Tom  gender: M  workNo: 1234", "Jenny"));

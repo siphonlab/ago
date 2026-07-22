@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler;
 
+import org.antlr.v4.runtime.*;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
@@ -23,10 +24,6 @@ import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.collections4.CollectionUtils;
@@ -67,10 +64,7 @@ public class Unit {
 
     private List<UnsolvedImport> unsolvedImports = new ArrayList<>();
 
-    private Set<ClassDef> solvedMetaClasses = new HashSet<ClassDef>();
-
     private Project project;
-
 
     public Package getPackage() {
         return pkg;
@@ -103,6 +97,24 @@ public class Unit {
     void packageDecl() {
         AgoLexer lexer = new AgoLexer(source);
         AgoParser parser = new AgoParser(new CommonTokenStream(lexer));
+        AgoErrorStrategy agoErrorStrategy = new AgoErrorStrategy() {
+            @Override
+            public void unhandledException(Parser recognizer, RecognitionException e) {
+                CompilationError compileException = recognitionExceptionToCompileException(e, Unit.this);
+                errors.add(compileException);
+            }
+        };
+        parser.getErrorListeners().clear();     // remove default console output
+        parser.addErrorListener(new BaseErrorListener() {
+            @Override
+            public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
+                                    int charPositionInLine, String msg, RecognitionException e) {
+                CommonToken symbol = (CommonToken) offendingSymbol;
+                errors.add(new SyntaxError(msg, new SourceLocation(filename, line, charPositionInLine, 0, symbol.getStartIndex(), symbol.getStopIndex())));
+            }
+        });
+        parser.setErrorHandler(agoErrorStrategy);
+
         this.compilationUnit = parser.compilationUnit();
         // 1st pass, compile all class names
         String packageName = compilationUnit.packageDeclaration() != null ? compilationUnit.packageDeclaration().qualifiedName().getText() : "";
@@ -136,8 +148,10 @@ public class Unit {
             if (importDecl.MUL() != null) {   // import all from package
                 String importPkgName = fullName(importDecl.qualifiedNameAllowPostfix());
                 Package pkg = root.getChild(importPkgName);
-                if (pkg == null)
-                    throw resolveError(importDecl.qualifiedNameAllowPostfix(), "package " + importPkgName + " not found");
+                if (pkg == null) {
+                    appendError(resolveError(importDecl.qualifiedNameAllowPostfix(), "package " + importPkgName + " not found"));
+                    continue;
+                }
                 for (var c : pkg.getUniqueChildren()) {
                     this.importedClasses.put(c.getName(), c);
                 }
@@ -1017,5 +1031,28 @@ public class Unit {
         return new TypeMismatchError(message, sourceLocation(ast));
     }
 
+    public static CompilationError recognitionExceptionToCompileException(RecognitionException e, Unit file) {
+        Token offendingToken = e.getOffendingToken();
+        int line = -1;
+        int charPositionInLine = -1;
+        if(offendingToken != null) {
+            line = offendingToken.getLine();
+            charPositionInLine = offendingToken.getCharPositionInLine();
+        }
+        String msg = new AgoErrorStrategy().getMessage(e);
+        return new SyntaxError(msg, new SourceLocation(file.filename, line, charPositionInLine, 0, offendingToken.getStartIndex(), offendingToken.getStopIndex()));
+    }
+
+    public boolean hasErrors() {
+        return !errors.isEmpty();
+    }
+
+    public List<CompilationError> getErrors() {
+        return errors;
+    }
+
+    public void appendError(CompilationError compilationError) {
+        this.errors.add(compilationError);
+    }
 }
 

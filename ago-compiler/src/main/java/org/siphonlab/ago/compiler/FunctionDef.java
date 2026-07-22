@@ -172,17 +172,22 @@ public class FunctionDef extends ClassDef {
     protected void parseThrows(AgoParser.ThrowsPhraseContext throwsPhrase) throws CompilationError {
         if(throwsPhrase != null){
             List<ClassDef> exceptionTypes = new ArrayList<>();
+            outer:
             for (AgoParser.DeclarationTypeContext declarationTypeContext : throwsPhrase.declarationTypeList().declarationType()) {
                 ClassDef exceptionType = unit.parseTypeName(this, declarationTypeContext.namePath(), false);
                 for (ClassDef existed : exceptionTypes) {
                     if(exceptionType.isDeriveFrom(existed)){
-                        throw unit.typeError(declarationTypeContext,"'%s' is derived from '%s'".formatted(exceptionType.getFullname(), existed.getFullname()));
+                        unit.appendError(unit.typeError(declarationTypeContext,"'%s' is derived from '%s'".formatted(exceptionType.getFullname(), existed.getFullname())));
+                        continue outer;
                     } else if(exceptionType == existed){
-                        throw unit.typeError(declarationTypeContext,"'%s' duplicated".formatted(exceptionType.getFullname()));
+                        unit.appendError(unit.typeError(declarationTypeContext,"'%s' duplicated".formatted(exceptionType.getFullname())));
+                        continue outer;
                     } else if(existed.isDeriveFrom(exceptionType)) {
-                        throw unit.typeError(declarationTypeContext, "'%s' is derived from '%s'".formatted(existed.getFullname(), exceptionType.getFullname()));
+                        unit.appendError(unit.typeError(declarationTypeContext, "'%s' is derived from '%s'".formatted(existed.getFullname(), exceptionType.getFullname())));
+                        continue outer;
                     } else if(getRoot().getRuntimeExceptionClass().isThatOrSuperOfThat(exceptionType)){
-                        throw unit.typeError(declarationTypeContext, "shouldn't throw runtime exception '%s'".formatted(exceptionType.getFullname()));
+                        unit.appendError(unit.typeError(declarationTypeContext, "shouldn't throw runtime exception '%s'".formatted(exceptionType.getFullname())));
+                        continue outer;
                     }
                 }
                 exceptionTypes.add(exceptionType);
@@ -194,13 +199,15 @@ public class FunctionDef extends ClassDef {
     protected void processFieldParameters() throws SyntaxError, ResolveError {
         for (Parameter parameter : this.parameters) {
             if(parameter.isField()){
-                throw unit.syntaxError(parameter.parameterContext, "redundant 'field' modifier, all parameter are function fields");
+                unit.appendError(unit.syntaxError(parameter.parameterContext, "redundant 'field' modifier, all parameter are function fields"));
+                continue;
             }
             if(parameter.isReceiverParameter()){
                 try {
                     parameter.getType().addExtensionMethod(this);
                 } catch (DuplicatedKeyException e) {
-                    throw unit.resolveError(parameter.parameterContext, e.getMessage());
+                    unit.appendError(unit.resolveError(parameter.parameterContext, e.getMessage()));
+                    continue;
                 }
             }
         }

@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.classloader.AgoClassLoader;
+import org.siphonlab.ago.compiler.CompliationErrorsException;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.ClassFile;
 import org.siphonlab.ago.compiler.Compiler;
@@ -129,7 +130,7 @@ public class Util {
         throw new IllegalArgumentException("unknown engine '%s'".formatted(s));
     }
 
-    public static void compile(String filename) throws IOException, CompilationError {
+    public static void compile(String filename) throws IOException, CompilationError, CompliationErrorsException {
         Collection<ClassDef> rtClasses = null;
         AgoClassLoader agoClassLoader = new AgoClassLoader();
 
@@ -150,11 +151,11 @@ public class Util {
         new ClassFile(project).saveToDirectory(dir.getAbsolutePath());
     }
 
-    public static void run(String filename) throws CompilationError, IOException {
+    public static void run(String filename) throws CompilationError, IOException, CompliationErrorsException {
         run(filename, "main#");
     }
 
-    public static void run(String filename, String entrance) throws CompilationError, IOException {
+    public static void run(String filename, String entrance) throws CompilationError, IOException, CompliationErrorsException {
         Trace.clear();
         var selectedEngine = parseEngine();
         switch (selectedEngine){
@@ -172,7 +173,7 @@ public class Util {
         }
     }
 
-    private static void runInNettySpace(String filename, String entrance) throws IOException, CompilationError {
+    private static void runInNettySpace(String filename, String entrance) throws IOException, CompilationError, CompliationErrorsException {
         compile(filename);
 
         AgoEngine engine = new AgoEngine();
@@ -190,7 +191,7 @@ public class Util {
         engine.run(entrance);
     }
 
-    public static void runInVertxSpace(String filename, String entrance) throws CompilationError, IOException {
+    public static void runInVertxSpace(String filename, String entrance) throws CompilationError, IOException, CompliationErrorsException {
         Util.compile(filename);
 
         AgoEngine engine = new AgoEngine(new VertxRunSpaceHost(Vertx.vertx()));
@@ -208,7 +209,7 @@ public class Util {
     }
 
     public static int applicationId = 0;
-    public static void runWithPGJsonLazy(String filename, String entrance) throws IOException, CompilationError {
+    public static void runWithPGJsonLazy(String filename, String entrance) throws IOException, CompilationError, CompliationErrorsException {
         compile(filename);
 
         if (applicationId == 0) applicationId = RandomUtils.insecure().randomInt();

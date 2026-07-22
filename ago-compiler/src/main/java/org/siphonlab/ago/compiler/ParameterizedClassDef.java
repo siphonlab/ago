@@ -172,7 +172,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                         }
                     } else if (constructor.getCompilingStage() == CompilingStage.ParseFields) {
                         if (!constructor.parseFields()) {
-                            throw new RuntimeException("'%s' depended on '%s', and it cannot parse fields now".formatted(this.getFullname(), constructor.getFullname()));
+                            throw unit.syntaxError(classCreatorArguments, "'%s' depended on '%s', and it cannot parse fields now".formatted(this.getFullname(), constructor.getFullname()));
                         }
                     }
                     var parameters = constructor.getParameters();

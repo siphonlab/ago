@@ -252,7 +252,7 @@ public class ClassDef extends ClassContainer {
             ClassDef interfaceDef = entry.getKey();
             if(existed != null){
                 if(!interfaceDef.isThatOrSuperOfThat(interfaceDef)){
-                    throw unit.typeError(entry.getValue(), "'%s' not compitable for '%s'".formatted(existed.getType().getFullname(), interfaceDef.getFullname()));
+                    unit.appendError(unit.typeError(entry.getValue(), "'%s' not compitable for '%s'".formatted(existed.getType().getFullname(), interfaceDef.getFullname())));
                 }
                 // existed user declared field, use it
             } else {
@@ -1642,13 +1642,15 @@ public class ClassDef extends ClassContainer {
 
                 if(functionDef.isAbstract()){
                     if(hasBody){
-                        throw unit.syntaxError(methodBodyContext, "body not allowed for abstract method");
+                        unit.appendError(unit.syntaxError(methodBodyContext, "body not allowed for abstract method"));
+                        continue;
                     }
                     if(!this.isAbstract()){
                         if(functionDef.getParent() != this){
-                            throw unit.syntaxError(this.getDeclarationName(), "abstract method '%s' not implemented".formatted(functionDef));
+                            unit.appendError(unit.syntaxError(this.getDeclarationName(), "abstract method '%s' not implemented".formatted(functionDef)));
+                            continue;
                         }
-                        throw unit.syntaxError(functionDef.getMethodDecl().methodStarter(), "abstract methods are only allowed in abstract classes, traits and interfaces");
+                        unit.appendError(unit.syntaxError(functionDef.getMethodDecl().methodStarter(), "abstract methods are only allowed in abstract classes, traits and interfaces"));
                     }
                 } else {
                     if(!hasBody){
@@ -1656,7 +1658,7 @@ public class ClassDef extends ClassContainer {
                                 || functionDef instanceof ManualCreatedFunction){
                             continue;
                         }
-                        throw unit.syntaxError(functionDef.getDeclarationAst(), "method body not found for non-abstract method");
+                        unit.appendError(unit.syntaxError(functionDef.getDeclarationAst(), "method body not found for non-abstract method"));
                     }
                 }
             }
@@ -1669,7 +1671,8 @@ public class ClassDef extends ClassContainer {
                 if(functionDef.isAbstract()) {
                     var f = this.getSameSignatureFunction(functionDef);
                     if (f == null || f == functionDef || f.isAbstract()) {
-                        throw unit.resolveError(referenceAst, "'%s' of '%s' not implemented".formatted(functionDef.getName(), abstractClassDef.getFullname()));
+                        unit.appendError(unit.resolveError(referenceAst, "'%s' of '%s' not implemented".formatted(functionDef.getName(), abstractClassDef.getFullname())));
+                        continue;
                     }
                 }
             }

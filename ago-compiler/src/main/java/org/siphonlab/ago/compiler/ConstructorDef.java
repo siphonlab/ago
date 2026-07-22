@@ -100,7 +100,8 @@ public class ConstructorDef extends FunctionDef{
                 if(owner.getFields().containsKey(parameter.getName())){
                     // should generate assign field -> this parameter
                     if(parameter.getGetterSetter() != null){
-                        throw unit.syntaxError(parameter.getGetterSetter(),"field '%s' not declared by this parameter, please put get/set behind the field declaration".formatted(parameter.getName()));
+                        unit.appendError(unit.syntaxError(parameter.getGetterSetter(),"field '%s' not declared by this parameter, please put get/set behind the field declaration".formatted(parameter.getName())));
+                        continue;
                     }
                 } else {
                     // create a new field

@@ -21,6 +21,7 @@ import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.io.FileUtils;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.classloader.AgoClassLoader;
+import org.siphonlab.ago.compiler.CompliationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.runtime.db.DbSlotsCreatorFactory;
 import org.siphonlab.ago.runtime.db.SnowflakeIdGenerator;
@@ -44,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RdbDdlTest {
 
     @Test
-    public void test_generate_sql() throws IOException, CompilationError {
+    public void test_generate_sql() throws IOException, CompilationError, CompliationErrorsException {
         Util.compile("restful/crud.ago");
 
         String output = "output/restful/crud.ago";

@@ -17,6 +17,7 @@ package org.siphonlab.ago.test;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
+import org.siphonlab.ago.compiler.CompliationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -32,14 +33,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class FunctionTest {
 
     @Test
-    public void pause() throws CompilationError, IOException {
+    public void pause() throws CompilationError, CompliationErrorsException, IOException {
         run("function/pause.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("pause", "resume caller", "done"));
     }
 
     @Test @Disabled
-    public void mq() throws CompilationError, IOException {
+    public void mq() throws CompilationError, CompliationErrorsException, IOException {
         runInVertxSpace("function/mq.ago", "main#");
         try {
             Thread.sleep(500);
@@ -50,7 +51,7 @@ public class FunctionTest {
     }
 
     @Test @Disabled @Tag("not works in mvn test")
-    public void functor() throws CompilationError, IOException {
+    public void functor() throws CompilationError, CompliationErrorsException, IOException {
         runInVertxSpace("function/functor.ago", "main#");
         try {
             Thread.sleep(3000);     // the main function cannot prevent the event loop shutdown for the EntranceCallframe already exit, and sleep cannot make vertx keep alive
@@ -61,21 +62,21 @@ public class FunctionTest {
     }
 
     @Test
-    public void recursive() throws CompilationError, IOException {
+    public void recursive() throws CompilationError, CompliationErrorsException, IOException {
         run("function/recursive.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("55"));
     }
 
     @Test
-    public void generator() throws CompilationError, IOException, InterruptedException {
+    public void generator() throws CompilationError, CompliationErrorsException, IOException, InterruptedException {
         run("function/generator.ago");
         Thread.sleep(100);      // wait all runspace over
         assertTrue(Trace.outputted("0", "1", "2", "done", "0", "1", "2", "3", "done", "0", "1", "2", "done", "1", "3", "5", "7", "done", "0", "1", "2", "1", "3", "5", "done", "7"));
     }
 
     @Test
-    public void defaultParameter() throws CompilationError, IOException {
+    public void defaultParameter() throws CompilationError, CompliationErrorsException, IOException {
         run("function/default_param.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("8", "12"));

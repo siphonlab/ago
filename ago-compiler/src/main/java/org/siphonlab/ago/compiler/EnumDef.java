@@ -75,7 +75,8 @@ public class EnumDef extends ClassDef{
         for (AgoParser.EnumConstantContext enumConstant : enumConstants) {
             var enumName = enumConstant.identifier().getText();
             if(metaFields.containsKey(enumName)){
-                throw new DuplicatedError("'%s' duplicated".formatted(enumName), unit.sourceLocation(enumConstant.identifier()));
+                unit.appendError(new DuplicatedError("'%s' duplicated".formatted(enumName), unit.sourceLocation(enumConstant.identifier())));
+                continue;
             }
             var integerLiteral = enumConstant.integerLiteral();
             Literal<?> literalValue;
@@ -98,11 +99,13 @@ public class EnumDef extends ClassDef{
                 } else if(l instanceof ByteLiteral byteLiteral){
                     v = byteLiteral.value;
                 } else {
-                    throw new UnsupportedOperationException("literal '%s' not supported".formatted(l));
+                    unit.appendError(new TypeMismatchError("literal '%s' not supported".formatted(l), l.getSourceLocation()));
+                    continue;
                 }
 
                 if(values.contains(v)){
-                    throw new DuplicatedError("value '%d' duplicated".formatted(v), unit.sourceLocation(integerLiteral));
+                    unit.appendError(new DuplicatedError("value '%d' duplicated".formatted(v), unit.sourceLocation(integerLiteral)));
+                    continue;
                 }
                 enumValues.put(enumName, literalValue = l);
                 index = v + 1;

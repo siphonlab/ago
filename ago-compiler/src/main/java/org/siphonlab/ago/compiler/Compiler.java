@@ -27,7 +27,6 @@ import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
-import org.siphonlab.ago.module.Module;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,7 @@ public class Compiler {
         this.root = project.getRoot();
     }
 
-    public Unit[] compile() throws IOException, CompilationError{
+    public Unit[] compile() throws IOException, CompilationError, CompliationErrorsException {
         Unit[] units = project.getUnits().toArray(new Unit[0]);
 
         for (var unit : units) {
@@ -72,7 +71,7 @@ public class Compiler {
             unit.solveRemainImports();
             if (!unit.getUnsolvedImports().isEmpty()) {
                 for (Unit.UnsolvedImport unsolvedImport : unit.getUnsolvedImports()) {
-                    throw unit.resolveError(unsolvedImport.importDeclaration(), unsolvedImport.classFullName() + " not found");
+                    unit.appendError(unit.resolveError(unsolvedImport.importDeclaration(), unsolvedImport.classFullName() + " not found"));
                 }
             }
         }
@@ -132,6 +131,16 @@ public class Compiler {
         }
         root.setCompilingStage(CompilingStage.Compiled);
 
+        List<CompilationError> errors = new ArrayList<>();
+        for (Unit unit : units) {
+            if(unit.hasErrors()){
+                errors.addAll(unit.getErrors());
+            }
+        }
+        if(!errors.isEmpty()){
+            throw new CompliationErrorsException(errors);
+        }
+
         return units;
     }
 
@@ -153,20 +162,28 @@ public class Compiler {
         return LiteralParser.parseJsStringLiteral(stringLiteral.getText());
     }
 
-    void parseFields() throws CompilationError {
+    void parseFields(){
         var q = new LinkedList<ClassDef>();
         boolean resort = false;
         for (var it = root.getSortedClassesAndFunctions().iterator(); it.hasNext(); ) {
             ClassDef classDef = it.next();
-            if(!classDef.parseFields()){
-                q.add(classDef);
+            try {
+                if(!classDef.parseFields()){
+                    q.add(classDef);
+                }
+            } catch (CompilationError e) {
+                classDef.unit.appendError(e);
             }
         }
         while(!q.isEmpty()){
             var classDef = q.removeFirst();
-            if(classDef.getCompilingStage().lt(CompilingStage.ParseFields))
-                processClassTillStage(classDef, CompilingStage.ParseFields);
-            if(!classDef.parseFields()) q.add(classDef);
+            try {
+                if (classDef.getCompilingStage().lt(CompilingStage.ParseFields))
+                    processClassTillStage(classDef, CompilingStage.ParseFields);
+                if (!classDef.parseFields()) q.add(classDef);
+            } catch (CompilationError e) {
+                classDef.unit.appendError(e);
+            }
         }
         if(resort) root.sortClasses();
     }
@@ -257,7 +274,16 @@ public class Compiler {
 
     void inheritsFields() throws CompilationError {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
-            classDef.inheritsFields();
+            try {
+                classDef.inheritsFields();
+            } catch (CompilationError e) {
+                if(classDef.unit != null) {
+                    classDef.unit.appendError(e);
+                    classDef.nextCompilingStage(CompilingStage.ValidateNewFunctions);
+                } else {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -277,7 +303,16 @@ public class Compiler {
     void validateFunctions() throws CompilationError {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
             if(classDef.getCompilingStage() != CompilingStage.ValidateNewFunctions) continue;
-            validateFunction(classDef);
+            try {
+                validateFunction(classDef);
+            } catch (CompilationError e) {
+                if(classDef.unit != null) {
+                    classDef.unit.appendError(e);
+                    classDef.nextCompilingStage(CompilingStage.InheritsInnerClasses);
+                } else {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -295,7 +330,16 @@ public class Compiler {
     void inheritsChildClasses() throws CompilationError {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
             if (classDef.compilingStage == CompilingStage.InheritsInnerClasses) {
-                classDef.inheritsChildClasses();
+                try {
+                    classDef.inheritsChildClasses();
+                } catch (CompilationError e){
+                    if(classDef.unit != null) {
+                        classDef.unit.appendError(e);
+                        classDef.nextCompilingStage(CompilingStage.ValidateMembers);
+                    } else {
+                        throw e;
+                    }
+                }
             }
         }
     }
@@ -303,7 +347,16 @@ public class Compiler {
     void validateMembers() throws SyntaxError, ResolveError {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
             if(classDef.compilingStage == CompilingStage.ValidateMembers) {
-                validateMembers(classDef);
+                try {
+                    validateMembers(classDef);
+                } catch (CompilationError e){
+                    if(classDef.unit != null) {
+                        classDef.unit.appendError(e);
+                        classDef.nextCompilingStage(CompilingStage.Compiled);
+                    } else {
+                        throw e;
+                    }
+                }
             }
         }
     }
@@ -330,7 +383,16 @@ public class Compiler {
 
     void compileMethodBodies() throws CompilationError {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
-            classDef.compileBody();
+            try {
+                classDef.compileBody();
+            } catch (CompilationError e) {
+                if(classDef.unit != null) {
+                    classDef.unit.appendError(e);
+                    classDef.setCompilingStage(CompilingStage.Compiled);
+                } else {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -367,25 +429,60 @@ public class Compiler {
                     }
                     break;
                 case ParseFields:
-                    classDef.parseFields();
+                    try {
+                        classDef.parseFields();
+                    } catch (CompilationError e) {
+                        classDef.unit.appendError(e);
+                        classDef.nextCompilingStage(CompilingStage.InheritsFields);
+                    }
                     break;
                 case InheritsFields:
-                    classDef.inheritsFields();
+                    try {
+                        classDef.inheritsFields();
+                    } catch (CompilationError e) {
+                        classDef.unit.appendError(e);
+                        classDef.nextCompilingStage(CompilingStage.ValidateNewFunctions);
+                    }
                     break;
                 case ValidateNewFunctions:
-                    validateFunction(classDef);
+                    try {
+                        validateFunction(classDef);
+                    } catch (CompilationError e) {
+                        classDef.unit.appendError(e);
+                        classDef.nextCompilingStage(CompilingStage.InheritsInnerClasses);
+                    }
                     break;
                 case InheritsInnerClasses:
-                    classDef.inheritsChildClasses();
+                    try {
+                        classDef.inheritsChildClasses();
+                    } catch (CompilationError e) {
+                        classDef.unit.appendError(e);
+                        classDef.nextCompilingStage(CompilingStage.ValidateMembers);
+                    }
                     break;
                 case ValidateMembers:
-                    validateMembers(classDef);
+                    try {
+                        validateMembers(classDef);
+                    } catch (CompilationError e) {
+                        classDef.unit.appendError(e);
+                        classDef.setCompilingStage(CompilingStage.Compiled);
+                    }
                     break;
                 case AllocateSlots:
-                    classDef.allocateSlotsForFields();
+                    try {
+                        classDef.allocateSlotsForFields();
+                    } catch (CompilationError e) {
+                        classDef.unit.appendError(e);
+                        classDef.setCompilingStage(CompilingStage.Compiled);
+                    }
                     break;
                 case CompileMethodBody:
-                    classDef.compileBody();
+                    try {
+                        classDef.compileBody();
+                    } catch (CompilationError e){
+                        classDef.unit.appendError(e);
+                        classDef.setCompilingStage(CompilingStage.Compiled);
+                    }
                     return;
                 case Compiled:
                     return;
@@ -420,22 +517,22 @@ public class Compiler {
         if(modifiers != null){
             for (AgoParser.VariableModifierContext modifier : modifiers) {
                 if(modifier.FINAL() != null){
-                    if((result & AgoClass.FINAL) == AgoClass.FINAL) throw unit.syntaxError( modifier,"'final' duplicated");
+                    if((result & AgoClass.FINAL) == AgoClass.FINAL) unit.appendError(unit.syntaxError( modifier,"'final' duplicated"));
                     result |= AgoClass.FINAL;
                 } else if(modifier.FIELD() != null){
                     if(target != ModifierTarget.Param)
-                        throw unit.syntaxError(modifier, "'field' can only apply on parameter");
-                    if((result & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM) throw unit.syntaxError( modifier,"'field' duplicated");
+                        unit.appendError(unit.syntaxError(modifier, "'field' can only apply on parameter"));
+                    if((result & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM) unit.appendError(unit.syntaxError( modifier,"'field' duplicated"));
                     result |= AgoClass.FIELD_PARAM;
                 } else if(modifier.CHAN() != null){
                     throw new UnsupportedOperationException("chan TODO");
                 } else if(modifier.THIS() != null){
                     if(target != ModifierTarget.Param)
-                        throw unit.syntaxError(modifier, "'this' can only apply on parameter");
+                        unit.appendError(unit.syntaxError(modifier, "'this' can only apply on parameter"));
                     if((result & AgoClass.THIS_PARAM) == AgoClass.THIS_PARAM) throw unit.syntaxError( modifier,"'this' duplicated");
                     result |= AgoClass.THIS_PARAM;
                 } else {
-                    throw unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText()));
+                    unit.appendError(unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText())));
                 }
             }
         }
@@ -449,7 +546,7 @@ public class Compiler {
             for (var modifier : modifiers) {
                 if(modifier.FINAL() != null) {
                     if ((result & AgoClass.FINAL) == AgoClass.FINAL)
-                        throw unit.syntaxError(modifier, "'final' duplicated");
+                        unit.appendError(unit.syntaxError(modifier, "'final' duplicated"));
                     result |= AgoClass.FINAL;
 //                } else if(modifier.STATIC() != null) {
 //                    if (target == ModifierTarget.Param)
@@ -463,12 +560,12 @@ public class Compiler {
 //                    throw new UnsupportedOperationException("chan TODO");
                 } else if(modifier.commonVisiblility() != null){
                     if(visibilityFound){
-                        throw unit.syntaxError(modifier, "visibility duplicated");
+                        unit.appendError(unit.syntaxError(modifier, "visibility duplicated"));
                     }
                     result |= commonVisibility(unit, modifier.commonVisiblility(), target);
                     visibilityFound = true;
                 } else {
-                    throw unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText()));
+                    unit.appendError(unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText())));
                 }
             }
         }
@@ -490,37 +587,37 @@ public class Compiler {
             }
             for (AgoParser.MethodModifierContext modifier : methodStarter.methodModifier()) {
                 if(modifier.FINAL() != null){
-                    if((result & AgoClass.FINAL) == AgoClass.FINAL) throw unit.syntaxError( modifier,"'final' duplicated");
+                    if((result & AgoClass.FINAL) == AgoClass.FINAL) unit.appendError(unit.syntaxError( modifier,"'final' duplicated"));
                     result |= AgoClass.FINAL;
 //                } else if(modifier.STATIC() != null) {
 //                    if ((result & AgoClass.STATIC) == AgoClass.STATIC) throw unit.syntaxError(modifier, "'static' duplicated");
 //                    result |= AgoClass.STATIC;
                 } else if(modifier.commonVisiblility() != null){
                     if(visibilityFound){
-                        throw unit.syntaxError(modifier, "visibility duplicated");
+                        unit.appendError(unit.syntaxError(modifier, "visibility duplicated"));
                     }
                     result |= commonVisibility(unit, modifier.commonVisiblility(), ModifierTarget.Method);
                     visibilityFound = true;
                 } else if(modifier.ABSTRACT() != null){
-                    if ((result & AgoClass.ABSTRACT) == AgoClass.ABSTRACT) throw unit.syntaxError(modifier, "'abstract' duplicated");
+                    if ((result & AgoClass.ABSTRACT) == AgoClass.ABSTRACT) unit.appendError(unit.syntaxError(modifier, "'abstract' duplicated"));
                     result |= AgoClass.ABSTRACT;
                 } else if(modifier.OVERRIDE() != null){
-                    if ((result & AgoClass.OVERRIDE) == AgoClass.OVERRIDE) throw unit.syntaxError(modifier, "'override' duplicated");
+                    if ((result & AgoClass.OVERRIDE) == AgoClass.OVERRIDE) unit.appendError(unit.syntaxError(modifier, "'override' duplicated"));
                     result |= AgoClass.OVERRIDE;
                 } else if(modifier.GENERATOR() != null){
-                    if ((result & AgoClass.GENERATOR) == AgoClass.GENERATOR) throw unit.syntaxError(modifier, "'generator' duplicated");
+                    if ((result & AgoClass.GENERATOR) == AgoClass.GENERATOR) unit.appendError(unit.syntaxError(modifier, "'generator' duplicated"));
                     result |= AgoClass.GENERATOR;
                 } else {
-                    throw unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText()));
+                    unit.appendError(unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText())));
                 }
             }
         }
         if(methodStarter.GETTER() != null){
-            if ((result & AgoClass.GETTER) == AgoClass.GETTER) throw unit.syntaxError(methodStarter, "'get' duplicated");
+            if ((result & AgoClass.GETTER) == AgoClass.GETTER) unit.appendError(unit.syntaxError(methodStarter, "'get' duplicated"));
             result |= AgoClass.GETTER;
         }
         if(methodStarter.SETTER() != null){
-            if ((result & AgoClass.SETTER) == AgoClass.SETTER) throw unit.syntaxError(methodStarter, "'set' duplicated");
+            if ((result & AgoClass.SETTER) == AgoClass.SETTER) unit.appendError(unit.syntaxError(methodStarter, "'set' duplicated"));
             result |= AgoClass.SETTER;
         }
         if(!visibilityFound){
@@ -532,16 +629,16 @@ public class Compiler {
     static int constructorModifier(Unit unit, AgoParser.MethodStarterContext methodStarter) throws SyntaxError {
         int result = methodModifier(unit, methodStarter);
         if((result & AgoClass.FINAL) == AgoClass.FINAL){
-            throw unit.syntaxError(methodStarter, "constructor cannot be final");
+            unit.appendError(unit.syntaxError(methodStarter, "constructor cannot be final"));
         }
         if((result & AgoClass.OVERRIDE) == AgoClass.OVERRIDE){
-            throw unit.syntaxError(methodStarter, "constructor needn't mark as 'override'");
+            unit.appendError(unit.syntaxError(methodStarter, "constructor needn't mark as 'override'"));
         }
         if((result & AgoClass.GETTER) == AgoClass.GETTER){
-            throw unit.syntaxError(methodStarter, "constructor needn't mark as 'override'");
+            unit.appendError(unit.syntaxError(methodStarter, "constructor needn't mark as 'override'"));
         }
         if((result & AgoClass.SETTER) == AgoClass.SETTER){
-            throw unit.syntaxError(methodStarter, "constructor needn't mark as 'override'");
+            unit.appendError(unit.syntaxError(methodStarter, "constructor needn't mark as 'override'"));
         }
         return result;
     }
@@ -551,19 +648,19 @@ public class Compiler {
         boolean visibilityFound = false;
         for (AgoParser.QueryModifierContext modifier : queryModifiers) {
             if(modifier.FINAL() != null){
-                if((result & AgoClass.FINAL) == AgoClass.FINAL) throw unit.syntaxError( modifier,"'final' duplicated");
+                if((result & AgoClass.FINAL) == AgoClass.FINAL) unit.appendError(unit.syntaxError( modifier,"'final' duplicated"));
                 result |= AgoClass.FINAL;
             } else if(modifier.commonVisiblility() != null){
                 if(visibilityFound){
-                    throw unit.syntaxError(modifier, "visibility duplicated");
+                    unit.appendError(unit.syntaxError(modifier, "visibility duplicated"));
                 }
                 result |= commonVisibility(unit, modifier.commonVisiblility(), ModifierTarget.Method);
                 visibilityFound = true;
             } else if(modifier.OVERRIDE() != null){
-                if ((result & AgoClass.OVERRIDE) == AgoClass.OVERRIDE) throw unit.syntaxError(modifier, "'override' duplicated");
+                if ((result & AgoClass.OVERRIDE) == AgoClass.OVERRIDE) unit.appendError(unit.syntaxError(modifier, "'override' duplicated"));
                 result |= AgoClass.OVERRIDE;
             } else {
-                throw unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText()));
+                unit.appendError(unit.syntaxError(modifier, "unexpected token '%s'".formatted(modifier.getText())));
             }
             if(!visibilityFound){
                 result |= commonVisibility(unit, null, ModifierTarget.Method);
@@ -583,15 +680,15 @@ public class Compiler {
         };
         int result = 0;
         if(commonVisibilility.PUBLIC() != null){
-              if((result & AgoClass.VISIBILITY_MASK) != 0) throw unit.syntaxError(commonVisibilility,"visibility duplicated");
+              if((result & AgoClass.VISIBILITY_MASK) != 0) unit.appendError(unit.syntaxError(commonVisibilility,"visibility duplicated"));
               result |= AgoClass.PUBLIC;
         }
         if(commonVisibilility.PROTECTED() != null){
-            if((result & AgoClass.VISIBILITY_MASK) != 0) throw unit.syntaxError(commonVisibilility,"visibility duplicated");
+            if((result & AgoClass.VISIBILITY_MASK) != 0) unit.appendError(unit.syntaxError(commonVisibilility,"visibility duplicated"));
             result |= AgoClass.PROTECTED;
         }
         if(commonVisibilility.PRIVATE() != null){
-            if((result & AgoClass.VISIBILITY_MASK) != 0) throw unit.syntaxError(commonVisibilility,"visibility duplicated");
+            if((result & AgoClass.VISIBILITY_MASK) != 0) unit.appendError(unit.syntaxError(commonVisibilility,"visibility duplicated"));
             result |= AgoClass.PRIVATE;
         }
         return result;
@@ -602,7 +699,7 @@ public class Compiler {
         boolean visibilityFound = false;
         for (var modifier : modifiers) {
             if (modifier.FINAL() != null) {
-                if ((result & AgoClass.FINAL) == AgoClass.FINAL) throw unit.syntaxError(modifier, "'final' duplicated");
+                if ((result & AgoClass.FINAL) == AgoClass.FINAL) unit.appendError(unit.syntaxError(modifier, "'final' duplicated"));
                 result |= AgoClass.FINAL;
 //            } else if (modifier.STATIC() != null) {
 //                if ((result & AgoClass.STATIC) == AgoClass.STATIC)
@@ -610,17 +707,17 @@ public class Compiler {
 //                result |= AgoClass.STATIC;
             } else if (modifier.commonVisiblility() != null) {
                 if (visibilityFound) {
-                    throw unit.syntaxError(modifier, "visibility duplicated");
+                    unit.appendError(unit.syntaxError(modifier, "visibility duplicated"));
                 }
                 result |= commonVisibility(unit, modifier.commonVisiblility(), ModifierTarget.Class);
                 visibilityFound = true;
             } else if (modifier.ABSTRACT() != null) {
                 if ((result & AgoClass.ABSTRACT) == AgoClass.ABSTRACT)
-                    throw unit.syntaxError(modifier, "'abstract' duplicated");
+                    unit.appendError(unit.syntaxError(modifier, "'abstract' duplicated"));
                 result |= AgoClass.ABSTRACT;
 
             } else if(modifier.NATIVE() != null){
-                if ((result & AgoClass.NATIVE) == AgoClass.NATIVE) throw unit.syntaxError(modifier, "'native' duplicated");
+                if ((result & AgoClass.NATIVE) == AgoClass.NATIVE) unit.appendError(unit.syntaxError(modifier, "'native' duplicated"));
                 result |= AgoClass.NATIVE;
             }
             if (!visibilityFound) {
@@ -635,11 +732,11 @@ public class Compiler {
         boolean visibilityFound = false;
         for (var modifier : modifiers) {
             if (modifier.FINAL() != null) {
-                if ((result & AgoClass.FINAL) == AgoClass.FINAL) throw unit.syntaxError(modifier, "'final' duplicated");
+                if ((result & AgoClass.FINAL) == AgoClass.FINAL) unit.appendError(unit.syntaxError(modifier, "'final' duplicated"));
                 result |= AgoClass.FINAL;
             } else if (modifier.commonVisiblility() != null) {
                 if (visibilityFound) {
-                    throw unit.syntaxError(modifier, "visibility duplicated");
+                    unit.appendError(unit.syntaxError(modifier, "visibility duplicated"));
                 }
                 result |= commonVisibility(unit, modifier.commonVisiblility(), ModifierTarget.Class);
                 visibilityFound = true;

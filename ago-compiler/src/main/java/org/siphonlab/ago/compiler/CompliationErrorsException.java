@@ -13,26 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.test;
+package org.siphonlab.ago.compiler;
 
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.apache.commons.lang3.StringUtils;
 import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.lang.Trace;
 
-import java.io.IOException;
+import java.util.List;
 
-import static org.siphonlab.ago.test.Util.run;
+public class CompliationErrorsException extends Exception {
 
-import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-public class InheritsTest {
-
-    @Test
-    public void child_class_test() throws CompilationError, CompliationErrorsException, IOException {
-        run("inherits/child_class.ago");
-        assertTrue(Trace.outputted("test"));
-    }
+	public CompliationErrorsException(List<CompilationError> errors) {
+		super("errors found: \r\n " + StringUtils.join(errors, "\r\n"));
+	}
 
 }
