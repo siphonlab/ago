@@ -4,3 +4,4 @@
 *.agoc
 /.idea
 /test-cases/src/main/resources/database.properties
+ago-sdk/compiled/
