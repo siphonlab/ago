@@ -62,26 +62,6 @@ public class Long from Number<long>{
 }
 
 
-public class String from Boxer<string>{
-
-    override hashCode() as int{
-        return stringHashCode(value);
-    }
-
-    fun stringHashCode(s as string) as int
-            native "org.siphonlab.ago.lang.Lang.String_hashCode";
-
-    override equals(obj as Object) as boolean{
-        if(this == obj) return true;
-        return (obj instanceof String aString) and value == aString.value;
-    }
-
-    override toString() as string{
-        return value;
-    }
-
-}
-
 public class Boolean from Boxer<boolean>{
 
     override hashCode() as int{

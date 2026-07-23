@@ -1,0 +1,82 @@
+fun main(){
+    var s = "Hello";
+    var boxed = new String(s);
+
+    // length
+    Trace.print(boxed.length()|string);
+    Trace.print(s.length()|string);
+
+    // charAt
+    Trace.print(boxed.charAt(0)|string);
+    Trace.print(s.charAt(0)|string);
+
+    // substring
+    Trace.print(boxed.substring(1));
+    Trace.print(s.substring(1));
+
+    // concat
+    Trace.print(boxed.concat("World"));
+    Trace.print(s.concat("World"));
+
+    // contains
+    var sw = "Hello World";
+    Trace.print(new String(sw).contains("World")|string);
+    Trace.print(sw.contains("World")|string);
+
+    // startsWith
+    Trace.print(new String(sw).startsWith("Hello")|string);
+    Trace.print(sw.startsWith("Hello")|string);
+
+    // endsWith
+    Trace.print(new String(sw).endsWith("World")|string);
+    Trace.print(sw.endsWith("World")|string);
+
+    // indexOf char
+    Trace.print(boxed.indexOf('e')|string);
+    Trace.print(s.indexOf('e')|string);
+
+    // indexOf str
+    Trace.print(new String(sw).indexOf("World")|string);
+    Trace.print(sw.indexOf("World")|string);
+
+    // lastIndexOf char
+    Trace.print(boxed.lastIndexOf('o')|string);
+    Trace.print(s.lastIndexOf('o')|string);
+
+    // trim
+    var padded = "   Hello   ";
+    Trace.print(new String(padded).trim());
+    Trace.print(padded.trim());
+
+    // toLowerCase
+    Trace.print(new String(sw).toLowerCase());
+    Trace.print(sw.toLowerCase());
+
+    // toUpperCase
+    Trace.print(new String(sw).toUpperCase());
+    Trace.print(sw.toUpperCase());
+
+    // replace char
+    Trace.print(boxed.replace('l', 'i'));
+    Trace.print(s.replace('l', 'i'));
+
+    // replace str
+    Trace.print(new String(sw).replace("Hello ", "Hi "));
+    Trace.print(sw.replace("Hello ", "Hi "));
+
+    // split
+    var parts = boxed.split("");
+    Trace.print(parts|string);
+    var parts2 = s.split("");
+    Trace.print(parts2|string);
+
+    // isEmpty
+    Trace.print(boxed.isEmpty()|string);
+    Trace.print(new String("").isEmpty()|string);
+    Trace.print(s.isEmpty()|string);
+    Trace.print("".isEmpty()|string);
+
+    // equalsIgnoreCase
+    Trace.print(boxed.equalsIgnoreCase("hello")|string);
+    Trace.print(sw.equalsIgnoreCase("HELLO WORLD")|string);
+}

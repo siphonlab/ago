@@ -182,4 +182,102 @@ public class Lang {
         System.arraycopy(srcArray, sourcePos, destArray, destPos, length);
         frame.finishVoid();
     }
+
+    // --- String instance methods (receiver is parent scope) ---
+
+    public static void String_length(NativeFrame frame){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishInt(s.length());
+    }
+
+    public static void String_charAt(NativeFrame frame, int index){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishChar(s.charAt(index));
+    }
+
+    public static void String_substring_begin(NativeFrame frame, int beginIndex){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(s.substring(beginIndex));
+    }
+
+    public static void String_substring_begin_end(NativeFrame frame, int beginIndex, int endIndex){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(s.substring(beginIndex, endIndex));
+    }
+
+    public static void String_contains(NativeFrame frame, String target){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishBoolean(s.contains(target));
+    }
+
+    public static void String_startsWith(NativeFrame frame, String prefix){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishBoolean(s.startsWith(prefix));
+    }
+
+    public static void String_endsWith(NativeFrame frame, String suffix){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishBoolean(s.endsWith(suffix));
+    }
+
+    public static void String_indexOf_char(NativeFrame frame, char ch){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishInt(s.indexOf(ch));
+    }
+
+    public static void String_indexOf_str(NativeFrame frame, String str){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishInt(s.indexOf(str));
+    }
+
+    public static void String_lastIndexOf_char(NativeFrame frame, char ch){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishInt(s.lastIndexOf(ch));
+    }
+
+    public static void String_lastIndexOf_str(NativeFrame frame, String str){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishInt(s.lastIndexOf(str));
+    }
+
+    public static void String_trim(NativeFrame frame){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(s.trim());
+    }
+
+    public static void String_toLowerCase(NativeFrame frame){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(s.toLowerCase());
+    }
+
+    public static void String_toUpperCase(NativeFrame frame){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(s.toUpperCase());
+    }
+
+    public static void String_replace_char(NativeFrame frame, char oldChar, char newChar){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(s.replace(oldChar, newChar));
+    }
+
+    public static void String_replace_str(NativeFrame frame, String oldStr, String newStr){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(s.replace(oldStr, newStr));
+    }
+
+    public static void String_split(NativeFrame frame, String separator){
+        String s = frame.getParentScope().getSlots().getString(0);
+        var parts = s.split(separator, -1);
+        AgoEngine engine = frame.getAgoEngine();
+        var arrayInst = engine.createStringArray(frame.getAgoClass().getResultClass(), parts.length);
+        for (int i = 0; i < parts.length; i++) {
+            arrayInst.value[i] = parts[i];
+        }
+        frame.finishObject(arrayInst);
+    }
+
+    public static void String_equalsIgnoreCase(NativeFrame frame, String other){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishBoolean(s.equalsIgnoreCase(other));
+    }
 }

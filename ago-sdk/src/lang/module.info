@@ -11,6 +11,7 @@ units:
   - lang.ago
   - primitive.ago
   - types.ago
+  - string.ago
   - collection.ago
   - runspace.ago
   - atomic.ago
