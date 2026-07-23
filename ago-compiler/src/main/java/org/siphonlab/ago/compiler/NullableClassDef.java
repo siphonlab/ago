@@ -60,11 +60,7 @@ public class NullableClassDef extends UnionClassDef {
         this.setSuperClass(root.getAnyClass());
 
         this.setCompilingStage(CompilingStage.InheritsFields);
-        try {
-            Compiler.processClassTillStage(this, nullableBaseClass.getCompilingStage());
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
-        }
+        Compiler.processClassTillStage(this, nullableBaseClass.getCompilingStage());
     }
 
     public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {

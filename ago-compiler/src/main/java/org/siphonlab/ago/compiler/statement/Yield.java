@@ -66,7 +66,7 @@ public class Yield extends Statement {
             } else if (term instanceof Var.LocalVar localVar) {
                 code.yield_v(localVar.getVariableSlot());
             } else {
-                throw new UnsupportedOperationException();
+                throw new UnsupportedOperationException("impossible");
             }
         } catch (CompilationError e) {
             throw e;

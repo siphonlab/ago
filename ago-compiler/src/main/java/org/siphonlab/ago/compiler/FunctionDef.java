@@ -23,6 +23,7 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.SourceMapEntry;
 import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.DuplicatedError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
@@ -196,19 +197,14 @@ public class FunctionDef extends ClassDef {
         }
     }
 
-    protected void processFieldParameters() throws SyntaxError, ResolveError {
+    protected void processFieldParameters() throws CompilationError {
         for (Parameter parameter : this.parameters) {
             if(parameter.isField()){
                 unit.appendError(unit.syntaxError(parameter.parameterContext, "redundant 'field' modifier, all parameter are function fields"));
                 continue;
             }
             if(parameter.isReceiverParameter()){
-                try {
-                    parameter.getType().addExtensionMethod(this);
-                } catch (DuplicatedKeyException e) {
-                    unit.appendError(unit.resolveError(parameter.parameterContext, e.getMessage()));
-                    continue;
-                }
+                parameter.getType().addExtensionMethod(this);
             }
         }
     }
@@ -389,7 +385,7 @@ public class FunctionDef extends ClassDef {
                     myvar.setSlot(this.slotsAllocator.allocateSlot(myvar));
                 }
             } else {
-                throw new RuntimeException("variable '%s' not found in '%s'".formatted(variable, this));
+                throw new ResolveError("variable '%s' not found in '%s'".formatted(variable, this), this.getSourceLocation());
             }
         }
 
@@ -418,7 +414,7 @@ public class FunctionDef extends ClassDef {
 
     @Override
     public AgoParser.ClassBodyContext getClassBody() {
-        throw new UnsupportedOperationException();
+        throw new IllegalStateException("function has no ClassBodyContext AST Node");
     }
 
     public boolean isEmptyArgs(){

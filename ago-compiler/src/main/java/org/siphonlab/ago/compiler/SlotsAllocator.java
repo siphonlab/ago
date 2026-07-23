@@ -90,7 +90,7 @@ public class SlotsAllocator {
         this.slots.addAll(slots);
         for (SlotDef slot : this.slots) {
             if(slot.getIndex() != this.slots.indexOf(slot)){
-                throw new RuntimeException("slot index error");
+                throw new IllegalStateException("slot index error");
             }
         }
     }

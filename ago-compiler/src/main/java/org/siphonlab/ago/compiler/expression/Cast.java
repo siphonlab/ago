@@ -65,7 +65,7 @@ public class Cast extends ExpressionInFunctionBody{
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        throw new UnsupportedOperationException("shouldn't enter here");
+        throw new IllegalStateException("shouldn't enter here");
     }
 
     private void castToLocalVar(Var.LocalVar localVar, Var.LocalVar result, CodeBuffer code) throws CompilationError {
@@ -85,7 +85,7 @@ public class Cast extends ExpressionInFunctionBody{
 
     @Override
     public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
-        throw new UnsupportedOperationException("shouldn't enter here");
+        throw new IllegalStateException("shouldn't enter here");
     }
 
     @Override

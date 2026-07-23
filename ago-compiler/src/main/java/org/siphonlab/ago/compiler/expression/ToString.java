@@ -65,7 +65,7 @@ public class ToString extends ExpressionInFunctionBody{
 
     @Override
     public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
-        throw new RuntimeException("already transformed to Invoke");
+        throw new IllegalStateException("already transformed to Invoke");
     }
 
     @Override

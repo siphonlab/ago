@@ -85,7 +85,7 @@ public abstract class Assign extends ExpressionInFunctionBody {
         } else if(assignee instanceof ObjectMember objectMember){
             return new SetObjectMember(ownerFunction, objectMember, value);
         } else {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("unsupported assignee " + t);
         }
     }
 
@@ -259,7 +259,7 @@ public abstract class Assign extends ExpressionInFunctionBody {
                 if (v instanceof Var.LocalVar localVar) {
                     blockCompiler.assign(this.assignee.baseVar, this.assignee.variable, localVar);
                 } else {
-                    throw new UnsupportedOperationException();
+                    throw new IllegalStateException("impossible");
                 }
                 return v;
             } catch (CompilationError e) {

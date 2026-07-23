@@ -54,7 +54,7 @@ public class TraitDefInScope extends TraitDef{
         } else if(baseTrait instanceof ParameterizedClassDef parameterizedClassDef){
             return getDeclaration(parameterizedClassDef.getBaseClass());
         }
-        throw new RuntimeException("'%s' cannot wrap to trait".formatted(baseTrait));
+        throw new IllegalStateException("'%s' cannot wrap to trait".formatted(baseTrait));
     }
 
     private static AgoParser.DeclarationTypeContext getPermitDeclaration(ClassDef baseTrait) {
@@ -68,7 +68,7 @@ public class TraitDefInScope extends TraitDef{
             assert parameterizedClassDef.getBaseClass() instanceof TraitDef;
             return ((TraitDef) parameterizedClassDef.getBaseClass()).getPermitTypeDecl();
         } else {
-            throw new RuntimeException("'%s' cannot wrap to trait".formatted(baseTrait));
+            throw new IllegalStateException("'%s' cannot wrap to trait".formatted(baseTrait));
         }
     }
 

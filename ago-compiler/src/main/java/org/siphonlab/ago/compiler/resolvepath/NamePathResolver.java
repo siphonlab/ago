@@ -25,10 +25,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.compiler.*;
-import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.exception.ResolveError;
-import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.exception.*;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.StringLiteral;
@@ -172,11 +169,11 @@ public class NamePathResolver {
         }
     }
 
-    public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, AgoParser.FormalNamePathContext namePath){
+    public NamePathResolver(ResolveMode resolveMode, Unit unit, ClassDef scopeClass, AgoParser.FormalNamePathContext namePath) throws UnsupportedExpressionError {
         this(resolveMode, unit, null, scopeClass, null, namePath, parseIds(namePath, unit));
     }
 
-    public NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef scopeClass, AgoParser.FormalNamePathContext namePath){
+    public NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef scopeClass, AgoParser.FormalNamePathContext namePath) throws UnsupportedExpressionError {
         this(resolveMode, unit, scopeClass, scopeClass, null, namePath, parseIds(namePath, unit));
     }
 
@@ -188,7 +185,7 @@ public class NamePathResolver {
         this(resolveMode, unit, null, scopeClass, head, null, Collections.singletonList(new Id(string.getString(), new SourceLocation(string.getSourceLocation()))));
     }
 
-    public NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef ownerFunction, ClassDef scopeClass, AgoParser.FormalNamePathContext formalNamePath) {
+    public NamePathResolver(ResolveMode resolveMode, Unit unit, FunctionDef ownerFunction, ClassDef scopeClass, AgoParser.FormalNamePathContext formalNamePath) throws UnsupportedExpressionError {
         this(resolveMode, unit, ownerFunction, scopeClass, null, formalNamePath, parseIds(formalNamePath, unit));
     }
 
@@ -205,7 +202,7 @@ public class NamePathResolver {
         return ownerFunction;
     }
 
-    private static List<Id> parseIds(AgoParser.FormalNamePathContext namePath, Unit unit) {
+    private static List<Id> parseIds(AgoParser.FormalNamePathContext namePath, Unit unit) throws UnsupportedExpressionError {
         var possibleNames = namePath.possibleName();
         List<Id> ids = new ArrayList<>(possibleNames.size());
         for (AgoParser.PossibleNameContext possibleName : possibleNames) {
@@ -228,7 +225,7 @@ public class NamePathResolver {
                 AgoParser.PrimitiveTypeContext primitiveType = namePrimitive.primitiveType();
                 ids.add(new PrimitiveType(primitiveType, Compiler.fromPrimitiveTypeAst(unit.getRoot(), primitiveType), unit.sourceLocation(primitiveType)));
             } else {
-                throw new RuntimeException();
+                throw new UnsupportedExpressionError(possibleName.getText(), unit.sourceLocation(possibleName));
             }
         }
         return ids;
@@ -424,7 +421,7 @@ public class NamePathResolver {
                 case PermitField:
                     return resolver.permitClassField(new Scope(depth, c).fromPronoun(pronounType).setSourceLocation(id.sourceLocation)).setSourceLocation(id.sourceLocation);
                 default:
-                    throw new RuntimeException("unexpected case");
+                    throw new IllegalStateException("unexpected case");
             }
         }
     }
@@ -957,7 +954,7 @@ public class NamePathResolver {
 
             return (ClassDef) pc;
         } else {
-            throw new RuntimeException("impossible");
+            throw new IllegalStateException("impossible");
         }
     }
 
@@ -1435,7 +1432,7 @@ public class NamePathResolver {
             case AgoParser.TraitSuperPrimaryContext traitSuperPrimaryContext -> PronounType.TraitSuper;
             case AgoParser.TraitThisPrimaryContext traitThisPrimaryContext -> PronounType.TraitThis;
             case null, default -> {
-                throw new UnsupportedOperationException();
+                throw new IllegalStateException("impossible");
             }
         };
     }

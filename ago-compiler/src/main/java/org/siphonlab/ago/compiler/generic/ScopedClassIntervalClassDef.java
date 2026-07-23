@@ -28,17 +28,13 @@ public class ScopedClassIntervalClassDef extends ClassIntervalClassDef {
     }
 
     @Override
-    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
-        ScopedClassIntervalClassDef c = null;
-        try {
-            c = ((ClassContainer)this.getParent()).getOrCreateScopedClassInterval(project,
-                    baseClass.instantiate(project, instantiationArguments, null),
-                    this.parameterizedConstructor,
-                    this.getLBoundClass().instantiate(project, instantiationArguments, null),
-                    this.getUBoundClass().instantiate(project, instantiationArguments, null), returnExisted);
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
-        }
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+        ScopedClassIntervalClassDef c;
+        c = ((ClassContainer)this.getParent()).getOrCreateScopedClassInterval(project,
+                baseClass.instantiate(project, instantiationArguments, null),
+                this.parameterizedConstructor,
+                this.getLBoundClass().instantiate(project, instantiationArguments, null),
+                this.getUBoundClass().instantiate(project, instantiationArguments, null), returnExisted);
         return c;
     }
 

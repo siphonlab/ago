@@ -87,7 +87,7 @@ public class ClassFile {
         putSourceLocation(buff, classDef.getSourceLocation());
 
         if(wrote.contains(classDef.getFullname())){
-            throw new RuntimeException();
+            throw new IllegalStateException("'%s' already wrote".formatted(classDef.getFullname()));
         }
         wrote.add(classDef.getFullname());
 
@@ -463,7 +463,7 @@ public class ClassFile {
                     buffer.putInt(0);
                 }
             } else {
-                throw new RuntimeException("unknown concrete type " + concreteType.getFullname());
+                throw new IllegalStateException("unknown concrete type " + concreteType.getFullname());
             }
         } catch (Exception e){
             throw new RuntimeException(e);

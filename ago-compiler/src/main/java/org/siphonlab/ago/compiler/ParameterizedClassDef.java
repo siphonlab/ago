@@ -456,12 +456,8 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
     @Override
     public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         ParameterizedClassDef c = null;
-        try {
-            var n = baseClass.instantiateAsReferenceClass(project, instantiationArguments, returnExisted);
-            c = ((ClassContainer)this.getParent()).getOrCreateParameterizedClass(n, constructor, mapArguments(project, instantiationArguments), returnExisted);
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
-        }
+        var n = baseClass.instantiateAsReferenceClass(project, instantiationArguments, returnExisted);
+        c = ((ClassContainer)this.getParent()).getOrCreateParameterizedClass(n, constructor, mapArguments(project, instantiationArguments), returnExisted);
         return c;
     }
 

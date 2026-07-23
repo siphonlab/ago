@@ -57,7 +57,7 @@ public class BitOpExpr extends BiExpression {
                 case KIND_BITAND -> BitAnd;
                 case KIND_BITOR -> BitOr;
                 case KIND_BITXOR -> BitXor;
-                default -> throw new RuntimeException();
+                default -> throw new IllegalArgumentException();
             };
         }
     }

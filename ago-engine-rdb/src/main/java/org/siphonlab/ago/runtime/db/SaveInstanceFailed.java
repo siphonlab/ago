@@ -16,21 +16,9 @@
 package org.siphonlab.ago.runtime.db;
 
 import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.RunSpace;
 
-import java.sql.SQLException;
-
-public interface DbAdapter<IdType> {
-
-    void saveInstance(Instance<?> instance);
-
-    // for EntityAdapter, it returns whole instance, but, for the scope and other linked Object,
-    Instance<?> getById(ObjectRef<IdType> objectRef, RunSpace runSpace);
-
-    DbAdapter<IdType> beginTransaction();
-    void commitTransaction() throws Exception;
-    void rollbackTransaction() throws Exception;
-    void close();
-
-    IdType nextId();
+public class SaveInstanceFailed extends RuntimeException {
+    public SaveInstanceFailed(Instance<?> instance, Exception cause) {
+        super("save instance %s failed".formatted(instance), cause);
+    }
 }

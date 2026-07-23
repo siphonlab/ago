@@ -62,19 +62,15 @@ public class SharedGenericTypeParameterClassDef extends ClassIntervalClassDef{
     }
 
     @Override
-    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
-        SharedGenericTypeParameterClassDef c = null;
-        try {
-            c = this.getParentClass().getOrCreateGenericTypeParameter(project, baseClass,
-                    constructor,
-                    this.getLBoundClass().instantiate(project, instantiationArguments, null),
-                    this.getUBoundClass().instantiate(project, instantiationArguments, null),
-                    this.variance, returnExisted);
-            if(c.getUnit() == null) c.setUnit(this.getUnit());
-            this.registerConcreteType((ConcreteType) c);
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
-        }
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+        SharedGenericTypeParameterClassDef c;
+        c = this.getParentClass().getOrCreateGenericTypeParameter(project, baseClass,
+                constructor,
+                this.getLBoundClass().instantiate(project, instantiationArguments, null),
+                this.getUBoundClass().instantiate(project, instantiationArguments, null),
+                this.variance, returnExisted);
+        if(c.getUnit() == null) c.setUnit(this.getUnit());
+        this.registerConcreteType((ConcreteType) c);
         return c;
     }
 

@@ -173,12 +173,8 @@ public abstract class ClassOf extends ExpressionBase{
 
         private final Expression expression;
 
-        protected ClassOfInstance(Expression expression) {
-            try {
-                this.expression = expression.transform();
-            } catch (CompilationError compilationError) {
-                throw new RuntimeException(compilationError);
-            }
+        protected ClassOfInstance(Expression expression) throws CompilationError {
+            this.expression = expression.transform();
             this.expression.setParent(this);
         }
 

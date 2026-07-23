@@ -40,25 +40,21 @@ public class GenericInstantiate {
         this.instantiationArguments = instantiationArguments;
     }
 
-    public static void syncCompilingStage(ClassDef instantiateClass, CompilingStage compilingStage){
-        try {
-            CompilingStage prevStage = compilingStage.prev();
-            Compiler.processClassTillStage(instantiateClass, prevStage);
+    public static void syncCompilingStage(ClassDef instantiateClass, CompilingStage compilingStage) throws CompilationError {
+        CompilingStage prevStage = compilingStage.prev();
+        Compiler.processClassTillStage(instantiateClass, prevStage);
+        for (Namespace<?> n : new ArrayList<>(instantiateClass.getAllDescendants().getUniqueElements())) {
+            if(n instanceof ClassDef classDef){
+                Compiler.processClassTillStage(classDef, prevStage);
+            }
+        }
+        if(instantiateClass.getMetaClassDef() != null){
+            Compiler.processClassTillStage(instantiateClass.getMetaClassDef(), prevStage);
             for (Namespace<?> n : new ArrayList<>(instantiateClass.getAllDescendants().getUniqueElements())) {
                 if(n instanceof ClassDef classDef){
                     Compiler.processClassTillStage(classDef, prevStage);
                 }
             }
-            if(instantiateClass.getMetaClassDef() != null){
-                Compiler.processClassTillStage(instantiateClass.getMetaClassDef(), prevStage);
-                for (Namespace<?> n : new ArrayList<>(instantiateClass.getAllDescendants().getUniqueElements())) {
-                    if(n instanceof ClassDef classDef){
-                        Compiler.processClassTillStage(classDef, prevStage);
-                    }
-                }
-            }
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
         }
     }
 

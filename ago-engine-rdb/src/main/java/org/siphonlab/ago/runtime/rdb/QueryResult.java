@@ -24,23 +24,15 @@ import java.sql.SQLException;
 
 public class QueryResult {
 
-    public static void hasNext(NativeFrame frame) {
+    public static void hasNext(NativeFrame frame) throws SQLException {
         ResultSetToQueryResultMapper<?> resultSetToQueryResultMapper = (ResultSetToQueryResultMapper<?>) frame.getParentScope().getNativePayload();
-        try {
-            boolean result = resultSetToQueryResultMapper.hasNext();
-            frame.finishBoolean(result);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        boolean result = resultSetToQueryResultMapper.hasNext();
+        frame.finishBoolean(result);
     }
 
-    public static void next(NativeFrame frame) {
+    public static void next(NativeFrame frame) throws SQLException {
         ResultSetToQueryResultMapper<?> resultSetToQueryResultMapper = (ResultSetToQueryResultMapper<?>) frame.getParentScope().getNativePayload();
-        try {
-            frame.finishObject(resultSetToQueryResultMapper.next());
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        frame.finishObject(resultSetToQueryResultMapper.next());
     }
 
 }

@@ -125,16 +125,12 @@ public class ClassIntervalClassDef extends ParameterizedClassDef implements Clas
     }
 
     @Override
-    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) {
-        ClassIntervalClassDef c = null;
-        try {
-            c = this.getParentClass().getOrCreateClassInterval(project, baseClass.instantiate(project, instantiationArguments, null),
-                    constructor,
-                    this.getLBoundClass().instantiate(project, instantiationArguments, null),
-                    this.getUBoundClass().instantiate(project, instantiationArguments, null), returnExisted);
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
-        }
+    public ClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
+        ClassIntervalClassDef c;
+        c = this.getParentClass().getOrCreateClassInterval(project, baseClass.instantiate(project, instantiationArguments, null),
+                constructor,
+                this.getLBoundClass().instantiate(project, instantiationArguments, null),
+                this.getUBoundClass().instantiate(project, instantiationArguments, null), returnExisted);
         return c;
     }
 

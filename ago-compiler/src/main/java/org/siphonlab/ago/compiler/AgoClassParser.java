@@ -166,7 +166,7 @@ public class AgoClassParser {
                         case InheritsInnerClasses:          r = inheritsInnerClasses(classDef); break;  // jump to Compiled
                         case ValidateMembers:               r = validateMembers(classDef); break;
                         case AllocateSlots:                 r = allocateSlots(agoClass, classDef); break;      // for GenericInstantiation
-                        default: throw new RuntimeException("unexpected stage " + classDef.getCompilingStage());
+                        default: throw new IllegalStateException("unexpected stage " + classDef.getCompilingStage());
                     }
                 } else {
                     r = true;
@@ -325,7 +325,7 @@ public class AgoClassParser {
             r = (ClassDef) parent.getOrCreateGenericInstantiationClassDef(templateClass, args, null, (Project) null);
             classes.put(agoClass, r);
         } else {
-            throw new RuntimeException("unexpected class " + agoClass);
+            throw new IllegalStateException("unexpected class " + agoClass);
         }
         return r;
     }
@@ -374,7 +374,7 @@ public class AgoClassParser {
         } else if(argument == null){
             return root.nullLiteral();
         }
-        throw new RuntimeException("unexpected type " + argument);
+        throw new IllegalArgumentException("unexpected type " + argument);
     }
 
     private ClassDef mapClass(ClassDef ownerClass, AgoClass agoClass, TypeCode typeCode) throws CompilationError {
@@ -534,7 +534,7 @@ public class AgoClassParser {
                 case TypeCode.VOID_VALUE -> new PrimitiveClassDef(root, TypeCode.VOID);
                 case TypeCode.CLASS_REF_VALUE -> new PrimitiveClassDef(root, TypeCode.CLASS_REF);
                 case TypeCode.NULL_VALUE -> new NullClassDef(root);
-                default -> throw new RuntimeException("not supported type " + agoPrimitiveClass);
+                default -> throw new IllegalArgumentException("not supported type " + agoPrimitiveClass);
             };
             classDef.setSourceLocation(agoClass.getSourceLocation());
             Package defaultPackage = root.getDefaultPackage();
@@ -603,7 +603,7 @@ public class AgoClassParser {
             if(n instanceof Package pkg){
                 pkg.addChild(classDef);
             } else {
-                throw new RuntimeException("no parent found");
+                throw new IllegalStateException("no parent found");
             }
         }
         classes.put(agoClass, classDef);

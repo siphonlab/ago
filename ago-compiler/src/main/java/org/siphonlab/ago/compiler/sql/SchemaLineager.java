@@ -106,8 +106,7 @@ public class SchemaLineager
     private final SymbolMapping symbolMapping = new SymbolMapping();
 
     private static <T> void throwUnsupported(T type) {
-        throw new UnsupportedOperationException(String.format(
-                "Finding tables from %s is not supported", type.getClass().getSimpleName()));
+        throw new UnsupportedOperationException(String.format("Finding tables from %s is not supported", type.getClass().getSimpleName()));
     }
 
     public SchemaLineager(QueryDef scopeClass){

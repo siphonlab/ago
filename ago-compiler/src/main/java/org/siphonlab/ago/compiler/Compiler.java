@@ -21,6 +21,7 @@ import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
+import org.siphonlab.ago.compiler.exception.UnsupportedExpressionError;
 import org.siphonlab.ago.compiler.expression.LiteralParser;
 import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
@@ -125,7 +126,7 @@ public class Compiler {
         for (Namespace<?> n : root.getAllDescendants().getUniqueElements()) {
             if (n instanceof ClassDef classDef) {
                 if (classDef.getCompilingStage() != CompilingStage.Compiled) {
-                    throw new RuntimeException("'%s' not compiled".formatted(classDef));
+                    throw new IllegalStateException("'%s' not compiled".formatted(classDef));
                 }
             }
         }
@@ -507,12 +508,12 @@ public class Compiler {
         Constructor
     }
 
-    static int variableModifiers(Unit unit, AgoParser.VariableModifiersContext variableModifier, ModifierTarget target) throws SyntaxError {
+    static int variableModifiers(Unit unit, AgoParser.VariableModifiersContext variableModifier, ModifierTarget target) throws SyntaxError, UnsupportedExpressionError {
         List<AgoParser.VariableModifierContext> modifiers = variableModifier.variableModifier();
         return variableModifiers(unit, modifiers, target);
     }
 
-    static int variableModifiers(Unit unit, List<AgoParser.VariableModifierContext> modifiers, ModifierTarget target) throws SyntaxError {
+    static int variableModifiers(Unit unit, List<AgoParser.VariableModifierContext> modifiers, ModifierTarget target) throws SyntaxError, UnsupportedExpressionError {
         int result = 0;
         if(modifiers != null){
             for (AgoParser.VariableModifierContext modifier : modifiers) {
@@ -525,7 +526,7 @@ public class Compiler {
                     if((result & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM) unit.appendError(unit.syntaxError( modifier,"'field' duplicated"));
                     result |= AgoClass.FIELD_PARAM;
                 } else if(modifier.CHAN() != null){
-                    throw new UnsupportedOperationException("chan TODO");
+                    throw new UnsupportedExpressionError("chan TODO", unit.sourceLocation(modifier.CHAN()));
                 } else if(modifier.THIS() != null){
                     if(target != ModifierTarget.Param)
                         unit.appendError(unit.syntaxError(modifier, "'this' can only apply on parameter"));
@@ -763,7 +764,7 @@ public class Compiler {
             case AgoLexer.VOID -> TypeCode.VOID;
             case AgoLexer.CLASSREF -> TypeCode.CLASS_REF;
             case AgoLexer.NULL_LITERAL -> TypeCode.NULL;
-            default -> throw new RuntimeException("not supported type " + primitiveType.getText());
+            default -> throw new IllegalStateException("not supported type " + primitiveType.getText());
         };
         return type;
     }

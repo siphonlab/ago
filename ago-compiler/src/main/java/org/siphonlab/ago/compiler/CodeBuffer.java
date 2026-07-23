@@ -157,7 +157,7 @@ public class CodeBuffer {
             case VOID_VALUE:
                 break;
             case NULL_VALUE:
-                throw new RuntimeException("void or null should not enter here");
+                throw new IllegalStateException("void or null should not enter here");
             case CHAR_VALUE:
                 ls.addInt(((CharLiteral)literal).value);
                 break;

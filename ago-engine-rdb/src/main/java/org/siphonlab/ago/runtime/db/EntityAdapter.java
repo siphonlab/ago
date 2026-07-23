@@ -18,11 +18,12 @@ package org.siphonlab.ago.runtime.db;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.rdb.*;
 
+import java.sql.SQLException;
 import java.util.Map;
 
 public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
-    ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace);
+    ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace) throws Exception;
 
     // for EntityAdapter, the saveInstance only log the changed instances, and `flush` really save them to db, and saveInstance may lock the id
     void flush(RunSpace runSpace);
@@ -40,5 +41,5 @@ public interface EntityAdapter<Id> extends DbAdapter<Id>{
 
     ColumnDesc idColumnDesc();
 
-    ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace);
+    ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace) throws Exception;
 }

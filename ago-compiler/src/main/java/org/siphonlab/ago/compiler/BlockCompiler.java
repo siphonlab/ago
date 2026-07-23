@@ -22,10 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
-import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.exception.ResolveError;
-import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.exception.*;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.*;
 import org.siphonlab.ago.compiler.expression.dynamic.DynamicInvoke;
@@ -452,7 +449,7 @@ public class BlockCompiler {
                 case MUL -> ArithmeticExpr.Type.Multi;
                 case DIV -> ArithmeticExpr.Type.Div;
                 case MOD -> ArithmeticExpr.Type.Mod;
-                default -> throw new RuntimeException("unexpected type " + multiDivModExpr.bop);
+                default -> throw new IllegalExpressionError("unexpected type " + multiDivModExpr.bop, functionDef.getUnit().sourceLocation(expression));
             };
             return new ArithmeticExpr(functionDef,type, expression(multiDivModExpr.expression(0)), expression(multiDivModExpr.expression(1)))
                     .setSourceLocation(unit.sourceLocation(expression));
@@ -488,7 +485,7 @@ public class BlockCompiler {
         } else if(expression instanceof ValueFromNullableContext valueFromNullableContext){
             return valueFromNullable(valueFromNullableContext).setSourceLocation(unit.sourceLocation(valueFromNullableContext));
         }
-        throw new UnsupportedOperationException(expression.getText());
+        throw new UnsupportedExpressionError(expression.getText(), unit.sourceLocation(expression));
     }
 
     private Expression classExpr(ClassExprContext classExpr) throws CompilationError {
@@ -703,7 +700,7 @@ public class BlockCompiler {
             case BITNOT:
                 return new BitNot(functionDef, expression);
             default:
-                throw new RuntimeException("TODO");
+                throw new UnsupportedExpressionError(prefixExpr.getText(), unit.sourceLocation(prefixExpr));
         }
     }
 
@@ -739,7 +736,7 @@ public class BlockCompiler {
                     case MUL_ASSIGN -> SelfArithmetic.Type.SelfMulti;
                     case DIV_ASSIGN -> SelfArithmetic.Type.SelfDiv;
                     case MOD_ASSIGN -> SelfArithmetic.Type.SelfMod;
-                    default -> throw new UnsupportedOperationException("impossible");
+                    default -> throw new IllegalExpressionError("illegal assignment", unit.sourceLocation(assignExpr));
                 };
                 return new SelfArithmetic(functionDef, assignee, value,arithType).setSourceLocation(sourceLocation);
 
@@ -764,7 +761,7 @@ public class BlockCompiler {
             case SET_VALUE:
 //TODO
             default:
-                throw new UnsupportedOperationException("");
+                throw new UnsupportedExpressionError(assignExpr.getText(), unit.sourceLocation(assignExpr));
         }
     }
 
@@ -774,7 +771,7 @@ public class BlockCompiler {
             case LT -> Compare.Type.LT;
             case GE -> Compare.Type.GE;
             case LE -> Compare.Type.LE;
-            default -> throw new UnsupportedOperationException("'%s' not supported".formatted(compareExpr.bop));
+            default -> throw new IllegalExpressionError("'%s' not supported".formatted(compareExpr.bop), unit.sourceLocation(compareExpr));
         };
         return new Compare(this, expression( compareExpr.expression(0)),expression(compareExpr.expression(1)), type);
     }
@@ -852,7 +849,7 @@ public class BlockCompiler {
             }
             return expr;
         } else {
-            throw new UnsupportedOperationException("unknown creator type " + creator);
+            throw new UnsupportedExpressionError("unknown creator type " + creator.getText(), unit.sourceLocation(creator));
         }
     }
 
@@ -914,7 +911,7 @@ public class BlockCompiler {
         } else if(expression instanceof ElementExprContext elementExpr){
             return expression(elementExpr);
         }
-        throw new UnsupportedOperationException(expression.getText());
+        throw new UnsupportedExpressionError(expression.getText(), unit.sourceLocation(expression));
     }
 
     Expression assigner(ExpressionContext expression, Expression assignee, ClassDef assigneeType) throws CompilationError {
@@ -1263,7 +1260,7 @@ public class BlockCompiler {
         } else if(propertyNameContext instanceof ExpressionPropertyNameContext expr){
             return this.expression(expr.expression()).setSourceLocation(unit.sourceLocation(propertyNameContext));
         } else {
-            throw new IllegalArgumentException("unexpected property name");
+            throw new UnsupportedExpressionError(propertyNameContext.getText(), unit.sourceLocation(propertyNameContext));
         }
     }
 
@@ -1706,7 +1703,7 @@ public class BlockCompiler {
             case NOTEQUAL -> Equals.Type.NotEquals;
 //                case IDENTITY_EQUAL -> ;
 //                case NOT_IDENTITY_EQUAL ->
-            default -> throw new UnsupportedOperationException("'%s' not supported".formatted(equalsExpr.bop));
+            default -> throw new IllegalExpressionError("'%s' not supported".formatted(equalsExpr.bop), unit.sourceLocation(equalsExpr));
         };
         Expression left = expression(equalsExpr.expression(0));
         Expression right = expression(equalsExpr.expression(1));
@@ -1724,7 +1721,7 @@ public class BlockCompiler {
                 return decl.getExpression();
             }
         } else {
-            throw new RuntimeException("unexpected type " + parExpression);
+            throw new UnsupportedExpressionError(parExpression.getText(), unit.sourceLocation(parExpression));
         }
     }
 

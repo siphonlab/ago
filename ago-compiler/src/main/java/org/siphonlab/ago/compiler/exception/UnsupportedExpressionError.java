@@ -13,24 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.siphonlab.ago.runtime.db;
+package org.siphonlab.ago.compiler.exception;
 
-import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.RunSpace;
+import org.siphonlab.ago.SourceLocation;
 
-import java.sql.SQLException;
-
-public interface DbAdapter<IdType> {
-
-    void saveInstance(Instance<?> instance);
-
-    // for EntityAdapter, it returns whole instance, but, for the scope and other linked Object,
-    Instance<?> getById(ObjectRef<IdType> objectRef, RunSpace runSpace);
-
-    DbAdapter<IdType> beginTransaction();
-    void commitTransaction() throws Exception;
-    void rollbackTransaction() throws Exception;
-    void close();
-
-    IdType nextId();
+public class UnsupportedExpressionError extends CompilationError{
+    public UnsupportedExpressionError(String message, SourceLocation sourceLocation) {
+        super("unsupported expression: " + message, sourceLocation);
+    }
 }

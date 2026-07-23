@@ -25,13 +25,12 @@ import org.siphonlab.ago.runtime.db.task.WorkflowEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunSpace<Id>{
-    private final static Logger logger = LoggerFactory.getLogger(WorkflowRunSpace.class);
+    private final static Logger LOGGER = LoggerFactory.getLogger(WorkflowRunSpace.class);
 
     protected final WorkflowAdapter<Id> workflowAdapter;
     public final Id id;
@@ -65,6 +64,20 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
 
     public WorkflowAdapter<Id> getWorkflowAdapter() {
         return workflowAdapter;
+    }
+
+    @Override
+    public void run() {
+        try {
+            super.run();
+        } catch (Exception e) {
+            LOGGER.error("%s failed: %s".formatted(this, e.getMessage()), e);
+            if(this.currCallFrame != null){
+                currCallFrame.raiseJavaException(currCallFrame, e, false);
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
@@ -144,10 +157,10 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         frame.setRunSpace(nextRunSpace);
 
         if (forkContext == null) {
-            logger.info("{} fork {} got {}", this, nextRunSpace, this.forkedSpaces.size());
+            LOGGER.info("{} fork {} got {}", this, nextRunSpace, this.forkedSpaces.size());
         }
         else {
-            logger.info("{} fork {} via {}, got {}", this, nextRunSpace, forkContext, forkedSpaces.size());
+            LOGGER.info("{} fork {} via {}, got {}", this, nextRunSpace, forkContext, forkedSpaces.size());
         }
 
         var transactionAdapter = this.workflowAdapter.beginTransaction();
@@ -157,8 +170,8 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         transactionAdapter.updateCallFrameRunningState(new CallFrameWithRunningState<>(frame.getCaller(), curRunSpace.getRunningState()));
         try {
             transactionAdapter.commitTransaction();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            throw new CommitFailedException(e);
         }
 
         nextRunSpace.start(new AsyncEntranceCallFrame<>(frame));
@@ -217,7 +230,7 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         }
         if (isEntranceOrTask(cur)) {
             var t =this.workflowAdapter.beginTransaction();
-            logger.debug("saving task instances {}", prev);
+            LOGGER.debug("saving task instances {}", prev);
             this.workflowAdapter.saveCallChainIncludeCurrent(prev);
             t.updateCallFrameRunningState(new CallFrameWithRunningState<>(prev, prev.getRunSpace().getRunningState(), pc));
         }

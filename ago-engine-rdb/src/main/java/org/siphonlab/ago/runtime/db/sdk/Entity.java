@@ -74,7 +74,7 @@ public class Entity {
 //        return queryResultInstance;
     }
 
-    public static void executeQuery(NativeFrame frame, String sql, Object arguments){
+    public static void executeQuery(NativeFrame frame, String sql, Object arguments) throws Exception {
         var adapter = retrieveEntityAdapter(frame.getRunSpace());
         AgoClass queryResultIteratorClass = frame.getAgoClass().getResultClass();
         var resultClass = queryResultIteratorClass.getConcreteTypeInfoAsGenericArguments().getArguments()[0];
@@ -119,84 +119,72 @@ public class Entity {
         frame.finishString(adapter.tableName(entityClass));
     }
 
-    public static void tableSortScope(NativeFrame frame, String alias, Instance<?> sortInstance){
+    public static void tableSortScope(NativeFrame frame, String alias, Instance<?> sortInstance) throws JSQLParserException {
         var adapter = retrieveEntityAdapter(frame.getRunSpace());
         var entityClass = frame.getAgoClass().getConcreteTypeInfoAsGenericArguments().getArguments()[0];
         String sortCol = sortInstance.getStringField("column");
         String sortDirection = sortInstance.getStringField("direction");
         var tableName = adapter.tableName(entityClass);
-        try {
-            Column column = (Column) CCJSqlParserUtil.parseCondExpression(sortCol);
-            if(column.getTableName() != null){
-                if(alias.equals(column.getTableName()) || alias.equals(column.getUnquotedTableName()) || alias.equals(tableName)) {
-                    var field = entityClass.findField(column.getColumnName());
-                    if(field == null) {
-                        field = entityClass.findField(column.getUnquotedColumnName());
-                    }
-                    if (field != null) {
-                        var mapped = adapter.getColumnDesc(entityClass.getFullname(), field.getSlotIndex());
-                        frame.finishUnion(column.getTableName() + column.getTableDelimiter() + mapped.getName() + " " + sortDirection);      // ORDER BY ...
-                        return;
-                    }
-                }
-            } else {
+        Column column = (Column) CCJSqlParserUtil.parseCondExpression(sortCol);
+        if (column.getTableName() != null) {
+            if (alias.equals(column.getTableName()) || alias.equals(column.getUnquotedTableName()) || alias.equals(tableName)) {
                 var field = entityClass.findField(column.getColumnName());
-                if(field == null) {
+                if (field == null) {
                     field = entityClass.findField(column.getUnquotedColumnName());
                 }
                 if (field != null) {
                     var mapped = adapter.getColumnDesc(entityClass.getFullname(), field.getSlotIndex());
-                    frame.finishUnion(mapped.getName() + " " + sortDirection);      // ORDER BY ...
+                    frame.finishUnion(column.getTableName() + column.getTableDelimiter() + mapped.getName() + " " + sortDirection);      // ORDER BY ...
                     return;
                 }
             }
-            frame.finishUnion(null);
-        } catch (JSQLParserException e) {
-            throw new RuntimeException(e);
+        } else {
+            var field = entityClass.findField(column.getColumnName());
+            if (field == null) {
+                field = entityClass.findField(column.getUnquotedColumnName());
+            }
+            if (field != null) {
+                var mapped = adapter.getColumnDesc(entityClass.getFullname(), field.getSlotIndex());
+                frame.finishUnion(mapped.getName() + " " + sortDirection);      // ORDER BY ...
+                return;
+            }
         }
+        frame.finishUnion(null);
     }
 
-    public static void querySortScope(NativeFrame frame, String alias, Instance<?> columns, Instance<?> sortInstance){
+    public static void querySortScope(NativeFrame frame, String alias, Instance<?> columns, Instance<?> sortInstance) throws JSQLParserException {
         String[] allowedColumnNames = ((StringArrayInstance) columns).value;
         String sortCol = sortInstance.getStringField("column");
         String sortDirection = sortInstance.getStringField("direction");
-        try {
-            Column column = (Column) CCJSqlParserUtil.parseCondExpression(sortCol);
-            if(column.getTableName() != null){
-                if(alias.equals(column.getTableName()) || alias.equals(column.getUnquotedTableName())) {
-                    if (allowedColumnNames != null && ArrayUtils.containsAny(allowedColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
-                        frame.finishUnion(sortCol + " " + sortDirection);
-                        return;
-                    }
-                }
-            } else {
+        Column column = (Column) CCJSqlParserUtil.parseCondExpression(sortCol);
+        if(column.getTableName() != null){
+            if(alias.equals(column.getTableName()) || alias.equals(column.getUnquotedTableName())) {
                 if (allowedColumnNames != null && ArrayUtils.containsAny(allowedColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
                     frame.finishUnion(sortCol + " " + sortDirection);
                     return;
                 }
             }
-            frame.finishUnion(null);
-        } catch (JSQLParserException e) {
-            throw new RuntimeException(e);
+        } else {
+            if (allowedColumnNames != null && ArrayUtils.containsAny(allowedColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
+                frame.finishUnion(sortCol + " " + sortDirection);
+                return;
+            }
         }
+        frame.finishUnion(null);
     }
 
-    public static void querySortSelect(NativeFrame frame, Instance<?> columns, Instance<?> sortInstance){
+    public static void querySortSelect(NativeFrame frame, Instance<?> columns, Instance<?> sortInstance) throws JSQLParserException {
         String[] allowedColumnNames = ((StringArrayInstance) columns).value;
         String sortCol = sortInstance.getStringField("column");
         String sortDirection = sortInstance.getStringField("direction");
-        try {
-            Column column = (Column) CCJSqlParserUtil.parseCondExpression(sortCol);
-            if(column.getTableName() == null){
-                if (allowedColumnNames != null && ArrayUtils.containsAny(allowedColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
-                    frame.finishUnion(sortCol + " " + sortDirection);
-                    return;
-                }
+        Column column = (Column) CCJSqlParserUtil.parseCondExpression(sortCol);
+        if(column.getTableName() == null){
+            if (allowedColumnNames != null && ArrayUtils.containsAny(allowedColumnNames, column.getColumnName(), column.getUnquotedColumnName())) {
+                frame.finishUnion(sortCol + " " + sortDirection);
+                return;
             }
-            frame.finishUnion(null);
-        } catch (JSQLParserException e) {
-            throw new RuntimeException(e);
         }
+        frame.finishUnion(null);
     }
 
     public static void idEquals(NativeFrame frame, String selfAlias, String toAlias, int slotIndex){

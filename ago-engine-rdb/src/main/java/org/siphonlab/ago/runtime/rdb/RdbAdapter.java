@@ -21,11 +21,7 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.siphonlab.ago.runtime.ObjectArrayInstance;
-import org.siphonlab.ago.runtime.db.CallFrameWithRunningState;
-import org.siphonlab.ago.runtime.db.DbAdapter;
-import org.siphonlab.ago.runtime.db.DbSlots;
-import org.siphonlab.ago.runtime.db.IdGenerator;
-import org.siphonlab.ago.runtime.db.ObjectRef;
+import org.siphonlab.ago.runtime.db.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -326,7 +322,7 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         return parameterIndex + 1;
     }
 
-    protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved) {
+    protected void saveInstance(Instance<?> instance, Set<Instance<?>> saved) throws SQLException {
         saved.add(instance);
 
         if (boxTypes.isBoxType(instance.getAgoClass())) {
@@ -391,13 +387,13 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         }
     }
 
-    private void saveObjectArrayInstance(ObjectArrayInstance arrayInstance, Set<Instance<?>> saved) {
+    private void saveObjectArrayInstance(ObjectArrayInstance arrayInstance, Set<Instance<?>> saved) throws SQLException {
         for (var valueInstance : arrayInstance.value) {
             this.saveInstance(valueInstance, saved);
         }
     }
 
-    private void saveObjectListInstance(Instance<?> listInstance, Set<Instance<?>> saved) {
+    private void saveObjectListInstance(Instance<?> listInstance, Set<Instance<?>> saved) throws SQLException {
         var ls = (java.util.List<Instance<?>>) listInstance.getNativePayload();
         if (ls == null) {
             return ;
@@ -408,7 +404,11 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
     }
 
     public void saveInstance(Instance<?> instance) {
-        this.saveInstance(instance, new HashSet<>());
+        try {
+            this.saveInstance(instance, new HashSet<>());
+        } catch (SQLException e) {
+            throw new SaveInstanceFailed(instance, e);
+        }
     }
 
     protected void insert(Instance<?> instance, DbSlots<Id> dbSlots, AgoClass agoClass) {
@@ -437,23 +437,24 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         sql.setCharAt(sql.length() - 1, ')');
         sql.append(" VALUES (").append(StringUtils.repeat("?", ",", parameterCount)).append(')');
 
-        try(var conn = dataSource.getConnection()) {
-            try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-                int parameterIndex = 1;
-                parameterIndex = this.fillId(ps, parameterIndex, dbSlots.getObjectRef().id());
-                for (ColumnDesc column : columns) {
-                    var slotDef = column.getSlotDef();
-                    parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
+        try {
+            try (var conn = dataSource.getConnection()) {
+                try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                    int parameterIndex = 1;
+                    parameterIndex = this.fillId(ps, parameterIndex, dbSlots.getObjectRef().id());
+                    for (ColumnDesc column : columns) {
+                        var slotDef = column.getSlotDef();
+                        parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
+                    }
+
+                    if (LOGGER.isDebugEnabled())
+                        LOGGER.debug("EXECUTE INSERT %s : ".formatted(dbSlots.getObjectRef()) + sql);
+
+                    ps.execute();
                 }
-
-                if (LOGGER.isDebugEnabled()) LOGGER.debug("EXECUTE INSERT %s : ".formatted(dbSlots.getObjectRef()) + sql);
-
-                ps.execute();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new SaveInstanceFailed(instance, e);
         }
     }
 
@@ -491,24 +492,25 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         updateSql.setCharAt(updateSql.length() - 1, ' ');
         updateSql.append("WHERE id = ?");
 
-        try(var conn = dataSource.getConnection()) {
-            try (var ps = conn.prepareStatement(updateSql.toString())) {
-                int parameterIndex = 1;
-                for (var index : dbSlots.getChangedSlots()) {
-                    var column = rdbTable.columnDescOfSlot(index);
-                    var slotDef = column.getSlotDef();
-                    parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
+        try {
+            try (var conn = dataSource.getConnection()) {
+                try (var ps = conn.prepareStatement(updateSql.toString())) {
+                    int parameterIndex = 1;
+                    for (var index : dbSlots.getChangedSlots()) {
+                        var column = rdbTable.columnDescOfSlot(index);
+                        var slotDef = column.getSlotDef();
+                        parameterIndex = this.fillParameter(ps, parameterIndex, slotDef, column.getRdbType(), dbSlots, slotDef.getIndex());
+                    }
+                    this.fillId(ps, parameterIndex, dbSlots.getObjectRef().id());
+
+                    if (LOGGER.isDebugEnabled())
+                        LOGGER.debug("{}{}", "EXECUTE UPDATE %s : ".formatted(dbSlots.getObjectRef()), updateSql);
+
+                    ps.execute();
                 }
-                this.fillId(ps, parameterIndex, dbSlots.getObjectRef().id());
-
-                if (LOGGER.isDebugEnabled()) LOGGER.debug("{}{}", "EXECUTE UPDATE %s : ".formatted(dbSlots.getObjectRef()), updateSql);
-
-                ps.execute();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new SaveInstanceFailed(instance, e);
         }
     }
 
@@ -525,28 +527,22 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
         StringBuilder sql = composeSelectFrom(tableOfClass);
         sql.append(" WHERE id=?");
 
-        Connection connection = null;
-        PreparedStatement ps = null;
-        ResultSet resultSet = null;
         try {
-            connection = dataSource.getConnection();
-            ps = connection.prepareStatement(sql.toString());
+            try (var connection = dataSource.getConnection()) {
+                try (var ps = connection.prepareStatement(sql.toString())) {
+                    this.fillId(ps, 1, objectRef.id());
 
-            this.fillId(ps, 1, objectRef.id());
-
-            PreparedStatement finalPs = ps;
-            resultSet = finalPs.executeQuery();
-            var resultMapper = new ResultSetToEntityMapper<Id>(resultSet, agoClass, tableOfClass, boxTypes, runSpace, idType);
-            resultMapper.setAgoEngine((AgoEngine) classManager);
-            if (resultMapper.hasNext()) {
-                return resultMapper.next();
+                    PreparedStatement finalPs = ps;
+                    var resultSet = finalPs.executeQuery();
+                    var resultMapper = new ResultSetToEntityMapper<Id>(resultSet, agoClass, tableOfClass, boxTypes, runSpace, idType);
+                    resultMapper.setAgoEngine((AgoEngine) classManager);
+                    if (resultMapper.hasNext()) {
+                        return resultMapper.next();
+                    }
+                }
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } finally {
-            closeQuietly(ps);
-            closeQuietly(resultSet);
-            closeQuietly(connection);
+            throw new GetByIdFailed(objectRef, e);
         }
         return null;
     }
@@ -641,9 +637,13 @@ public abstract class RdbAdapter<Id> implements DbAdapter<Id> {
     }
 
     @Override
-    public void close() throws SQLException {
+    public void close() {
         TransactionBoundDataSource transactionBoundDataSource = (TransactionBoundDataSource) this.getDataSource();
-        transactionBoundDataSource.close();
+        try {
+            transactionBoundDataSource.close();
+        } catch (SQLException e) {
+            LOGGER.error(e.getMessage(), e);
+        }
     }
 
     public TypeMapping getTypeMapping() {

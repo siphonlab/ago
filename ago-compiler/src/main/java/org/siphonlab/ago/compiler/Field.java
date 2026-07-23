@@ -52,7 +52,7 @@ public class Field extends Variable {
         } else if(fieldVariableDeclarator instanceof AgoParser.VarDeclImplicitTypeContext varDecl){
             return varDecl.fieldGetterSetter();
         } else {
-            throw new RuntimeException("unexpected");
+            throw new IllegalStateException("impossible");
         }
     }
 

@@ -130,7 +130,7 @@ public class ResultSetToQueryResultMapper<Id> {
                         if(rdbType.getAdditional() == null){     // box type
                             slots.setObject(slotIndex, box(rdbType.getTypeCode(), slotDef.getAgoClass(), resultSet, columnIndex++));
                         } else {
-                            throw new RuntimeException("TODO");
+                            throw new UnsupportedOperationException("TODO");
 //                            slots.setObject();
                         }
                     }

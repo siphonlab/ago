@@ -159,6 +159,7 @@ public class QueryDef extends FunctionDef implements ManualCreatedFunction{
                 buildArgs(symbolMapping.getBindParameters());
                 buildSortOutputtedVariables(symbolMapping);
             } catch (Exception e) {
+                if(e.getCause() instanceof CompilationError compilationError) throw compilationError;
                 throw new SyntaxError(e.getMessage(), getUnit().sourceLocation(sqlBlock));
             }
 

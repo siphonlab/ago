@@ -415,7 +415,7 @@ public class Invoke extends ExpressionInFunctionBody {
             code.new_scope_method(resultSlot, scope.getDepth(), scope.getPronounType().isSuper(), fun.simpleNameOfFunction(resolvedFunctionDef),
                     n.setForGenericInstantiation(n.forGenericInstantiation()  || resolvedFunctionDefGenericInstantiateRequired));
         } else {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("impossible");
         }
         return receiverVar;
     }

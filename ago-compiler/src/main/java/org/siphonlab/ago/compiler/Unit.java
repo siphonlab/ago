@@ -17,10 +17,7 @@ package org.siphonlab.ago.compiler;
 
 import org.antlr.v4.runtime.*;
 import org.siphonlab.ago.TypeCode;
-import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.exception.ResolveError;
-import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.exception.*;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.GenericInstantiationPlaceHolder;
@@ -256,7 +253,7 @@ public class Unit {
                 case AgoLexer.VOID -> new PrimitiveClassDef(root, TypeCode.VOID);
                 case AgoLexer.CLASSREF -> new PrimitiveClassDef(root, TypeCode.CLASS_REF);
                 case AgoLexer.NULL_LITERAL -> new NullClassDef(root);
-                default -> throw new RuntimeException("not supported type " + primitiveType.getText());
+                default -> throw new IllegalArgumentException("not supported type " + primitiveType.getText());
             };
             type.setClassDeclaration(classDeclaration);
             classDef = type;
@@ -358,7 +355,7 @@ public class Unit {
                     interfaceDef = this.parseTypeName(classDef, interfaceRef.namePath(), false);
                     wrapperField = wrapper.identifier();
                 } else {
-                    throw new RuntimeException("impossible");
+                    throw new IllegalStateException("impossible");
                 }
                 if (interfaceDef == null)
                     throw resolveError(interfaceDecl, "interface '%s' not found".formatted(interfaceRef.namePath().getText()));
@@ -755,7 +752,7 @@ public class Unit {
                 assert type != null;        // this class should be already recognized
                 return type;
             } else {
-                throw new RuntimeException("impossible");
+                throw new IllegalStateException("impossible");
             }
             ClassDef classInterval = root.getScopedClassInterval();
             var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(project, classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
@@ -785,7 +782,7 @@ public class Unit {
                 lBound = type;
                 uBound = root.getAnyClass();
             } else {
-                throw new RuntimeException("impossible");
+                throw new IllegalStateException("impossible");
             }
             ClassDef classInterval = root.getScopedClassInterval();
             var pc = ((ClassContainer) classInterval.getParent()).getOrCreateScopedClassInterval(project, classInterval, classInterval.getMetaClassDef().getConstructor(), lBound, uBound, null);
@@ -916,7 +913,7 @@ public class Unit {
             }
             return t;
         } else {
-            throw new UnsupportedOperationException("unexpected namePath " + namePath.getText());
+            throw new UnsupportedExpressionError("unexpected namePath " + namePath.getText(), sourceLocation(namePath));
         }
     }
 
@@ -930,7 +927,7 @@ public class Unit {
             var resolver = new NamePathResolver(resolveMode, this, ownerFunction, scopeClass, formalNamePath);
             return resolver.resolve();
         } else {
-            throw new UnsupportedOperationException("unexpected namePath " + namePath.getText());
+            throw new UnsupportedExpressionError("unexpected namePath " + namePath.getText(), sourceLocation(namePath));
         }
     }
 

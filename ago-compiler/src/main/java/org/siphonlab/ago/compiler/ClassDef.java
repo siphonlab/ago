@@ -18,7 +18,7 @@ package org.siphonlab.ago.compiler;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.compiler.exception.TypeMismatchError;
+import org.siphonlab.ago.compiler.exception.*;
 import org.siphonlab.ago.compiler.expression.Equals;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -27,9 +27,6 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.mina.util.IdentityHashSet;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.TypeCode;
-import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.exception.ResolveError;
-import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.DecimalLiteral;
@@ -743,7 +740,7 @@ public class ClassDef extends ClassContainer {
         if(this.isThatOrDerivedFromThat(getRoot().STRING().getBoxedType()) || this.isDeriveFrom(getRoot().STRING().getBoxerInterface())) return getRoot().STRING();
         if(this.isThatOrDerivedFromThat(getRoot().BOOLEAN().getBoxedType()) || this.isDeriveFrom(getRoot().BOOLEAN().getBoxerInterface())) return getRoot().BOOLEAN();
         if(this.isThatOrDerivedFromThat(getRoot().CLASSREF().getBoxedType())) return getRoot().CLASSREF();
-        throw new UnsupportedOperationException("'%s' is not a boxer type".formatted(this.getFullname()));
+        throw new IllegalStateException("'%s' is not a boxer type".formatted(this.getFullname()));
     }
 
     public boolean isThatOrBoxOfThat(PrimitiveClassDef primitiveClassDef){
@@ -1825,15 +1822,11 @@ public class ClassDef extends ClassContainer {
         this.enumValues = enumValues;
     }
 
-    public Field resolveEnumField(Literal<?> literal) {
+    public Field resolveEnumField(Literal<?> literal) throws CompilationError {
         var metaFields = this.getMetaClassDef().getFields();
         for (Map.Entry<String, Literal<?>> entry : this.enumValues.entrySet()) {
-            try {
-                if(Equals.isLiteralEquals(literal,entry.getValue())){
-                    return metaFields.get(entry.getKey());
-                }
-            } catch (CompilationError e) {
-                throw new RuntimeException(e);
+            if(Equals.isLiteralEquals(literal,entry.getValue())){
+                return metaFields.get(entry.getKey());
             }
         }
         return null;
@@ -1917,13 +1910,13 @@ public class ClassDef extends ClassContainer {
         this.putInstantiatedClassToCache(instantiationArguments, this);
     }
 
-    protected void addExtensionMethod(FunctionDef functionDef) throws DuplicatedKeyException {
+    protected void addExtensionMethod(FunctionDef functionDef) throws DuplicatedError {
         if(this.isInGenericInstantiation()){
             this.getTemplateClass().addExtensionMethod(functionDef);
             return;
         }
         if(extensionMethods.containsKey(functionDef.getName())){
-            throw new DuplicatedKeyException("extension method '%s' for '%s' already exists".formatted(functionDef.getName(), this.getFullname()));
+            throw new DuplicatedError("extension method '%s' for '%s' already exists".formatted(functionDef.getName(), this.getFullname()), functionDef.getSourceLocation());
         }
         this.extensionMethods.add(functionDef);
     }

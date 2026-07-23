@@ -168,7 +168,7 @@ public class SwitchCaseStmt extends Statement{
                                     return true;
                                 }
                             } catch (CompilationError e) {
-                                throw new RuntimeException(e);
+                                throw new RuntimeException("impossible");
                             }
                     }
                     return false;

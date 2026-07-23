@@ -134,7 +134,7 @@ public class ResultSetToEntityMapper<Id> {
                         if(column.getAdditional() == null){     // box type
                             slots.setObject(slotIndex, box(column.getRdbType().getTypeCode(), slotDef.getAgoClass(), resultSet, columnIndex));
                         } else {
-                            throw new RuntimeException("TODO");
+                            throw new UnsupportedOperationException("TODO");
 //                            slots.setObject();
                         }
                     }

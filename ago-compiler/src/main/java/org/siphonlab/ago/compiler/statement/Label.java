@@ -20,6 +20,7 @@ import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.CodeBuffer;
 import org.siphonlab.ago.compiler.FunctionDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.IllegalExpressionError;
 
 public class Label extends Statement {
 
@@ -41,7 +42,7 @@ public class Label extends Statement {
 
     @Override
     public void termVisit(BlockCompiler blockCompiler) throws CompilationError {
-        throw new UnsupportedOperationException("label not support");
+        throw new IllegalStateException("label not support");
     }
 
     public int getIndex() {

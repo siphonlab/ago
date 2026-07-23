@@ -20,6 +20,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.IllegalExpressionError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.expression.logic.Not;
@@ -89,7 +90,7 @@ public class Equals extends BiExpression{
             root = this.left.inferType().getRoot();
             if(root == null) root = this.right.inferType().getRoot();
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible");
         }
         return Objects.requireNonNull(root);
     }
@@ -375,7 +376,6 @@ public class Equals extends BiExpression{
         r = switch (type){
             case Equals -> r;
             case NotEquals -> !r;
-            default -> throw new UnsupportedOperationException("TODO");
         };
         // when come from `static isLiteralEquals`, getOwnerFunction().getRoot() not works
         return left.getClassDef().getRoot().createBooleanLiteral( r).setSourceLocation(this.getSourceLocation());

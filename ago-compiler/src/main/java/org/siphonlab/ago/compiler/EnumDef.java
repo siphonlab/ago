@@ -192,25 +192,17 @@ public class EnumDef extends ClassDef{
         this.setCompilingStage(CompilingStage.Compiled);
     }
 
-    private void composeMetaConstructor(MetaClassDef metaClass) {
+    private void composeMetaConstructor(MetaClassDef metaClass) throws CompilationError {
         var constructorDef = this.metaClassConstructor;
         List<Expression> initializers = new ArrayList<>();
         Scope metaClassScope = new Scope(1, metaClass);
         for (var field : this.metaFields.values()) {
-            try {
-                var creator = new Creator(constructorDef, new ConstClass(this), Arrays.asList(enumValues.get(field.name), getRoot().createStringLiteral(field.name)), unit.sourceLocation(this.enumDeclarationContext));
-                var assign = constructorDef.assign(Var.of(constructorDef, metaClassScope, field), creator);
-                initializers.add(assign);
-            } catch (CompilationError e) {
-                throw new RuntimeException(e);
-            }
+            var creator = new Creator(constructorDef, new ConstClass(this), Arrays.asList(enumValues.get(field.name), getRoot().createStringLiteral(field.name)), unit.sourceLocation(this.enumDeclarationContext));
+            var assign = constructorDef.assign(Var.of(constructorDef, metaClassScope, field), creator);
+            initializers.add(assign);
         }
-        try {
-            initializers.add(constructorDef.return_());
-            new BlockCompiler(unit,constructorDef,null).compileExpressions(initializers);
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
-        }
+        initializers.add(constructorDef.return_());
+        new BlockCompiler(unit,constructorDef,null).compileExpressions(initializers);
         assert constructorDef.getBody() != null;
     }
 
@@ -223,22 +215,18 @@ public class EnumDef extends ClassDef{
         var initScopeVar = valueOf.assign(metaScopeVar,metaClassScope);
 
         var p0Var = valueOf.localVar(valueOf.getParameters().get(0), Var.LocalVar.VarMode.Existed);
-        try {
-            ArrayList<SwitchCaseStmt.SwitchGroup> groups = new ArrayList<>();
-            for (Field field : this.metaFields.values()) {
-                SwitchCaseStmt.SwitchGroup group = new SwitchCaseStmt.SwitchGroup();
-                group.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, enumValues.get(field.name)));
-                group.addStatement(valueOf.return_(Var.of(valueOf, metaScopeVar,field)));
-                groups.add(group);
-            }
-            var defaultGroup = new SwitchCaseStmt.SwitchGroup();
-            defaultGroup.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null));
-            defaultGroup.addStatement(valueOf.return_(getRoot().nullLiteral()));  //TODO throw error by default
-            var stmt = new SwitchCaseStmt(valueOf, p0Var, groups);
-            blockCompiler.compileExpressions(List.of(initScopeVar.transform(), stmt.transform()));
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
+        ArrayList<SwitchCaseStmt.SwitchGroup> groups = new ArrayList<>();
+        for (Field field : this.metaFields.values()) {
+            SwitchCaseStmt.SwitchGroup group = new SwitchCaseStmt.SwitchGroup();
+            group.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, enumValues.get(field.name)));
+            group.addStatement(valueOf.return_(Var.of(valueOf, metaScopeVar,field)));
+            groups.add(group);
         }
+        var defaultGroup = new SwitchCaseStmt.SwitchGroup();
+        defaultGroup.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null));
+        defaultGroup.addStatement(valueOf.return_(getRoot().nullLiteral()));  //TODO throw error by default
+        var stmt = new SwitchCaseStmt(valueOf, p0Var, groups);
+        blockCompiler.compileExpressions(List.of(initScopeVar.transform(), stmt.transform()));
     }
 
     private void composeParse(MetaClassDef metaClass) throws CompilationError {
@@ -250,22 +238,18 @@ public class EnumDef extends ClassDef{
         var initScopeVar = parse.assign(metaScopeVar,metaClassScope);
 
         var p0Var = parse.localVar(parse.getParameters().get(0), Var.LocalVar.VarMode.Existed);
-        try {
-            ArrayList<SwitchCaseStmt.SwitchGroup> groups = new ArrayList<>();
-            for (Field field : this.metaFields.values()) {
-                SwitchCaseStmt.SwitchGroup group = new SwitchCaseStmt.SwitchGroup();
-                group.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, getRoot().createStringLiteral(field.name)));
-                group.addStatement(parse.return_(parse.field(metaScopeVar,field)));
-                groups.add(group);
-            }
-            var defaultGroup = new SwitchCaseStmt.SwitchGroup();
-            defaultGroup.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null));
-            defaultGroup.addStatement(parse.return_(getRoot().nullLiteral()));  //TODO throw error by default
-            var stmt = new SwitchCaseStmt(parse, p0Var, groups);
-            blockCompiler.compileExpressions(List.of(initScopeVar.transform(), stmt.transform()));
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
+        ArrayList<SwitchCaseStmt.SwitchGroup> groups = new ArrayList<>();
+        for (Field field : this.metaFields.values()) {
+            SwitchCaseStmt.SwitchGroup group = new SwitchCaseStmt.SwitchGroup();
+            group.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.ConstExpression, getRoot().createStringLiteral(field.name)));
+            group.addStatement(parse.return_(parse.field(metaScopeVar,field)));
+            groups.add(group);
         }
+        var defaultGroup = new SwitchCaseStmt.SwitchGroup();
+        defaultGroup.addCase(new SwitchCaseStmt.Case(SwitchCaseStmt.CaseKind.Default, null));
+        defaultGroup.addStatement(parse.return_(getRoot().nullLiteral()));  //TODO throw error by default
+        var stmt = new SwitchCaseStmt(parse, p0Var, groups);
+        blockCompiler.compileExpressions(List.of(initScopeVar.transform(), stmt.transform()));
     }
 
 
@@ -275,7 +259,7 @@ public class EnumDef extends ClassDef{
             case TypeCode.BYTE_VALUE -> getRoot().createByteLiteral( (byte) value);
             case TypeCode.SHORT_VALUE -> getRoot().createShortLiteral((short) value);
             case TypeCode.LONG_VALUE -> getRoot().createLongLiteral( value);
-            default -> throw new RuntimeException("impossible");
+            default -> throw new IllegalStateException("impossible");
         }).setSourceLocation(sourceLocation);
     }
 

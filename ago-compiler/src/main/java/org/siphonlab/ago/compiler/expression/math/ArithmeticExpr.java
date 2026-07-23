@@ -69,7 +69,7 @@ public class ArithmeticExpr extends BiExpression {
                 case Multiply.KIND_MULTIPLY -> Multi;
                 case KIND_DIV -> Div;
                 case KIND_MOD -> Mod;
-                default -> throw new RuntimeException();
+                default -> throw new IllegalArgumentException();
             };
         }
     }

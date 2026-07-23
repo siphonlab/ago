@@ -67,11 +67,7 @@ public class ArrayClassDef extends ClassDef implements ConcreteType{
         if(arrayInstantiationType instanceof ConcreteType c) this.registerConcreteType(c);
         resolveMetaclass();
         this.setCompilingStage(CompilingStage.InheritsFields);
-        try {
-            Compiler.processClassTillStage(this,elementType.getCompilingStage());
-        } catch (CompilationError e) {
-            throw new RuntimeException(e);
-        }
+        Compiler.processClassTillStage(this,elementType.getCompilingStage());
     }
 
     @Override

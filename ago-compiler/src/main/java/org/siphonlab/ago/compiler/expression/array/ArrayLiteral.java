@@ -68,17 +68,15 @@ public class ArrayLiteral extends ExpressionInFunctionBody {
 
             // all elements are literal, that means it's need store in const area
             if (elements.stream().allMatch(el -> el instanceof Literal<?>)) {
-                int blobId = blockCompiler.getFunctionDef().getOrCreateBLOB(elements.stream().map(l -> {
-                    var literal = (Literal<?>) l;
-                    if(literal instanceof StringLiteral stringLiteral){
-                        try {
-                            stringLiteral.visit(blockCompiler);
-                        } catch (CompilationError e) {
-                            throw new RuntimeException(e);
-                        }
+                List<Literal<?>> list = new ArrayList<>();
+                for (Expression element : elements) {
+                    var literal = (Literal<?>) element;
+                    if (literal instanceof StringLiteral stringLiteral) {
+                        stringLiteral.visit(blockCompiler);
                     }
-                    return literal;
-                }).toList(), this);
+                    list.add(literal);
+                }
+                int blobId = blockCompiler.getFunctionDef().getOrCreateBLOB(list, this);
                 blockCompiler.getCode().fill_array(localVar.getVariableSlot(), arrayType.getElementType().getTypeCode(), size, blobId);
             } else {
                 blockCompiler.lockRegister(localVar);

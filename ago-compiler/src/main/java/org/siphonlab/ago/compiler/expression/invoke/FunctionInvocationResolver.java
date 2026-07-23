@@ -249,7 +249,7 @@ public class FunctionInvocationResolver {
             resolveResult.regTypeArg(a, argType);
             if (resolveResult.error != null) return argType;
         } else if(parameterType instanceof VarArgs varArgs){
-            throw new RuntimeException("impossible");
+            throw new IllegalStateException("impossible");
         } else if(parameterType instanceof ArrayClassDef arrayClassDef) {
             if (argType instanceof ArrayClassDef arrayArg) {
                 var el = indicateGenericType(arrayClassDef.getElementType(), arrayArg.getElementType(), resolveResult);

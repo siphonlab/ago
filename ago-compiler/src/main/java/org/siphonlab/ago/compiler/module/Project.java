@@ -85,7 +85,7 @@ public class Project extends Module {
                 }
                 putLiteral(literal, buff, false, false, this);
             } catch (CharacterCodingException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
         }
         buff.flip();

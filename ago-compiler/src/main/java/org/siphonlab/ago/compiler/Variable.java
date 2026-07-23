@@ -76,7 +76,7 @@ public class Variable {
 
     public void setSlot(SlotDef slot) {
         if(this.slot != null){
-            throw new RuntimeException("slot already exists");
+            throw new IllegalStateException("slot already exists");
         }
         this.slot = slot;
         this.setSlotIndex(slot.getIndex());

@@ -243,7 +243,7 @@ public class Root extends Namespace<Package> {
         try {
             return ANY_ARRAY_CLASS = getArrayClass().instantiate(project, new InstantiationArguments(getArrayClass().typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -335,7 +335,7 @@ public class Root extends Namespace<Package> {
             return GENERATOR_OF_ANY = generatorClass.instantiate(project, new InstantiationArguments(generatorClass.typeParamsContext,
                     new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -345,7 +345,7 @@ public class Root extends Namespace<Package> {
 
     public void setCompilingStage(CompilingStage compilingStage) {
         if(!newFoundClasses.isEmpty()){
-            throw new RuntimeException("classes %s need process yet".formatted(newFoundClasses));
+            throw new IllegalStateException("classes %s need process yet".formatted(newFoundClasses));
         }
         this.compilingStage = compilingStage;
     }
@@ -463,7 +463,7 @@ public class Root extends Namespace<Package> {
             return ITERABLE_INTERFACE = iterableInterface.instantiate(project, new InstantiationArguments(iterableInterface.typeParamsContext,
                     new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
     public ClassDef getAnyIteratorInterface() {
@@ -472,7 +472,7 @@ public class Root extends Namespace<Package> {
         try {
             return ITERATOR_INTERFACE = iterator.instantiate(project, new InstantiationArguments(iterator.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -483,7 +483,7 @@ public class Root extends Namespace<Package> {
             return KEY_VALUE_PAIR_CLASS = keyValuePair.instantiate(project, new InstantiationArguments(
                     keyValuePair.typeParamsContext, new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral(), this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -526,7 +526,7 @@ public class Root extends Namespace<Package> {
                     new InstantiationArguments(READONLY_LIST_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -542,7 +542,7 @@ public class Root extends Namespace<Package> {
                     new InstantiationArguments(READWRITE_LIST_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -561,7 +561,7 @@ public class Root extends Namespace<Package> {
                                     this.getAnyClass().toClassRefLiteral()    // V
                             }), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -580,7 +580,7 @@ public class Root extends Namespace<Package> {
                                     this.getAnyClass().toClassRefLiteral()    // V
                             }), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -596,7 +596,7 @@ public class Root extends Namespace<Package> {
                     new InstantiationArguments(LIST_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -612,7 +612,7 @@ public class Root extends Namespace<Package> {
                     new InstantiationArguments(COLLECTION_CLASS.typeParamsContext,
                             new ClassRefLiteral[]{this.getAnyClass().toClassRefLiteral()}), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -632,7 +632,7 @@ public class Root extends Namespace<Package> {
                                     this.getAnyClass().toClassRefLiteral()    // V
                             }), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
     public ClassDef getAnyEntityClass() {
@@ -646,7 +646,7 @@ public class Root extends Namespace<Package> {
                                     this.getAnyClass().toClassRefLiteral()    // id
                             }), null);
         } catch (CompilationError e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("impossible", e);
         }
     }
 
@@ -726,8 +726,7 @@ public class Root extends Namespace<Package> {
     public PrimitiveClassDef CLASSREF() {return CLASREF;}
 
     public PrimitiveClassDef fromPrimitiveTypeCode(TypeCode typeCode){
-        if(typeCode == null)
-            throw new RuntimeException("typeCode is null");
+        Objects.requireNonNull(typeCode);
         return switch (typeCode.value) {
             case BYTE_VALUE -> BYTE;
             case SHORT_VALUE -> SHORT;

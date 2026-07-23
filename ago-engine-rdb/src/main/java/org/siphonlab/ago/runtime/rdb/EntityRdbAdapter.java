@@ -35,7 +35,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
         this.entityClass = classManager.getClass("lang.Entity");
     }
 
-    public ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace) {
+    public ResultSetToEntityMapper<Id> fetchAll(AgoClass agoClass, RunSpace runSpace) throws SQLException {
         var tableOfClass = getTableOfClass(agoClass);
 
         StringBuilder sql = composeSelectFrom(tableOfClass);
@@ -58,12 +58,12 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
         } catch (SQLException e) {
             closeQuietly(ps);
             closeQuietly(connection);
-            throw new RuntimeException(e);
+            throw e;
         }
     }
 
     @Override
-    public ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace) {
+    public ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace) throws SQLException {
         if(LOGGER.isDebugEnabled()) LOGGER.debug("EXEC Query: " + sql);
         Connection connection = null;
         try {
@@ -86,7 +86,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
             };
         } catch (SQLException e) {
             closeQuietly(connection);
-            throw new RuntimeException(e);
+            throw e;
         }
     }
 
@@ -164,9 +164,7 @@ public abstract class EntityRdbAdapter<Id> extends RdbAdapter<Id> implements Ent
 
     @Override
     public Instance<?> getById(ObjectRef<Id> objectRef, RunSpace runSpace) {
-        return cache.computeIfAbsent(objectRef, r ->{
-            return super.getById(objectRef, runSpace);
-        });
+        return cache.computeIfAbsent(objectRef, r -> super.getById(objectRef, runSpace));
     }
 
     @Override
