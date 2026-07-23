@@ -6,6 +6,8 @@ import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
@@ -14,6 +16,8 @@ import java.util.function.Consumer;
  *
  */
 public class EntityRunSpace<Id> extends RunSpace implements CreateInstanceRunSpace<Id>{
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EntityRunSpace.class);
 
     private final EntityAdapter<Id> entityAdapter;
 
@@ -24,6 +28,25 @@ public class EntityRunSpace<Id> extends RunSpace implements CreateInstanceRunSpa
 
     public EntityAdapter<Id> getEntityAdapter() {
         return entityAdapter;
+    }
+
+    @Override
+    public void run() {
+        try {
+            super.run();
+        } catch (Exception ex) {
+            LOGGER.error("%s failed: %s".formatted(this, ex.getMessage()), ex);
+            if(this.currCallFrame != null){
+                currCallFrame.raiseJavaException(currCallFrame, ex, false);
+            } else {
+                try {
+                    this.entityAdapter.rollbackTransaction();
+                } catch (Exception e) {
+                    //
+                }
+                throw ex;
+            }
+        }
     }
 
     @Override
