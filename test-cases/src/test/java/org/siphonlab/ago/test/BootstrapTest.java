@@ -258,7 +258,7 @@ public class BootstrapTest {
     public void extension_method_test() throws CompilationError, CompliationErrorsException, IOException {
         Util.run("bootstrap/30.extension_method.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("-1", "-3", "Samoyed", "Samoyed", "Tweet", "Tweet", "Tweet"));
+        assertTrue(Trace.outputted("-1", "-3", "Samoyed", "Samoyed", "Tweet", "Tweet", "Tweet", "-2", "-3"));
     }
 
     @Test

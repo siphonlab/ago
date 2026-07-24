@@ -204,10 +204,28 @@ public class FunctionDef extends ClassDef {
                 continue;
             }
             if(parameter.isReceiverParameter()){
+                if(!this.allowReceiverParameter()){
+                    unit.appendError(unit.syntaxError(parameter.parameterContext, "receiver parameter not allowed for '%s', only apply on top function, methods of metaclass(level2, metaclass of final class or final method)".formatted(getFullname())));
+                    continue;
+                }
                 parameter.getType().addExtensionMethod(this);
             }
         }
     }
+
+    boolean allowReceiverParameter(){
+        if(this.isTop()) return true;
+        if(this.parent instanceof MetaClassDef metaClassDef){
+            if(metaClassDef.getEmptyArgsConstrutor() != null || metaClassDef.getConstructors().isEmpty()){
+                if(this.isFinal()) return true;
+                if(metaClassDef.isFinal()) return true;
+                if(metaClassDef.getMetaLevel() == 2) return true;
+                if(metaClassDef.getInstanceClassDef().isFinal()) return true;
+            }
+        }
+        return false;
+    }
+
     protected void createDefaultValueFunForParameters() {
         List<Parameter> parameterList = this.parameters;
         for (int i = 0; i < parameterList.size(); i++) {

@@ -133,7 +133,13 @@ public class Invoke extends ExpressionInFunctionBody {
             }
         }
         if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
-            maybeFunction = new ConstClass(bindExtensionMethod.getFunction()).setSourceLocation(bindExtensionMethod.getSourceLocation());
+            FunctionDef function = bindExtensionMethod.getFunction();
+            if(function.isTop()){
+                maybeFunction = new ConstClass(function).setSourceLocation(bindExtensionMethod.getSourceLocation());
+            } else {
+                MetaClassDef metaClass = (MetaClassDef) function.getParentClass();
+                maybeFunction = ClassUnder.create(ownerFunction, this.scope = new ConstClass(metaClass.getInstanceClassDef()), function).setSourceLocation(bindExtensionMethod.getSourceLocation());
+            }
             maybeFunction.setCandidates(bindExtensionMethod.getCandidates());
         }
         if(resolvedFunctionDef == null){

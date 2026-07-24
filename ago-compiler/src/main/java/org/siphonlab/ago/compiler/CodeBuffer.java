@@ -257,7 +257,8 @@ public class CodeBuffer {
     }
 
     public void new_method_static(SlotDef target, int methodSimpleName, Creator.NewProps props) {
-        ls.addInt(props.isGenericCode() ? NewGeneric.newg_cls_method_vCm : props.forGenericInstantiation()? NewGeneric.newG_cls_method_vCm : New.new_cls_method_vCm);
+        int op = props.isGenericCode() ? NewGeneric.newg_cls_method_vCm : props.forGenericInstantiation() ? NewGeneric.newG_cls_method_vCm : New.new_cls_method_vCm;
+        ls.addInt(op);
         slot(target);
         ls.addInt(props.className());
         ls.addInt(methodSimpleName);
