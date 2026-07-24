@@ -48,6 +48,16 @@ fun neg(this as int) as int{
     return -this;
 }
 
+final class IntExt{
+    metaclass{
+        value as int = 2;
+
+        fun times(this as int) as int{
+            return this * value;
+        }
+    }
+}
+
 fun barkTwice(this as Animal){
     this.bark();
     this.bark();
@@ -73,4 +83,7 @@ fun main(){
     b.flySpeak();
 
 //    var c as Bird.flySpeak;     // cannot resolve 'Bird.flySpeak' as type name
+    Trace.print(i.times())      // * 2
+    IntExt.value = 3;
+    Trace.print(i.times())      // * 3
 }

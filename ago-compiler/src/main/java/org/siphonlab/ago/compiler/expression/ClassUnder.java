@@ -97,6 +97,11 @@ public abstract class ClassUnder extends ExpressionInFunctionBody implements May
         return Objects.hash(object, classDef);
     }
 
+    @Override
+    public ClassUnder setSourceLocation(SourceLocation sourceLocation) {
+        return (ClassUnder) super.setSourceLocation(sourceLocation);
+    }
+
     public static class ClassUnderScope extends ClassUnder {
 
         public ClassUnderScope(FunctionDef ownerFunction, Scope object, ClassDef classDef) throws CompilationError {

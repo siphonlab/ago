@@ -133,7 +133,13 @@ public class Invoke extends ExpressionInFunctionBody {
             }
         }
         if(maybeFunction instanceof BindExtensionMethod bindExtensionMethod){
-            maybeFunction = new ConstClass(bindExtensionMethod.getFunction()).setSourceLocation(bindExtensionMethod.getSourceLocation());
+            FunctionDef function = bindExtensionMethod.getFunction();
+            if(function.isTop()){
+                maybeFunction = new ConstClass(function).setSourceLocation(bindExtensionMethod.getSourceLocation());
+            } else {
+                MetaClassDef metaClass = (MetaClassDef) function.getParentClass();
+                maybeFunction = ClassUnder.create(ownerFunction, this.scope = new ConstClass(metaClass.getInstanceClassDef()), function).setSourceLocation(bindExtensionMethod.getSourceLocation());
+            }
             maybeFunction.setCandidates(bindExtensionMethod.getCandidates());
         }
         if(resolvedFunctionDef == null){
@@ -388,6 +394,7 @@ public class Invoke extends ExpressionInFunctionBody {
         } else if(maybeFunction instanceof ClassUnder.ClassUnderInstance classUnderInstance) {
             var instance = this.scope;
             if (instance instanceof ConstClass constClass) {
+                //TODO for non-fields class, optimize to ConstClass(InvokeFunction), this transforming will implemented in CodeTransformer
                 var n = Creator.NewProps.resolve(fun, constClass.getClassDef());
                 code.new_method_static(resultSlot, fun.simpleNameOfFunction(resolvedFunctionDef),
                         n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
@@ -479,6 +486,9 @@ public class Invoke extends ExpressionInFunctionBody {
 
     @Override
     public String toString() {
+        if(this.resolvedFunctionDef == null){
+            return this.preparedVisitorForNullable.toString();
+        }
         if(this.scope == null){
             return "(Invoke %s [%s] %s)".formatted(resolvedFunctionDef.getFullnameWithoutPackage(), StringUtils.join(arguments, ","), this.maybeFunction);
         } else {
