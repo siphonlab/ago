@@ -101,82 +101,86 @@ public class String from Boxer<string>{
 
 // --- Extension methods on primitive string type (delegate via boxing) ---
 
-fun length(this as string) as int{
-    return new String(this).length();
-}
+final class StringExt{
+    metaclass{
+        fun length(this as string) as int{
+            return new String(this).length();
+        }
 
-fun charAt(this as string, index as int) as char{
-    return new String(this).charAt(index);
-}
+        fun charAt(this as string, index as int) as char{
+            return new String(this).charAt(index);
+        }
 
-fun substring(this as string, beginIndex as int) as string{
-    return new String(this).substring(beginIndex);
-}
+        fun substring(this as string, beginIndex as int) as string{
+            return new String(this).substring(beginIndex);
+        }
 
-fun substring#se(this as string, beginIndex as int, endIndex as int) as string{
-    return new String(this).substring(beginIndex, endIndex);
-}
+        fun substring#se(this as string, beginIndex as int, endIndex as int) as string{
+            return new String(this).substring(beginIndex, endIndex);
+        }
 
-fun concat(this as string, str as string) as string{
-    return this + str;
-}
+        fun concat(this as string, str as string) as string{
+            return this + str;
+        }
 
-fun contains(this as string, target as string) as boolean{
-    return new String(this).contains(target);
-}
+        fun contains(this as string, target as string) as boolean{
+            return new String(this).contains(target);
+        }
 
-fun startsWith(this as string, prefix as string) as boolean{
-    return new String(this).startsWith(prefix);
-}
+        fun startsWith(this as string, prefix as string) as boolean{
+            return new String(this).startsWith(prefix);
+        }
 
-fun endsWith(this as string, suffix as string) as boolean{
-    return new String(this).endsWith(suffix);
-}
+        fun endsWith(this as string, suffix as string) as boolean{
+            return new String(this).endsWith(suffix);
+        }
 
-fun indexOf#ch(this as string, ch as char) as int{
-    return new String(this).indexOf(ch);
-}
+        fun indexOf#ch(this as string, ch as char) as int{
+            return new String(this).indexOf(ch);
+        }
 
-fun indexOf#str(this as string, str as string) as int{
-    return new String(this).indexOf(str);
-}
+        fun indexOf#str(this as string, str as string) as int{
+            return new String(this).indexOf(str);
+        }
 
-fun lastIndexOf#ch(this as string, ch as char) as int{
-    return new String(this).lastIndexOf(ch);
-}
+        fun lastIndexOf#ch(this as string, ch as char) as int{
+            return new String(this).lastIndexOf(ch);
+        }
 
-fun lastIndexOf#str(this as string, str as string) as int{
-    return new String(this).lastIndexOf(str);
-}
+        fun lastIndexOf#str(this as string, str as string) as int{
+            return new String(this).lastIndexOf(str);
+        }
 
-fun trim(this as string) as string{
-    return new String(this).trim();
-}
+        fun trim(this as string) as string{
+            return new String(this).trim();
+        }
 
-fun toLowerCase(this as string) as string{
-    return new String(this).toLowerCase();
-}
+        fun toLowerCase(this as string) as string{
+            return new String(this).toLowerCase();
+        }
 
-fun toUpperCase(this as string) as string{
-    return new String(this).toUpperCase();
-}
+        fun toUpperCase(this as string) as string{
+            return new String(this).toUpperCase();
+        }
 
-fun replace#old_new(this as string, oldChar as char, newChar as char) as string{
-    return new String(this).replace(oldChar, newChar);
-}
+        fun replace#old_new(this as string, oldChar as char, newChar as char) as string{
+            return new String(this).replace(oldChar, newChar);
+        }
 
-fun replace#old_str(this as string, oldStr as string, newStr as string) as string{
-    return new String(this).replace(oldStr, newStr);
-}
+        fun replace#old_str(this as string, oldStr as string, newStr as string) as string{
+            return new String(this).replace(oldStr, newStr);
+        }
 
-fun split(this as string, separator as string) as string[]{
-    return new String(this).split(separator);
-}
+        fun split(this as string, separator as string) as string[]{
+            return new String(this).split(separator);
+        }
 
-fun isEmpty(this as string) as boolean{
-    return this == "";
-}
+        fun isEmpty(this as string) as boolean{
+            return this == "";
+        }
 
-fun equalsIgnoreCase(this as string, other as string) as boolean{
-    return new String(this).equalsIgnoreCase(other);
+        fun equalsIgnoreCase(this as string, other as string) as boolean{
+            return new String(this).equalsIgnoreCase(other);
+        }
+    }
 }
