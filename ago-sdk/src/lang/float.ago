@@ -1,0 +1,106 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+public class Float from Number<float>{
+    metaclass{
+        fun MIN_VALUE() as float
+            native "org.siphonlab.ago.lang.Lang.Float_MIN_VALUE";
+
+        fun MAX_VALUE() as float
+            native "org.siphonlab.ago.lang.Lang.Float_MAX_VALUE";
+
+        fun NaN() as float
+            native "org.siphonlab.ago.lang.Lang.Float_NaN";
+
+        fun POSITIVE_INFINITY() as float
+            native "org.siphonlab.ago.lang.Lang.Float_POSITIVE_INFINITY";
+
+        fun NEGATIVE_INFINITY() as float
+            native "org.siphonlab.ago.lang.Lang.Float_NEGATIVE_INFINITY";
+    }
+
+    public override intValue() as int    { return value|int; }
+    public override longValue() as long  { return value|long; }
+    public override floatValue() as float    { return value; }
+    public override doubleValue() as double  { return value; }
+    public override byteValue() as byte      { return value|byte; }
+    public override shortValue() as short    { return value|short; }
+
+    public override toString() as string native "org.siphonlab.ago.lang.Lang.Float_toString"
+
+    // --- Instance methods ---
+
+    public fun abs() as float
+        native "org.siphonlab.ago.lang.Lang.Float_abs";
+
+    public fun isFinite() as boolean
+        native "org.siphonlab.ago.lang.Lang.Float_isFinite";
+
+    public fun isInfinite() as boolean
+        native "org.siphonlab.ago.lang.Lang.Float_isInfinite";
+
+    public fun isNaN() as boolean
+        native "org.siphonlab.ago.lang.Lang.Float_isNaN";
+
+    public fun roundToInt() as int
+        native "org.siphonlab.ago.lang.Lang.Float_roundToInt";
+
+    public fun roundToLong() as long
+        native "org.siphonlab.ago.lang.Lang.Float_roundToLong";
+
+    public fun ceil() as float
+        native "org.siphonlab.ago.lang.Lang.Float_ceil";
+
+    public fun floor() as float
+        native "org.siphonlab.ago.lang.Lang.Float_floor";
+
+    public fun round(decimals as int) as float
+        native "org.siphonlab.ago.lang.Lang.Float_round_decimals";
+}
+
+// --- Extension methods on primitive float type (direct natives, no boxing) ---
+
+final class FloatExt{
+    metaclass{
+        fun abs(this as float) as float
+            native "org.siphonlab.ago.lang.Lang.Float_abs_ext";
+
+        fun isFinite(this as float) as boolean
+            native "org.siphonlab.ago.lang.Lang.Float_isFinite_ext";
+
+        fun isInfinite(this as float) as boolean
+            native "org.siphonlab.ago.lang.Lang.Float_isInfinite_ext";
+
+        fun isNaN(this as float) as boolean
+            native "org.siphonlab.ago.lang.Lang.Float_isNaN_ext";
+
+        fun roundToInt(this as float) as int
+            native "org.siphonlab.ago.lang.Lang.Float_roundToInt_ext";
+
+        fun roundToLong(this as float) as long
+            native "org.siphonlab.ago.lang.Lang.Float_roundToLong_ext";
+
+        fun ceil(this as float) as float
+            native "org.siphonlab.ago.lang.Lang.Float_ceil_ext";
+
+        fun floor(this as float) as float
+            native "org.siphonlab.ago.lang.Lang.Float_floor_ext";
+
+        fun round(this as float, decimals as int) as float
+            native "org.siphonlab.ago.lang.Lang.Float_round_decimals_ext";
+    }
+}

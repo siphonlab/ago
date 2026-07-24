@@ -1,0 +1,40 @@
+fun main(){
+    var c = c'a';
+    var boxed = new Char(c);
+
+    // isDigit
+    Trace.print(new String(boxed.isDigit()));
+    Trace.print(new String(c'5'.isDigit()));
+
+    // isLetter
+    Trace.print(new String(boxed.isLetter()));
+    Trace.print(new String(c'9'.isLetter()));
+
+    // isWhitespace
+    Trace.print(new String(boxed.isWhitespace()));
+    Trace.print(new String(c' '.isWhitespace()));
+
+    // isUpperCase
+    Trace.print(new String(boxed.isUpperCase()));
+    Trace.print(new String(c'A'.isUpperCase()));
+
+    // isLowerCase
+    Trace.print(new String(boxed.isLowerCase()));
+    Trace.print(new String(c'B'.isLowerCase()));
+
+    // toLowerCaseChar
+    Trace.print(new Char(c'Z').toLowerCaseChar());
+    Trace.print(c'M'.toLowerCaseChar());
+
+    // toUpperCaseChar
+    Trace.print(boxed.toUpperCaseChar());
+    Trace.print(c'z'.toUpperCaseChar());
+
+    // digitValue
+    Trace.print(new Char(c'7').digitValue());
+    Trace.print(c'3'.digitValue());
+
+    // metaclass statics
+    Trace.print(Char.MIN_VALUE()|int);
+    Trace.print(Char.MAX_VALUE()|int);
+}

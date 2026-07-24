@@ -15,16 +15,18 @@
  */
 package lang;
 
-public class Null from Boxer<null>{
-    override equals(obj as Object) as boolean{
-        if(this == obj) return true;
-        return (obj instanceof Null);
-    }
-    override toString() as string{
-        return "null";
-    }
+public class Boolean from Boxer<boolean>{
 
     override hashCode() as int{
-        return 0;
+        return 1231 if value else 1237;;
+    }
+
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof Boolean b) and value == b.value;
+    }
+
+    override toString() as string{
+        return "true" if value else "false";
     }
 }

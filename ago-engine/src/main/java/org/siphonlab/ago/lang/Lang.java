@@ -22,6 +22,8 @@ import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.siphonlab.ago.runtime.ObjectArrayInstance;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -279,5 +281,587 @@ public class Lang {
     public static void String_equalsIgnoreCase(NativeFrame frame, String other){
         String s = frame.getParentScope().getSlots().getString(0);
         frame.finishBoolean(s.equalsIgnoreCase(other));
+    }
+
+    // --- Integer metaclass statics ---
+
+    public static void Integer_MIN_VALUE(NativeFrame frame){
+        frame.finishInt(Integer.MIN_VALUE);
+    }
+
+    public static void Integer_MAX_VALUE(NativeFrame frame){
+        frame.finishInt(Integer.MAX_VALUE);
+    }
+
+    // --- Integer instance methods (receiver at slot 0) ---
+
+    public static void Integer_abs(NativeFrame frame){
+        int v = frame.getParentScope().getSlots().getInt(0);
+        frame.finishInt(Math.abs(v));
+    }
+
+    public static void Integer_negate(NativeFrame frame){
+        int v = frame.getParentScope().getSlots().getInt(0);
+        frame.finishInt(-v);
+    }
+
+    public static void Integer_clamp(NativeFrame frame, int minVal, int maxVal){
+        int v = frame.getParentScope().getSlots().getInt(0);
+        frame.finishInt(Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Integer_hexString(NativeFrame frame){
+        int v = frame.getParentScope().getSlots().getInt(0);
+        frame.finishString(Integer.toHexString(v));
+    }
+
+    public static void Integer_toBinaryString(NativeFrame frame){
+        int v = frame.getParentScope().getSlots().getInt(0);
+        frame.finishString(Integer.toBinaryString(v));
+    }
+
+    public static void Integer_bitCount(NativeFrame frame){
+        int v = frame.getParentScope().getSlots().getInt(0);
+        frame.finishInt(Integer.bitCount(v));
+    }
+
+    public static void Integer_reverseBytes(NativeFrame frame){
+        int v = frame.getParentScope().getSlots().getInt(0);
+        frame.finishInt(Integer.reverseBytes(v));
+    }
+
+    // --- Long metaclass statics ---
+
+    public static void Long_MIN_VALUE(NativeFrame frame){
+        frame.finishLong(Long.MIN_VALUE);
+    }
+
+    public static void Long_MAX_VALUE(NativeFrame frame){
+        frame.finishLong(Long.MAX_VALUE);
+    }
+
+    // --- Long instance methods (receiver at slot 0) ---
+
+    public static void Long_abs(NativeFrame frame){
+        long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishLong(Math.abs(v));
+    }
+
+    public static void Long_negate(NativeFrame frame){
+        long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishLong(-v);
+    }
+
+    public static void Long_clamp(NativeFrame frame, long minVal, long maxVal){
+        long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishLong(Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Long_hexString(NativeFrame frame){
+        long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishString(Long.toHexString(v));
+    }
+
+    public static void Long_toBinaryString(NativeFrame frame){
+        long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishString(Long.toBinaryString(v));
+    }
+
+    public static void Long_bitCount(NativeFrame frame){
+        long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishInt(Long.bitCount(v));
+    }
+
+    public static void Long_reverseBytes(NativeFrame frame){
+        long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishLong(Long.reverseBytes(v));
+    }
+
+    // --- Float toString ---
+
+    public static void Float_toString(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishString(Float.toString(v));
+    }
+
+    // --- Float metaclass statics ---
+
+    public static void Float_MIN_VALUE(NativeFrame frame){
+        frame.finishFloat(Float.MIN_NORMAL);
+    }
+
+    public static void Float_MAX_VALUE(NativeFrame frame){
+        frame.finishFloat(Float.MAX_VALUE);
+    }
+
+    public static void Float_NaN(NativeFrame frame){
+        frame.finishFloat(Float.NaN);
+    }
+
+    public static void Float_POSITIVE_INFINITY(NativeFrame frame){
+        frame.finishFloat(Float.POSITIVE_INFINITY);
+    }
+
+    public static void Float_NEGATIVE_INFINITY(NativeFrame frame){
+        frame.finishFloat(Float.NEGATIVE_INFINITY);
+    }
+
+    // --- Float instance methods (receiver at slot 0) ---
+
+    public static void Float_abs(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishFloat(Math.abs(v));
+    }
+
+    public static void Float_isFinite(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishBoolean(!Float.isInfinite(v) && !Float.isNaN(v));
+    }
+
+    public static void Float_isInfinite(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishBoolean(Float.isInfinite(v));
+    }
+
+    public static void Float_isNaN(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishBoolean(Float.isNaN(v));
+    }
+
+    public static void Float_roundToInt(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishInt(Math.round(v));
+    }
+
+    public static void Float_roundToLong(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishLong(Math.round(v));
+    }
+
+    public static void Float_ceil(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishFloat((float)Math.ceil(v));
+    }
+
+    public static void Float_floor(NativeFrame frame){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        frame.finishFloat((float)Math.floor(v));
+    }
+
+    public static void Float_round_decimals(NativeFrame frame, int decimals){
+        float v = frame.getParentScope().getSlots().getFloat(0);
+        double factor = Math.pow(10, decimals);
+        frame.finishFloat((float)(Math.round(v * factor) / factor));
+    }
+
+    // --- Float extension methods (receiver as first param) ---
+
+    public static void Float_abs_ext(NativeFrame frame, float v){
+        frame.finishFloat(Math.abs(v));
+    }
+
+    public static void Float_isFinite_ext(NativeFrame frame, float v){
+        frame.finishBoolean(!Float.isInfinite(v) && !Float.isNaN(v));
+    }
+
+    public static void Float_isInfinite_ext(NativeFrame frame, float v){
+        frame.finishBoolean(Float.isInfinite(v));
+    }
+
+    public static void Float_isNaN_ext(NativeFrame frame, float v){
+        frame.finishBoolean(Float.isNaN(v));
+    }
+
+    public static void Float_roundToInt_ext(NativeFrame frame, float v){
+        frame.finishInt(Math.round(v));
+    }
+
+    public static void Float_roundToLong_ext(NativeFrame frame, float v){
+        frame.finishLong(Math.round(v));
+    }
+
+    public static void Float_ceil_ext(NativeFrame frame, float v){
+        frame.finishFloat((float)Math.ceil(v));
+    }
+
+    public static void Float_floor_ext(NativeFrame frame, float v){
+        frame.finishFloat((float)Math.floor(v));
+    }
+
+    public static void Float_round_decimals_ext(NativeFrame frame, float v, int decimals){
+        double factor = Math.pow(10, decimals);
+        frame.finishFloat((float)(Math.round(v * factor) / factor));
+    }
+
+    // --- Double toString ---
+
+    public static void Double_toString(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishString(Double.toString(v));
+    }
+
+    // --- Double metaclass statics ---
+
+    public static void Double_MIN_VALUE(NativeFrame frame){
+        frame.finishDouble(Double.MIN_NORMAL);
+    }
+
+    public static void Double_MAX_VALUE(NativeFrame frame){
+        frame.finishDouble(Double.MAX_VALUE);
+    }
+
+    public static void Double_NaN(NativeFrame frame){
+        frame.finishDouble(Double.NaN);
+    }
+
+    public static void Double_POSITIVE_INFINITY(NativeFrame frame){
+        frame.finishDouble(Double.POSITIVE_INFINITY);
+    }
+
+    public static void Double_NEGATIVE_INFINITY(NativeFrame frame){
+        frame.finishDouble(Double.NEGATIVE_INFINITY);
+    }
+
+    // --- Double instance methods (receiver at slot 0) ---
+
+    public static void Double_abs(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishDouble(Math.abs(v));
+    }
+
+    public static void Double_isFinite(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishBoolean(!Double.isInfinite(v) && !Double.isNaN(v));
+    }
+
+    public static void Double_isInfinite(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishBoolean(Double.isInfinite(v));
+    }
+
+    public static void Double_isNaN(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishBoolean(Double.isNaN(v));
+    }
+
+    public static void Double_roundToInt(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishInt((int)Math.round(v));
+    }
+
+    public static void Double_roundToLong(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishLong(Math.round(v));
+    }
+
+    public static void Double_ceil(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishDouble(Math.ceil(v));
+    }
+
+    public static void Double_floor(NativeFrame frame){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        frame.finishDouble(Math.floor(v));
+    }
+
+    public static void Double_round_decimals(NativeFrame frame, int decimals){
+        double v = frame.getParentScope().getSlots().getDouble(0);
+        double factor = Math.pow(10, decimals);
+        frame.finishDouble(Math.round(v * factor) / factor);
+    }
+
+    // --- Double extension methods (receiver as first param) ---
+
+    public static void Double_abs_ext(NativeFrame frame, double v){
+        frame.finishDouble(Math.abs(v));
+    }
+
+    public static void Double_isFinite_ext(NativeFrame frame, double v){
+        frame.finishBoolean(!Double.isInfinite(v) && !Double.isNaN(v));
+    }
+
+    public static void Double_isInfinite_ext(NativeFrame frame, double v){
+        frame.finishBoolean(Double.isInfinite(v));
+    }
+
+    public static void Double_isNaN_ext(NativeFrame frame, double v){
+        frame.finishBoolean(Double.isNaN(v));
+    }
+
+    public static void Double_roundToInt_ext(NativeFrame frame, double v){
+        frame.finishInt((int)Math.round(v));
+    }
+
+    public static void Double_roundToLong_ext(NativeFrame frame, double v){
+        frame.finishLong(Math.round(v));
+    }
+
+    public static void Double_ceil_ext(NativeFrame frame, double v){
+        frame.finishDouble(Math.ceil(v));
+    }
+
+    public static void Double_floor_ext(NativeFrame frame, double v){
+        frame.finishDouble(Math.floor(v));
+    }
+
+    public static void Double_round_decimals_ext(NativeFrame frame, double v, int decimals){
+        double factor = Math.pow(10, decimals);
+        frame.finishDouble(Math.round(v * factor) / factor);
+    }
+
+    // --- Byte toString ---
+
+    public static void Byte_toString(NativeFrame frame){
+        byte v = frame.getParentScope().getSlots().getByte(0);
+        frame.finishString(Byte.toString(v));
+    }
+
+    // --- Byte metaclass statics ---
+
+    public static void Byte_MIN_VALUE(NativeFrame frame){
+        frame.finishByte(Byte.MIN_VALUE);
+    }
+
+    public static void Byte_MAX_VALUE(NativeFrame frame){
+        frame.finishByte(Byte.MAX_VALUE);
+    }
+
+    // --- Byte instance methods (receiver at slot 0) ---
+
+    public static void Byte_abs(NativeFrame frame){
+        byte v = frame.getParentScope().getSlots().getByte(0);
+        frame.finishByte((byte)Math.abs(v));
+    }
+
+    public static void Byte_clamp(NativeFrame frame, byte minVal, byte maxVal){
+        byte v = frame.getParentScope().getSlots().getByte(0);
+        frame.finishByte((byte)Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Byte_toHexString(NativeFrame frame){
+        byte v = frame.getParentScope().getSlots().getByte(0);
+        frame.finishString(String.format("%02x", v & 0xFF));
+    }
+
+    // --- Short toString ---
+
+    public static void Short_toString(NativeFrame frame){
+        short v = frame.getParentScope().getSlots().getShort(0);
+        frame.finishString(Short.toString(v));
+    }
+
+    // --- Short metaclass statics ---
+
+    public static void Short_MIN_VALUE(NativeFrame frame){
+        frame.finishShort(Short.MIN_VALUE);
+    }
+
+    public static void Short_MAX_VALUE(NativeFrame frame){
+        frame.finishShort(Short.MAX_VALUE);
+    }
+
+    // --- Short instance methods (receiver at slot 0) ---
+
+    public static void Short_abs(NativeFrame frame){
+        short v = frame.getParentScope().getSlots().getShort(0);
+        frame.finishShort((short)Math.abs(v));
+    }
+
+    public static void Short_clamp(NativeFrame frame, short minVal, short maxVal){
+        short v = frame.getParentScope().getSlots().getShort(0);
+        frame.finishShort((short)Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Short_toHexString(NativeFrame frame){
+        short v = frame.getParentScope().getSlots().getShort(0);
+        frame.finishString(String.format("%04x", v & 0xFFFF));
+    }
+
+    // --- Decimal toString ---
+
+    public static void Decimal_toString(NativeFrame frame){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishString(v.toString());
+    }
+
+    // --- Decimal metaclass statics ---
+
+    public static void Decimal_ZERO(NativeFrame frame){
+        frame.finishDecimal(BigDecimal.ZERO);
+    }
+
+    // --- Decimal instance methods (receiver at slot 0) ---
+
+    public static void Decimal_abs(NativeFrame frame){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishDecimal(v.abs());
+    }
+
+    public static void Decimal_isFinite(NativeFrame frame){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishBoolean(true);
+    }
+
+    public static void Decimal_isInfinite(NativeFrame frame){
+        frame.finishBoolean(false);
+    }
+
+    public static void Decimal_isNaN(NativeFrame frame){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishBoolean(v.compareTo(BigDecimal.ZERO) == 0 && false);
+    }
+
+    public static void Decimal_roundToInt(NativeFrame frame){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishInt(v.intValue());
+    }
+
+    public static void Decimal_roundToLong(NativeFrame frame){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishLong(v.longValue());
+    }
+
+    public static void Decimal_scale(NativeFrame frame){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishInt(v.scale());
+    }
+
+    public static void Decimal_setScale(NativeFrame frame, int newScale){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishDecimal(v.setScale(newScale, RoundingMode.HALF_UP));
+    }
+
+    public static void Decimal_compareTo(NativeFrame frame, BigDecimal other){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishInt(v.compareTo(other));
+    }
+
+    // --- Decimal extension methods (receiver as first param) ---
+
+    public static void Decimal_abs_ext(NativeFrame frame, BigDecimal d){
+        frame.finishDecimal(d.abs());
+    }
+
+    public static void Decimal_isFinite_ext(NativeFrame frame, BigDecimal d){
+        frame.finishBoolean(true);
+    }
+
+    public static void Decimal_isInfinite_ext(NativeFrame frame, BigDecimal d){
+        frame.finishBoolean(false);
+    }
+
+    public static void Decimal_isNaN_ext(NativeFrame frame, BigDecimal d){
+        frame.finishBoolean(d.compareTo(BigDecimal.ZERO) == 0 && false);
+    }
+
+    public static void Decimal_roundToInt_ext(NativeFrame frame, BigDecimal d){
+        frame.finishInt(d.intValue());
+    }
+
+    public static void Decimal_roundToLong_ext(NativeFrame frame, BigDecimal d){
+        frame.finishLong(d.longValue());
+    }
+
+    public static void Decimal_scale_ext(NativeFrame frame, BigDecimal d){
+        frame.finishInt(d.scale());
+    }
+
+    public static void Decimal_setScale_ext(NativeFrame frame, BigDecimal d, int newScale){
+        frame.finishDecimal(d.setScale(newScale, RoundingMode.HALF_UP));
+    }
+
+    public static void Decimal_compareTo_ext(NativeFrame frame, BigDecimal a, BigDecimal b){
+        frame.finishInt(a.compareTo(b));
+    }
+
+    // --- Char metaclass statics ---
+
+    public static void Char_MIN_VALUE(NativeFrame frame){
+        frame.finishChar(Character.MIN_VALUE);
+    }
+
+    public static void Char_MAX_VALUE(NativeFrame frame){
+        frame.finishChar(Character.MAX_VALUE);
+    }
+
+    // --- Char instance methods (receiver at slot 0) ---
+
+    public static void Char_isDigit(NativeFrame frame){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishBoolean(Character.isDigit(v));
+    }
+
+    public static void Char_isLetter(NativeFrame frame){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishBoolean(Character.isLetter(v));
+    }
+
+    public static void Char_isWhitespace(NativeFrame frame){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishBoolean(Character.isWhitespace(v));
+    }
+
+    public static void Char_isUpperCase(NativeFrame frame){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishBoolean(Character.isUpperCase(v));
+    }
+
+    public static void Char_isLowerCase(NativeFrame frame){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishBoolean(Character.isLowerCase(v));
+    }
+
+    public static void Char_toLowerCaseChar(NativeFrame frame){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishChar(Character.toLowerCase(v));
+    }
+
+    public static void Char_toUpperCaseChar(NativeFrame frame){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishChar(Character.toUpperCase(v));
+    }
+
+    public static void Char_digitValue(NativeFrame frame){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishInt(Character.digit(v, 10));
+    }
+
+    public static void Char_compareTo(NativeFrame frame, char other){
+        char v = frame.getParentScope().getSlots().getChar(0);
+        frame.finishInt(v - other);
+    }
+
+    // --- Char extension methods (receiver as first param) ---
+
+    public static void Char_isDigit_ext(NativeFrame frame, char c){
+        frame.finishBoolean(Character.isDigit(c));
+    }
+
+    public static void Char_isLetter_ext(NativeFrame frame, char c){
+        frame.finishBoolean(Character.isLetter(c));
+    }
+
+    public static void Char_isWhitespace_ext(NativeFrame frame, char c){
+        frame.finishBoolean(Character.isWhitespace(c));
+    }
+
+    public static void Char_isUpperCase_ext(NativeFrame frame, char c){
+        frame.finishBoolean(Character.isUpperCase(c));
+    }
+
+    public static void Char_isLowerCase_ext(NativeFrame frame, char c){
+        frame.finishBoolean(Character.isLowerCase(c));
+    }
+
+    public static void Char_toLowerCaseChar_ext(NativeFrame frame, char c){
+        frame.finishChar(Character.toLowerCase(c));
+    }
+
+    public static void Char_toUpperCaseChar_ext(NativeFrame frame, char c){
+        frame.finishChar(Character.toUpperCase(c));
+    }
+
+    public static void Char_digitValue_ext(NativeFrame frame, char c){
+        frame.finishInt(Character.digit(c, 10));
     }
 }

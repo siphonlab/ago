@@ -54,7 +54,7 @@ public class TypesTests {
                 "4", "4",
                 // trim
                 "Hello", "Hello",
-                // toLowerCase
+                // toLowerCase  
                 "hello world", "hello world",
                 // toUpperCase
                 "HELLO WORLD", "HELLO WORLD",
@@ -68,6 +68,172 @@ public class TypesTests {
                 "false", "true", "false", "true",
                 // equalsIgnoreCase
                 "true", "true"
+        ));
+    }
+
+    @Test
+    public void intMethods() throws CompilationError, CompliationErrorsException, IOException {
+        run("types/int_methods.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+                // abs
+                "42", "42",
+                // negate
+                "-42", "-7",
+                // clamp
+                "42", "0", "100",
+                // hexString
+                "2a", "2a",
+                // toBinaryString
+                "101010", "101010",
+                // bitCount
+                "3", "3",
+                // reverseBytes
+                "704643072", "704643072",
+                // metaclass statics
+                "-2147483648", "2147483647"
+        ));
+    }
+
+    @Test
+    public void longMethods() throws CompilationError, CompliationErrorsException, IOException {
+        run("types/long_methods.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+                "42", "42", "-42", "-7", "42", "0", "100", "2a", "2a", "101010", "101010", "3", "3", "3026418949592973312", "3026418949592973312", "-9223372036854775808", "9223372036854775807"
+        ));
+    }
+
+    @Test
+    public void floatMethods() throws CompilationError, CompliationErrorsException, IOException {
+        run("types/float_methods.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+                // abs
+                "3.14", "2.5",
+                // isFinite
+                "true", "true",
+                // isInfinite
+                "true", "true",
+                // isNaN
+                "true", "false",
+                // roundToInt
+                "3", "3",
+                // roundToLong
+                "3", "3",
+                // ceil
+                "4.0", "4.0",
+                // floor
+                "3.0", "3.0",
+
+                "3.14", "3.14", "true"
+        ));
+    }
+
+    @Test
+    public void doubleMethods() throws CompilationError, CompliationErrorsException, IOException {
+        run("types/double_methods.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+                // abs
+                "3.14", "2.5",
+                // isFinite
+                "true", "true",
+                // isInfinite
+                "true", "true",
+                // isNaN
+                "true", "false",
+                // roundToInt
+                "3", "3",
+                // roundToLong
+                "3", "3",
+                // ceil
+                "4.0", "4.0",
+                // floor
+                "3.0", "3.0",
+                "3.14", "3.14", "true"
+        ));
+    }
+
+    @Test
+    public void byteMethods() throws CompilationError, CompliationErrorsException, IOException {
+        run("types/byte_methods.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+                // abs
+                "64", "127",
+                // clamp
+                "50", "0", "50",
+                // toHexString
+                "40", "40",
+
+                "-128", "127"
+        ));
+    }
+
+    @Test
+    public void shortMethods() throws CompilationError, CompliationErrorsException, IOException {
+        run("types/short_methods.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+                // abs
+                "-32768", "100",
+                // clamp
+                "0", "0", "500",
+                // toHexString
+                "8000", "8000",
+
+                "-32768", "32767"
+        ));
+    }
+
+    @Test
+    public void decimalMethods() throws CompilationError, CompliationErrorsException, IOException {
+        run("types/decimal_methods.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+                // abs
+                "123.456", "99",
+                // isFinite
+                "true", "true",
+                // isInfinite
+                "false", "false",
+                // isNaN
+                "false", "false",
+                // roundToInt
+                "123", "123",
+                // roundToLong
+                "123", "123",
+                // scale
+                "3", "3",
+
+                "123.46", "123.5", "1", "-1", "0", "0"
+        ));
+    }
+
+    @Test
+    public void charMethods() throws CompilationError, CompliationErrorsException, IOException {
+        run("types/char_methods.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+                // isDigit
+                "false", "true",
+                // isLetter
+                "true", "false",
+                // isWhitespace
+                "false", "true",
+                // isUpperCase
+                "false", "true",
+                // isLowerCase
+                "true", "false",
+                // toLowerCaseChar
+                "z", "m",
+                // toUpperCaseChar
+                "A", "Z",
+                // digitValue
+                "7", "3",
+
+                "0", "65535"
         ));
     }
 }

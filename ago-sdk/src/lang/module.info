@@ -12,6 +12,15 @@ units:
   - primitive.ago
   - types.ago
   - string.ago
+  - boolean.ago
+  - char.ago
+  - int.ago
+  - long.ago
+  - float.ago
+  - double.ago
+  - byte.ago
+  - short.ago
+  - decimal.ago
   - collection.ago
   - runspace.ago
   - atomic.ago

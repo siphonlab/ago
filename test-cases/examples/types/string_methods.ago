@@ -3,12 +3,12 @@ fun main(){
     var boxed = new String(s);
 
     // length
-    Trace.print(boxed.length()|string);
-    Trace.print(s.length()|string);
+    Trace.print(boxed.length());
+    Trace.print(s.length());
 
     // charAt
-    Trace.print(boxed.charAt(0)|string);
-    Trace.print(s.charAt(0)|string);
+    Trace.print(boxed.charAt(0));
+    Trace.print(s.charAt(0));
 
     // substring
     Trace.print(boxed.substring(1));
@@ -20,28 +20,28 @@ fun main(){
 
     // contains
     var sw = "Hello World";
-    Trace.print(new String(sw).contains("World")|string);
-    Trace.print(sw.contains("World")|string);
+    Trace.print(new String(sw).contains("World"));
+    Trace.print(sw.contains("World"));
 
     // startsWith
-    Trace.print(new String(sw).startsWith("Hello")|string);
-    Trace.print(sw.startsWith("Hello")|string);
+    Trace.print(new String(sw).startsWith("Hello"));
+    Trace.print(sw.startsWith("Hello"));
 
     // endsWith
-    Trace.print(new String(sw).endsWith("World")|string);
-    Trace.print(sw.endsWith("World")|string);
+    Trace.print(new String(sw).endsWith("World"));
+    Trace.print(sw.endsWith("World"));
 
     // indexOf char
-    Trace.print(boxed.indexOf('e')|string);
-    Trace.print(s.indexOf('e')|string);
+    Trace.print(boxed.indexOf('e'));
+    Trace.print(s.indexOf('e'));
 
     // indexOf str
-    Trace.print(new String(sw).indexOf("World")|string);
-    Trace.print(sw.indexOf("World")|string);
+    Trace.print(new String(sw).indexOf("World"));
+    Trace.print(sw.indexOf("World"));
 
     // lastIndexOf char
-    Trace.print(boxed.lastIndexOf('o')|string);
-    Trace.print(s.lastIndexOf('o')|string);
+    Trace.print(boxed.lastIndexOf('o'));
+    Trace.print(s.lastIndexOf('o'));
 
     // trim
     var padded = "   Hello   ";
@@ -66,17 +66,17 @@ fun main(){
 
     // split
     var parts = boxed.split("");
-    Trace.print(parts|string);
+    Trace.print(parts);
     var parts2 = s.split("");
-    Trace.print(parts2|string);
+    Trace.print(parts2);
 
     // isEmpty
-    Trace.print(boxed.isEmpty()|string);
-    Trace.print(new String("").isEmpty()|string);
-    Trace.print(s.isEmpty()|string);
-    Trace.print("".isEmpty()|string);
+    Trace.print(boxed.isEmpty());
+    Trace.print(new String("").isEmpty());
+    Trace.print(s.isEmpty());
+    Trace.print("".isEmpty());
 
     // equalsIgnoreCase
-    Trace.print(boxed.equalsIgnoreCase("hello")|string);
-    Trace.print(sw.equalsIgnoreCase("HELLO WORLD")|string);
+    Trace.print(boxed.equalsIgnoreCase("hello"));
+    Trace.print(sw.equalsIgnoreCase("HELLO WORLD"));
 }

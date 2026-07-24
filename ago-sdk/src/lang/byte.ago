@@ -1,0 +1,64 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+public class Byte from Number<byte>{
+    metaclass{
+        fun MIN_VALUE() as byte
+            native "org.siphonlab.ago.lang.Lang.Byte_MIN_VALUE";
+
+        fun MAX_VALUE() as byte
+            native "org.siphonlab.ago.lang.Lang.Byte_MAX_VALUE";
+    }
+
+    public override intValue() as int    { return value|int; }
+    public override longValue() as long  { return value|long; }
+    public override floatValue() as float    { return value|float; }
+    public override doubleValue() as double  { return value; }
+    public override byteValue() as byte      { return value; }
+    public override shortValue() as short    { return value|short; }
+
+    public override toString() as string native "org.siphonlab.ago.lang.Lang.Byte_toString"
+
+    // --- Instance methods ---
+
+    public fun abs() as byte
+        native "org.siphonlab.ago.lang.Lang.Byte_abs";
+
+    public fun clamp(minVal as byte, maxVal as byte) as byte
+        native "org.siphonlab.ago.lang.Lang.Byte_clamp";
+
+    public fun toHexString() as string
+        native "org.siphonlab.ago.lang.Lang.Byte_toHexString";
+}
+
+// --- Extension methods on primitive byte type ---
+
+final class ByteExt{
+    metaclass{
+        fun abs(this as byte) as byte{
+            return new Byte(this).abs();
+        }
+
+        fun clamp(this as byte, minVal as byte, maxVal as byte) as byte{
+            return new Byte(this).clamp(minVal, maxVal);
+        }
+
+        fun toHexString(this as byte) as string{
+            return new Byte(this).toHexString();
+        }
+    }
+}
