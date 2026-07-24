@@ -54,7 +54,7 @@ public class TypesTests {
                 "4", "4",
                 // trim
                 "Hello", "Hello",
-                // toLowerCase  
+                // toLowerCase
                 "hello world", "hello world",
                 // toUpperCase
                 "HELLO WORLD", "HELLO WORLD",
