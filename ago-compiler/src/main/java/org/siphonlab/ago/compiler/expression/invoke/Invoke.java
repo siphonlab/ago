@@ -394,6 +394,7 @@ public class Invoke extends ExpressionInFunctionBody {
         } else if(maybeFunction instanceof ClassUnder.ClassUnderInstance classUnderInstance) {
             var instance = this.scope;
             if (instance instanceof ConstClass constClass) {
+                //TODO for non-fields class, optimize to ConstClass(InvokeFunction), this transforming will implemented in CodeTransformer
                 var n = Creator.NewProps.resolve(fun, constClass.getClassDef());
                 code.new_method_static(resultSlot, fun.simpleNameOfFunction(resolvedFunctionDef),
                         n.setForGenericInstantiation(n.forGenericInstantiation() || resolvedFunctionDefGenericInstantiateRequired));
