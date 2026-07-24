@@ -485,6 +485,9 @@ public class Invoke extends ExpressionInFunctionBody {
 
     @Override
     public String toString() {
+        if(this.resolvedFunctionDef == null){
+            return this.preparedVisitorForNullable.toString();
+        }
         if(this.scope == null){
             return "(Invoke %s [%s] %s)".formatted(resolvedFunctionDef.getFullnameWithoutPackage(), StringUtils.join(arguments, ","), this.maybeFunction);
         } else {
