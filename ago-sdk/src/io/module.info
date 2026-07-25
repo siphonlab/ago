@@ -1,0 +1,14 @@
+module:
+  name: io
+  version: "0.7.0"
+  author: Inshua
+  license: Apache 2.0
+
+repository:
+  url: https://github.com/siphonlab/ago/tree/master/ago-sdk
+
+units:
+  filesystem.ago
+
+description: |
+    IO module, a wrapper for vertx api

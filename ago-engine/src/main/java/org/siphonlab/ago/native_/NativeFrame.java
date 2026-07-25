@@ -48,7 +48,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         try {
             nativeFunctionCaller.invoke(this, this.slots);
         } catch (java.lang.Exception javaException) {
-            this.raiseJavaException(self, javaException, false);
+            this.raiseJavaException(self, javaException);
         }
     }
 
