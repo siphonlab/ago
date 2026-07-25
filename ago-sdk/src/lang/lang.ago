@@ -333,39 +333,6 @@ interface ViaObject{
     fun exit(f as Function<_>);
 }
 
-// array creator will get ArrayInstance insteadof
-class Array<T> with Iterable<T>{
-    metaclass{
-        fun copy(source as T[], sourcePos as int, destination as T[], destPos as int, length as int) native "org.siphonlab.ago.lang.Lang.arrayCopy"
-    }
-    public final length as int;
-
-    override iterator() as Iterator<T>{
-        return new ArrayIterator<T>(this)
-    }
-
-    override toString() as string{
-        var s = '[';
-        for(var i=0; i<length; i++){
-            s += this[i]
-            if(i < length -1) s += ','
-        }
-        return s + ']';
-    }
-}
-
-class ArrayIterator<+T> with Iterator<T>{
-    i as int
-    fun new(field array as Array<T>){}
-
-    override hasNext() as boolean{
-        return i < array.length
-    }
-    override next() as T{
-        return array[i++];
-    }
-}
-
 abstract class Enum<T>{
     metaclass{
         fun valueOf(t as T) as Enum<T>? {     // metaclass cannot be abstract, even the instance class is abstract

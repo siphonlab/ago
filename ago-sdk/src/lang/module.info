@@ -9,6 +9,7 @@ repository:
 
 units:
   - lang.ago
+  - array.ago
   - primitive.ago
   - types.ago
   - types/string.ago
