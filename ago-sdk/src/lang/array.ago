@@ -33,27 +33,57 @@ class ArrayIterator<+T> with Iterator<T>{
     }
 }
 
-final class ArrayExt{
-    metaclass{
-        fun map<T, R>(this as Array<T>, mapper as [Function1<R,T>]) as R[] {
-            var l = this.length;
-            var arr = new R[l];
-            for(var i=0; i<l;i++){
-                arr[i] = mapper(this[i]);
-            }
-            return arr;
-        }
+fun map<T, R>(this as Array<T>, mapper as [Function1<R,T>]) as R[] {
+    var l = this.length;
+    var arr = new R[l];
+    for(var i=0; i<l;i++){
+        arr[i] = mapper(this[i]);
+    }
+    return arr;
+}
 
-        fun join<T>(this as Array<T>, separator as string = ',') as string {
-            var l = this.length;
-            if(l == 0) return '';
+fun join<T>(this as Array<T>, separator as string = ',') as string {
+    var l = this.length;
+    if(l == 0) return '';
 
-            var sb = new StringBuilder()
-            for(var i=0; i<l-1;i++){
-                sb.append(this[i]|string).append(separator)
-            }
-            sb.append(this[l-1]);
-            return sb.toString();
+    var sb = new StringBuilder()
+    for(var i=0; i<l-1;i++){
+        sb.append(this[i]|string).append(separator)
+    }
+    sb.append(this[l-1]);
+    return sb.toString();
+}
+
+fun filter<T>(this as Array<T>, predicate as [Function1<boolean,T>]) as T[] {
+    var count = 0;
+    for(var i=0; i<this.length; i++){
+        if(predicate(this[i])){
+            count++;
         }
     }
+    var arr = new T[count];
+    var j = 0;
+    for(var i=0; i<this.length; i++){
+        if(predicate(this[i])){
+            arr[j++] = this[i];
+        }
+    }
+    return arr;
+}
+
+fun reduce<T, R>(this as Array<T>, accumulator as [Function2<R,R,T>], initial as R) as R {
+    var result = initial;
+    for(var i=0; i<this.length; i++){
+        result = accumulator(result, this[i]);
+    }
+    return result;
+}
+
+fun castTo<T, R>(this as Array<T>) as R[] {
+    var l = this.length;
+    var arr = new R[l];
+    for(var i=0; i<l; i++){
+        arr[i] = this[i]|R;
+    }
+    return arr;
 }

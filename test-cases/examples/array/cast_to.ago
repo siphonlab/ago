@@ -1,0 +1,21 @@
+fun main(){
+    var intArr = [10, 20, 30];
+
+    // cast int[] to long[]
+    var longArr = intArr.castTo<int, long>();
+    for(var v in longArr){
+        Trace.print(v);
+    }
+
+    // cast int[] to double[]
+    var doubleArr = intArr.castTo<int, double>();
+    for(var v in doubleArr){
+        Trace.print(v);
+    }
+
+    // cast int[] to float[]
+    var floatArr = intArr.castTo<int, float>();
+    for(var v in floatArr){
+        Trace.print(v);
+    }
+}
