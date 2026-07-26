@@ -20,6 +20,7 @@ import org.siphonlab.ago.classloader.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
+import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.module.Project;
@@ -52,12 +53,12 @@ public class AgoClassParser {
         LinkedList<AgoClass> templateClasses = new LinkedList<>();
         LinkedList<AgoClass> allClasses = new LinkedList<>();
         LinkedList<AgoClass> concreteChildren = new LinkedList<>();
-        LinkedList<AgoClass> metas = new LinkedList<>();
+        LinkedHashSet<AgoClass> metas = new LinkedHashSet<>();
 
         for (AgoClass agoClass : classLoader.getClasses()) {
             if("<Meta>".equals(agoClass.getFullname())) continue;
             allClasses.add(agoClass);
-            if (agoClass instanceof MetaClass || belongToMetaClass(agoClass)) {
+            if (agoClass instanceof MetaClass || belongToMetaClass(agoClass, metas)) {
                 metas.add(agoClass);
                 continue;      // create metaclass in processClass
             }
@@ -90,6 +91,9 @@ public class AgoClassParser {
 
         for (AgoClass child : concreteChildren) {
             ClassDef classDef = root.findByFullname(child.getFullname());
+            if(classDef == null){
+                belongToMetaClass(child.getParent(), metas);
+            }
             assert classDef != null;
             classes.put(child, classDef);
         }
@@ -198,9 +202,31 @@ public class AgoClassParser {
         return false;
     }
 
-    private boolean belongToMetaClass(AgoClass agoClass) {
+    private boolean belongToMetaClass(AgoClass agoClass, Set<AgoClass> metas) {
         for(var p = agoClass.getParent(); p != null; p = p.getParent()){
-            if(p instanceof MetaClass) return true;
+            if(p instanceof MetaClass || metas.contains(p)) return true;
+        }
+        ConcreteTypeInfo concreteTypeInfo = agoClass.getConcreteTypeInfo();
+        if(concreteTypeInfo != null){
+            if(concreteTypeInfo instanceof ArrayInfo arrayInfo){
+                if(arrayInfo.getElementType() instanceof MetaClass || belongToMetaClass(arrayInfo.getElementType(), metas))
+                    return true;
+            } else if(concreteTypeInfo instanceof GenericArgumentsInfo genericArgumentsInfo){
+                for (AgoClass argument : genericArgumentsInfo.getArguments()) {
+                    if(argument instanceof MetaClass || belongToMetaClass(argument, metas))
+                        return true;
+                }
+            } else if(concreteTypeInfo instanceof ParameterizedClassInfo parameterizedClassInfo){
+                for (Object argument : parameterizedClassInfo.getArguments()) {
+                    if(argument instanceof AgoClass c){
+                        if(belongToMetaClass(c, metas))
+                            return true;
+                    }
+                }
+            } else if(concreteTypeInfo instanceof NullableTypeInfo nullableTypeInfo){
+                if(nullableTypeInfo.getBaseClass() instanceof MetaClass || belongToMetaClass(nullableTypeInfo.getBaseClass(), metas))
+                    return true;
+            }
         }
         return false;
     }
@@ -548,6 +574,14 @@ public class AgoClassParser {
             AgoClass instanceClass = metaClass.getInstanceClass();
             ClassDef instanceClassDef = mapClass(instanceClass);
             if(instanceClassDef == null) return null;
+            if(instanceClassDef instanceof GenericConcreteType) {
+                if(instanceClassDef.getCompilingStage() == CompilingStage.ResolveHierarchicalClasses){
+                    if(!resolveHierarchy(agoClass, instanceClassDef)) return null;
+                    return Objects.requireNonNull(instanceClassDef.getMetaClassDef());
+                } else {
+                    return null;        // will instance meta later
+                }
+            }
             var classDef = new MetaClassDef(root, instanceClassDef, instanceClass instanceof MetaClass ? 2 : 1, null);
             classDef.setSourceLocation(metaClass.getSourceLocation());
             instanceClassDef.getPackage().addChild(classDef);
