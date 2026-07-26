@@ -99,6 +99,7 @@ public class Unit {
             public void unhandledException(Parser recognizer, RecognitionException e) {
                 CompilationError compileException = recognitionExceptionToCompileException(e, Unit.this);
                 errors.add(compileException);
+                super.unhandledException(recognizer, e);
             }
         };
         parser.getErrorListeners().clear();     // remove default console output

@@ -142,11 +142,11 @@
                 <version>3.2.5</version>
                 <configuration>
                     <excludes>
-                        <exclude>**/*WorkflowTest.java</exclude>
-                        <exclude>**/ConcurrentTests.java</exclude>
-                        <exclude>**/JsonTest.java</exclude>
                         <exclude>**/RdbDdlTest.java</exclude>
                         <exclude>**/RestfulTest.java</exclude>
+                        <exclude>**/JsonTest.java</exclude>
+                        <exclude>**/ConcurrentTests.java</exclude>
+                        <exclude>**/*WorkflowTest.java</exclude>
                         <exclude>**/CompilerTest.java</exclude>
                         <exclude>**/HttpServerTest.java</exclude>
                     </excludes>

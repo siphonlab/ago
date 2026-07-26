@@ -18,16 +18,14 @@ package org.siphonlab.ago.compiler;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
-import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.exception.ResolveError;
-import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.exception.UnsupportedExpressionError;
+import org.siphonlab.ago.compiler.exception.*;
 import org.siphonlab.ago.compiler.expression.LiteralParser;
 import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.collection.DuplicatedKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,8 +61,14 @@ public class Compiler {
 
         // parse classes and member function declarations
         for (var unit : units) {
-            unit.classNames();
+            try {
+                unit.classNames();
+            } catch (DuplicatedKeyException e) {
+                unit.appendError(new DuplicatedError(e.getMessage(), SourceLocation.UNKNOWN));
+            }
         }
+        throwErrorsIfExists(units);
+
         root.getAndCleanNewFoundClasses();      // skip these new-found classes
         root.resolveLangClasses();
 
@@ -96,6 +100,7 @@ public class Compiler {
 
         root.setCompilingStage(CompilingStage.ValidateHierarchy);
         validateHierarchy();
+        throwErrorsIfExists(units);
         root.sortClasses();
 
         root.setCompilingStage(CompilingStage.InheritsFields);
@@ -132,6 +137,12 @@ public class Compiler {
         }
         root.setCompilingStage(CompilingStage.Compiled);
 
+        throwErrorsIfExists(units);
+
+        return units;
+    }
+
+    private static void throwErrorsIfExists(Unit[] units) throws CompliationErrorsException {
         List<CompilationError> errors = new ArrayList<>();
         for (Unit unit : units) {
             if(unit.hasErrors()){
@@ -141,8 +152,6 @@ public class Compiler {
         if(!errors.isEmpty()){
             throw new CompliationErrorsException(errors);
         }
-
-        return units;
     }
 
     private void setupBoxTypes() {
@@ -195,10 +204,15 @@ public class Compiler {
             if (classDef.getCompilingStage() != CompilingStage.ValidateHierarchy)
                 continue;
 
-            if(classDef.unit != null)
-                classDef.unit.validateHierarchy(classDef);
-            else
+            if(classDef.unit != null) {
+                try {
+                    classDef.unit.validateHierarchy(classDef);
+                } catch (CompilationError e) {
+                    classDef.unit.appendError(e);
+                }
+            } else {
                 classDef.nextCompilingStage(CompilingStage.InheritsFields);     // i.e. lang.ScopedClassInterval::Clang$Function2<int|int|int>|Clang$Any
+            }
         }
     }
 
