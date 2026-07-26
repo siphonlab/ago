@@ -326,6 +326,9 @@ class Boxer<T as [Primitive]>{
     fun new(field value as T){
 
     }
+    override equals(another as Object) as boolean{
+        return another instanceof Boxer<T> b and b.value == this.value
+    }
 }
 
 interface ViaObject{
