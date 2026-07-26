@@ -23,6 +23,7 @@ import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
 import org.siphonlab.ago.compiler.expression.*;
  import org.siphonlab.ago.compiler.expression.invoke.Invoke;
+import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.math.SelfArithmetic;
 import org.siphonlab.ago.compiler.statement.ForEachStmt;
 
@@ -153,8 +154,10 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
                 boolean solved = false;
                 if(groupType instanceof ArrayClassDef) {
                     if(groupType.equals(this.arrayType)) {
-                        // Array.copy
-                        ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(new ConstClass(arrayType), arrayType.getMetaClassDef().findMethod("copy#")),
+                        // ArrayExt.copy<>
+                        ClassDef arrayExtClass = getRoot().getArrayExtClass();
+                        var arrayCopy = ownerFunction.getOrCreateGenericInstantiationClassDef(arrayExtClass.getMetaClassDef().findMethod("copyTo#"), new ClassRefLiteral[]{arrayType.getElementType().toClassRefLiteral()}, null);
+                        ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(new ConstClass(arrayExtClass), arrayCopy),
                                 List.of(group.result, getRoot().createIntLiteral(0), localVar, destIndex, group.size), group.expression().getSourceLocation()).transform().termVisit(blockCompiler);
                         new SelfArithmetic(ownerFunction, destIndex, group.size, SelfArithmetic.Type.Inc).termVisit(blockCompiler);
                         solved = true;
@@ -197,7 +200,9 @@ public class ComplexArrayLiteral extends ExpressionInFunctionBody {
             expandoSize = new ArrayLength(ownerFunction, expression).visit(blockCompiler);
             if(classDef == this.arrayType) {
                 new ArrayCreate(ownerFunction, arrayType, expandoSize).setSourceLocation(this.getSourceLocation()).outputToLocalVar(localVar, blockCompiler);
-                ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(new ConstClass(arrayType), arrayType.getMetaClassDef().findMethod("copy#")),
+                ClassDef arrayExtClass = getRoot().getArrayExtClass();
+                var arrayCopy = ownerFunction.getOrCreateGenericInstantiationClassDef(arrayExtClass.getMetaClassDef().findMethod("copyTo#"), new ClassRefLiteral[]{arrayType.getElementType().toClassRefLiteral()}, null);
+                ownerFunction.invoke(Invoke.InvokeMode.Invoke, ownerFunction.classUnder(new ConstClass(arrayExtClass), arrayCopy),
                         List.of(p, getRoot().createIntLiteral(0), localVar, getRoot().createIntLiteral(0), expandoSize), expandoSize.getSourceLocation()).transform().termVisit(blockCompiler);
 
                 blockCompiler.releaseRegister(p);

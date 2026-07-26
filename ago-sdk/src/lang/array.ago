@@ -2,9 +2,6 @@ package lang;
 
 // array creator will get ArrayInstance insteadof
 class Array<T> with Iterable<T>{
-    metaclass{
-        fun copy(source as T[], sourcePos as int, destination as T[], destPos as int, length as int) native "org.siphonlab.ago.lang.Lang.arrayCopy"
-    }
     public final length as int;
 
     override iterator() as Iterator<T>{
@@ -35,6 +32,8 @@ class ArrayIterator<+T> with Iterator<T>{
 
 final class ArrayExt{
     metaclass{
+        fun copyTo<T>(this as Array<T>, sourcePos as int, destination as Array<T>, destPos as int, length as int) native "org.siphonlab.ago.lang.Lang.arrayCopy";
+
         fun map<T, R>(this as Array<T>, mapper as [Function1<R,T>]) as R[] {
             var l = this.length;
             var arr = new R[l];

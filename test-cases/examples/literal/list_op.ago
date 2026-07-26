@@ -3,7 +3,7 @@ fun main(){
     var ls = new ArrayList<int>(arr)
     var arr2 = [9,8,7,6];
 
-    Array<int>.copy(arr2, 1, arr, 1, 2)
+    arr2.copyTo(1, arr, 1, 2)
     Trace.print(arr);       // [1,8,7,4]
 
     ls.addAll(arr2);
