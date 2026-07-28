@@ -493,6 +493,14 @@ public class Lang {
         frame.finishFloat((float)(Math.round(v * factor) / factor));
     }
 
+    public static void Float_floatToIntBits(NativeFrame frame, float v){
+        frame.finishInt(Float.floatToIntBits(v));
+    }
+
+    public static void Float_hashCode_ext(NativeFrame frame, float v){
+        frame.finishInt(Float.floatToIntBits(v));
+    }
+
     // --- Double toString ---
 
     public static void Double_toString(NativeFrame frame){
@@ -607,6 +615,15 @@ public class Lang {
     public static void Double_round_decimals_ext(NativeFrame frame, double v, int decimals){
         double factor = Math.pow(10, decimals);
         frame.finishDouble(Math.round(v * factor) / factor);
+    }
+
+    public static void Double_doubleToLongBits(NativeFrame frame, double v){
+        frame.finishLong(Double.doubleToLongBits(v));
+    }
+
+    public static void Double_hashCode_ext(NativeFrame frame, double v){
+        long bits = Double.doubleToLongBits(v);
+        frame.finishInt((int)(bits ^ (bits >>> 32)));
     }
 
     // --- Byte toString ---
@@ -772,6 +789,15 @@ public class Lang {
 
     public static void Decimal_compareTo_ext(NativeFrame frame, BigDecimal a, BigDecimal b){
         frame.finishInt(a.compareTo(b));
+    }
+
+    public static void Decimal_hashCode(NativeFrame frame){
+        BigDecimal v = frame.getParentScope().getSlots().getDecimal(0);
+        frame.finishInt(v.hashCode());
+    }
+
+    public static void Decimal_hashCode_ext(NativeFrame frame, BigDecimal v){
+        frame.finishInt(v.hashCode());
     }
 
     // --- Char metaclass statics ---
