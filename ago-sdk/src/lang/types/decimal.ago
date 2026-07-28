@@ -30,12 +30,7 @@ public class Decimal from Number<decimal>{
 
     public override toString() as string native "org.siphonlab.ago.lang.Lang.Decimal_toString"
 
-    override hashCode() as int{
-        return decimalHashCode(value);
-    }
-
-    fun decimalHashCode(v as decimal) as int
-        native "org.siphonlab.ago.lang.Lang.Decimal_hashCode";
+    override hashCode() as int native "org.siphonlab.ago.lang.Lang.Decimal_hashCode";
 
     // --- Instance methods ---
 

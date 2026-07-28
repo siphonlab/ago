@@ -205,6 +205,11 @@ class KeyValuePair<Key, Value>{
     key as Key {public get;}
     value as Value {public get;}
 
+    fun new(key as Key, value as Value){
+        this.key = key;
+        this.value = value;
+    }
+
     override toString() as string{
         return key + "=" + value;
     }
