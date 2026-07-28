@@ -216,7 +216,7 @@ public abstract class Var extends ExpressionInFunctionBody implements Assign.Ass
 
             if(instance instanceof LocalVarResultExpression localVarResultExpression){
                 simplified = true;
-                this.baseVar = localVarResultExpression.visit(blockCompiler);
+                this.baseVar = Objects.requireNonNull(localVarResultExpression.visit(blockCompiler));
             }
         }
 
@@ -229,8 +229,13 @@ public abstract class Var extends ExpressionInFunctionBody implements Assign.Ass
             try {
                 blockCompiler.enter(this);
 
-                this.simplify(blockCompiler);
-                blockCompiler.getCode().assign(localVar.getVariableSlot(), inferType().getTypeCode(), getBaseVar().getVariableSlot(), variable.getSlot());
+                if(this.baseVar != null){
+                    this.simplify(blockCompiler);
+                    blockCompiler.getCode().assign(localVar.getVariableSlot(), inferType().getTypeCode(), getBaseVar().getVariableSlot(), variable.getSlot());
+                } else {
+                    LocalVar instanceVar = (LocalVar) instance.visit(blockCompiler);
+                    blockCompiler.getCode().assign(localVar.getVariableSlot(), inferType().getTypeCode(), instanceVar.getVariableSlot(), variable.getSlot());
+                }
             } catch (CompilationError e) {
                 throw e;
             } finally {

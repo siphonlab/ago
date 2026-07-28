@@ -621,6 +621,17 @@ public class NamePathResolver {
 
     private int allowingVisibilityUnderExpr(Expression expression) throws CompilationError {
         var type = expression.inferType();
+        if(type == null){
+            if(expression instanceof ClassOf){
+                if(expression instanceof ClassOf.ClassOfScope) {
+                    return PRIVATE_VISIBILITY;
+                } else {
+                    return PUBIC_VISIBILITY;
+                }
+            } else {
+                throw new UnsupportedOperationException("unexpecte expression " + expression);
+            }
+        }
         return allowingVisibilityOfType(type);
     }
 
