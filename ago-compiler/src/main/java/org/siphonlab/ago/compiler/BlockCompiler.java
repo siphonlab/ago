@@ -1469,6 +1469,15 @@ public class BlockCompiler {
 
 
     private Map<Expression, Var.LocalVar> reusableTempVariables = new HashMap<>();
+
+    public void setReusableTempVariables(Map<Expression, Var.LocalVar> reusableTempVariables) {
+        this.reusableTempVariables = reusableTempVariables;
+    }
+
+    public Map<Expression, Var.LocalVar> getReusableTempVariables() {
+        return reusableTempVariables;
+    }
+
     public static boolean isReusableExpression(Expression expression){
         return expression instanceof Scope
                 || expression instanceof ConstClass

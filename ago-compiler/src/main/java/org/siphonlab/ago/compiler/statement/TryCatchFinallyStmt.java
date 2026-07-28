@@ -129,7 +129,7 @@ public class TryCatchFinallyStmt extends Statement{
 
             Label begin = blockCompiler.createLabel().here();
             Label exit = blockCompiler.createLabel();
-            tryBlock.termVisit(blockCompiler);
+            ReusableScope.wrap(tryBlock, functionDef).termVisit(blockCompiler);
 
             Label end = blockCompiler.createLabel().here();
 
@@ -148,7 +148,7 @@ public class TryCatchFinallyStmt extends Statement{
                     catchItems.add(new CatchItem(begin, end, catch_, catchCause.exceptionTypes));
 
                     code.store_exception(catchCause.exceptionVar.getVariableSlot());
-                    catchCause.blockStmt.termVisit(blockCompiler);
+                    ReusableScope.wrap(catchCause.blockStmt, functionDef).termVisit(blockCompiler);
 
                     // in catch-block, the error handler is finally block
                     if (finallyBlock != null) {
@@ -167,7 +167,7 @@ public class TryCatchFinallyStmt extends Statement{
                 var e = blockCompiler.acquireTempVar(new SomeInstance(ownerFunction, langException));
                 code.store_exception(e.getVariableSlot());
                 blockCompiler.lockRegister(e);
-                finallyBlock.termVisit(blockCompiler);
+                ReusableScope.wrap(finallyBlock, functionDef).termVisit(blockCompiler);
                 code.throw_if_exists(e.getVariableSlot());      // if there is unhandled exception, throw the exception insteadof continue the `exit`
                 code.jnz(this.finalExit.getVariableSlot());
 

@@ -74,7 +74,7 @@ public class ForStmt extends LoopStmt{
                 }
             }  // otherwise always true
 
-            this.body.termVisit(blockCompiler);
+            ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
             continueLabel.here();       // from i++ to continue
             if (this.updateStatement != null) {
                 this.updateStatement.termVisit(blockCompiler);

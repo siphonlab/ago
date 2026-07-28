@@ -79,15 +79,15 @@ public class IfThenElseStmt extends Statement {
                 var literal = literalResultExpression.visit(blockCompiler);
                 if (BooleanLiteral.isTrue(literal)) {
                     if(!conditionNeg) {
-                        trueBranch.termVisit(blockCompiler);
+                        ReusableScope.wrap(this.trueBranch, ownerFunction).termVisit(blockCompiler);
                     } else {
-                        falseBranch.termVisit(blockCompiler);
+                        ReusableScope.wrap(this.falseBranch, ownerFunction).termVisit(blockCompiler);
                     }
                 } else if (falseBranch != null) {
                     if(!conditionNeg) {
-                        falseBranch.termVisit(blockCompiler);
+                        ReusableScope.wrap(this.falseBranch, ownerFunction).termVisit(blockCompiler);
                     } else {
-                        trueBranch.termVisit(blockCompiler);
+                        ReusableScope.wrap(this.trueBranch, ownerFunction).termVisit(blockCompiler);
                     }
                 }
                 return;
@@ -125,11 +125,11 @@ public class IfThenElseStmt extends Statement {
                 }
             }
             trueLabel.here();
-            this.trueBranch.termVisit(blockCompiler);
+            ReusableScope.wrap(trueBranch, ownerFunction).termVisit(blockCompiler);
             if (this.falseBranch != null) {
                 code.jump(exitLabel);
                 elseLabel.here();
-                this.falseBranch.termVisit(blockCompiler);
+                ReusableScope.wrap(falseBranch, ownerFunction).termVisit(blockCompiler);
             } else {
                 elseLabel.here();
             }
