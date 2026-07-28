@@ -47,7 +47,7 @@ public class Unit {
     private final CharStream source;
     private final Root root;
 
-    private List<CompilationError> errors = new ArrayList<>();
+    private List<Exception> errors = new ArrayList<>();
 
     private List<ClassDef> classes = new ArrayList<>();
     private List<ClassDef> topClasses = new ArrayList<>();
@@ -1045,11 +1045,11 @@ public class Unit {
         return !errors.isEmpty();
     }
 
-    public List<CompilationError> getErrors() {
+    public List<Exception> getErrors() {
         return errors;
     }
 
-    public void appendError(CompilationError compilationError) {
+    public void appendError(Exception compilationError) {
         this.errors.add(compilationError);
     }
 }

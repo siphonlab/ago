@@ -48,7 +48,7 @@ public class Compiler {
         this.root = project.getRoot();
     }
 
-    public Unit[] compile() throws IOException, CompilationError, CompliationErrorsException {
+    public Unit[] compile() throws IOException, CompilationError, CompilationErrorsException {
         Unit[] units = project.getUnits().toArray(new Unit[0]);
 
         for (var unit : units) {
@@ -142,15 +142,15 @@ public class Compiler {
         return units;
     }
 
-    private static void throwErrorsIfExists(Unit[] units) throws CompliationErrorsException {
-        List<CompilationError> errors = new ArrayList<>();
+    private static void throwErrorsIfExists(Unit[] units) throws CompilationErrorsException {
+        List<Exception> errors = new ArrayList<>();
         for (Unit unit : units) {
             if(unit.hasErrors()){
                 errors.addAll(unit.getErrors());
             }
         }
         if(!errors.isEmpty()){
-            throw new CompliationErrorsException(errors);
+            throw new CompilationErrorsException(errors);
         }
     }
 
@@ -400,7 +400,7 @@ public class Compiler {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
             try {
                 classDef.compileBody();
-            } catch (CompilationError e) {
+            } catch (Exception e) {
                 if(classDef.unit != null) {
                     classDef.unit.appendError(e);
                     classDef.setCompilingStage(CompilingStage.Compiled);

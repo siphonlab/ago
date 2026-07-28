@@ -15,15 +15,22 @@
  */
 package org.siphonlab.ago.compiler;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class CompliationErrorsException extends Exception {
+public class CompilationErrorsException extends Exception {
 
-	public CompliationErrorsException(List<CompilationError> errors) {
-		super("errors found: \r\n " + StringUtils.join(errors, "\r\n"));
+	public CompilationErrorsException(List<Exception> errors) {
+		super("errors found: \n " + errors.stream().map(e -> {
+			if(e instanceof CompilationError){
+				return e.getMessage();
+			} else {
+				return e.getMessage() + "\n" + ExceptionUtils.getStackTrace(e);
+			}
+		}).collect(Collectors.joining("\n")));
 	}
 
 }
