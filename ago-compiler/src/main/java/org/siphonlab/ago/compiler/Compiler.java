@@ -554,7 +554,7 @@ public class Compiler {
         return result;
     }
 
-    static int fieldModifiers(Unit unit, List<AgoParser.FieldModifierContext> modifiers, ModifierTarget target) throws SyntaxError {
+    static int fieldModifiers(Unit unit, List<AgoParser.FieldModifierContext> modifiers, ModifierTarget target, int defaultVisibility) throws SyntaxError {
         int result = 0;
         boolean visibilityFound = false;
         if(modifiers != null){
@@ -585,7 +585,8 @@ public class Compiler {
             }
         }
         if(!visibilityFound){
-            result |= commonVisibility(unit, null, target);
+            result |= defaultVisibility;
+//            result |= commonVisibility(unit, null, target);
         }
         return result;
     }
@@ -594,7 +595,7 @@ public class Compiler {
         int result = 0;
         boolean visibilityFound = false;
         if(methodStarter.OVERRIDE() != null) {
-            result = fieldModifiers(unit, methodStarter.fieldModifier(), ModifierTarget.Method);
+            result = fieldModifiers(unit, methodStarter.fieldModifier(), ModifierTarget.Method, AgoClass.PUBLIC);
             result |= AgoClass.OVERRIDE;
         } else {
             if(methodStarter.GENERATOR() != null) {
@@ -686,7 +687,7 @@ public class Compiler {
 
     static int commonVisibility(Unit unit, AgoParser.CommonVisiblilityContext commonVisibilility, ModifierTarget target) throws SyntaxError{
         if(commonVisibilility == null) return switch (target){
-            case Field -> AgoClass.PRIVATE;
+            case Field -> AgoClass.PUBLIC;
             case Variable -> AgoClass.PRIVATE;
             case Param -> AgoClass.PRIVATE;
             case Class -> AgoClass.PUBLIC;

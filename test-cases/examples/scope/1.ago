@@ -6,7 +6,7 @@ class A{
         }
     }
 
-    class AA{
+    public class AA{
 
         metaclass{
             fun f(){
@@ -14,7 +14,7 @@ class A{
             }
         }
 
-        class AAA{
+        public class AAA{
 
             metaclass{
                 fun f(){

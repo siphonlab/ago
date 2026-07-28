@@ -2,17 +2,51 @@
  * Pure-ago HashMap using open addressing with linear probing.
  * Properly calls ago's equals() for Object keys, solving the callback limitation of native HashMap.
  */
+class KeyNotFoundException from RuntimeException{
+    fun new(message as string){
+        super(message);
+    }
+}
+
+final class HashCode{
+    metaclass{
+        fun computeHashCode<Key>(key as Key) as int{
+            if(key instanceof Object obj){
+                return obj.hashCode();
+            } else if(key instanceof int i){
+                return i.hashCode();
+            } else if(key instanceof long l){
+                return l.hashCode();
+            } else if(key instanceof short s){
+                return s.hashCode();
+            } else if(key instanceof byte b){
+                return b.hashCode();
+            } else if(key instanceof float f){
+                return f.hashCode();
+            } else if(key instanceof double d){
+                return d.hashCode();
+            } else if(key instanceof char c){
+                return c.hashCode();
+            } else if(key instanceof boolean bl){
+                return bl.hashCode();
+            } else {
+                return (key | Object).hashCode();
+            }
+        }
+    }
+}
+
 class MyHashMap<Key, Value> from Map<Key, Value>{
 
-    keyStore as Key[];
-    valueStore as Value[];
-    occupied as boolean[];
-    capacity as int = 4;
-    count as int = 0;
-    loadThreshold as int = 3;
-    searchKey as Object;
-    slotKeyObj as Object;
-    useEquals as boolean = false;
+    private keyStore as Key[];
+    private valueStore as Value[];
+    private occupied as boolean[];
+    private capacity as int = 4;
+    private count as int = 0;
+    private loadThreshold as int = 3;
+    private searchKey as Object;
+    private slotKeyObj as Object;
+    private useEquals as boolean = false;
 
     fun new(){
         this.keyStore = new Key[4];
@@ -28,12 +62,9 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
         return false;
     }
 
-    resultValue as Value;
-
     override get#key(index as Key) as Value{
         setupKeyComparison(index);
-        computeHashCode(index);
-        var slot = hashToSlot(this.computedHash);
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
@@ -53,13 +84,12 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
             slot = (slot + 1) % this.capacity;
             probe++;
         }
-        return this.resultValue;
+        throw new KeyNotFoundException("key not found: " + index);
     }
 
     override put(index as Key, value as Value){
         setupKeyComparison(index);
-        computeHashCode(index);
-        var slot = hashToSlot(this.computedHash);
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
@@ -89,8 +119,7 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
 
     override containsKey(key as Key) as boolean{
         setupKeyComparison(key);
-        computeHashCode(key);
-        var slot = hashToSlot(this.computedHash);
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
@@ -115,8 +144,7 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
 
     override remove(key as Key) as boolean{
         setupKeyComparison(key);
-        computeHashCode(key);
-        var slot = hashToSlot(this.computedHash);
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
@@ -165,31 +193,6 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
         }
     }
 
-    computedHash as int;
-
-    fun computeHashCode(key as Key){
-        if(key instanceof Object obj){
-            this.computedHash = obj.hashCode();
-        } else if(key instanceof int i){
-            this.computedHash = i.hashCode();
-        } else if(key instanceof long l){
-            this.computedHash = l.hashCode();
-        } else if(key instanceof short s){
-            this.computedHash = s.hashCode();
-        } else if(key instanceof byte b){
-            this.computedHash = b.hashCode();
-        } else if(key instanceof float f){
-            this.computedHash = f.hashCode();
-        } else if(key instanceof double d){
-            this.computedHash = d.hashCode();
-        } else if(key instanceof char c){
-            this.computedHash = c.hashCode();
-        } else if(key instanceof boolean bl){
-            this.computedHash = bl.hashCode();
-        }
-    }
-    computedSlot as int;
-
     fun hashToSlot(h as int) as int{
         var nonNeg = h band 0x7FFFFFFF;
         return nonNeg % this.capacity;
@@ -201,10 +204,6 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
         }
     }
 
-    newKeyStore as Key[];
-    newValueStore as Value[];
-    newOccupied as boolean[];
-
     fun resize(){
         var oldCapacity = this.capacity;
         var oldKeyStore = this.keyStore;
@@ -213,12 +212,9 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
 
         this.capacity = oldCapacity * 2;
         this.loadThreshold = (this.capacity * 3 / 4);
-        this.newKeyStore = new Key[this.capacity];
-        this.newValueStore = new Value[this.capacity];
-        this.newOccupied = new boolean[this.capacity];
-        this.keyStore = this.newKeyStore;
-        this.valueStore = this.newValueStore;
-        this.occupied = this.newOccupied;
+        this.keyStore = new Key[this.capacity];
+        this.valueStore = new Value[this.capacity];
+        this.occupied = new boolean[this.capacity];
         this.count = 0;
 
         for(var i = 0; i < oldCapacity; i++){
@@ -395,4 +391,14 @@ fun main(){
     Trace.print(bigMap.size);           // 50
     Trace.print(bigMap.get(49));        // big49
     Trace.print(bigMap.get(25));        // big25
+
+    // --- Test 14: KeyNotFoundException for missing key ---
+    try {
+        bigMap.get(2222);
+    } catch (e as KeyNotFoundException) {
+        Trace.print("caught: " + e.message);
+    }
+
+    // Verify existing keys still work after exception
+    Trace.print(bigMap.get(0));         // big0
 }

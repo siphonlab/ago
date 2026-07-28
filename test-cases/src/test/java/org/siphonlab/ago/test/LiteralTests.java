@@ -16,7 +16,7 @@
 package org.siphonlab.ago.test;
 
 import org.junit.jupiter.api.Test;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -28,40 +28,40 @@ import static org.siphonlab.ago.test.Util.run;
 public class LiteralTests {
 
     @Test
-    public void list() throws CompilationError, CompliationErrorsException, IOException {
+    public void list() throws CompilationError, CompilationErrorsException, IOException {
         run("literal/list.ago");
         assertTrue(Trace.outputted("1", "2", "3", "5", "7", "9", "101", "102", "103", "22", "33", "44"));
     }
 
     @Test
-    public void list_op() throws CompilationError, CompliationErrorsException, IOException {
+    public void list_op() throws CompilationError, CompilationErrorsException, IOException {
         run("literal/list_op.ago");
 //        Trace.printOutput();
         assertTrue(Trace.outputted("[1,8,7,4]", "[lang.ArrayList<int>|1,8,7,4,9,8,7,6]", "[1,8,7,4,9,8,7,6]", "[lang.LinkedList<int>|1,8,7,4,9,8,7,6,1,8,7,4,9,8,7,6]", "[0,0,1,8,7,0,0,0,0,0]", "[0,0,1,8,7,1,8,7,4,9]", "[1,8,7,4,9,8,7,6,4,9]"));
     }
 
     @Test
-    public void object() throws CompilationError, CompliationErrorsException, IOException {
+    public void object() throws CompilationError, CompilationErrorsException, IOException {
         run("literal/object.ago");
         assertTrue(Trace.outputted("name: Tom  gender: M", "name: Tom  gender: M  workNo: 1001 salary: 10200", "name: Mike  gender: M  workNo: 1003 salary: 13332"));
     }
 
     @Test
-    public void map() throws CompilationError, CompliationErrorsException, IOException {
+    public void map() throws CompilationError, CompilationErrorsException, IOException {
         run("literal/map.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("lang.HashMap<string,lang.Object>", "Tom", "Jenny", "Jenny", "42", "M", "51888222"));
     }
 
     @Test
-    public void list_expando() throws CompilationError, CompliationErrorsException, IOException {
+    public void list_expando() throws CompilationError, CompilationErrorsException, IOException {
         run("literal/list_expando.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("[1,2,3]", "[4,5,6]", "[4,5,6,10,11,12,4,5,6,3,2,5,6,7,1,2,3]", "[lang.ArrayList<int>|1,2,3]", "[lang.ArrayList<int>|1,2,3]", "[lang.ArrayList<int>|3,2,5,1,2,3,4,5,6,2]"));
     }
 
     @Test
-    public void decimal() throws CompilationError, CompliationErrorsException, IOException {
+    public void decimal() throws CompilationError, CompilationErrorsException, IOException {
         run("literal/decimal.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("1.000001", "1.000001", "1.000001", "1.000001",
@@ -69,7 +69,7 @@ public class LiteralTests {
     }
 
     @Test
-    public void list_expando_generator() throws CompilationError, CompliationErrorsException, IOException {
+    public void list_expando_generator() throws CompilationError, CompilationErrorsException, IOException {
         run("literal/list_expando_generator.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("done", "[lang.ArrayList<int>|1,2,3,0,2,4,6]"));

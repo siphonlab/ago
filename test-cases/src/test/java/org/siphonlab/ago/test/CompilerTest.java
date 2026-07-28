@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Disabled;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.ClassFile;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.Compiler;
@@ -31,22 +31,22 @@ import java.io.IOException;
 public class CompilerTest {
 
     @Test
-    public void hello_world() throws IOException, CompilationError, CompliationErrorsException {
+    public void hello_world() throws IOException, CompilationError, CompilationErrorsException {
         Util.compile("bootstrap/hello_world.ago");
     }
 
     @Test
-    public void _1st() throws IOException, CompilationError, CompliationErrorsException {
+    public void _1st() throws IOException, CompilationError, CompilationErrorsException {
         Util.compile("bootstrap/0.add.ago");
     }
 
     @Test @Disabled
-    public void langCompile() throws CompilationError, CompliationErrorsException, IOException {
+    public void langCompile() throws CompilationError, CompilationErrorsException, IOException {
         var module = new ProjectParser().parse("../ago-sdk/src/lang/module.info");
         Compiler compiler = new Compiler(module);
         try {
             compiler.compile();
-        } catch (CompliationErrorsException e) {
+        } catch (CompilationErrorsException e) {
             System.err.println(e.getMessage());
             return;
         }

@@ -5,7 +5,7 @@ class Dog{
         Trace.print(name + " woof")
     }
 
-    class Mouth{
+    public class Mouth{
         fun eat(){
             Trace.print(name + " yum")
         }

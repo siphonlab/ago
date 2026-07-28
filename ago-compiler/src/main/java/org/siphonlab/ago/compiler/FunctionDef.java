@@ -199,10 +199,6 @@ public class FunctionDef extends ClassDef {
 
     protected void processFieldParameters() throws CompilationError {
         for (Parameter parameter : this.parameters) {
-            if(parameter.isField()){
-                unit.appendError(unit.syntaxError(parameter.parameterContext, "redundant 'field' modifier, all parameter are function fields"));
-                continue;
-            }
             if(parameter.isReceiverParameter()){
                 if(!this.allowReceiverParameter()){
                     unit.appendError(unit.syntaxError(parameter.parameterContext, "receiver parameter not allowed for '%s', only apply on top function, methods of metaclass(level2, metaclass of final class or final method)".formatted(getFullname())));

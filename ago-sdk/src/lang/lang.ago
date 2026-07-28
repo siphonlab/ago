@@ -277,8 +277,8 @@ class Generator<+R> from Function<R>{
 }
 
 class GeneratorIterator<+R> with Iterator<R> {
-    prevValue as R;
-    hasValue as boolean = false;
+    private prevValue as R;
+    private hasValue as boolean = false;
     public fun new(field gen as Generator<R>){
         advance();
     }

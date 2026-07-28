@@ -16,7 +16,7 @@
 package org.siphonlab.ago.test;
 
 import org.junit.jupiter.api.Test;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -28,7 +28,7 @@ import static org.siphonlab.ago.test.Util.run;
 public class TypesTests {
 
     @Test
-    public void stringMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void stringMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/string_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -72,7 +72,7 @@ public class TypesTests {
     }
 
     @Test
-    public void intMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void intMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/int_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -96,7 +96,7 @@ public class TypesTests {
     }
 
     @Test
-    public void longMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void longMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/long_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -105,7 +105,7 @@ public class TypesTests {
     }
 
     @Test
-    public void floatMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void floatMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/float_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -131,7 +131,7 @@ public class TypesTests {
     }
 
     @Test
-    public void doubleMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void doubleMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/double_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -156,7 +156,7 @@ public class TypesTests {
     }
 
     @Test
-    public void byteMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void byteMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/byte_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -172,7 +172,7 @@ public class TypesTests {
     }
 
     @Test
-    public void shortMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void shortMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/short_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -188,7 +188,7 @@ public class TypesTests {
     }
 
     @Test
-    public void decimalMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void decimalMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/decimal_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(
@@ -212,7 +212,7 @@ public class TypesTests {
     }
 
     @Test
-    public void charMethods() throws CompilationError, CompliationErrorsException, IOException {
+    public void charMethods() throws CompilationError, CompilationErrorsException, IOException {
         run("types/char_methods.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted(

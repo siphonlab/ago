@@ -557,7 +557,8 @@ public class Unit {
                 field = new Field(ownerClass, explicitType.identifier().getText(), variableDeclarator);
                 var type = parseType(ownerClass, explicitType.typeOfVariable(),false);
                 field.setType(type);
-                field.setModifiers(Compiler.fieldModifiers(this, fieldDeclaration.fieldModifier(), Compiler.ModifierTarget.Field));
+                int defaultVisibility = field.getGetterSetter() == null ? AgoClass.PUBLIC : AgoClass.PRIVATE;
+                field.setModifiers(Compiler.fieldModifiers(this, fieldDeclaration.fieldModifier(), Compiler.ModifierTarget.Field, defaultVisibility));
                 field.setDeclaration(fieldDeclaration);
                 field.setSourceLocation(sourceLocation(fieldDeclaration));
                 var variableInitializer = explicitType.variableInitializer();
@@ -937,7 +938,6 @@ public class Unit {
     }
 
     void parseFormalParameters(FunctionDef fun, AgoParser.FormalParametersContext formalParameters) throws CompilationError {
-        //TODO check ReceiverParameter at head if found, and VarArgsParameter at the end if found
         //formalParameters.receiverParameter()
         boolean receiverParamFound = false;
         AgoParser.VarArgsParameterContext varArgsParam = null;
@@ -952,12 +952,9 @@ public class Unit {
                     var paramType = parseType(fun, defaultParameter.typeOfVariable(), false);
                     Parameter parameter = new Parameter(paramName, param);
                     int modifiers = Compiler.variableModifiers(this, defaultParameter.variableModifier(), Compiler.ModifierTarget.Param);
-                    // default visibility of this field?
-//                    if((modifiers & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM){
-//                        if(defaultParameter.fieldGetterSetter() != null) {
-//                            modifiers |= AgoClass.PUBLIC;
-//                        }
-//                    }
+                    if((modifiers & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM && parameter.getGetterSetter() == null){
+                        modifiers |= AgoClass.PUBLIC;
+                    }
                     parameter.setModifiers(modifiers | AgoClass.PARAMETER);
                     parameter.setType(paramType);
                     parameter.setSourceLocation(sourceLocation(defaultParameter));
@@ -987,6 +984,9 @@ public class Unit {
                     var paramType = parseType(fun, varArgsParameter.typeOfVariable(), false);
                     Parameter parameter = new Parameter(paramName, param);
                     int modifiers = Compiler.variableModifiers(this, varArgsParameter.variableModifier(), Compiler.ModifierTarget.Param);
+                    if((modifiers & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM && parameter.getGetterSetter() == null){
+                        modifiers |= AgoClass.PUBLIC;
+                    }
                     parameter.setModifiers(modifiers | AgoClass.VAR_ARGS);
                     ArrayClassDef arrayType = fun.getOrCreateArrayType(paramType, null);
                     parameter.setType(arrayType);
