@@ -161,7 +161,13 @@ public class GenericVMCodeTransformer {
                             isMethod = true;
                             break;
                         }
-//                    case New.new_cls_method_vCm:
+
+                        case NewGeneric.newG_cls_method_vCm: {
+                            replaceWithNew(code, instruction);
+                            instantiateClassName(code, 1, strings, instantiationArguments, instantFunction);
+                            isMethod = true;
+                            break;
+                        }
                         case NewGeneric.newg_scope_child_vcC: {
                             var cls = updateGenericCodeClass(code, 2, strings, instantiationArguments, instantFunction);
                             replaceWithInstruction(code, cls.isNativeClass() ? New.newn_scope_child_vcC : New.new_scope_child_vcC);

@@ -26,6 +26,7 @@ import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.*;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
+import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.statement.ExpressionStmt;
 import org.siphonlab.ago.compiler.statement.Statement;
@@ -526,7 +527,7 @@ public class Invoke extends ExpressionInFunctionBody {
         });
         TypeParamsContext paramsContext = r.functionDef.getTypeParamsContext();
         // TODO ensure it's ok, it seems duplicated with org.siphonlab.ago.compiler.resolvepath.NamePathResolver.resolveTypeArgsListFromAssigneeAST
-        if(paramsContext != null && !r.functionDef.isGenericTerminated()) {
+        if(paramsContext != null && !(r.functionDef instanceof GenericConcreteType) && !r.functionDef.isGenericTerminated()) {
             ClassRefLiteral[] typeArgs = r.toTypeArgs(paramsContext);
             var pc = ownerFunction.getOrCreateGenericInstantiationClassDef(r.functionDef, typeArgs, null);
             if(pc instanceof ConcreteType c) ownerFunction.registerConcreteType(c);
