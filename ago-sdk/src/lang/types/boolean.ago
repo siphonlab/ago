@@ -30,3 +30,13 @@ public class Boolean from Boxer<boolean>{
         return "true" if value else "false";
     }
 }
+
+// --- Extension methods on primitive boolean type ---
+
+final class BooleanExt{
+    metaclass{
+        fun hashCode(this as boolean) as int{
+            return 1231 if this else 1237;
+        }
+    }
+}

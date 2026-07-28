@@ -33,6 +33,10 @@ public class Short from Number<short>{
 
     public override toString() as string native "org.siphonlab.ago.lang.Lang.Short_toString"
 
+    override hashCode() as int{
+        return value | int;
+    }
+
     // --- Instance methods ---
 
     public fun abs() as short
@@ -59,6 +63,10 @@ final class ShortExt{
 
         fun toHexString(this as short) as string{
             return new Short(this).toHexString();
+        }
+
+        fun hashCode(this as short) as int{
+            return this | int;
         }
     }
 }

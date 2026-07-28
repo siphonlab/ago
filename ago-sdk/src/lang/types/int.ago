@@ -95,5 +95,9 @@ final class IntExt{
         fun reverseBytes(this as int) as int{
             return new Integer(this).reverseBytes();
         }
+
+        fun hashCode(this as int) as int{
+            return this;
+        }
     }
 }

@@ -182,5 +182,9 @@ final class StringExt{
         fun equalsIgnoreCase(this as string, other as string) as boolean{
             return new String(this).equalsIgnoreCase(other);
         }
+
+        fun hashCode(this as string) as int{
+            return new String(this).hashCode();
+        }
     }
 }

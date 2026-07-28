@@ -94,5 +94,9 @@ final class CharExt{
 
         fun digitValue(this as char) as int
             native "org.siphonlab.ago.lang.Lang.Char_digitValue_ext";
+
+        fun hashCode(this as char) as int{
+            return this | int;
+        }
     }
 }

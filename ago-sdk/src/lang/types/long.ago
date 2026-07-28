@@ -36,6 +36,10 @@ public class Long from Number<long>{
 
     public override toString() as string native "org.siphonlab.ago.lang.Lang.Long_toString"
 
+    override hashCode() as int{
+        return (value bxor (value >>> 32)) | int;
+    }
+
     // --- Instance methods ---
 
     public fun abs() as long
@@ -90,6 +94,10 @@ final class LongExt{
 
         fun reverseBytes(this as long) as long{
             return new Long(this).reverseBytes();
+        }
+
+        fun hashCode(this as long) as int{
+            return (this bxor (this >>> 32)) | int;
         }
     }
 }

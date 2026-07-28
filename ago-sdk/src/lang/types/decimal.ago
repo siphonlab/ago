@@ -30,6 +30,13 @@ public class Decimal from Number<decimal>{
 
     public override toString() as string native "org.siphonlab.ago.lang.Lang.Decimal_toString"
 
+    override hashCode() as int{
+        return decimalHashCode(value);
+    }
+
+    fun decimalHashCode(v as decimal) as int
+        native "org.siphonlab.ago.lang.Lang.Decimal_hashCode";
+
     // --- Instance methods ---
 
     public fun abs() as decimal
@@ -90,5 +97,8 @@ final class DecimalExt{
 
         fun compareTo(this as decimal, other as decimal) as int
             native "org.siphonlab.ago.lang.Lang.Decimal_compareTo_ext";
+
+        fun hashCode(this as decimal) as int
+            native "org.siphonlab.ago.lang.Lang.Decimal_hashCode_ext";
     }
 }

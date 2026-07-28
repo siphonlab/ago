@@ -42,6 +42,13 @@ public class Float from Number<float>{
 
     public override toString() as string native "org.siphonlab.ago.lang.Lang.Float_toString"
 
+    override hashCode() as int{
+        return floatToIntBits(value);
+    }
+
+    fun floatToIntBits(v as float) as int
+        native "org.siphonlab.ago.lang.Lang.Float_floatToIntBits";
+
     // --- Instance methods ---
 
     public fun abs() as float
@@ -102,5 +109,8 @@ final class FloatExt{
 
         fun round(this as float, decimals as int) as float
             native "org.siphonlab.ago.lang.Lang.Float_round_decimals_ext";
+
+        fun hashCode(this as float) as int
+            native "org.siphonlab.ago.lang.Lang.Float_hashCode_ext";
     }
 }

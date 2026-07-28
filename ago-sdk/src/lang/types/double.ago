@@ -42,6 +42,14 @@ public class Double from Number<double>{
 
     public override toString() as string native "org.siphonlab.ago.lang.Lang.Double_toString"
 
+    override hashCode() as int{
+        var bits = doubleToLongBits(value);
+        return (bits bxor (bits >>> 32)) | int;
+    }
+
+    fun doubleToLongBits(v as double) as long
+        native "org.siphonlab.ago.lang.Lang.Double_doubleToLongBits";
+
     // --- Instance methods ---
 
     public fun abs() as double
@@ -102,5 +110,8 @@ final class DoubleExt{
 
         fun round(this as double, decimals as int) as double
             native "org.siphonlab.ago.lang.Lang.Double_round_decimals_ext";
+
+        fun hashCode(this as double) as int
+            native "org.siphonlab.ago.lang.Lang.Double_hashCode_ext";
     }
 }
