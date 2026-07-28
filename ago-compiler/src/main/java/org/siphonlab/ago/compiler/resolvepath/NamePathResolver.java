@@ -596,7 +596,9 @@ public class NamePathResolver {
     private int allowingVisibilityOfPronoun(Expression expression){
         if(expression instanceof Scope scope){
             return allowingVisibilityOfScope(scope);
-        } else if(expression instanceof Var.Field field){
+        } else if(expression instanceof Var.Field field) {
+            return PROTECTED_VISIBILITY;
+        } else if(expression instanceof Var.LocalVar localVar) {        // receiver
             return PROTECTED_VISIBILITY;
         } else {
             throw new IllegalArgumentException("impossible");
@@ -1505,9 +1507,9 @@ public class NamePathResolver {
     public static boolean isVisible(int modifier, int allowingVisibility){
         if(Modifier.isPublic(modifier)) return true;
         if(Modifier.isProtected(modifier)) {
-            return allowingVisibility <= PROTECTED_VISIBILITY;
+            return allowingVisibility >= PROTECTED_VISIBILITY;
         }
-        return allowingVisibility <= PRIVATE_VISIBILITY;
+        return allowingVisibility == PRIVATE_VISIBILITY;
     }
 
     private int findPronounPos() throws SyntaxError {

@@ -97,15 +97,23 @@ public class Attribute extends ExpressionInFunctionBody implements Assign.Assign
         }
 
         @Override
+        public Expression transform() throws CompilationError {
+            if(this.attribute.setter == null){
+                throw new ResolveError("'%s' is not settable".formatted(attribute.getter.getCommonName()), this.getSourceLocation());
+            }
+            if(!isVisible(attribute.setter.getModifiers(), attribute.allowingVisibility)){
+                throw new ResolveError("'%s' is not visible for '%s'".formatted(attribute.setter.getFullname(), ownerFunction.getFullname()), this.getSourceLocation());
+            }
+            return super.transform();
+        }
+
+        @Override
         public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
             throw new SyntaxError("setter is void", this.sourceLocation);
         }
 
         @Override
         public TermExpression visit(BlockCompiler blockCompiler) throws CompilationError {
-            if(!isVisible(attribute.setter.getModifiers(), attribute.allowingVisibility)){
-                throw new ResolveError("'%s' is not visible for '%s'".formatted(attribute.setter.getFullname(), blockCompiler.getFunctionDef().getFullname()), this.getSourceLocation());
-            }
             try {
                 blockCompiler.enter(this);
 
