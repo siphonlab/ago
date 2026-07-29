@@ -708,11 +708,15 @@ public class ClassHeader {
         if(visited.contains(this.fullname)) return false;
         visited.add(this.fullname);
 
-        for(var p = this; p != null; p = p.parent){
+        for(var p = this; p != null; ){
             if(p.isGenericTemplate()){
                 var r = typeArguments.canApplyOnTemplate(p);
                 if(r) return true;
+            } else if(p instanceof MetaClassHeader m){
+                p = m.getInstanceClass();
+                continue;
             }
+            p = p.parent;
         }
         if(this.superClass != null && !this.superClass.equals(this.fullname)){
             var superClass = classLoader.getClassHeader(this.superClass);
