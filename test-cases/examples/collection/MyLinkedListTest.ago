@@ -107,14 +107,22 @@ class MyLinkedList<E> from List<E>{
         }
     }
 
-    override iterator() as Iterator<E>{
-        var ls = new ArrayList<E>();
-        var current = this.head;
-        while(current != NIL){
-            ls.add(current.value | E);
-            current = current.next;
+    class MyLinkedListIterator with Iterator<E>{
+        current as LinkedListNode = head;
+
+        override hasNext() as boolean{
+            return this.current != NIL;
         }
-        return ls.iterator();
+
+        override next() as E{
+            var result = current.value;
+            this.current = current.next;
+            return result;
+        }
+    }
+
+    override iterator() as Iterator<E>{
+        return new MyLinkedListIterator();
     }
 
     fun checkBounds(index as int){
