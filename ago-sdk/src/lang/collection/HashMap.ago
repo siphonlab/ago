@@ -1,3 +1,20 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
 /**
  * Pure-ago HashMap using open addressing with linear probing.
  * Properly calls ago's equals() for Object keys, solving the callback limitation of native HashMap.
@@ -263,148 +280,4 @@ class HashMap<Key, Value> from Map<Key, Value>{
     override iterator() as Iterator<KeyValuePair<Key, Value>>{
         return new HashMapIterator();
     }
-}
-
-// ==================== Test code ====================
-
-class Person{
-    name as string;
-    age as int;
-
-    fun new(name as string, age as int){
-        this.name = name;
-        this.age = age;
-    }
-
-    override hashCode() as int{
-        var h = this.name | Object .hashCode();
-        h = h * 31 + this.age;
-        return h;
-    }
-
-    override equals(obj as Object) as boolean{
-        if(this == obj) return true;
-        if(obj instanceof Person other){
-            return this.name == other.name and this.age == other.age;
-        }
-        return false;
-    }
-}
-
-fun main(){
-    // --- Test 1: basic put/get with int keys ---
-    var map = new HashMap<int, string>();
-    Trace.print(map.size);      // 0
-
-    map = {HashMap<int, string> | [1]: "Alice", [2]: "Bob"}
-    Trace.print(map.size);      // 2
-    Trace.print(map[1]);    // Alice
-    Trace.print(map[2]);    // Bob
-
-    // --- Test 2: update existing key ---
-    map.put(2, "Robert");
-    Trace.print(map.get(2));    // Robert
-
-    // --- Test 3: containsKey and remove ---
-    Trace.print(map.containsKey(1));        // true
-    Trace.print(map.containsKey(99));       // false
-    Trace.print(map.remove(2));             // true
-    Trace.print(map.size);                  // 1
-
-    // --- Test 4: Object keys with equals() — THE CORE TEST ---
-    var personMap = new HashMap<Person, string>();
-    var p1 = new Person("Alice", 30);
-    var p2 = new Person("Bob", 25);
-    var p1Copy = new Person("Alice", 30);
-
-    personMap.put(p1, "Engineer");
-    personMap.put(p2, "Designer");
-    Trace.print(personMap.size);        // 2
-
-    // p1Copy equals p1 but is a different object reference!
-    Trace.print(personMap.containsKey(p1Copy));     // true
-    Trace.print(personMap.get(p1Copy));             // Engineer
-
-    // Update via equal key
-    personMap.put(p1Copy, "Senior Engineer");
-    Trace.print(personMap.get(p1));             // Senior Engineer
-    Trace.print(personMap.size);                // 2
-
-    // --- Test 5: string keys ---
-    var strMap = new HashMap<string, int>();
-    strMap['one'] = 1
-    strMap['two'] = 2
-    Trace.print(strMap["two"]);     // 2
-    Trace.print(strMap.size);           // 2
-
-    // --- Test 6: iteration ---
-    for(var entry in map){
-        Trace.print(entry.key + "=" + entry.value);     // 1=Alice
-    }
-
-    // --- Test 7: keys and values views ---
-    var keyList = strMap.keys;
-    Trace.print(keyList.size);          // 2
-
-    var valList = strMap.values;
-    Trace.print(valList.size);          // 2
-
-    // --- Test 8: clear ---
-    strMap.clear();
-    Trace.print(strMap.size);               // 0
-    Trace.print(strMap.containsKey("one"));     // false
-
-    // --- Test 9: putAll ---
-    var src = new HashMap<string, int>();
-    src.put("x", 10);
-    src.put("y", 20);
-    var dst = new HashMap<string, int>();
-    dst.put("z", 30);
-    dst.putAll(src);
-    Trace.print(dst.size);          // 3
-    Trace.print(dst.get("x"));      // 10
-    Trace.print(dst.get("y"));      // 20
-    Trace.print(dst.get("z"));      // 30
-
-    // --- Test 10: remove returns correct value ---
-    var rmMap = new HashMap<int, string>();
-    rmMap.put(1, "a");
-    rmMap.put(2, "b");
-    Trace.print(rmMap.remove(1));       // true
-    Trace.print(rmMap.remove(99));      // false
-    Trace.print(rmMap.size);            // 1
-
-    // --- Test 11: Object key remove uses equals ---
-    personMap.remove(p1Copy);
-    Trace.print(personMap.containsKey(p1));     // false
-    Trace.print(personMap.size);            // 1
-
-    // --- Test 12: collision handling (keys with same hash slot) ---
-    var colMap = new HashMap<int, string>();
-    for(var i = 0; i < 20; i++){
-        colMap.put(i, "v" + i);
-    }
-    Trace.print(colMap.size);           // 20
-    Trace.print(colMap.get(0));         // v0
-    Trace.print(colMap.get(19));        // v19
-    Trace.print(colMap.get(10));        // v10
-
-    // --- Test 13: resize test (fill beyond capacity) ---
-    var bigMap = new HashMap<int, string>();
-    for(var i = 0; i < 50; i++){
-        bigMap.put(i, "big" + i);
-    }
-    Trace.print(bigMap.size);           // 50
-    Trace.print(bigMap.get(49));        // big49
-    Trace.print(bigMap.get(25));        // big25
-
-    // --- Test 14: KeyNotFoundException for missing key ---
-    try {
-        bigMap.get(2222);
-    } catch (e as KeyNotFoundException) {
-        Trace.print("caught: " + e.message);
-    }
-
-    // Verify existing keys still work after exception
-    Trace.print(bigMap.get(0));         // big0
 }
