@@ -1691,15 +1691,13 @@ public class ClassDef extends ClassContainer {
     public boolean isAffectedByTypeArguments(InstantiationArguments instantiationArguments, Set<ClassDef> visited) {
         if(visited.contains(this)) return false;
         visited.add(this);
-        for(ClassDef p = this; p != null;){
+        // TODO different with ClassHeader
+        // it makes lang.Function<Meta@<MyLinkedList<string>>.LinkedListNode> undetermined
+        for(ClassDef p = this; p != null; p = p.getParentClass()){
             if(p.isGenericTemplate()){
                 var r = instantiationArguments.canApplyOnTemplate(p);
                 if(r) return true;
-            } else if(p instanceof MetaClassDef m){
-                p = m.getInstanceClassDef();
-                continue;
             }
-            p = p.getParentClass();
         }
         if(this.getSuperClass() != null && this.getSuperClass() != this){
             if(this.getSuperClass().isAffectedByTypeArguments(instantiationArguments, visited)) return true;
