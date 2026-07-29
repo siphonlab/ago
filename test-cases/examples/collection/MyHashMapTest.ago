@@ -3,7 +3,7 @@
  * Properly calls ago's equals() for Object keys, solving the callback limitation of native HashMap.
  */
 class KeyNotFoundException from RuntimeException{
-    fun new(message as string){
+    fun new#message(message as string){
         super(message);
     }
 }
@@ -44,9 +44,6 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
     private capacity as int = 4;
     private count as int = 0;
     private loadThreshold as int = 3;
-    private searchKey as Object;
-    private slotKeyObj as Object;
-    private useEquals as boolean = false;
 
     fun new(){
         this.keyStore = new Key[4];
@@ -63,15 +60,14 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
     }
 
     override get#key(index as Key) as Value{
-        setupKeyComparison(index);
+        var isObjectKey = index instanceof Object;
         var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
                 var matched = false;
-                if(this.useEquals){
-                    this.slotKeyObj = this.keyStore[slot] | Object;
-                    matched = this.slotKeyObj.equals(this.searchKey);
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(index | Object);
                 } else {
                     matched = (this.keyStore[slot] == index);
                 }
@@ -88,15 +84,14 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
     }
 
     override put(index as Key, value as Value){
-        setupKeyComparison(index);
+        var isObjectKey = index instanceof Object;
         var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
                 var matched = false;
-                if(this.useEquals){
-                    this.slotKeyObj = this.keyStore[slot] | Object;
-                    matched = this.slotKeyObj.equals(this.searchKey);
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(index | Object);
                 } else {
                     matched = (this.keyStore[slot] == index);
                 }
@@ -118,15 +113,14 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
     }
 
     override containsKey(key as Key) as boolean{
-        setupKeyComparison(key);
+        var isObjectKey = key instanceof Object;
         var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
                 var matched = false;
-                if(this.useEquals){
-                    this.slotKeyObj = this.keyStore[slot] | Object;
-                    matched = this.slotKeyObj.equals(this.searchKey);
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(key | Object);
                 } else {
                     matched = (this.keyStore[slot] == key);
                 }
@@ -143,15 +137,14 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
     }
 
     override remove(key as Key) as boolean{
-        setupKeyComparison(key);
+        var isObjectKey = key instanceof Object;
         var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
                 var matched = false;
-                if(this.useEquals){
-                    this.slotKeyObj = this.keyStore[slot] | Object;
-                    matched = this.slotKeyObj.equals(this.searchKey);
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(key | Object);
                 } else {
                     matched = (this.keyStore[slot] == key);
                 }
@@ -183,15 +176,6 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
     }
 
     // --- Internal helpers ---
-
-    fun setupKeyComparison(key as Key){
-        if(key instanceof Object obj){
-            this.searchKey = obj;
-            this.useEquals = true;
-        } else {
-            this.useEquals = false;
-        }
-    }
 
     fun hashToSlot(h as int) as int{
         var nonNeg = h band 0x7FFFFFFF;
@@ -246,15 +230,38 @@ class MyHashMap<Key, Value> from Map<Key, Value>{
         return result;
     }
 
-    override iterator() as Iterator<KeyValuePair<Key, Value>>{
-        var ls = new ArrayList<KeyValuePair<Key, Value>>();
-        for(var i = 0; i < this.capacity; i++){
-            if(this.occupied[i]){
-                var entry = new KeyValuePair<Key, Value>(this.keyStore[i], this.valueStore[i]);
-                ls.add(entry);
+    class MyHashMapIterator with Iterator<KeyValuePair<Key, Value>>{
+        pos as int = 0;
+        nextSlot as int = -1;
+
+        fun new(){
+            computeNextSlot();
+        }
+
+        override hasNext() as boolean{
+            return this.nextSlot >= 0;
+        }
+
+        override next() as KeyValuePair<Key, Value>{
+            var slot = this.nextSlot;
+            computeNextSlot();
+            return new KeyValuePair<Key, Value>(keyStore[slot], valueStore[slot]);
+        }
+
+        fun computeNextSlot(){
+            this.nextSlot = -1;
+            for(var i = this.pos; i < capacity; i++){
+                if(occupied[i]){
+                    this.nextSlot = i;
+                    this.pos = i + 1;
+                    return;
+                }
             }
         }
-        return ls.iterator();
+    }
+
+    override iterator() as Iterator<KeyValuePair<Key, Value>>{
+        return new MyHashMapIterator();
     }
 }
 
@@ -289,11 +296,10 @@ fun main(){
     var map = new MyHashMap<int, string>();
     Trace.print(map.size);      // 0
 
-    map.put(1, "Alice");
-    map.put(2, "Bob");
+    map = {MyHashMap<int, string> | [1]: "Alice", [2]: "Bob"}
     Trace.print(map.size);      // 2
-    Trace.print(map.get(1));    // Alice
-    Trace.print(map.get(2));    // Bob
+    Trace.print(map[1]);    // Alice
+    Trace.print(map[2]);    // Bob
 
     // --- Test 2: update existing key ---
     map.put(2, "Robert");
@@ -326,9 +332,9 @@ fun main(){
 
     // --- Test 5: string keys ---
     var strMap = new MyHashMap<string, int>();
-    strMap.put("one", 1);
-    strMap.put("two", 2);
-    Trace.print(strMap.get("two"));     // 2
+    strMap['one'] = 1
+    strMap['two'] = 2
+    Trace.print(strMap["two"]);     // 2
     Trace.print(strMap.size);           // 2
 
     // --- Test 6: iteration ---
