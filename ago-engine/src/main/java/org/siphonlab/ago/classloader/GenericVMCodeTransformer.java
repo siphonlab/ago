@@ -32,12 +32,12 @@ import static org.siphonlab.ago.opcode.Const.const_ng_v;
 
 public class GenericVMCodeTransformer {
 
-    private final ClassHeader myClassHeader;
+    private final ClassHeader classHeader;
 
     private Map<InstantiationArguments, IoBuffer> genericCodeCache = new HashMap<>();
 
     public GenericVMCodeTransformer(ClassHeader classHeader){
-        this.myClassHeader = classHeader;
+        this.classHeader = classHeader;
     }
 
     public IoBuffer transform(IoBuffer bodyCodeBuffer, InstantiationArguments instantiationArguments, ClassHeader instantFunction){
@@ -46,7 +46,7 @@ public class GenericVMCodeTransformer {
             return existed;
         }
 
-        var strings = myClassHeader.loadStrings();
+        var strings = classHeader.loadStrings();
         var code = IoBuffer.allocate(bodyCodeBuffer.remaining()).put(bodyCodeBuffer).flip();
 
         boolean isMethod = false;
@@ -373,6 +373,6 @@ public class GenericVMCodeTransformer {
     }
 
     private AgoClassLoader getClassLoader() {
-        return myClassHeader.classLoader;
+        return classHeader.classLoader;
     }
 }
