@@ -1,0 +1,241 @@
+class MyLinkedList<E> from List<E>{
+    metaclass{
+        private final NIL as LinkedListNode = new LinkedListNode();
+
+        class LinkedListNode{
+            value as E;
+            prev as LinkedListNode;
+            next as LinkedListNode;
+
+            private fun new#value(field value as E){}
+
+            private fun new(){}
+        }
+
+        fun new(){
+            NIL.next = NIL
+        }
+    }
+
+    private head as LinkedListNode = NIL;
+    private tail as LinkedListNode = head;
+    private count as int = 0;
+
+    fun new(){
+
+    }
+
+    fun new#array(array as E[]){
+        for(var i = 0; i < array.length; i++){
+            this.add(array[i]);
+        }
+    }
+
+    override size#get() as int{
+        return this.count;
+    }
+
+    override isReadOnly() as boolean{
+        return false;
+    }
+
+    override add(item as E){
+        var newNode = new LinkedListNode(item);
+        newNode.next = NIL;
+        if(this.count == 0){
+            newNode.prev = NIL;
+            this.head = newNode;
+            this.tail = newNode;
+        } else {
+            this.tail.next = newNode;
+            newNode.prev = this.tail;
+            this.tail = newNode;
+        }
+        this.count++;
+    }
+
+    override clear(){
+        this.head = NIL;
+        this.tail = NIL;
+        this.count = 0;
+    }
+
+    override contains(item as E) as boolean{
+        var current = this.head;
+        while(current != NIL){
+            if((current.value == item) or (item instanceof Object obj and obj.equals(current.value|Object))){
+                return true;
+            }
+            current = current.next;
+        }
+        return false;
+    }
+
+    override remove(item as E) as boolean{
+        var current = this.head;
+        while(current != NIL){
+            if((current.value == item) or (item instanceof Object obj and obj.equals(current.value|Object))){
+                unlinkNode(current);
+                return true;
+            }
+            current = current.next;
+        }
+        return false;
+    }
+
+    override get#index(index as int) as E{
+        checkBounds(index);
+        var node = getNodeAt(index);
+        return node.value;
+    }
+
+    override set#index(index as int, value as E){
+        checkBounds(index);
+        var node = getNodeAt(index);
+        node.value = value;
+    }
+
+    override addAll#array(array as E[]){
+        for(var i = 0; i < array.length; i++){
+            this.add(array[i]);
+        }
+    }
+
+    override addAll#collection(it as Collection<E>){
+        for(var el in it){
+            this.add(el);
+        }
+    }
+
+    override iterator() as Iterator<E>{
+        var ls = new ArrayList<E>();
+        var current = this.head;
+        while(current != NIL){
+            ls.add(current.value | E);
+            current = current.next;
+        }
+        return ls.iterator();
+    }
+
+    fun checkBounds(index as int){
+        if(index < 0 or index >= this.count){
+            throw new IllegalStateException("index " + index + " out of bounds for size " + this.count);
+        }
+    }
+
+    fun getNodeAt(index as int) as LinkedListNode{
+        var node as LinkedListNode;
+        if(index < this.count / 2){
+            node = this.head;
+            for(var i = 0; i < index; i++){
+                node = node.next;
+            }
+        } else {
+            node = this.tail;
+            for(var i = this.count - 1; i > index; i--){
+                node = node.prev;
+            }
+        }
+        return node;
+    }
+
+    fun unlinkNode(node as LinkedListNode){
+        var prevNode = node.prev;
+        var nextNode = node.next;
+
+        if(prevNode != NIL){
+            prevNode.next = nextNode;
+        } else {
+            this.head = nextNode;
+        }
+
+        if(nextNode != NIL){
+            nextNode.prev = prevNode;
+        } else {
+            this.tail = prevNode;
+        }
+
+        this.count--;
+    }
+}
+
+// ==================== Test code ====================
+
+fun main(){
+    // --- Test 1: basic add/size/get ---
+    var list = new MyLinkedList<string>();
+    Trace.print(list.size);          // 0
+
+    list.add("Alice");
+    list.add("Bob");
+    list.add("Charlie");
+    Trace.print(list.size);          // 3
+
+    Trace.print(list[0]);            // Alice
+    Trace.print(list[1]);            // Bob
+    Trace.print(list[2]);            // Charlie
+
+    // --- Test 2: contains before any mutation ---
+    Trace.print(list.contains("Bob"));       // true
+    Trace.print(list.contains("Alice"));     // true
+    Trace.print(list.contains("Nobody"));    // false
+
+    // --- Test 3: set existing index ---
+    list.set(1, "Robert");
+    Trace.print(list[1]);            // Robert
+
+    // --- Test 4: remove present element ---
+    Trace.print(list.remove("Charlie"));     // true
+    Trace.print(list.size);                 // 2
+    Trace.print(list[1]);                   // Robert (shifted)
+
+    // --- Test 5: iteration after mutation ---
+    for(var item in list){
+        Trace.print(item);                  // Alice, Robert
+    }
+
+    // --- Test 6: int elements ---
+    var intList = new MyLinkedList<int>();
+    intList.add(10);
+    intList.add(20);
+    intList.add(30);
+    Trace.print(intList.size);              // 3
+    Trace.print(intList[1]);                // 20
+    Trace.print(intList.remove(20));        // true
+    Trace.print(intList.size);              // 2
+
+    // --- Test 7: large list (stress test) ---
+    var bigList = new MyLinkedList<int>();
+    for(var i = 0; i < 100; i++){
+        bigList.add(i);
+    }
+    Trace.print(bigList.size);              // 100
+    Trace.print(bigList[99]);               // 99
+    Trace.print(bigList[50]);               // 50
+
+    // --- Test 8: array-init constructor ---
+    var arrInit = new MyLinkedList<string>(["x", "y", "z"]);
+    Trace.print(arrInit.size);              // 3
+    Trace.print(arrInit[2]);                // z
+
+    // --- Test 9: clear ---
+    list.clear();
+    Trace.print(list.size);                 // 0
+
+    // --- Test 10: addAll ---
+    var src = new MyLinkedList<int>();
+    src.add(1);
+    src.add(2);
+    var dst = new MyLinkedList<int>();
+    dst.add(0);
+    dst.addAll(src);
+    Trace.print(dst.size);                  // 3
+    Trace.print(dst[2]);                    // 2
+
+    // --- Test 11: bounds exception ---
+    try {
+        intList.get(999);
+    } catch (e as IllegalStateException) {
+        Trace.print("caught: " + e.message);   // caught: index 999 out of bounds for size 2
+    }
+}

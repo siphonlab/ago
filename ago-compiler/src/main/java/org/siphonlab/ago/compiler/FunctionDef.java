@@ -396,7 +396,7 @@ public class FunctionDef extends ClassDef {
                 if(myvar == null) {
                     this.slotsAllocator.allocateSlot(slot.getName(), slot.getTypeCode(), slot.getClassDef().instantiateAsReferenceClass(getModule(), args, null));
                 } else {
-                    myvar.setSlot(this.slotsAllocator.allocateSlot(myvar));
+                    if(myvar.getSlot() == null) myvar.setSlot(this.slotsAllocator.allocateSlot(myvar));
                 }
             } else {
                 throw new ResolveError("variable '%s' not found in '%s'".formatted(variable, this), this.getSourceLocation());
