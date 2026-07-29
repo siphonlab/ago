@@ -376,9 +376,6 @@ public class ClassDef extends ClassContainer {
 
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: inherit child classes".formatted(this));
 
-        createConstructorForFieldsInitializers();
-        if(!this.isInGenericInstantiation()) createGetterAndSetter();
-
         var superClass = this.superClass;
         if(superClass != null && this.superClass != this) {
             if (superClass.getCompilingStage() == CompilingStage.ValidateNewFunctions) {
@@ -391,6 +388,9 @@ public class ClassDef extends ClassContainer {
             var classes = superClass.getUniqueChildren();
             inheritsChildClasses(classes);
         }
+
+        createConstructorForFieldsInitializers();
+        if(!this.isInGenericInstantiation()) createGetterAndSetter();
 
         for (ClassDef implementedInterface : this.implementedInterfaces) {
             if (implementedInterface.getCompilingStage() == CompilingStage.ValidateNewFunctions) {
@@ -466,11 +466,13 @@ public class ClassDef extends ClassContainer {
 
     private void createGetterAndSetter() throws SyntaxError {
         for (Field field : this.fields.values()) {
-            AgoParser.FieldGetterSetterContext fieldGetterSetter = field.getGetterSetter();
-            if(fieldGetterSetter != null){
-                createGetter(field, fieldGetterSetter.getter());
-                AgoParser.SetterContext setter = fieldGetterSetter.setter();
-                if(setter != null) createSetter(field, setter);
+            if(field.ownerClass == this) {
+                AgoParser.FieldGetterSetterContext fieldGetterSetter = field.getGetterSetter();
+                if (fieldGetterSetter != null) {
+                    createGetter(field, fieldGetterSetter.getter());
+                    AgoParser.SetterContext setter = fieldGetterSetter.setter();
+                    if (setter != null) createSetter(field, setter);
+                }
             }
         }
 
@@ -485,7 +487,7 @@ public class ClassDef extends ClassContainer {
     }
 
     public boolean hasFieldInitializerOrTrait() {
-        return !traitFields.isEmpty() || this.fields.values().stream().anyMatch(field -> field.getInitializer() != null);
+        return !traitFields.isEmpty() || this.fields.values().stream().anyMatch(field -> field.getInitializer() != null && field.ownerClass == this);
     }
 
     @Override
