@@ -242,6 +242,8 @@ public class ClassDef extends ClassContainer {
             }
         }
 
+        createGetterAndSetter();
+
         // wrapper of interfaces
         for (var entry : this.wrapperInterfaces.entrySet()) {
             AgoParser.IdentifierContext fldAst = entry.getValue();
@@ -264,6 +266,13 @@ public class ClassDef extends ClassContainer {
         }
 
         createFieldsOfTrait();
+
+        if(waitInstantiateChildren != null && !waitInstantiateChildren.isEmpty()){
+            for (WaitInstantiateChildren waitInstantiateChild : waitInstantiateChildren) {
+                this.instantiateChildren(waitInstantiateChild.project, waitInstantiateChild.instantiateClass, waitInstantiateChild.instantiationArguments);
+            }
+            waitInstantiateChildren.clear();
+        }
 
         this.nextCompilingStage(CompilingStage.ValidateHierarchy);
         return true;
@@ -391,7 +400,6 @@ public class ClassDef extends ClassContainer {
         }
 
         createConstructorForFieldsInitializers();
-        if(!this.isInGenericInstantiation()) createGetterAndSetter();
 
         for (ClassDef implementedInterface : this.implementedInterfaces) {
             if (implementedInterface.getCompilingStage() == CompilingStage.ValidateNewFunctions) {
@@ -1396,8 +1404,17 @@ public class ClassDef extends ClassContainer {
 
         if(parent != null) parent.addChild(instantiateClass);
 
-        instantiateChildren(project, instantiateClass, instantiationArguments);
+        if(this.compilingStage.gt(CompilingStage.ParseFields)) {
+            instantiateChildren(project, instantiateClass, instantiationArguments);
+        } else {
+            if(waitInstantiateChildren == null) waitInstantiateChildren = new LinkedList<>();
+            waitInstantiateChildren.add(new WaitInstantiateChildren(project, instantiateClass, instantiationArguments));
+        }
     }
+
+    private record WaitInstantiateChildren(Project project, ClassDef instantiateClass, InstantiationArguments instantiationArguments){}
+
+    private List<WaitInstantiateChildren> waitInstantiateChildren = null;
 
     public GenericTypeCodeAvatarClassDef findGenericType(String genericTypeName) {
         var t = this.typeParamsContext;
