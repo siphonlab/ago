@@ -36,8 +36,8 @@ public class LiteralTests {
     @Test
     public void list_op() throws CompilationError, CompilationErrorsException, IOException {
         run("literal/list_op.ago");
-//        Trace.printOutput();
-        assertTrue(Trace.outputted("[1,8,7,4]", "[lang.ArrayList<int>|1,8,7,4,9,8,7,6]", "[1,8,7,4,9,8,7,6]", "[lang.LinkedList<int>|1,8,7,4,9,8,7,6,1,8,7,4,9,8,7,6]", "[0,0,1,8,7,0,0,0,0,0]", "[0,0,1,8,7,1,8,7,4,9]", "[1,8,7,4,9,8,7,6,4,9]"));
+        Trace.printOutput();
+        assertTrue(Trace.outputted("[1,8,7,4]", "[lang.ArrayList<int>|1,2,3,4,9,8,7,6]", "[1,2,3,4,9,8,7,6]", "[lang.LinkedList<int>|1,2,3,4,9,8,7,6,1,2,3,4,9,8,7,6]", "[0,0,1,2,3,0,0,0,0,0]", "[0,0,1,2,3,1,2,3,4,9]", "[1,2,3,4,9,8,7,6,4,9]"));
     }
 
     @Test

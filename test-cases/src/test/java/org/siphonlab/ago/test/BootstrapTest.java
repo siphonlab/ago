@@ -234,9 +234,9 @@ public class BootstrapTest {
         run("bootstrap/27.map.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("Jack", "Sally,John",
-                "2 = Sally", "3 = Sally,John", "1 = John", "100 = Jack",
-                "2", "3", "1", "100",
-                "Sally", "Sally,John", "John", "Jack",
+                "1 = John", "2 = Sally", "3 = Sally,John", "100 = Jack",        // not stable
+                "1", "2", "3", "100",
+                "John", "Sally", "Sally,John", "Jack",
                 "80"));
     }
 

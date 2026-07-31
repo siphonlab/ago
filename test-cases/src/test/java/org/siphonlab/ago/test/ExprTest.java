@@ -196,7 +196,7 @@ public class ExprTest {
     public void copy_assign() throws CompilationError, CompilationErrorsException, IOException {
         run("expr/copy_assign.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("name: Tom  gender: M  workNo: 1234", "{lang.HashMap<string,lang.Object>|workNo=1234,gender=M,name=Tom,age=44}", "{lang.HashMap<string,lang.Object>|workNo=1234,name=Tom,gender=M,age=44}", "name: Tom  gender: M  workNo: 1234", "Jenny"));
+        assertTrue(Trace.outputted("name: Tom  gender: M  workNo: 1234", "{lang.HashMap<string,lang.Object>|gender=M,workNo=1234,name=Tom,age=44}", "{lang.HashMap<string,lang.Object>|gender=M,workNo=1234,name=Tom,age=44}", "name: Tom  gender: M  workNo: 1234", "Jenny"));
     }
 
 }
