@@ -381,6 +381,21 @@ public class AgoClass extends Instance<MetaClass>{
         this.slots = dbSlots;
     }
 
+    public boolean belongsTo(AgoClass maybeParent) {
+        var prev = this;
+        for(var p = this.parent; ; prev = p, p = p.parent){
+            if(!(p instanceof AgoClass) && prev instanceof MetaClass m){
+                p = m.getInstanceClass();
+            }
+            if(p == null) break;
+            if(p == maybeParent) return true;
+            if(maybeParent instanceof MetaClass m){
+                if(p == m.getInstanceClass()) return true;
+            }
+        }
+        return false;
+    }
+
     public static class DefaultSlots implements Slots{
 
     }
