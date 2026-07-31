@@ -43,6 +43,10 @@ public class DefaultValueFunDef extends FunctionDef implements ManualCreatedFunc
             return true;
         }
 
+        if(agoClassCombineClassParser != null){
+            return agoClassCombineClassParser.parser().parseFields(agoClassCombineClassParser.agoClass(), this);
+        }
+
         this.setResultType(parameter.getType());
 
         this.createFunctionInterface();

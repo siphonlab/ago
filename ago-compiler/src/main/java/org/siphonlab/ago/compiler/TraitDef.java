@@ -110,6 +110,10 @@ public class TraitDef extends ClassDef{
             this.nextCompilingStage(CompilingStage.InheritsFields);
             return false;
         }
+        if(agoClassCombineClassParser != null){
+            return agoClassCombineClassParser.parser().parseFields(agoClassCombineClassParser.agoClass(), this);
+        }
+
         if (!super.parseFields()) return false;
 
         if(this.permitClass != null && this.permitClass != getRoot().getObjectClass()){

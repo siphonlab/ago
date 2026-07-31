@@ -18,10 +18,8 @@ package org.siphonlab.ago.compiler;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.siphonlab.ago.AgoClass;
+import org.siphonlab.ago.*;
 import org.siphonlab.ago.SourceLocation;
-import org.siphonlab.ago.SourceMapEntry;
-import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.DuplicatedError;
 import org.siphonlab.ago.compiler.exception.ResolveError;
@@ -36,6 +34,7 @@ import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.resolvepath.VariableScope;
 import org.siphonlab.ago.compiler.statement.*;
 import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.collection.DuplicatedKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,6 +87,11 @@ public class FunctionDef extends ClassDef {
         }
     }
 
+    public FunctionDef(Root root, AgoClassParser.AgoClassCombineClassParser agoClassCombineClassParser) {
+        this(root, agoClassCombineClassParser.agoClass().getName(), null);
+        this.agoClassCombineClassParser = agoClassCombineClassParser;
+    }
+
     public ParserRuleContext getDeclarationAst(){
         return this.getMethodDecl();
     }
@@ -134,6 +138,10 @@ public class FunctionDef extends ClassDef {
         }
 
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: parse function fields".formatted(this));
+        if(agoClassCombineClassParser != null){
+            return agoClassCombineClassParser.parser().parseFields(agoClassCombineClassParser.agoClass(), this);
+        }
+
         if(this.resultType == null) {
             var methodDecl = getMethodDecl();
             if (methodDecl.typeOfFunction() != null) {
@@ -506,7 +514,7 @@ public class FunctionDef extends ClassDef {
             this.addLocalVariable(variable.applyTemplate(instantiationArguments, this, getRoot().getProject()));
         }
         this.instantiateFieldsForInterfacesAndTraits();
-        this.createFunctionInterface();
+//        this.createFunctionInterface();       already created with instantiateHierarchy
 
         this.nextCompilingStage(CompilingStage.ValidateNewFunctions);
         return true;
@@ -531,7 +539,7 @@ public class FunctionDef extends ClassDef {
         this.functionInterfaceInstantiation = instantiated;
 
         if(this.isNative()){
-            this.implementedInterfaces.add(getRoot().getNativeFunctionInterfaceBase());
+            this.addImplementedInterface(getRoot().getNativeFunctionInterfaceBase());
         }
     }
 
@@ -564,6 +572,16 @@ public class FunctionDef extends ClassDef {
         }
 
         var methodDecl = getMethodDecl();
+        if(agoClassCombineClassParser != null){
+            AgoFunction agoFunction = (AgoFunction) agoClassCombineClassParser.agoClass();
+            if(agoFunction instanceof AgoNativeFunction agoNativeFunction){
+                this.setNativeEntrance(agoNativeFunction.getNativeEntrance());
+            } else {
+                this.setBody(agoFunction.getCode());
+            }
+            this.nextCompilingStage(CompilingStage.Compiled);
+            return;
+        }
         if(methodDecl == null) {
             compileBody(null);
             this.nextCompilingStage(CompilingStage.Compiled);

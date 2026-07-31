@@ -458,7 +458,11 @@ public class Unit {
             for (int j = i + 1; j < interfaces.size(); j++) {
                 var another = interfaces.get(j);
                 if(another == baseInterface){
-                    throw resolveError(classDef.getInterfaceDecls().get(j), "duplicated interface '%s' found".formatted(another.getFullname()));
+                    if(classDef.getInterfaceDecls() != null) {
+                        throw resolveError(classDef.getInterfaceDecls().get(j), "duplicated interface '%s' found".formatted(another.getFullname()));
+                    } else {
+                        throw resolveError(classDef.getDeclarationName(), "duplicated interface '%s' found".formatted(another.getFullname()));
+                    }
                 }
 //                        if(another.isDerivedFrom(baseInterface)){
 //                        // we don't handle this

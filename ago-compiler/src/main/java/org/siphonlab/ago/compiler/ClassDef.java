@@ -17,7 +17,9 @@ package org.siphonlab.ago.compiler;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
+import org.siphonlab.ago.*;
 import org.siphonlab.ago.SourceLocation;
+import org.siphonlab.ago.classloader.GenericTypeCodeAvatarInfo;
 import org.siphonlab.ago.classloader.MetaClassHeader;
 import org.siphonlab.ago.compiler.exception.*;
 import org.siphonlab.ago.compiler.expression.Equals;
@@ -26,12 +28,11 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.mina.util.IdentityHashSet;
-import org.siphonlab.ago.AgoClass;
-import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.expression.array.ArrayLiteral;
 import org.siphonlab.ago.compiler.expression.literal.ClassRefLiteral;
 import org.siphonlab.ago.compiler.expression.literal.DecimalLiteral;
 import org.siphonlab.ago.compiler.generic.*;
+import org.siphonlab.ago.compiler.generic.ClassBound;
 import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 import org.siphonlab.collection.DuplicatedKeyException;
@@ -93,6 +94,8 @@ public class ClassDef extends ClassContainer {
 
     private NamespaceCollection<FunctionDef> extensionMethods = new NamespaceCollection<>(false);
 
+    protected AgoClassParser.AgoClassCombineClassParser agoClassCombineClassParser;      // created from AgoClass
+
     public ClassDef(Root root, String name) {
         super(name);
         this.root = root;
@@ -104,6 +107,11 @@ public class ClassDef extends ClassContainer {
         this(root, name);
         this.classDeclaration  = classDeclaration;
         this.classType = AgoClass.TYPE_CLASS;
+    }
+
+    public ClassDef(Root root, AgoClassParser.AgoClassCombineClassParser agoClassCombineClassParser){
+        this(root, agoClassCombineClassParser.agoClass().getName());
+        this.agoClassCombineClassParser = agoClassCombineClassParser;
     }
 
     public AgoParser.GenericTypeParametersContext getGenericTypeParametersContextAST(){
@@ -233,6 +241,10 @@ public class ClassDef extends ClassContainer {
         }
 
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: parse fields".formatted(this));
+        if(agoClassCombineClassParser != null){
+            return agoClassCombineClassParser.parser().parseFields(agoClassCombineClassParser.agoClass(), this);
+        }
+
         if (this.getClassBody() instanceof AgoParser.DefaultClassBodyContext defaultClassBodyContext) {
             for (AgoParser.ClassBodyDeclarationContext classBodyDeclaration : defaultClassBodyContext.classBodyDeclaration()) {
                 if (classBodyDeclaration.memberDeclaration() instanceof AgoParser.FieldDeclContext fieldDeclContext) {
@@ -242,6 +254,12 @@ public class ClassDef extends ClassContainer {
             }
         }
 
+        if(this.getConstructors() != null) {
+            for (FunctionDef functionDef : this.getConstructors()) {
+                ConstructorDef constructorDef = (ConstructorDef) functionDef;
+                constructorDef.parseFields();
+            }
+        }
         createGetterAndSetter();
 
         // wrapper of interfaces
@@ -267,15 +285,19 @@ public class ClassDef extends ClassContainer {
 
         createFieldsOfTrait();
 
+        instantiateWaitingChildren();
+
+        this.nextCompilingStage(CompilingStage.ValidateHierarchy);
+        return true;
+    }
+
+    void instantiateWaitingChildren() throws CompilationError {
         if(waitInstantiateChildren != null && !waitInstantiateChildren.isEmpty()){
             for (WaitInstantiateChildren waitInstantiateChild : waitInstantiateChildren) {
                 this.instantiateChildren(waitInstantiateChild.project, waitInstantiateChild.instantiateClass, waitInstantiateChild.instantiationArguments);
             }
             waitInstantiateChildren.clear();
         }
-
-        this.nextCompilingStage(CompilingStage.ValidateHierarchy);
-        return true;
     }
 
     protected void createFieldsOfTrait() {
@@ -458,7 +480,11 @@ public class ClassDef extends ClassContainer {
             inheritsChildClasses(implementedInterface.getUniqueChildren());
         }
 
-        this.nextCompilingStage(CompilingStage.ValidateMembers);      // to ValidateMembers
+        if(this.isFromAgoClass()){
+            this.setCompilingStage(CompilingStage.AllocateSlots);
+        } else {
+            this.nextCompilingStage(CompilingStage.ValidateMembers);      // to ValidateMembers
+        }
     }
 
     private void createConstructorForFieldsInitializers(){
@@ -1412,6 +1438,10 @@ public class ClassDef extends ClassContainer {
         }
     }
 
+    public boolean isFromAgoClass() {
+        return agoClassCombineClassParser != null;
+    }
+
     private record WaitInstantiateChildren(Project project, ClassDef instantiateClass, InstantiationArguments instantiationArguments){}
 
     private List<WaitInstantiateChildren> waitInstantiateChildren = null;
@@ -1455,15 +1485,71 @@ public class ClassDef extends ClassContainer {
         return this.classType == AgoClass.TYPE_INTERFACE || this.classType == AgoClass.TYPE_TRAIT;
     }
 
+    public void parseGenericParams() throws CompilationError {
+        if(this.compilingStage != CompilingStage.ParseGenericParams) return;
+
+        AgoParser.GenericTypeParametersContext genericTypeParameters = this.getGenericTypeParametersContextAST();
+        if (genericTypeParameters != null) {
+            var templClass = this;
+            templClass.shiftToTemplate();
+
+            List<AgoParser.GenericTypeParameterContext> genericTypeParameter = genericTypeParameters.genericTypeParameter();
+            for (int i = 0; i < genericTypeParameter.size(); i++) {
+                var genericTypeParameterContext = genericTypeParameter.get(i);
+                var identifier = genericTypeParameterContext.identifier();
+                var name = identifier.getText();
+                if (templClass.findGenericType(name) != null) {
+                    throw unit.resolveError(identifier, "duplicated generic param id '%s'".formatted(name));
+                }
+                var variance = Variance.Invariance;
+                if (genericTypeParameterContext.ADD() != null) {
+                    variance = Variance.Covariance;
+                } else if (genericTypeParameterContext.SUB() != null) {
+                    variance = Variance.Contravariance;
+                }
+
+                var typeOfGenericParam = genericTypeParameterContext.typeOfGenericParam();
+                ClassDef[] bound;
+                if (typeOfGenericParam != null) {
+                    bound = unit.parseTypeRange(typeOfGenericParam.typeRange(), templClass);
+                } else {
+                    bound = new ClassDef[]{root.getAnyClass(), root.getAnyClass()};
+                }
+
+                var gt = root.getGenericTypeParameter();
+                var pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(unit.getModule(), gt, gt.getMetaClassDef().getConstructor(), bound[0], bound[1], variance, null);
+                templClass.registerConcreteType((ConcreteType) pc);
+                templClass.getTypeParamsContext().createGenericTypeParam(null, name, pc, i);
+                if (pc.getUnit() == null) {
+                    pc.setUnit(templClass.getUnit());
+                    pc.setSourceLocation(templClass.getUnit().sourceLocation(typeOfGenericParam));
+                }
+            }
+            templClass.createTemplateDefaultGenericSource();
+        } else if(this.agoClassCombineClassParser != null && this.agoClassCombineClassParser.agoClass().getConcreteTypeInfo() instanceof GenericTypeParametersInfo genericTypeParametersInfo){
+            agoClassCombineClassParser.parser().parseGenericParams(agoClassCombineClassParser.agoClass(), this);
+        }
+        this.nextCompilingStage(CompilingStage.ResolveHierarchicalClasses);
+    }
+
+    protected ClassDef mapClass(AgoClass agoClass) throws CompilationError {
+        return agoClassCombineClassParser.parser().mapClass(agoClass);
+    }
+
     public void resolveHierarchicalClasses() throws CompilationError {
         if(this.compilingStage != CompilingStage.ResolveHierarchicalClasses) return;
 
         if(this.isInGenericInstantiation()){
             instantiateHierarchy();
         } else {
-            if(unit != null) unit.resolveHierarchicalClasses(this);
-            resolveMetaclass();
-            this.nextCompilingStage(CompilingStage.ParseFields);
+            if(agoClassCombineClassParser != null){
+                agoClassCombineClassParser.parser().resolveHierarchy(agoClassCombineClassParser.agoClass(), this);
+            } else {
+                if (unit != null)
+                    unit.resolveHierarchicalClasses(this);
+                resolveMetaclass();
+                this.nextCompilingStage(CompilingStage.ParseFields);
+            }
         }
     }
 
@@ -1518,7 +1604,7 @@ public class ClassDef extends ClassContainer {
                 }
                 var superMeta = this.superClass.resolveMetaclass();
                 if( superMeta != null) {
-                    MetaClassDef mockMeta = new MetaClassDef(root, this, superMeta.getMetaLevel(), null);
+                    MetaClassDef mockMeta = new MetaClassDef(root, this, superMeta.getMetaLevel(), this.agoClassCombineClassParser);
                     mockMeta.setSuperClass(superMeta);
                     mockMeta.setMetaClassDef(superMeta.resolveMetaclass());
                     mockMeta.setSourceLocation(superMeta.getSourceLocation());

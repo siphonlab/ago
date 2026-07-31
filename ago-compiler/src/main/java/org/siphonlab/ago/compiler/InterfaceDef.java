@@ -117,11 +117,15 @@ public class InterfaceDef extends ClassDef{
                 inheritsChildClasses(classes);
             }
         }
-        this.nextCompilingStage(CompilingStage.ValidateMembers);
+        if(this.isFromAgoClass()){
+            this.setCompilingStage(CompilingStage.Compiled);
+        } else {
+            this.nextCompilingStage(CompilingStage.ValidateMembers);      // to ValidateMembers
+        }
     }
 
     @Override
-    public void inheritsFields() {
+    public void inheritsFields() throws CompilationError {
         if(this.getCompilingStage() != CompilingStage.InheritsFields) return;
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: inherits fields".formatted(this));
         this.setCompilingStage(CompilingStage.ValidateNewFunctions);

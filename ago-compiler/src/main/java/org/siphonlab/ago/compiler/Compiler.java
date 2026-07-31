@@ -233,53 +233,7 @@ public class Compiler {
                 assert p.getCompilingStage() != CompilingStage.ParseGenericParams;      // already finish this stage
             }
 
-            AgoParser.GenericTypeParametersContext genericTypeParameters = null;
-            if (scopeClass instanceof MetaClassDef) {
-//                throw new TypeMismatchError("metaclass cannot be generic template", scopeClass.getUnit().sourceLocation());
-                // metaclass can be involved by its class in generic, but has no generic type param itself
-            } else {
-                genericTypeParameters = scopeClass.getGenericTypeParametersContextAST();
-            }
-            if (genericTypeParameters != null) {
-                var templClass = scopeClass;
-                templClass.shiftToTemplate();
-                TypeParamsContext templClassTypeParamsContext = templClass.getTypeParamsContext();
-
-                List<AgoParser.GenericTypeParameterContext> genericTypeParameter = genericTypeParameters.genericTypeParameter();
-                for (int i = 0; i < genericTypeParameter.size(); i++) {
-                    var genericTypeParameterContext = genericTypeParameter.get(i);
-                    var identifier = genericTypeParameterContext.identifier();
-                    var name = identifier.getText();
-                    if (templClass.findGenericType(name) != null) {
-                        throw scopeClass.unit.resolveError(identifier, "duplicated generic param id '%s'".formatted(name));
-                    }
-                    var variance = Variance.Invariance;
-                    if (genericTypeParameterContext.ADD() != null) {
-                        variance = Variance.Covariance;
-                    } else if (genericTypeParameterContext.SUB() != null) {
-                        variance = Variance.Contravariance;
-                    }
-
-                    var typeOfGenericParam = genericTypeParameterContext.typeOfGenericParam();
-                    ClassDef[] bound;
-                    if (typeOfGenericParam != null) {
-                        bound = scopeClass.unit.parseTypeRange(typeOfGenericParam.typeRange(), templClass);
-                    } else {
-                        bound = new ClassDef[]{root.getAnyClass(), root.getAnyClass()};
-                    }
-
-                    var gt = root.getGenericTypeParameter();
-                    var pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(this.project, gt, gt.getMetaClassDef().getConstructor(), bound[0], bound[1], variance, null);
-                    templClass.registerConcreteType((ConcreteType) pc);
-                    templClass.getTypeParamsContext().createGenericTypeParam(null, name, pc, i);
-                    if (pc.getUnit() == null) {
-                        pc.setUnit(templClass.getUnit());
-                        pc.setSourceLocation(templClass.getUnit().sourceLocation(typeOfGenericParam));
-                    }
-                }
-                templClass.createTemplateDefaultGenericSource();
-            }
-            scopeClass.nextCompilingStage(CompilingStage.ResolveHierarchicalClasses);    // to ExpandHierarchicalClasses
+            scopeClass.parseGenericParams();
         }
     }
 
@@ -334,6 +288,7 @@ public class Compiler {
     static void validateFunction(ClassDef classDef) throws CompilationError {
         if(classDef.getCompilingStage() == CompilingStage.ValidateNewFunctions) {
             classDef.nextCompilingStage(CompilingStage.InheritsInnerClasses);
+            if(classDef.isFromAgoClass()) return;
             for (ClassDef child : classDef.getDirectChildren()) {
                 if (child instanceof FunctionDef functionDef) {
                     classDef.validateNewFunction(functionDef);
