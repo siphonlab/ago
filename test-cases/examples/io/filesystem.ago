@@ -1,5 +1,7 @@
 package io;
 
+native class IOException from Exception{}
+
 native class Buffer{
     fun new() native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_create';
     override toString() as string native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_toString';

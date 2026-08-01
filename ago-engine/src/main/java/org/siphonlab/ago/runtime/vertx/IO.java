@@ -39,14 +39,14 @@ public class IO {
         frame.beginAsync();
         VertxRunSpaceHost runSpaceHost = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
         runSpaceHost.getVertx().fileSystem().open(path, new OpenOptions().setRead(true).setCreateNew(false).setCreate(false))
-                .onComplete(new VertXNativeFrameHandler<>(frame, "io.File"));
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.File", "io.IOException"));
     }
 
     public static void File_read(NativeFrame frame, Instance<?> buffer, int offset, long position, int length){
         frame.beginAsync();
         AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
         file.read((Buffer) buffer.getNativePayload(), offset, position, length)
-                .onComplete(new VertXNativeFrameHandler<>(frame, "io.Buffer"));
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.Buffer", "io.IOException"));
     }
 
 }

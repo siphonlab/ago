@@ -19,11 +19,6 @@ package lang;
  * Pure-ago HashMap using open addressing with linear probing.
  * Properly calls ago's equals() for Object keys, solving the callback limitation of native HashMap.
  */
-class KeyNotFoundException from RuntimeException{
-    fun new#message(message as string){
-        super(message);
-    }
-}
 
 final class HashCode{
     metaclass{

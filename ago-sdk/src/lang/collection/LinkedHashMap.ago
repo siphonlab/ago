@@ -1,0 +1,249 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+/**
+ * Pure-ago LinkedHashMap using open addressing with linear probing.
+ * Maintains insertion-order iteration via a doubly-linked list of slots.
+ */
+class LinkedHashMap<Key, Value> from Map<Key, Value>{
+
+    private keyStore as Key[];
+    private valueStore as Value[];
+    private occupied as boolean[];
+    private capacity as int = 4;
+    private count as int = 0;
+    private loadThreshold as int = 3;
+
+    // Doubly-linked list of slots for insertion-order iteration (-1 means null)
+    private prevSlot as int[];
+    private nextSlot as int[];
+    private headSlot as int = -1;
+    private tailSlot as int = -1;
+
+    fun new(){
+        this.keyStore = new Key[4];
+        this.valueStore = new Value[4];
+        this.occupied = new boolean[4];
+        this.prevSlot = new int[4];
+        this.nextSlot = new int[4];
+    }
+
+    override size#get() as int{
+        return this.count;
+    }
+
+    override isReadOnly() as boolean{
+        return false;
+    }
+
+    override get#key(index as Key) as Value{
+        var slot = findSlot(index);
+        if(slot < 0){
+            throw new KeyNotFoundException("key not found: " + index);
+        }
+        return this.valueStore[slot];
+    }
+
+    override put(index as Key, value as Value){
+        var slot = findSlot(index);
+        if(slot >= 0){
+            this.valueStore[slot] = value;
+            return;
+        }
+        slot = findEmptySlot(index);
+        this.keyStore[slot] = index;
+        this.valueStore[slot] = value;
+        this.occupied[slot] = true;
+        appendToTail(slot);
+        this.count++;
+        checkResize();
+    }
+
+    override containsKey(key as Key) as boolean{
+        return findSlot(key) >= 0;
+    }
+
+    override remove(key as Key) as boolean{
+        var slot = findSlot(key);
+        if(slot < 0){
+            return false;
+        }
+        unlinkFromList(slot);
+        this.occupied[slot] = false;
+        this.count--;
+        return true;
+    }
+
+    override clear(){
+        for(var i = 0; i < this.capacity; i++){
+            this.occupied[i] = false;
+        }
+        this.count = 0;
+        this.headSlot = -1;
+        this.tailSlot = -1;
+    }
+
+    override putAll(map as ReadOnlyMap<Key, Value>){
+        for(var entry in map){
+            this.put(entry.key, entry.value);
+        }
+    }
+
+    // --- keys / values views (insertion order) ---
+
+    override keys#get() as ReadOnlyCollection<Key>{
+        var result = new ArrayList<Key>();
+        var slot = headSlot;
+        while(slot >= 0){
+            result.add(this.keyStore[slot]);
+            slot = this.nextSlot[slot];
+        }
+        return result;
+    }
+
+    override values#get() as ReadOnlyCollection<Value>{
+        var result = new ArrayList<Value>();
+        var slot = headSlot;
+        while(slot >= 0){
+            result.add(this.valueStore[slot]);
+            slot = this.nextSlot[slot];
+        }
+        return result;
+    }
+
+    class LinkedHashMapIterator with Iterator<KeyValuePair<Key, Value>>{
+        currentSlot as int = headSlot;
+
+        override hasNext() as boolean{
+            return this.currentSlot >= 0;
+        }
+
+        override next() as KeyValuePair<Key, Value>{
+            var slot = this.currentSlot;
+            this.currentSlot = nextSlot[slot];
+            return new KeyValuePair<Key, Value>(keyStore[slot], valueStore[slot]);
+        }
+    }
+
+    override iterator() as Iterator<KeyValuePair<Key, Value>>{
+        return new LinkedHashMapIterator();
+    }
+
+    // --- Internal helpers ---
+
+    fun findSlot(key as Key) as int{
+        var isObjectKey = key instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(key | Object);
+                } else {
+                    matched = (this.keyStore[slot] == key);
+                }
+                if(matched){
+                    return slot;
+                }
+            } else {
+                break;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+        return -1;
+    }
+
+    fun findEmptySlot(key as Key) as int{
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(!this.occupied[slot]){
+                return slot;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+        return slot;
+    }
+
+    fun hashToSlot(h as int) as int{
+        var nonNeg = h band 0x7FFFFFFF;
+        return nonNeg % this.capacity;
+    }
+
+    // --- Linked list operations ---
+
+    fun appendToTail(slot as int){
+        prevSlot[slot] = tailSlot;
+        nextSlot[slot] = -1;
+        if(tailSlot >= 0){
+            nextSlot[tailSlot] = slot;
+        } else {
+            headSlot = slot;
+        }
+        tailSlot = slot;
+    }
+
+    fun unlinkFromList(slot as int){
+        var prev = prevSlot[slot];
+        var next = nextSlot[slot];
+        if(prev >= 0){
+            nextSlot[prev] = next;
+        } else {
+            headSlot = next;
+        }
+        if(next >= 0){
+            prevSlot[next] = prev;
+        } else {
+            tailSlot = prev;
+        }
+    }
+
+    // --- Resize ---
+
+    fun checkResize(){
+        if(this.count > this.loadThreshold){
+            resize();
+        }
+    }
+
+    fun resize(){
+        var oldCapacity = this.capacity;
+        var oldKeyStore = this.keyStore;
+        var oldValueStore = this.valueStore;
+        var oldOccupied = this.occupied;
+
+        this.capacity = oldCapacity * 2;
+        this.loadThreshold = (this.capacity * 3 / 4);
+        this.keyStore = new Key[this.capacity];
+        this.valueStore = new Value[this.capacity];
+        this.occupied = new boolean[this.capacity];
+        this.prevSlot = new int[this.capacity];
+        this.nextSlot = new int[this.capacity];
+        this.count = 0;
+        this.headSlot = -1;
+        this.tailSlot = -1;
+
+        for(var i = 0; i < oldCapacity; i++){
+            if(oldOccupied[i]){
+                this.put(oldKeyStore[i], oldValueStore[i]);
+            }
+        }
+    }
+}
