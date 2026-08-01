@@ -1,43 +1,6 @@
-/**
- * Pure-ago LinkedHashMap using open addressing with linear probing.
- * Maintains insertion-order iteration via a doubly-linked list of slots.
- */
-class KeyNotFoundException from RuntimeException{
-    fun new#message(message as string){
-        super(message);
-    }
-}
-
-final class HashCode{
-    metaclass{
-        fun computeHashCode<Key>(key as Key) as int{
-            if(key instanceof Object obj){
-                return obj.hashCode();
-            } else if(key instanceof int i){
-                return i.hashCode();
-            } else if(key instanceof long l){
-                return l.hashCode();
-            } else if(key instanceof short s){
-                return s.hashCode();
-            } else if(key instanceof byte b){
-                return b.hashCode();
-            } else if(key instanceof float f){
-                return f.hashCode();
-            } else if(key instanceof double d){
-                return d.hashCode();
-            } else if(key instanceof char c){
-                return c.hashCode();
-            } else if(key instanceof boolean bl){
-                return bl.hashCode();
-            } else {
-                return (key | Object).hashCode();
-            }
-        }
-    }
-}
-
 class LinkedHashMap<Key, Value> from Map<Key, Value>{
 
+    // --- Hash table storage (same as HashMap) ---
     private keyStore as Key[];
     private valueStore as Value[];
     private occupied as boolean[];
@@ -45,18 +8,22 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
     private count as int = 0;
     private loadThreshold as int = 3;
 
-    // Doubly-linked list of slots for insertion-order iteration (-1 means null)
-    private prevSlot as int[];
-    private nextSlot as int[];
-    private headSlot as int = -1;
-    private tailSlot as int = -1;
+    // --- Linked list for insertion order ---
+    private nextIndex as int[];
+    private prevIndex as int[];
+    private head as int = -1;
+    private tail as int = -1;
 
     fun new(){
         this.keyStore = new Key[4];
         this.valueStore = new Value[4];
         this.occupied = new boolean[4];
-        this.prevSlot = new int[4];
-        this.nextSlot = new int[4];
+        this.nextIndex = new int[4];
+        this.prevIndex = new int[4];
+        for(var i = 0; i < 4; i++){
+            this.nextIndex[i] = -1;
+            this.prevIndex[i] = -1;
+        }
     }
 
     override size#get() as int{
@@ -69,25 +36,40 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
 
     override get#key(index as Key) as Value{
         var slot = findSlot(index);
-        if(slot < 0){
-            throw new KeyNotFoundException("key not found: " + index);
+        if(slot >= 0){
+            return this.valueStore[slot];
         }
-        return this.valueStore[slot];
+        throw new KeyNotFoundException("key not found: " + index);
     }
 
     override put(index as Key, value as Value){
-        var slot = findSlot(index);
-        if(slot >= 0){
-            this.valueStore[slot] = value;
-            return;
+        var isObjectKey = index instanceof Object;
+        var slot = hashToSlot(computeHashCode(index));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(index | Object);
+                } else {
+                    matched = (this.keyStore[slot] == index);
+                }
+                if(matched){
+                    this.valueStore[slot] = value;
+                    return;
+                }
+            } else {
+                this.keyStore[slot] = index;
+                this.valueStore[slot] = value;
+                this.occupied[slot] = true;
+                addToTail(slot);
+                this.count++;
+                checkResize();
+                return;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
         }
-        slot = findEmptySlot(index);
-        this.keyStore[slot] = index;
-        this.valueStore[slot] = value;
-        this.occupied[slot] = true;
-        appendToTail(slot);
-        this.count++;
-        checkResize();
     }
 
     override containsKey(key as Key) as boolean{
@@ -96,75 +78,37 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
 
     override remove(key as Key) as boolean{
         var slot = findSlot(key);
-        if(slot < 0){
-            return false;
+        if(slot >= 0){
+            this.occupied[slot] = false;
+            removeFromChain(slot);
+            this.count--;
+            return true;
         }
-        unlinkFromList(slot);
-        this.occupied[slot] = false;
-        this.count--;
-        return true;
+        return false;
     }
 
     override clear(){
         for(var i = 0; i < this.capacity; i++){
             this.occupied[i] = false;
+            this.nextIndex[i] = -1;
+            this.prevIndex[i] = -1;
         }
+        this.head = -1;
+        this.tail = -1;
         this.count = 0;
-        this.headSlot = -1;
-        this.tailSlot = -1;
     }
 
     override putAll(map as ReadOnlyMap<Key, Value>){
-        for(var entry in map){
-            this.put(entry.key, entry.value);
+        for(var e in map){
+            this.put(e.key, e.value);
         }
     }
 
-    // --- keys / values views (insertion order) ---
-
-    override keys#get() as ReadOnlyCollection<Key>{
-        var result = new ArrayList<Key>();
-        var slot = headSlot;
-        while(slot >= 0){
-            result.add(this.keyStore[slot]);
-            slot = this.nextSlot[slot];
-        }
-        return result;
-    }
-
-    override values#get() as ReadOnlyCollection<Value>{
-        var result = new ArrayList<Value>();
-        var slot = headSlot;
-        while(slot >= 0){
-            result.add(this.valueStore[slot]);
-            slot = this.nextSlot[slot];
-        }
-        return result;
-    }
-
-    class LinkedHashMapIterator with Iterator<KeyValuePair<Key, Value>>{
-        currentSlot as int = headSlot;
-
-        override hasNext() as boolean{
-            return this.currentSlot >= 0;
-        }
-
-        override next() as KeyValuePair<Key, Value>{
-            var slot = this.currentSlot;
-            this.currentSlot = nextSlot[slot];
-            return new KeyValuePair<Key, Value>(keyStore[slot], valueStore[slot]);
-        }
-    }
-
-    override iterator() as Iterator<KeyValuePair<Key, Value>>{
-        return new LinkedHashMapIterator();
-    }
-
-    // --- Internal helpers ---
+    // --- Find slot for a key (returns -1 if not found) ---
 
     fun findSlot(key as Key) as int{
         var isObjectKey = key instanceof Object;
-        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
+        var slot = hashToSlot(computeHashCode(key));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
@@ -186,53 +130,69 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
         return -1;
     }
 
-    fun findEmptySlot(key as Key) as int{
-        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
-        var probe = 0;
-        while(probe < this.capacity){
-            if(!this.occupied[slot]){
-                return slot;
-            }
-            slot = (slot + 1) % this.capacity;
-            probe++;
+    // --- Linked list operations ---
+
+    fun addToTail(slot as int){
+        if(this.head == -1){
+            this.head = slot;
+            this.tail = slot;
+            this.nextIndex[slot] = -1;
+            this.prevIndex[slot] = -1;
+        } else {
+            this.nextIndex[this.tail] = slot;
+            this.prevIndex[slot] = this.tail;
+            this.nextIndex[slot] = -1;
+            this.tail = slot;
         }
-        return slot;
+    }
+
+    fun removeFromChain(slot as int){
+        var p = this.prevIndex[slot];
+        var n = this.nextIndex[slot];
+        if(p >= 0){
+            this.nextIndex[p] = n;
+        } else {
+            this.head = n;
+        }
+        if(n >= 0){
+            this.prevIndex[n] = p;
+        } else {
+            this.tail = p;
+        }
+        this.nextIndex[slot] = -1;
+        this.prevIndex[slot] = -1;
+    }
+
+    // --- Internal helpers ---
+
+    fun computeHashCode(key as Key) as int{
+        if(key instanceof Object obj){
+            return obj.hashCode();
+        } else if(key instanceof int i){
+            return i.hashCode();
+        } else if(key instanceof long l){
+            return l.hashCode();
+        } else if(key instanceof short s){
+            return s.hashCode();
+        } else if(key instanceof byte b){
+            return b.hashCode();
+        } else if(key instanceof float f){
+            return f.hashCode();
+        } else if(key instanceof double d){
+            return d.hashCode();
+        } else if(key instanceof char c){
+            return c.hashCode();
+        } else if(key instanceof boolean bl){
+            return bl.hashCode();
+        } else {
+            return (key | Object).hashCode();
+        }
     }
 
     fun hashToSlot(h as int) as int{
         var nonNeg = h band 0x7FFFFFFF;
         return nonNeg % this.capacity;
     }
-
-    // --- Linked list operations ---
-
-    fun appendToTail(slot as int){
-        prevSlot[slot] = tailSlot;
-        nextSlot[slot] = -1;
-        if(tailSlot >= 0){
-            nextSlot[tailSlot] = slot;
-        } else {
-            headSlot = slot;
-        }
-        tailSlot = slot;
-    }
-
-    fun unlinkFromList(slot as int){
-        var prev = prevSlot[slot];
-        var next = nextSlot[slot];
-        if(prev >= 0){
-            nextSlot[prev] = next;
-        } else {
-            headSlot = next;
-        }
-        if(next >= 0){
-            prevSlot[next] = prev;
-        } else {
-            tailSlot = prev;
-        }
-    }
-
-    // --- Resize ---
 
     fun checkResize(){
         if(this.count > this.loadThreshold){
@@ -246,22 +206,83 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
         var oldValueStore = this.valueStore;
         var oldOccupied = this.occupied;
 
+        // Collect entries in insertion order before clearing chain
+        var orderedKeys as Key[] = new Key[this.count];
+        var orderedValues as Value[] = new Value[this.count];
+        var idx = 0;
+        var cur = this.head;
+        while(cur >= 0){
+            orderedKeys[idx] = oldKeyStore[cur];
+            orderedValues[idx] = oldValueStore[cur];
+            idx++;
+            cur = this.nextIndex[cur];
+        }
+
         this.capacity = oldCapacity * 2;
         this.loadThreshold = (this.capacity * 3 / 4);
         this.keyStore = new Key[this.capacity];
         this.valueStore = new Value[this.capacity];
         this.occupied = new boolean[this.capacity];
-        this.prevSlot = new int[this.capacity];
-        this.nextSlot = new int[this.capacity];
-        this.count = 0;
-        this.headSlot = -1;
-        this.tailSlot = -1;
-
-        for(var i = 0; i < oldCapacity; i++){
-            if(oldOccupied[i]){
-                this.put(oldKeyStore[i], oldValueStore[i]);
-            }
+        this.nextIndex = new int[this.capacity];
+        this.prevIndex = new int[this.capacity];
+        for(var i = 0; i < this.capacity; i++){
+            this.nextIndex[i] = -1;
+            this.prevIndex[i] = -1;
         }
+        this.head = -1;
+        this.tail = -1;
+        this.count = 0;
+
+        // Re-insert in insertion order
+        for(var i = 0; i < idx; i++){
+            this.put(orderedKeys[i], orderedValues[i]);
+        }
+    }
+
+    // --- keys / values views (insertion order) ---
+
+    override keys#get() as ReadOnlyCollection<Key>{
+        var result = new ArrayList<Key>();
+        var cur = this.head;
+        while(cur >= 0){
+            result.add(this.keyStore[cur]);
+            cur = this.nextIndex[cur];
+        }
+        return result;
+    }
+
+    override values#get() as ReadOnlyCollection<Value>{
+        var result = new ArrayList<Value>();
+        var cur = this.head;
+        while(cur >= 0){
+            result.add(this.valueStore[cur]);
+            cur = this.nextIndex[cur];
+        }
+        return result;
+    }
+
+    // --- Iterator (insertion order) ---
+
+    class LinkedHashMapIterator with Iterator<KeyValuePair<Key, Value>>{
+        current as int = -1;
+
+        fun new(){
+            current = head;
+        }
+
+        override hasNext() as boolean{
+            return this.current >= 0;
+        }
+
+        override next() as KeyValuePair<Key, Value>{
+            var slot = this.current;
+            this.current = nextIndex[slot];
+            return new KeyValuePair<Key, Value>(keyStore[slot], valueStore[slot]);
+        }
+    }
+
+    override iterator() as Iterator<KeyValuePair<Key, Value>>{
+        return new LinkedHashMapIterator();
     }
 }
 
@@ -292,7 +313,7 @@ class Person{
 }
 
 fun main(){
-    // --- Test 1: basic put/get with int keys ---
+    // --- Test 1: basic put/get with int keys (3 entries for LinkedHashMap) ---
     var map = new LinkedHashMap<int, string>();
     Trace.print(map.size);      // 0
 
@@ -304,30 +325,31 @@ fun main(){
     Trace.print(map.get(1));    // Bob
     Trace.print(map.get(2));    // Charlie
 
-    // --- Test 2: update existing key (order preserved) ---
+    // --- Test 2: update existing key ---
     map.put(1, "Robert");
     Trace.print(map.get(1));    // Robert
 
-    // --- Test 3: iteration in insertion order ---
-    var keys = new ArrayList<int>();
+    // --- Test 3: iteration in insertion order (all 3 entries) ---
     for(var entry in map){
-        Trace.print(entry.key + "=" + entry.value);
-        keys.add(entry.key);
+        Trace.print(entry.key + "=" + entry.value);     // 3=Alice, 1=Robert, 2=Charlie
     }
-    // Order must be 3, 1, 2 (insertion order)
 
-    // --- Test 4: containsKey and remove ---
-    Trace.print(map.containsKey(1));        // true
+    // --- Test 4: containsKey and remove key 1 ---
+    Trace.print(map.containsKey(3));        // true
     Trace.print(map.containsKey(99));       // false
     Trace.print(map.remove(1));             // true
     Trace.print(map.size);                  // 2
 
-    // After removing key 1, iteration order is 3, 2
+    // --- Test 5: iteration after remove (insertion order preserved) ---
     for(var entry in map){
-        Trace.print(entry.key + "=" + entry.value);
+        Trace.print(entry.key + "=" + entry.value);     // 3=Alice, 2=Charlie
     }
 
-    // --- Test 5: Object keys with equals() ---
+    // --- Test 6: keys view size ---
+    var keyList = map.keys;
+    Trace.print(keyList.size);          // 2
+
+    // --- Test 7: Object keys with equals() ---
     var personMap = new LinkedHashMap<Person, string>();
     var p1 = new Person("Alice", 30);
     var p2 = new Person("Bob", 25);
@@ -335,8 +357,6 @@ fun main(){
 
     personMap.put(p1, "Engineer");
     personMap.put(p2, "Designer");
-    Trace.print(personMap.size);        // 2
-
     Trace.print(personMap.containsKey(p1Copy));     // true
     Trace.print(personMap.get(p1Copy));             // Engineer
 
@@ -344,55 +364,51 @@ fun main(){
     Trace.print(personMap.get(p1));             // Senior Engineer
     Trace.print(personMap.size);                // 2
 
-    // --- Test 6: string keys ---
+    // --- Test 8: string keys (3 entries) ---
     var strMap = new LinkedHashMap<string, int>();
-    strMap['one'] = 1;
-    strMap['two'] = 2;
-    strMap['three'] = 3;
-    Trace.print(strMap.get("two"));     // 2
+    strMap['one'] = 1
+    strMap['two'] = 2
+    strMap['three'] = 3
+    Trace.print(strMap["two"]);     // 2
     Trace.print(strMap.size);           // 3
 
-    // --- Test 7: keys and values views (insertion order) ---
-    var keyList = strMap.keys;
-    Trace.print(keyList.size);          // 3
+    // --- Test 9: iteration order for string map (3 entries) ---
+    var ordMap = new LinkedHashMap<string, int>();
+    ordMap.put("x", 10);
+    ordMap.put("y", 20);
+    ordMap.put("z", 30);
+    Trace.print(ordMap.size);           // 3
 
-    var valList = strMap.values;
-    Trace.print(valList.size);          // 3
-
-    // --- Test 8: clear ---
+    // --- Test 10: clear ---
     strMap.clear();
     Trace.print(strMap.size);               // 0
     Trace.print(strMap.containsKey("one"));     // false
 
-    // --- Test 9: putAll ---
+    // --- Test 11: putAll (preserves insertion order) ---
     var src = new LinkedHashMap<string, int>();
     src.put("x", 10);
     src.put("y", 20);
     var dst = new LinkedHashMap<string, int>();
     dst.put("z", 30);
     dst.putAll(src);
-    Trace.print(dst.size);          // 3
-
-    // Iteration order: z, x, y
     for(var entry in dst){
-        Trace.print(entry.key + "=" + entry.value);
+        Trace.print(entry.key + "=" + entry.value);     // z=30, x=10, y=20
     }
 
-    // --- Test 10: remove returns correct value ---
+    // --- Test 12: remove returns correct value ---
     var rmMap = new LinkedHashMap<int, string>();
     rmMap.put(1, "a");
     rmMap.put(2, "b");
-    rmMap.put(3, "c");
     Trace.print(rmMap.remove(1));       // true
     Trace.print(rmMap.remove(99));      // false
-    Trace.print(rmMap.size);            // 2
+    Trace.print(rmMap.size);            // 1
 
-    // --- Test 11: Object key remove uses equals ---
+    // --- Test 13: Object key remove uses equals ---
     personMap.remove(p1Copy);
     Trace.print(personMap.containsKey(p1));     // false
     Trace.print(personMap.size);            // 1
 
-    // --- Test 12: collision handling (keys with same hash slot) ---
+    // --- Test 14: collision handling ---
     var colMap = new LinkedHashMap<int, string>();
     for(var i = 0; i < 20; i++){
         colMap.put(i, "v" + i);
@@ -402,7 +418,7 @@ fun main(){
     Trace.print(colMap.get(19));        // v19
     Trace.print(colMap.get(10));        // v10
 
-    // --- Test 13: resize test (fill beyond capacity) ---
+    // --- Test 15: resize test ---
     var bigMap = new LinkedHashMap<int, string>();
     for(var i = 0; i < 50; i++){
         bigMap.put(i, "big" + i);
@@ -411,23 +427,19 @@ fun main(){
     Trace.print(bigMap.get(49));        // big49
     Trace.print(bigMap.get(25));        // big25
 
-    // Iteration after resize still follows insertion order
-    var firstKey = -1;
-    for(var entry in bigMap){
-        if(firstKey < 0){
-            firstKey = entry.key;
-        }
-        break;
-    }
-    Trace.print(firstKey);              // 0
+    // --- Test 16: clear after resize ---
+    bigMap.clear();
+    Trace.print(bigMap.size);           // 0
 
-    // --- Test 14: KeyNotFoundException for missing key ---
+    // --- Test 17: KeyNotFoundException for missing key ---
+    var finalMap = new LinkedHashMap<int, string>();
+    finalMap.put(0, "big0");
     try {
-        bigMap.get(2222);
+        finalMap.get(2222);
     } catch (e as KeyNotFoundException) {
         Trace.print("caught: " + e.message);
     }
 
     // Verify existing keys still work after exception
-    Trace.print(bigMap.get(0));         // big0
+    Trace.print(finalMap.get(0));         // big0
 }

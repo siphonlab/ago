@@ -26,7 +26,6 @@ units:
   - collection/ArrayList.ago
   - collection/LinkedList.ago
   - collection/HashMap.ago
-  - collection/LinkedHashMap.ago
   - collection/NativeArrayList.ago
   - collection/NativeLinkedList.ago
   - collection/NativeHashMap.ago

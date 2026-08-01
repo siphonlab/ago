@@ -25,6 +25,8 @@
     <logger name="org.siphonlab.ago.compiler.AgoClassParser" level="OFF"/>
     <logger name="io.vertx" level="ERROR"/>
 
+    <logger name="org.siphonlab.ago.compiler.ClassFile" level="OFF"/>
+
     <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
 
     <root level="debug">
