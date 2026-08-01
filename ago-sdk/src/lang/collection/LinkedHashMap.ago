@@ -66,7 +66,7 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
 
     override put(index as Key, value as Value){
         var isObjectKey = index instanceof Object;
-        var slot = hashToSlot(computeHashCode(index));
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
@@ -128,9 +128,9 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
 
     // --- Find slot for a key (returns -1 if not found) ---
 
-    fun findSlot(key as Key) as int{
+    private fun findSlot(key as Key) as int{
         var isObjectKey = key instanceof Object;
-        var slot = hashToSlot(computeHashCode(key));
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
         var probe = 0;
         while(probe < this.capacity){
             if(this.occupied[slot]){
@@ -154,7 +154,7 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
 
     // --- Linked list operations ---
 
-    fun addToTail(slot as int){
+    private fun addToTail(slot as int){
         if(this.head == -1){
             this.head = slot;
             this.tail = slot;
@@ -168,7 +168,7 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
         }
     }
 
-    fun removeFromChain(slot as int){
+    private fun removeFromChain(slot as int){
         var p = this.prevIndex[slot];
         var n = this.nextIndex[slot];
         if(p >= 0){
@@ -187,42 +187,18 @@ class LinkedHashMap<Key, Value> from Map<Key, Value>{
 
     // --- Internal helpers ---
 
-    fun computeHashCode(key as Key) as int{
-        if(key instanceof Object obj){
-            return obj.hashCode();
-        } else if(key instanceof int i){
-            return i.hashCode();
-        } else if(key instanceof long l){
-            return l.hashCode();
-        } else if(key instanceof short s){
-            return s.hashCode();
-        } else if(key instanceof byte b){
-            return b.hashCode();
-        } else if(key instanceof float f){
-            return f.hashCode();
-        } else if(key instanceof double d){
-            return d.hashCode();
-        } else if(key instanceof char c){
-            return c.hashCode();
-        } else if(key instanceof boolean bl){
-            return bl.hashCode();
-        } else {
-            return (key | Object).hashCode();
-        }
-    }
-
-    fun hashToSlot(h as int) as int{
+    private fun hashToSlot(h as int) as int{
         var nonNeg = h band 0x7FFFFFFF;
         return nonNeg % this.capacity;
     }
 
-    fun checkResize(){
+    private fun checkResize(){
         if(this.count > this.loadThreshold){
             resize();
         }
     }
 
-    fun resize(){
+    private fun resize(){
         var oldCapacity = this.capacity;
         var oldKeyStore = this.keyStore;
         var oldValueStore = this.valueStore;
