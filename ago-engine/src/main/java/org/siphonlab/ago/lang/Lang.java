@@ -283,6 +283,90 @@ public class Lang {
         frame.finishBoolean(s.equalsIgnoreCase(other));
     }
 
+    // --- String extension methods (receiver as first param, no boxing) ---
+
+    public static void String_length_ext(NativeFrame frame, String s){
+        frame.finishInt(s.length());
+    }
+
+    public static void String_charAt_ext(NativeFrame frame, String s, int index){
+        frame.finishChar(s.charAt(index));
+    }
+
+    public static void String_substring_begin_ext(NativeFrame frame, String s, int beginIndex){
+        frame.finishString(s.substring(beginIndex));
+    }
+
+    public static void String_substring_begin_end_ext(NativeFrame frame, String s, int beginIndex, int endIndex){
+        frame.finishString(s.substring(beginIndex, endIndex));
+    }
+
+    public static void String_contains_ext(NativeFrame frame, String s, String target){
+        frame.finishBoolean(s.contains(target));
+    }
+
+    public static void String_startsWith_ext(NativeFrame frame, String s, String prefix){
+        frame.finishBoolean(s.startsWith(prefix));
+    }
+
+    public static void String_endsWith_ext(NativeFrame frame, String s, String suffix){
+        frame.finishBoolean(s.endsWith(suffix));
+    }
+
+    public static void String_indexOf_char_ext(NativeFrame frame, String s, char ch){
+        frame.finishInt(s.indexOf(ch));
+    }
+
+    public static void String_indexOf_str_ext(NativeFrame frame, String s, String str){
+        frame.finishInt(s.indexOf(str));
+    }
+
+    public static void String_lastIndexOf_char_ext(NativeFrame frame, String s, char ch){
+        frame.finishInt(s.lastIndexOf(ch));
+    }
+
+    public static void String_lastIndexOf_str_ext(NativeFrame frame, String s, String str){
+        frame.finishInt(s.lastIndexOf(str));
+    }
+
+    public static void String_trim_ext(NativeFrame frame, String s){
+        frame.finishString(s.trim());
+    }
+
+    public static void String_toLowerCase_ext(NativeFrame frame, String s){
+        frame.finishString(s.toLowerCase());
+    }
+
+    public static void String_toUpperCase_ext(NativeFrame frame, String s){
+        frame.finishString(s.toUpperCase());
+    }
+
+    public static void String_replace_char_ext(NativeFrame frame, String s, char oldChar, char newChar){
+        frame.finishString(s.replace(oldChar, newChar));
+    }
+
+    public static void String_replace_str_ext(NativeFrame frame, String s, String oldStr, String newStr){
+        frame.finishString(s.replace(oldStr, newStr));
+    }
+
+    public static void String_split_ext(NativeFrame frame, String s, String separator){
+        var parts = s.split(separator, -1);
+        AgoEngine engine = frame.getAgoEngine();
+        var arrayInst = engine.createStringArray(frame.getAgoClass().getResultClass(), parts.length);
+        for (int i = 0; i < parts.length; i++) {
+            arrayInst.value[i] = parts[i];
+        }
+        frame.finishObject(arrayInst);
+    }
+
+    public static void String_equalsIgnoreCase_ext(NativeFrame frame, String s, String other){
+        frame.finishBoolean(s.equalsIgnoreCase(other));
+    }
+
+    public static void String_hashCode_ext(NativeFrame frame, String s){
+        frame.finishInt(s.hashCode());
+    }
+
     // --- Integer metaclass statics ---
 
     public static void Integer_MIN_VALUE(NativeFrame frame){

@@ -99,92 +99,73 @@ public class String from Boxer<string>{
 
 }
 
-// --- Extension methods on primitive string type (delegate via boxing) ---
+// --- Extension methods on primitive string type (direct natives, no boxing) ---
 
 final class StringExt{
     metaclass{
-        fun length(this as string) as int{
-            return new String(this).length();
-        }
+        fun length(this as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_length_ext";
 
-        fun charAt(this as string, index as int) as char{
-            return new String(this).charAt(index);
-        }
+        fun charAt(this as string, index as int) as char
+            native "org.siphonlab.ago.lang.Lang.String_charAt_ext";
 
-        fun substring(this as string, beginIndex as int) as string{
-            return new String(this).substring(beginIndex);
-        }
+        fun substring(this as string, beginIndex as int) as string
+            native "org.siphonlab.ago.lang.Lang.String_substring_begin_ext";
 
-        fun substring#se(this as string, beginIndex as int, endIndex as int) as string{
-            return new String(this).substring(beginIndex, endIndex);
-        }
+        fun substring#se(this as string, beginIndex as int, endIndex as int) as string
+            native "org.siphonlab.ago.lang.Lang.String_substring_begin_end_ext";
 
         fun concat(this as string, str as string) as string{
             return this + str;
         }
 
-        fun contains(this as string, target as string) as boolean{
-            return new String(this).contains(target);
-        }
+        fun contains(this as string, target as string) as boolean
+            native "org.siphonlab.ago.lang.Lang.String_contains_ext";
 
-        fun startsWith(this as string, prefix as string) as boolean{
-            return new String(this).startsWith(prefix);
-        }
+        fun startsWith(this as string, prefix as string) as boolean
+            native "org.siphonlab.ago.lang.Lang.String_startsWith_ext";
 
-        fun endsWith(this as string, suffix as string) as boolean{
-            return new String(this).endsWith(suffix);
-        }
+        fun endsWith(this as string, suffix as string) as boolean
+            native "org.siphonlab.ago.lang.Lang.String_endsWith_ext";
 
-        fun indexOf#ch(this as string, ch as char) as int{
-            return new String(this).indexOf(ch);
-        }
+        fun indexOf#ch(this as string, ch as char) as int
+            native "org.siphonlab.ago.lang.Lang.String_indexOf_char_ext";
 
-        fun indexOf#str(this as string, str as string) as int{
-            return new String(this).indexOf(str);
-        }
+        fun indexOf#str(this as string, str as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_indexOf_str_ext";
 
-        fun lastIndexOf#ch(this as string, ch as char) as int{
-            return new String(this).lastIndexOf(ch);
-        }
+        fun lastIndexOf#ch(this as string, ch as char) as int
+            native "org.siphonlab.ago.lang.Lang.String_lastIndexOf_char_ext";
 
-        fun lastIndexOf#str(this as string, str as string) as int{
-            return new String(this).lastIndexOf(str);
-        }
+        fun lastIndexOf#str(this as string, str as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_lastIndexOf_str_ext";
 
-        fun trim(this as string) as string{
-            return new String(this).trim();
-        }
+        fun trim(this as string) as string
+            native "org.siphonlab.ago.lang.Lang.String_trim_ext";
 
-        fun toLowerCase(this as string) as string{
-            return new String(this).toLowerCase();
-        }
+        fun toLowerCase(this as string) as string
+            native "org.siphonlab.ago.lang.Lang.String_toLowerCase_ext";
 
-        fun toUpperCase(this as string) as string{
-            return new String(this).toUpperCase();
-        }
+        fun toUpperCase(this as string) as string
+            native "org.siphonlab.ago.lang.Lang.String_toUpperCase_ext";
 
-        fun replace#old_new(this as string, oldChar as char, newChar as char) as string{
-            return new String(this).replace(oldChar, newChar);
-        }
+        fun replace#old_new(this as string, oldChar as char, newChar as char) as string
+            native "org.siphonlab.ago.lang.Lang.String_replace_char_ext";
 
-        fun replace#old_str(this as string, oldStr as string, newStr as string) as string{
-            return new String(this).replace(oldStr, newStr);
-        }
+        fun replace#old_str(this as string, oldStr as string, newStr as string) as string
+            native "org.siphonlab.ago.lang.Lang.String_replace_str_ext";
 
-        fun split(this as string, separator as string) as string[]{
-            return new String(this).split(separator);
-        }
+        fun split(this as string, separator as string) as string[]
+            native "org.siphonlab.ago.lang.Lang.String_split_ext";
 
         fun isEmpty(this as string) as boolean{
             return this == "";
         }
 
-        fun equalsIgnoreCase(this as string, other as string) as boolean{
-            return new String(this).equalsIgnoreCase(other);
-        }
+        fun equalsIgnoreCase(this as string, other as string) as boolean
+            native "org.siphonlab.ago.lang.Lang.String_equalsIgnoreCase_ext";
 
-        fun hashCode(this as string) as int{
-            return new String(this).hashCode();
-        }
+        fun hashCode(this as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_hashCode_ext";
     }
 }
