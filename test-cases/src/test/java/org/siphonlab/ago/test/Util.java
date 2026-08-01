@@ -136,8 +136,16 @@ public class Util {
 
         if(new File("../ago-sdk/compiled/lang/").exists()) {
             agoClassLoader.loadModuleFromDirectory("../ago-sdk/compiled/lang/");
+            var ioDir = new File("../ago-sdk/compiled/io/");
+            if(ioDir.exists()) {
+                agoClassLoader.loadModuleFromDirectory("../ago-sdk/compiled/io/");
+            }
         } else {
             agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            var ioDir = new File("../ago-sdk/compiled/io/");
+            if(ioDir.exists()) {
+                agoClassLoader.loadModuleFromDirectory("../ago-sdk/compiled/io/");
+            }
         }
 
         var project = new UnnamedProject(new File("examples/%s".formatted(filename)));
@@ -197,9 +205,10 @@ public class Util {
         AgoEngine engine = new AgoEngine(new VertxRunSpaceHost(Vertx.vertx()));
         AgoClassLoader agoClassLoader = new AgoClassLoader();
         if(new File("../ago-sdk/compiled/lang/").exists()) {
-            agoClassLoader.loadModules("../ago-sdk/compiled/lang/", "output/%s".formatted(filename));
+            agoClassLoader.loadModules("../ago-sdk/compiled/lang/", "../ago-sdk/compiled/io/", "output/%s".formatted(filename));
         } else {
             agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
+            agoClassLoader.loadModuleFromDirectory("../ago-sdk/compiled/io/");
             agoClassLoader.loadModuleFromDirectory("output/%s".formatted(filename));
         }
 
