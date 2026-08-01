@@ -26,6 +26,7 @@ public class CompileSdk {
             return;
         }
         new ClassFile(langModule).saveToDirectory("../ago-sdk/compiled/lang/");
+        new ClassFile(langModule).createPackage(new FileOutputStream("../ago-sdk/lang.agopkg"));
 
         var ioModule = new ProjectParser().parse("../ago-sdk/src/io/module.info");
         Compiler ioCompiler = new Compiler(ioModule);
@@ -40,7 +41,6 @@ public class CompileSdk {
             return;
         }
         new ClassFile(ioModule).saveToDirectory("../ago-sdk/compiled/io/");
-
-        new ClassFile(langModule).createPackage(new FileOutputStream("../ago-sdk/lang.agopkg"));
+        new ClassFile(ioModule).createPackage(new FileOutputStream("../ago-sdk/io.agopkg"));
     }
 }

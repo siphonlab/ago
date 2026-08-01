@@ -208,7 +208,7 @@ public class Util {
             agoClassLoader.loadModules("../ago-sdk/compiled/lang/", "../ago-sdk/compiled/io/", "output/%s".formatted(filename));
         } else {
             agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/lang.agopkg")));
-            agoClassLoader.loadModuleFromDirectory("../ago-sdk/compiled/io/");
+            agoClassLoader.loadModuleFromPackage(new ZipInputStream(new FileInputStream("../ago-sdk/io.agopkg")));
             agoClassLoader.loadModuleFromDirectory("output/%s".formatted(filename));
         }
 
