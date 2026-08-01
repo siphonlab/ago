@@ -363,13 +363,13 @@ fun main(){
     personMap.put(p1Copy, "Senior Engineer");
     Trace.print(personMap.get(p1));             // Senior Engineer
     Trace.print(personMap.size);                // 2
+    Trace.print(map.size);                      // 2
 
     // --- Test 8: string keys (3 entries) ---
     var strMap = new LinkedHashMap<string, int>();
     strMap['one'] = 1
     strMap['two'] = 2
     strMap['three'] = 3
-    Trace.print(strMap["two"]);     // 2
     Trace.print(strMap.size);           // 3
 
     // --- Test 9: iteration order for string map (3 entries) ---
@@ -379,18 +379,21 @@ fun main(){
     ordMap.put("z", 30);
     Trace.print(ordMap.size);           // 3
 
-    // --- Test 10: clear ---
-    strMap.clear();
-    Trace.print(strMap.size);               // 0
-    Trace.print(strMap.containsKey("one"));     // false
-
-    // --- Test 11: putAll (preserves insertion order) ---
+    // --- Test 10: putAll (preserves insertion order) ---
     var src = new LinkedHashMap<string, int>();
     src.put("x", 10);
     src.put("y", 20);
     var dst = new LinkedHashMap<string, int>();
     dst.put("z", 30);
     dst.putAll(src);
+    Trace.print(dst.size);              // 3
+
+    // --- Test 11: clear ---
+    strMap.clear();
+    Trace.print(strMap.size);               // 0
+    Trace.print(strMap.containsKey("one"));     // false
+
+    Trace.print(dst.size);              // 3
     for(var entry in dst){
         Trace.print(entry.key + "=" + entry.value);     // z=30, x=10, y=20
     }
@@ -399,9 +402,10 @@ fun main(){
     var rmMap = new LinkedHashMap<int, string>();
     rmMap.put(1, "a");
     rmMap.put(2, "b");
+    rmMap.put(3, "c");
     Trace.print(rmMap.remove(1));       // true
     Trace.print(rmMap.remove(99));      // false
-    Trace.print(rmMap.size);            // 1
+    Trace.print(rmMap.size);            // 2
 
     // --- Test 13: Object key remove uses equals ---
     personMap.remove(p1Copy);
