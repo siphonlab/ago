@@ -64,37 +64,30 @@ public class Integer from Number<int>{
         native "org.siphonlab.ago.lang.Lang.Integer_reverseBytes";
 }
 
-// --- Extension methods on primitive int type ---
+// --- Extension methods on primitive int type (direct natives, no boxing) ---
 
 final class IntExt{
     metaclass{
-        fun abs(this as int) as int{
-            return new Integer(this).abs();
-        }
+        fun abs(this as int) as int
+            native "org.siphonlab.ago.lang.Lang.Integer_abs_ext";
 
-        fun negate(this as int) as int{
-            return new Integer(this).negate();
-        }
+        fun negate(this as int) as int
+            native "org.siphonlab.ago.lang.Lang.Integer_negate_ext";
 
-        fun clamp(this as int, minVal as int, maxVal as int) as int{
-            return new Integer(this).clamp(minVal, maxVal);
-        }
+        fun clamp(this as int, minVal as int, maxVal as int) as int
+            native "org.siphonlab.ago.lang.Lang.Integer_clamp_ext";
 
-        fun hexString(this as int) as string{
-            return new Integer(this).hexString();
-        }
+        fun hexString(this as int) as string
+            native "org.siphonlab.ago.lang.Lang.Integer_hexString_ext";
 
-        fun toBinaryString(this as int) as string{
-            return new Integer(this).toBinaryString();
-        }
+        fun toBinaryString(this as int) as string
+            native "org.siphonlab.ago.lang.Lang.Integer_toBinaryString_ext";
 
-        fun bitCount(this as int) as int{
-            return new Integer(this).bitCount();
-        }
+        fun bitCount(this as int) as int
+            native "org.siphonlab.ago.lang.Lang.Integer_bitCount_ext";
 
-        fun reverseBytes(this as int) as int{
-            return new Integer(this).reverseBytes();
-        }
+        fun reverseBytes(this as int) as int
+            native "org.siphonlab.ago.lang.Lang.Integer_reverseBytes_ext";
 
         fun hashCode(this as int) as int{
             return this;

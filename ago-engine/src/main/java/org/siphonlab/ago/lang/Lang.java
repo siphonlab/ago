@@ -414,6 +414,36 @@ public class Lang {
         frame.finishInt(Integer.reverseBytes(v));
     }
 
+    // --- Integer extension methods (receiver as first param) ---
+
+    public static void Integer_abs_ext(NativeFrame frame, int v){
+        frame.finishInt(Math.abs(v));
+    }
+
+    public static void Integer_negate_ext(NativeFrame frame, int v){
+        frame.finishInt(-v);
+    }
+
+    public static void Integer_clamp_ext(NativeFrame frame, int v, int minVal, int maxVal){
+        frame.finishInt(Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Integer_hexString_ext(NativeFrame frame, int v){
+        frame.finishString(Integer.toHexString(v));
+    }
+
+    public static void Integer_toBinaryString_ext(NativeFrame frame, int v){
+        frame.finishString(Integer.toBinaryString(v));
+    }
+
+    public static void Integer_bitCount_ext(NativeFrame frame, int v){
+        frame.finishInt(Integer.bitCount(v));
+    }
+
+    public static void Integer_reverseBytes_ext(NativeFrame frame, int v){
+        frame.finishInt(Integer.reverseBytes(v));
+    }
+
     // --- Long metaclass statics ---
 
     public static void Long_MIN_VALUE(NativeFrame frame){
@@ -458,6 +488,36 @@ public class Lang {
 
     public static void Long_reverseBytes(NativeFrame frame){
         long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishLong(Long.reverseBytes(v));
+    }
+
+    // --- Long extension methods (receiver as first param) ---
+
+    public static void Long_abs_ext(NativeFrame frame, long v){
+        frame.finishLong(Math.abs(v));
+    }
+
+    public static void Long_negate_ext(NativeFrame frame, long v){
+        frame.finishLong(-v);
+    }
+
+    public static void Long_clamp_ext(NativeFrame frame, long v, long minVal, long maxVal){
+        frame.finishLong(Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Long_hexString_ext(NativeFrame frame, long v){
+        frame.finishString(Long.toHexString(v));
+    }
+
+    public static void Long_toBinaryString_ext(NativeFrame frame, long v){
+        frame.finishString(Long.toBinaryString(v));
+    }
+
+    public static void Long_bitCount_ext(NativeFrame frame, long v){
+        frame.finishInt(Long.bitCount(v));
+    }
+
+    public static void Long_reverseBytes_ext(NativeFrame frame, long v){
         frame.finishLong(Long.reverseBytes(v));
     }
 
@@ -744,6 +804,20 @@ public class Lang {
         frame.finishString(String.format("%02x", v & 0xFF));
     }
 
+    // --- Byte extension methods (receiver as first param) ---
+
+    public static void Byte_abs_ext(NativeFrame frame, byte v){
+        frame.finishByte((byte)Math.abs(v));
+    }
+
+    public static void Byte_clamp_ext(NativeFrame frame, byte v, byte minVal, byte maxVal){
+        frame.finishByte((byte)Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Byte_toHexString_ext(NativeFrame frame, byte v){
+        frame.finishString(String.format("%02x", v & 0xFF));
+    }
+
     // --- Short toString ---
 
     public static void Short_toString(NativeFrame frame){
@@ -775,6 +849,20 @@ public class Lang {
 
     public static void Short_toHexString(NativeFrame frame){
         short v = frame.getParentScope().getSlots().getShort(0);
+        frame.finishString(String.format("%04x", v & 0xFFFF));
+    }
+
+    // --- Short extension methods (receiver as first param) ---
+
+    public static void Short_abs_ext(NativeFrame frame, short v){
+        frame.finishShort((short)Math.abs(v));
+    }
+
+    public static void Short_clamp_ext(NativeFrame frame, short v, short minVal, short maxVal){
+        frame.finishShort((short)Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Short_toHexString_ext(NativeFrame frame, short v){
         frame.finishString(String.format("%04x", v & 0xFFFF));
     }
 
