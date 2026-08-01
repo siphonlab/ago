@@ -2,26 +2,127 @@ package io;
 
 native class IOException from Exception{}
 
+// =============================================================================
+// Buffer — wraps Vert.x io.vertx.core.buffer.Buffer
+// =============================================================================
 native class Buffer{
+    // -- constructors ---------------------------------------------------------
     fun new() native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_create';
+    fun new#size(size as int) native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_createSize';
+    fun new#str(s as string) native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_createString';
+
+    // -- property -------------------------------------------------------------
+    fun length() as int native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_length';
+
+    // -- read (getter) operations ---------------------------------------------
+    fun getByte(pos as int) as byte native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_getByte';
+    fun getInt(pos as int) as int   native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_getInt';
+    fun getLong(pos as int) as long native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_getLong';
+    fun getFloat(pos as int) as float native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_getFloat';
+    fun getDouble(pos as int) as double native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_getDouble';
+    fun getString(start as int, end as int) as string
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_getString';
+
+    // -- write (setter) operations — return Buffer for chaining ----------------
+    fun setByte(pos as int, value as byte) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_setByte';
+    fun setInt(pos as int, value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_setInt';
+    fun setLong(pos as int, value as long) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_setLong';
+    fun setFloat(pos as int, value as float) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_setFloat';
+    fun setDouble(pos as int, value as double) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_setDouble';
+    fun setString(pos as int, s as string) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_setString';
+
+    // -- append operations — return Buffer for chaining ------------------------
+    fun appendByte(value as byte) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_appendByte';
+    fun appendInt(value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_appendInt';
+    fun appendLong(value as long) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_appendLong';
+    fun appendString(s as string) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_appendString';
+
+    // -- copy / slice ---------------------------------------------------------
+    fun copy() as Buffer native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_copy';
+    fun slice(start as int, end as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_slice';
+
     override toString() as string native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_toString';
 }
 
+// =============================================================================
+// FileSystem — entry point for file operations (wraps Vert.x FileSystem)
+// =============================================================================
 class FileSystem{
     private fun new(){}
 
     metaclass{
         fun open(path as string) as File
                 native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_open';
+
+        fun readFile(path as string) as Buffer
+                native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_readFile';
+
+        fun writeFile(path as string, data as Buffer) as void
+                native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_writeFile';
+
+        fun exists(path as string) as boolean
+                native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_exists';
+
+        fun size(path as string) as long
+                native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_size';
+
+        fun mkdir(path as string) as void
+                native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_mkdir';
+
+        fun rename(oldPath as string, newPath as string) as void
+                native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_rename';
+
+        fun delete(path as string) as void
+                native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_delete';
     }
 }
 
-// according vertx AsyncFile
+// =============================================================================
+// File — wraps Vert.x AsyncFile (extends ReadStream<Buffer> + WriteStream<Buffer>)
+// =============================================================================
 native class File{
+    // -- read -----------------------------------------------------------------
     fun read(buffer as Buffer, offset as int, position as long, length as int) as Buffer
             native 'org.siphonlab.ago.runtime.vertx.IO.File_read';
+
+    // -- write ----------------------------------------------------------------
+    fun write(buffer as Buffer, position as long) as void
+            native 'org.siphonlab.ago.runtime.vertx.IO.File_write';
+
+    // -- stream control (ReadStream / WriteStream) ----------------------------
+    fun pause() as File native 'org.siphonlab.ago.runtime.vertx.IO.File_pause';
+    fun resume() as File native 'org.siphonlab.ago.runtime.vertx.IO.File_resume';
+    fun fetch(amount as long) as File native 'org.siphonlab.ago.runtime.vertx.IO.File_fetch';
+
+    // -- position helpers -----------------------------------------------------
+    fun setReadPos(pos as long) as void native 'org.siphonlab.ago.runtime.vertx.IO.File_setReadPos';
+    fun setWritePos(pos as long) as void native 'org.siphonlab.ago.runtime.vertx.IO.File_setWritePos';
+    fun getWritePos() as long native 'org.siphonlab.ago.runtime.vertx.IO.File_getWritePos';
+
+    // -- read-length helpers --------------------------------------------------
+    fun setReadLength(length as long) as void native 'org.siphonlab.ago.runtime.vertx.IO.File_setReadLength';
+    fun getReadLength() as long native 'org.siphonlab.ago.runtime.vertx.IO.File_getReadLength';
+
+    // -- misc -----------------------------------------------------------------
+    fun size() as long native 'org.siphonlab.ago.runtime.vertx.IO.File_size';
+    fun flush() as void native 'org.siphonlab.ago.runtime.vertx.IO.File_flush';
+    fun close() as void native 'org.siphonlab.ago.runtime.vertx.IO.File_close';
 }
 
+// =============================================================================
+// main — quick smoke test
+// =============================================================================
 fun main(){
     var file = FileSystem.open('examples/bootstrap/hello_world.ago');
     var buffer = new Buffer();
