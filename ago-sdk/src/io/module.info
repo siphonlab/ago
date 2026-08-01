@@ -8,6 +8,7 @@ repository:
   url: https://github.com/siphonlab/ago/tree/master/ago-sdk
 
 units:
+  Buffer.ago
   filesystem.ago
 
 description: |
