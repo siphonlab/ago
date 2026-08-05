@@ -55,6 +55,11 @@ public class GenericInstantiationClassDef extends ClassDef implements GenericCon
     }
 
     @Override
+    public Project getModule() {
+        return project;
+    }
+
+    @Override
     public void resolveHierarchicalClasses() throws CompilationError {
         if (this.compilingStage != CompilingStage.ResolveHierarchicalClasses)
             return;

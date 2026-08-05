@@ -36,6 +36,7 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
 
     private final FunctionDef templateClass;
     private final InstantiationArguments instantiationArguments;
+    private final Project project;
 
     private AgoParser.TypeArgsListContext typeArgsListContext;
 
@@ -43,12 +44,18 @@ public class GenericInstantiationFunctionDef extends FunctionDef implements Gene
         super(project == null ? templateClass.getRoot() : project.getRoot(), composeName(templateClass, instantiationArguments.takeFor(templateClass)), templateClass.getMethodDecl());
         this.templateClass = templateClass;
         this.instantiationArguments = instantiationArguments;
+        this.project = project;
         this.setGenericSource(new GenericSource(templateClass, instantiationArguments, instantiationArguments.takeFor(templateClass)));
         this.setClassType(templateClass.getClassType());
         templateClass.cloneTo(project, instantiationArguments, this, parent);
         if(templateClass.getCompilingStage() == CompilingStage.Compiled || templateClass.getCompilingStage() == CompilingStage.CompileMethodBody){
             GenericInstantiate.syncCompilingStage(this, templateClass.getCompilingStage());
         }
+    }
+
+    @Override
+    public Project getModule() {
+        return project;
     }
 
     @Override
