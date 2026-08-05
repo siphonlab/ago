@@ -357,6 +357,9 @@ public class ClassHeader {
                     name = names[0];
                     fullname = names[1];
                 }
+                existed = classLoader.getClassHeader(fullname);
+                if(existed != null) return existed;     // will happen takeFor meta's instance class
+
                 assert parentInstantiation == null;
                 inst = metaClassHeader.instantiateMetaClass(parentInstantiation, name, fullname, args);
                 if (LOGGER.isDebugEnabled()) LOGGER.debug("%s apply template and got inst %s".formatted(templ.fullname, inst.fullname));
@@ -441,15 +444,30 @@ public class ClassHeader {
     }
 
     private static String[] composeGenericInstanceNames(String parentName, ClassHeader child, InstantiationArguments childArgs) {
-        if(child.isGenericTemplate() && childArgs.takeFor(child) != null) {
-            String name = GenericInstantiationClassHeader.composeClassName(child.name, childArgs.takeFor(child));
-            String fullname = parentName + '.' + name;
-            return new String[]{name, fullname};
-        } else if(child instanceof MetaClassHeader metaClassHeader){
-            return GenericInstantiationClassHeader.composeMetaClassName(metaClassHeader.instanceClass, childArgs);
-        } else {
-            return new String[]{child.name, parentName + '.' + child.name};
+        if(child.isGenericTemplate()) {
+            ClassRefValue[] argValues = childArgs.takeFor(child);
+            if (argValues != null) {
+                String name = GenericInstantiationClassHeader.composeClassName(child.name, argValues);
+                String fullname = parentName + '.' + name;
+                return new String[]{name, fullname};
+            }
         }
+        if(child.genericSource != null) {
+            var args = child.genericSource.instantiationArguments().apply(childArgs, child.classLoader);
+            if (args != null) {
+                ClassHeader sourceTemplate = child.getSourceTemplate();
+                ClassRefValue[] argValues = args.takeFor(sourceTemplate);
+                if (argValues != null) {
+                    String name = GenericInstantiationClassHeader.composeClassName(sourceTemplate.name, argValues);
+                    String fullname = parentName + '.' + name;
+                    return new String[]{name, fullname};
+                }
+            }
+        }
+        if(child instanceof MetaClassHeader metaClassHeader){
+            return GenericInstantiationClassHeader.composeMetaClassName(metaClassHeader.instanceClass, childArgs);
+        }
+        return new String[]{child.name, parentName + '.' + child.name};
     }
 
 
@@ -708,11 +726,15 @@ public class ClassHeader {
         if(visited.contains(this.fullname)) return false;
         visited.add(this.fullname);
 
-        for(var p = this; p != null; p = p.parent){
+        for(var p = this; p != null; ){
             if(p.isGenericTemplate()){
                 var r = typeArguments.canApplyOnTemplate(p);
                 if(r) return true;
+            } else if(p instanceof MetaClassHeader m){
+                p = m.getInstanceClass();
+                continue;
             }
+            p = p.parent;
         }
         if(this.superClass != null && !this.superClass.equals(this.fullname)){
             var superClass = classLoader.getClassHeader(this.superClass);

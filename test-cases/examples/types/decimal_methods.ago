@@ -1,0 +1,45 @@
+fun main(){
+    var dec = 123.456D;
+    var boxed = new Decimal(dec);
+
+    // abs
+    Trace.print(boxed.abs());
+    Trace.print((-99D).abs());
+
+    // isFinite (always true for BigDecimal)
+    Trace.print(new String(boxed.isFinite()));
+    Trace.print(new String(dec.isFinite()));
+
+    // isInfinite (always false for BigDecimal)
+    Trace.print(new String(boxed.isInfinite()));
+    Trace.print(new String(dec.isInfinite()));
+
+    // isNaN (always false for BigDecimal)
+    Trace.print(new String(boxed.isNaN()));
+    Trace.print(new String(dec.isNaN()));
+
+    // roundToInt
+    Trace.print(boxed.roundToInt());
+    Trace.print(dec.roundToInt());
+
+    // roundToLong
+    Trace.print(boxed.roundToLong());
+    Trace.print(dec.roundToLong());
+
+    // scale
+    Trace.print(boxed.scale());
+    Trace.print(dec.scale());
+
+    // setScale
+    var scaled = boxed.setScale(2);
+    Trace.print(scaled);
+    Trace.print(dec.setScale(1));
+
+    // compareTo
+    Trace.print(boxed.compareTo(100D));
+    Trace.print(dec.compareTo(200D));
+    Trace.print(dec.compareTo(123.456D));
+
+    // metaclass statics
+    Trace.print(new Decimal(Decimal.ZERO()));
+}

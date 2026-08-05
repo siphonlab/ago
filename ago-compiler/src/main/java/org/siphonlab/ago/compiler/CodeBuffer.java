@@ -150,6 +150,20 @@ public class CodeBuffer {
         slot(slot2);
     }
 
+    public void bitShiftVariableLiteral(int opCode, TypeCode typeCode, SlotDef left, IntLiteral right, SlotDef target) {
+        SizeVerifier sizeVerifier = this.sizeVerifier();
+        boolean isSameSlot = (target.getIndex() == left.getIndex());
+        if(isSameSlot){
+            ls.addInt(opCode | (typeCode.getValue() << 16) | 0x0102);        // add_vc
+            slot(target);
+        } else {
+            ls.addInt(opCode | (typeCode.getValue() << 16) | 0x0203);        // add_vvc, c must be const int
+            slot(target);
+            slot(left);
+        }
+        literal(right);
+        sizeVerifier.verify();
+    }
 
     private void literal(Literal<?> literal){
         TypeCode typeCode = literal.inferType().getTypeCode();

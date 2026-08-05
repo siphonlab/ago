@@ -1,0 +1,206 @@
+class ArrayList<E> from List<E>{
+    private elements as E[];
+    private count as int = 0;
+    private defaultCapacity as int = 16;
+
+    fun new(){
+        this.elements = new E[this.defaultCapacity];
+    }
+
+    fun new#array(array as E[]){
+        this.elements = new E[array.length];
+        for(var i = 0; i < array.length; i++){
+            this.elements[i] = array[i];
+        }
+        this.count = array.length;
+    }
+
+    override size#get() as int{
+        return this.count;
+    }
+
+    override isReadOnly() as boolean{
+        return false;
+    }
+
+    override add(item as E){
+        ensureCapacity(this.count + 1);
+        this.elements[this.count] = item;
+        this.count++;
+    }
+
+    override clear(){
+        this.count = 0;
+    }
+
+    override contains(item as E) as boolean{
+        for(var i = 0; i < this.count; i++){
+            if((this.elements[i] | Object).equals(item | Object)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    override remove(item as E) as boolean{
+        for(var i = 0; i < this.count; i++){
+            if((this.elements[i] | Object).equals(item | Object)){
+                shiftLeft(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    override get#index(index as int) as E{
+        checkBounds(index);
+        return this.elements[index];
+    }
+
+    override set#index(index as int, value as E){
+        checkBounds(index);
+        this.elements[index] = value;
+    }
+
+    override addAll#array(array as E[]){
+        ensureCapacity(this.count + array.length);
+        for(var i = 0; i < array.length; i++){
+            this.elements[this.count] = array[i];
+            this.count++;
+        }
+    }
+
+    override addAll#collection(it as Collection<E>){
+        ensureCapacity(this.count + it.size);
+        for(var el in it){
+            this.add(el);
+        }
+    }
+
+    class ArrayListIterator with Iterator<E>{
+        pos as int = 0;
+
+        override hasNext() as boolean{
+            return this.pos < count;
+        }
+
+        override next() as E{
+            var result = elements[this.pos];
+            this.pos++;
+            return result;
+        }
+    }
+
+    override iterator() as Iterator<E>{
+        return new ArrayListIterator();
+    }
+
+    fun checkBounds(index as int){
+        if(index < 0 or index >= this.count){
+            throw new IllegalStateException("index " + index + " out of bounds for size " + this.count);
+        }
+    }
+
+    fun ensureCapacity(minimalSize as int){
+        if(minimalSize <= this.elements.length){
+            return;
+        }
+        var newCapacity = this.elements.length * 2;
+        if(newCapacity < minimalSize){
+            newCapacity = minimalSize;
+        }
+        var oldElements = this.elements;
+        this.elements = new E[newCapacity];
+        for(var i = 0; i < this.count; i++){
+            this.elements[i] = oldElements[i];
+        }
+    }
+
+    fun shiftLeft(fromIndex as int){
+        for(var i = fromIndex; i < this.count - 1; i++){
+            this.elements[i] = this.elements[i + 1];
+        }
+        this.count--;
+    }
+}
+
+// ==================== Test code ====================
+
+fun main(){
+    // --- Test 1: basic add/size/get ---
+    var list = new ArrayList<string>();
+    Trace.print(list.size);          // 0
+
+    list.add("Alice");
+    list.add("Bob");
+    list.add("Charlie");
+    Trace.print(list.size);          // 3
+
+    Trace.print(list[0]);            // Alice
+    Trace.print(list[1]);            // Bob
+    Trace.print(list[2]);            // Charlie
+
+    // --- Test 2: contains before any mutation ---
+    Trace.print(list.contains("Bob"));       // true
+    Trace.print(list.contains("Alice"));     // true
+    Trace.print(list.contains("Nobody"));    // false
+
+    // --- Test 3: set existing index ---
+    list.set(1, "Robert");
+    Trace.print(list[1]);            // Robert
+
+    // --- Test 4: remove present element ---
+    Trace.print(list.remove("Charlie"));     // true
+    Trace.print(list.size);                 // 2
+    Trace.print(list[1]);                   // Robert (shifted)
+
+    // --- Test 5: iteration after mutation ---
+    for(var item in list){
+        Trace.print(item);                  // Alice, Robert
+    }
+
+    // --- Test 6: int elements ---
+    var intList = new ArrayList<int>();
+    intList.add(10);
+    intList.add(20);
+    intList.add(30);
+    Trace.print(intList.size);              // 3
+    Trace.print(intList[1]);                // 20
+    Trace.print(intList.remove(20));        // true
+    Trace.print(intList.size);              // 2
+
+    // --- Test 7: resize (fill beyond default capacity) ---
+    var bigList = new ArrayList<int>();
+    for(var i = 0; i < 100; i++){
+        bigList.add(i);
+    }
+    Trace.print(bigList.size);              // 100
+    Trace.print(bigList[99]);               // 99
+    Trace.print(bigList[50]);               // 50
+
+    // --- Test 8: array-init constructor ---
+    var arrInit = new ArrayList<string>(["x", "y", "z"]);
+    Trace.print(arrInit.size);              // 3
+    Trace.print(arrInit[2]);                // z
+
+    // --- Test 9: clear ---
+    list.clear();
+    Trace.print(list.size);                 // 0
+
+    // --- Test 10: addAll ---
+    var src = new ArrayList<int>();
+    src.add(1);
+    src.add(2);
+    var dst = new ArrayList<int>();
+    dst.add(0);
+    dst.addAll(src);
+    Trace.print(dst.size);                  // 3
+    Trace.print(dst[2]);                    // 2
+
+    // --- Test 11: bounds exception ---
+    try {
+        intList.get(999);
+    } catch (e as IllegalStateException) {
+        Trace.print("caught: " + e.message);   // caught: index 999 out of bounds for size 2
+    }
+}

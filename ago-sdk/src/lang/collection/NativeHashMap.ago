@@ -1,0 +1,88 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+/**
+a typed Map, for key type int, short, byte boolean, classref, float, char, use Int2NullableObjectHashMap in backend
+for key type, long, double, use  Long2NullableObjectHashMap in backend
+for string and object, HashMap<Object, Object>.
+
+if the key is Object, invoke hashCode() to put, and `get` to, but equals not make effect, for that need callback to ago
+**/
+native class NativeHashMap<Key, Value> from Map<Key, Value>{
+    fun new(){
+        init()
+    }
+
+    private fun init() native "org.siphonlab.ago.lang.AgoHashMap.create";
+
+    override size#get() as int native "org.siphonlab.ago.lang.AgoHashMap.getSize";
+    override isReadOnly() as boolean native "org.siphonlab.ago.lang.AgoHashMap.isReadOnly";
+    override clear() native "org.siphonlab.ago.lang.AgoHashMap.clear";
+
+    override get#key(index as Key) as Value{
+        if(index instanceof Object obj){
+            return getObjectKey(obj, obj.hashCode());
+        } else {
+            return getPrimitiveKey(index);
+        }
+    }
+
+    private fun getObjectKey(index as Object, indexHashCode as int) as Value native "org.siphonlab.ago.lang.AgoHashMap$Get.get";
+    private fun getPrimitiveKey(index as Key) as Value native "org.siphonlab.ago.lang.AgoHashMap$Get.get";
+
+    override put(index as Key, value as Value){
+        if(index instanceof Object obj){
+            putObjectKey(obj, obj.hashCode(), value);
+        } else {
+            putPrimitiveKey(index, value);
+        }
+    }
+
+    private fun putObjectKey(index as Object, indexHashCode as int, value as Value) native "org.siphonlab.ago.lang.AgoHashMap$Put.put";
+    private fun putPrimitiveKey(index as Key, value as Value) native "org.siphonlab.ago.lang.AgoHashMap$Put.put";
+
+    override putAll(map as ReadOnlyMap<Key,Value>) native "org.siphonlab.ago.lang.AgoHashMap.putAll"
+
+    override keys#get() as ReadOnlyCollection<Key>{
+        var ls = new NativeArrayList<Key>();
+        this.nativeKeys(ls);
+        return ls;
+    }
+    private fun nativeKeys(ls as NativeArrayList<Key>) native "org.siphonlab.ago.lang.AgoHashMap.keys";
+
+    override values#get() as ReadOnlyCollection<Value> {
+        var ls = new NativeArrayList<Value>();
+        this.nativeValues(ls);
+        return ls;
+    }
+    private fun nativeValues(ls as NativeArrayList<Value>) native "org.siphonlab.ago.lang.AgoHashMap.values";
+
+    override containsKey(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.containsKey";
+    override remove(key as Key) as boolean native "org.siphonlab.ago.lang.AgoHashMap.removeByKey";
+
+    native class HashMapIterator with Iterator<KeyValuePair<Key, Value>> {
+        fun new() {create()}
+        private fun create() native "org.siphonlab.ago.lang.AgoHashMap.Iterator_create";
+        override hasNext() as boolean native "org.siphonlab.ago.lang.AgoHashMap.Iterator_hasNext";
+        override next() as KeyValuePair<Key, Value> native "org.siphonlab.ago.lang.AgoHashMap.Iterator_next";
+    }
+
+    override iterator() as Iterator<KeyValuePair<Key, Value>>{
+        return new HashMapIterator();
+    }
+
+}

@@ -68,7 +68,7 @@ public class SwitchCaseStmt extends Statement{
 
         public void visitActions(BlockCompiler blockCompiler) throws CompilationError {
             for (Statement action : this.actions) {
-                action.termVisit(blockCompiler);
+                ReusableScope.wrap(action, blockCompiler.getFunctionDef()).termVisit(blockCompiler);
             }
         }
     }

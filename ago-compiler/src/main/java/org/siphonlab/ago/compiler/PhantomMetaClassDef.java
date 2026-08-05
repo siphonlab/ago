@@ -18,7 +18,7 @@ package org.siphonlab.ago.compiler;
 public class PhantomMetaClassDef extends MetaClassDef{
 
     public PhantomMetaClassDef(ClassDef instanceClassDef) {
-        super(instanceClassDef.getRoot(), instanceClassDef, instanceClassDef instanceof MetaClassDef ? 1 : 2, null);
+        super(instanceClassDef.getRoot(), instanceClassDef, instanceClassDef instanceof MetaClassDef ? 1 : 2, instanceClassDef.agoClassCombineClassParser);
     }
 
 }

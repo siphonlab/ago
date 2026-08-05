@@ -20,6 +20,10 @@ import java.util.function.Predicate;
 
 public class PreservableSearcher<E> {
 
+    public interface CurrNextPredicate<T>{
+        boolean test(T current, T next);
+    }
+
     private List<E> list;
     private int pos = 0;
 
@@ -27,7 +31,7 @@ public class PreservableSearcher<E> {
         this.list = list;
     }
 
-    public E search(Predicate<? super E> predicate) {
+    public E search(CurrNextPredicate<? super E> predicate) {
         int size = this.list.size();
         if (size == 0) {
             return null;
@@ -37,7 +41,8 @@ public class PreservableSearcher<E> {
 
         for (int i = pos; i < size; i++) {
             E e = this.list.get(i);
-            if (predicate.test(e)) {
+            E next = i < size - 1 ? this.list.get(i + 1) : null;
+            if (predicate.test(e, next)) {
                 pos = i;
                 return e;
             }
@@ -47,7 +52,8 @@ public class PreservableSearcher<E> {
         if (startPos > 0) {
             for (int i = 0; i < startPos; i++) {
                 E e = this.list.get(i);
-                if (predicate.test(e)) {
+                E next = i < size - 1 ? this.list.get(i + 1) : null;
+                if (predicate.test(e, next)) {
                     pos = i;
                     return e;
                 }

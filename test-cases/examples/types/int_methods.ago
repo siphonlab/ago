@@ -1,0 +1,38 @@
+fun main(){
+    var i = 42;
+    var boxed = new Integer(i);
+
+    // abs
+    Trace.print(boxed.abs());
+    Trace.print((-42).abs());
+
+    // negate
+    Trace.print(boxed.negate());
+    Trace.print((7).negate());
+
+    // clamp
+    Trace.print(boxed.clamp(0, 100));
+    Trace.print((-5).clamp(0, 100));
+    Trace.print((200).clamp(0, 100));
+
+    // hexString
+    Trace.print(boxed.hexString());
+    Trace.print(i.hexString());
+
+    // toBinaryString
+    Trace.print(boxed.toBinaryString());
+    Trace.print(i.toBinaryString());
+
+    // bitCount
+    Trace.print(boxed.bitCount());
+    Trace.print(i.bitCount());
+
+    // reverseBytes
+    var rb = boxed.reverseBytes();
+    Trace.print(rb);
+    Trace.print(i.reverseBytes());
+
+    // metaclass statics
+    Trace.print(Integer.MIN_VALUE());
+    Trace.print(Integer.MAX_VALUE());
+}

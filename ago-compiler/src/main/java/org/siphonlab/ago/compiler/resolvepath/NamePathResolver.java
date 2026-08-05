@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler.resolvepath;
 
 
 import org.jspecify.annotations.NonNull;
+import org.siphonlab.ago.Modifier;
 import org.siphonlab.ago.compiler.SourceLocation;
 import org.siphonlab.ago.compiler.Package;
 
@@ -93,6 +94,10 @@ public class NamePathResolver {
             return s;
         }
     }
+
+    public final static int PUBIC_VISIBILITY = 0;          // allow all
+    public final static int PROTECTED_VISIBILITY = 1;      // private + on super chain of scope class
+    public final static int PRIVATE_VISIBILITY = 2;        // allow outer/inner type from the scope class
 
     private final ResolveMode resolveMode;
 
@@ -256,7 +261,7 @@ public class NamePathResolver {
             start = head;
         }
 
-        var r = forward(start, pos);
+        var r = forward(start, pos, PUBIC_VISIBILITY);      // a placeholder VISIBILITY
         if (r == null) {
             if(this.error != null){
                 throw this.error;
@@ -395,6 +400,13 @@ public class NamePathResolver {
         PronounResolveResult(ClassDef scopeClass, ClassDef classDef, int depth, PronounResolveResultKind pronounResolveResultKind){
             this(scopeClass, classDef, depth, null, pronounResolveResultKind);
         }
+
+        /**
+         * @param id
+         * @param resolver
+         * @return  Scope | Var.Field for permit and trait
+         * @throws CompilationError
+         */
         Expression toExpr(Pronoun id, NamePathResolver resolver) throws CompilationError {
             PronounType pronounType = id.pronounType;
             ClassDef c = classDef;
@@ -545,7 +557,7 @@ public class NamePathResolver {
         return ids.get(pos);
     }
 
-    Expression forward(Expression curr, int pos) {
+    Expression forward(Expression curr, int pos, int allowingVisibility) {
         if(pos >= this.ids.size()) {
             return curr;
         }
@@ -555,14 +567,14 @@ public class NamePathResolver {
             return switch (curr) {
                 case null -> forwardStart(id, pos);
                 case ConstClass constClass -> forward(constClass, id, pos);
-                case Var.LocalVar localVar -> forward(localVar, id, pos);
-                case Scope scope -> forward(scope, id, pos);
-                case Var.Field field -> forward(field, id, pos);
+                case Var.LocalVar localVar -> forward(localVar, id, pos, allowingVisibilityUnderVar(localVar));
+                case Scope scope -> forward(scope, id, pos, allowingVisibilityOfScope(scope));
+                case Var.Field field -> forward(field, id, pos, allowingVisibilityUnderVar(field));
                 case ClassOf.ClassOfInstance classOfInstance -> forward(classOfInstance, id, pos);
-                case ClassOf.ClassOfScope classOfScope -> forward(classOfScope, id, pos);
+                case ClassOf.ClassOfScope classOfScope -> forward(classOfScope, id, pos, PRIVATE_VISIBILITY);
                 case ClassUnder.ClassUnderInstance classUnderInstance -> forward(classUnderInstance, id, pos);
                 case ClassUnder.ClassUnderScope classOfScope -> forward(classOfScope, id, pos);
-                default -> forward(curr, id, pos);
+                default -> forward(curr, id, pos, allowingVisibility);
             };
         } catch (CompilationError error){
             this.error = error;
@@ -570,7 +582,76 @@ public class NamePathResolver {
         }
     }
 
-    private Expression forward(Expression scope, Id id, int pos) throws CompilationError{
+    private int allowingVisibilityOfScope(Scope scope){
+        if(scope.isPronoun()){
+            return switch (scope.getPronounType()){
+                case This, FunThis, ClassThis, TraitThis -> PRIVATE_VISIBILITY;
+                default -> PROTECTED_VISIBILITY;
+            };
+        } else {
+            return PRIVATE_VISIBILITY;
+        }
+    }
+
+    private int allowingVisibilityOfPronoun(Expression expression){
+        if(expression instanceof Scope scope){
+            return allowingVisibilityOfScope(scope);
+        } else if(expression instanceof Var.Field field) {
+            return PROTECTED_VISIBILITY;
+        } else if(expression instanceof Var.LocalVar localVar) {        // receiver
+            return PROTECTED_VISIBILITY;
+        } else {
+            throw new IllegalArgumentException("impossible");
+        }
+    }
+
+    private int allowingVisibilityUnderVar(Var expression){
+        var type = expression.variable.getType();
+        return allowingVisibilityOfType(type);
+    }
+
+    private int allowingVisibilityOfType(ClassDef type) {
+        if(type == scopeClass) return PRIVATE_VISIBILITY;
+        if(type.belongsTo(scopeClass) || scopeClass.belongsTo(type)){       // TODO include metaclass, and support parameterized class
+            return PRIVATE_VISIBILITY;
+        }
+        for(var c = scopeClass; c.getSuperClass() != c; c = c.getSuperClass()){
+            if(equalsIncludeParameterized(c, scopeClass)) return PROTECTED_VISIBILITY;
+        }
+        return PUBIC_VISIBILITY;
+    }
+
+    private int allowingVisibilityUnderExpr(Expression expression) throws CompilationError {
+        var type = expression.inferType();
+        if(type == null){
+            if(expression instanceof ClassOf){
+                if(expression instanceof ClassOf.ClassOfScope) {
+                    return PRIVATE_VISIBILITY;
+                } else {
+                    return PUBIC_VISIBILITY;
+                }
+            } else {
+                throw new UnsupportedOperationException("unexpecte expression " + expression);
+            }
+        }
+        return allowingVisibilityOfType(type);
+    }
+
+    private boolean equalsIncludeParameterized(ClassDef class1, ClassDef class2) {
+        if(class1 instanceof ParameterizedClassDef p){
+            class1 = p.getBaseClass();
+        } else if(class1 instanceof ParameterizedClassDef.PlaceHolder p){
+            class1 = p.getBaseClass();
+        }
+        if(class2 instanceof ParameterizedClassDef p){
+            class2 = p.getBaseClass();
+        } else if(class2 instanceof ParameterizedClassDef.PlaceHolder p){
+            class2 = p.getBaseClass();
+        }
+        return class1 == class2;
+    }
+
+    private Expression forward(Expression scope, Id id, int pos, int allowingVisibility) throws CompilationError{
         if(id instanceof Pronoun pronoun){
             throw new SyntaxError( "'%s' not allowed here".formatted(id.text()), id.sourceLocation);
         }
@@ -581,9 +662,9 @@ public class NamePathResolver {
         if(resolveMode == ResolveMode.ForTypeName){
             throw new SyntaxError( "cannot resolve type name from scope", id.sourceLocation);
         }
-        var r = resolveVariableOrClass(scope, id, pos, true);
+        var r = resolveVariableOrClass(scope, id, pos, true, allowingVisibility);
         if(r != null){
-            return forward(r.setSourceLocation(id.sourceLocation), pos + 1);
+            return forward(r.setSourceLocation(id.sourceLocation), pos + 1, allowingVisibilityUnderExpr(r));
         }
         return null;
     }
@@ -635,46 +716,46 @@ public class NamePathResolver {
         return null;
     }
 
-    Expression resolveVariableOrClass(Expression curr, Id id, int pos, boolean allowMetaScan) throws CompilationError {
+    Expression resolveVariableOrClass(Expression curr, Id id, int pos, boolean allowMetaScan, int allowedVisibility) throws CompilationError {
         var atEnd = (pos == this.ids.size()  - 1);
         switch (resolveMode){
             case ForTypeName: {
-                var c = resolveSubClass(curr, id, allowMetaScan);
+                var c = resolveSubClass(curr, id, allowMetaScan, allowedVisibility);
                 if (c != null) return c;
                 break;
             }
             case ForInvokable:
             case ForTypeExpr: {
                 if (atEnd) {
-                    var c = resolveSubClass(curr, id, allowMetaScan);
+                    var c = resolveSubClass(curr, id, allowMetaScan, allowedVisibility);
                     if (c != null) return c;
-                    var v = resolveVariable(curr, id, allowMetaScan);
+                    var v = resolveVariable(curr, id, allowMetaScan, allowedVisibility);
                     if (v != null) {
                         if (isClassInterval(v) || isFunction(v)) return v;    // TODO or type variable
                         if (resolveMode == ResolveMode.ForInvokable && isFunctor(v)) return v;
                     }
                 } else {
-                    var v = resolveVariable(curr, id, allowMetaScan);
+                    var v = resolveVariable(curr, id, allowMetaScan, allowedVisibility);
                     if (v != null) return v;
 
-                    var c = resolveSubClass(curr, id, allowMetaScan);
+                    var c = resolveSubClass(curr, id, allowMetaScan, allowedVisibility);
                     if (c != null) return c;
                 }
                 break;
             }
             case ForVariable: {
-                var v = resolveVariable(curr, id, allowMetaScan);
+                var v = resolveVariable(curr, id, allowMetaScan, allowedVisibility);
                 if (v != null) return v;    // TODO or type variable
                 if (!atEnd) {
-                    var c = resolveSubClass(curr, id, allowMetaScan);
+                    var c = resolveSubClass(curr, id, allowMetaScan, allowedVisibility);
                     if (c != null) return c;
                 }
                 break;
             }
             case ForValue: {
-                var v = resolveVariable(curr, id, allowMetaScan);
+                var v = resolveVariable(curr, id, allowMetaScan, allowedVisibility);
                 if (v != null) return v;    // TODO or type variable
-                var c = resolveSubClass(curr, id, allowMetaScan);
+                var c = resolveSubClass(curr, id, allowMetaScan, allowedVisibility);
                 if (c != null) return c;
             }
         }
@@ -697,7 +778,8 @@ public class NamePathResolver {
     // resolve from empty start
     Expression forwardStart(Id id, int pos) throws CompilationError {
         if(id instanceof Pronoun pronoun) {
-            return forward(resolvePronoun(pronoun), pos + 1);
+            Expression resolved = resolvePronoun(pronoun);
+            return forward(resolved, pos + 1, allowingVisibilityOfPronoun(resolved));
         }
 
         if(id instanceof PrimitiveType primitiveType){
@@ -706,7 +788,7 @@ public class NamePathResolver {
 
         var r = resolveVariableOrClassInScopeClass(id, pos);
         if(r != null){
-            var r2 = forward(r.setSourceLocation(id.sourceLocation), pos + 1);
+            var r2 = forward(r.setSourceLocation(id.sourceLocation), pos + 1, allowingVisibilityUnderExpr(r));
             if(r2 != null) return r2;
         }
 
@@ -716,9 +798,9 @@ public class NamePathResolver {
                 var distance = scopeClass.distanceToOuterClass(cls);
                 SourceLocation sourceLocation = unit.sourceLocation(namePath);
                 if (distance != -1) {
-                    return forward(new ClassOf.ClassOfScope(new Scope(distance, cls), 1).setSourceLocation(sourceLocation), this.pos);
+                    return forward(new ClassOf.ClassOfScope(new Scope(distance, cls), 1).setSourceLocation(sourceLocation), this.pos, PRIVATE_VISIBILITY);
                 } else {
-                    return forward(new ConstClass(cls).setSourceLocation(sourceLocation), this.pos);
+                    return forward(new ConstClass(cls).setSourceLocation(sourceLocation), this.pos, allowingVisibilityOfType(cls));
                 }
             }
         }
@@ -742,9 +824,9 @@ public class NamePathResolver {
                     throw new UnsupportedOperationException();
             }
         } else {
-            var r = resolveVariableOrClass(curr, id, pos, true);
+            var r = resolveVariableOrClass(curr, id, pos, true, allowingVisibilityUnderExpr(curr));
             if(r != null){
-                return forward(r.setSourceLocation(id.sourceLocation), pos + 1);
+                return forward(r.setSourceLocation(id.sourceLocation), pos + 1, allowingVisibilityUnderExpr(curr));
             }
             return r;
         }
@@ -754,7 +836,7 @@ public class NamePathResolver {
         if(id instanceof Pronoun pronoun){
             switch (pronoun.pronounType){
                 case This:
-                    return forward(resolveThisAfterClass(pronoun, curr.getClassDef()), pos + 1);
+                    return forward(resolveThisAfterClass(pronoun, curr.getClassDef()), pos + 1, PRIVATE_VISIBILITY);
                 case ClassThis:
                 case TraitThis:
                 case FunThis:
@@ -767,9 +849,9 @@ public class NamePathResolver {
                     throw new UnsupportedOperationException();
             }
         } else {
-            var r = resolveVariableOrClass(curr, id, pos, true);
+            var r = resolveVariableOrClass(curr, id, pos, true, PRIVATE_VISIBILITY);
             if(r != null){
-                return forward(r.setSourceLocation(id.sourceLocation), pos + 1);
+                return forward(r.setSourceLocation(id.sourceLocation), pos + 1, allowingVisibilityUnderExpr(r));
             }
             return r;
         }
@@ -779,9 +861,9 @@ public class NamePathResolver {
         if(id instanceof Pronoun pronoun){
             throw new ResolveError( "'this' or 'super' not allowed here", id.sourceLocation);
         } else {
-            var r = resolveVariableOrClass(curr, id, pos, true);
+            var r = resolveVariableOrClass(curr, id, pos, true, allowingVisibilityUnderExpr(curr));
             if(r != null){
-                return forward(r.setSourceLocation(id.sourceLocation), pos + 1);
+                return forward(r.setSourceLocation(id.sourceLocation), pos + 1, allowingVisibilityUnderExpr(r));
             }
             return r;
         }
@@ -791,9 +873,9 @@ public class NamePathResolver {
         if(id instanceof Pronoun pronoun){
             throw new ResolveError( "'this' or 'super' not allowed here", id.sourceLocation);
         } else {
-            var r = resolveVariableOrClass(curr, id, pos, true);
+            var r = resolveVariableOrClass(curr, id, pos, true, allowingVisibilityUnderExpr(curr));
             if(r != null){
-                return forward(r.setSourceLocation(id.sourceLocation), pos + 1);
+                return forward(r.setSourceLocation(id.sourceLocation), pos + 1, allowingVisibilityUnderExpr(r));
             }
             return r;
         }
@@ -804,9 +886,9 @@ public class NamePathResolver {
         if(id instanceof Pronoun pronoun){
             throw new ResolveError( "'this' or 'super' not allowed here", id.sourceLocation);
         } else {
-            var r = resolveVariableOrClass(curr, id, pos, true);
+            var r = resolveVariableOrClass(curr, id, pos, true, allowingVisibilityUnderExpr(curr));
             if(r != null){
-                return forward(r.setSourceLocation(id.sourceLocation), pos + 1);
+                return forward(r.setSourceLocation(id.sourceLocation), pos + 1, allowingVisibilityUnderExpr(r));
             }
             return r;
         }
@@ -863,11 +945,6 @@ public class NamePathResolver {
             return null;
         }
 
-        var attribute = scopeClass.getAttribute(id.text());
-        if(attribute != null && ownerFunction != null){
-            return new Attribute(ownerFunction, new Scope.Local(scopeClass), attribute.getGetter(), attribute.getSetter()).setSourceLocation(id.sourceLocation);
-        }
-
         var c = scopeClass.getVariable(id.text());
         if(c != null) {
             if(c.getConstLiteralValue() != null){
@@ -876,20 +953,25 @@ public class NamePathResolver {
             return new Var.LocalVar(ownerFunction, c, Var.LocalVar.VarMode.Existed).setSourceLocation(id.sourceLocation);
         }
 
+        var attribute = scopeClass.getAttribute(id.text());
+        if(attribute != null && ownerFunction != null){
+            return new Attribute(ownerFunction, new Scope.Local(scopeClass), attribute.getGetter(), attribute.getSetter()).setSourceLocation(id.sourceLocation);
+        }
+
         if(scopeClass.getMetaClassDef() != null){
-            var r = resolveVariable(new ConstClass(scopeClass), id, true);
+            var r = resolveVariable(new ConstClass(scopeClass), id, true, PRIVATE_VISIBILITY);
             if(r != null) return r;
         }
         if(CollectionUtils.isNotEmpty(scopeClass.getInterfaces())){
             for (ClassDef anInterface : scopeClass.getInterfaces()) {
                 if(anInterface.getMetaClassDef() != null){
-                    var r = resolveVariable(new ConstClass(anInterface), id, true);
+                    var r = resolveVariable(new ConstClass(anInterface), id, true, PRIVATE_VISIBILITY);
                     if(r != null) return r;
                 }
             }
         }
         if (!scopeClass.isTop() && !scopeClass.isInterfaceOrTrait()) {
-            var r = resolveVariable(new Scope(1, scopeClass.getParentClass()), id, true);
+            var r = resolveVariable(new Scope(1, scopeClass.getParentClass()), id, true, PRIVATE_VISIBILITY);
             if (r != null) return r;
         }
         return null;
@@ -1060,7 +1142,7 @@ public class NamePathResolver {
             }
             // step in metaclass of scope class
             if(allowMetaScan) {
-                Expression r = resolveSubClassInMetaClass(scope, id, false, exprType);
+                Expression r = resolveSubClassInMetaClass(scope, id, false, exprType, PRIVATE_VISIBILITY);
                 if (r != null) return r;
             }
             // try above scope
@@ -1075,10 +1157,10 @@ public class NamePathResolver {
         }
     }
 
-    private Expression resolveSubClassInMetaClass(Expression expression, Id id, boolean isClassInterval, ClassDef exprType) throws CompilationError {
+    private Expression resolveSubClassInMetaClass(Expression expression, Id id, boolean isClassInterval, ClassDef exprType, int allowingVisibility) throws CompilationError {
         if(exprType.getMetaClassDef() != null){
             Expression classOf = !isClassInterval ? ClassOf.create(expression) : new ClassOf.ClassOfScopedClassInterval(expression, exprType.getMetaClassDef()).transform();
-            var r = resolveSubClass(classOf, id, true);
+            var r = resolveSubClass(classOf, id, true, allowingVisibility);
             if(r != null)
                 return resolveCandidateFunctions(r, id);
         }
@@ -1147,12 +1229,14 @@ public class NamePathResolver {
 
     /**
      * resolve class under curr expr
+     *
      * @param expression
      * @param id
      * @param allowMetaScan
+     * @param allowingVisibility
      * @return
      */
-    private Expression resolveSubClass(Expression expression, Id id, boolean allowMetaScan) {
+    private Expression resolveSubClass(Expression expression, Id id, boolean allowMetaScan, int allowingVisibility) {
         Objects.requireNonNull(expression);
         try {
             switch (expression) {
@@ -1192,45 +1276,61 @@ public class NamePathResolver {
                     return null;
                 }
             }
+            ClassDef invisibleResult = null;
             if(exprType == null || exprType instanceof PhantomMetaClassDef){    // step into child
                 if (resolveMode == ResolveMode.ForTypeName){
                     if(expression instanceof ConstClass constClass){
                         var curr = constClass.getClassDef();
                         var c = curr.getChild(id.text());
-                        if(c != null){
-                            return resolveCandidateFunctions(new ConstClass(c).setSourceLocation(id.sourceLocation),curr, id);
+                        if (c != null) {
+                            if (!isVisible(c.getModifiers(), allowingVisibilityOfType(curr))) {
+                                invisibleResult = c;
+                            } else {
+                                return resolveCandidateFunctions(new ConstClass(c).setSourceLocation(id.sourceLocation), curr, id);
+                            }
                         }
                     }
                 }
             } else {
-                var c = exprType.getChild(id.text());
+                ClassDef c = exprType.getChild(id.text());
                 if (c != null) {
-                    var parameterizedClass = parameterizedClass(c, id);
-                    if (parameterizedClass != c) {
-                        return ClassUnder.create(ownerFunction, expression, parameterizedClass).setSourceLocation(id.sourceLocation);
-                    }
+                    if(!isVisible(c.getModifiers(), allowingVisibility)){
+                        invisibleResult = c;
+                    } else {
+                        var parameterizedClass = parameterizedClass(c, id);
+                        if (parameterizedClass != c) {
+                            return ClassUnder.create(ownerFunction, expression, parameterizedClass).setSourceLocation(id.sourceLocation);
+                        }
 
-                    var r = ClassUnder.create(ownerFunction, expression, c).setSourceLocation(id.sourceLocation);
-                    return resolveCandidateFunctions(r, exprType, id);
+                        var r = ClassUnder.create(ownerFunction, expression, c).setSourceLocation(id.sourceLocation);
+                        return resolveCandidateFunctions(r, exprType, id);
+                    }
                 }
                 c = exprType.getExtensionMethod(id.text());
                 if (c != null) {
-                    var parameterizedClass = parameterizedClass(c, id);
-                    if (parameterizedClass != c) {
-                        return new BindExtensionMethod(ownerFunction, expression, (FunctionDef) parameterizedClass).setSourceLocation(id.sourceLocation);
+                    if(!isVisible(c.getModifiers(), allowingVisibility)){
+                        invisibleResult = c;
+                    } else {
+                        var parameterizedClass = parameterizedClass(c, id);
+                        if (parameterizedClass != c) {
+                            return new BindExtensionMethod(ownerFunction, expression, (FunctionDef) parameterizedClass).setSourceLocation(id.sourceLocation);
+                        }
+                        var r = new BindExtensionMethod(ownerFunction, expression, (FunctionDef) c).setSourceLocation(id.sourceLocation);
+                        return resolveCandidateFunctions(r, c.getParent(), id);
                     }
-                    var r = new BindExtensionMethod(ownerFunction, expression, (FunctionDef) c).setSourceLocation(id.sourceLocation);
-                    return resolveCandidateFunctions(r, c.getParent(), id);
                 }
                 if (exprType.isInterfaceOrTrait() && exprType.getPermitClass() != null) {
-                    var r = resolveSubClass(ownerFunction.cast(expression, exprType.getPermitClass()), id, false);
-                    if(r != null) return r;
+                    var r = resolveSubClass(ownerFunction.cast(expression, exprType.getPermitClass()), id, false, allowingVisibility);
+                    if(r != null) return r;     // TODO if invisible will throw error
                 }
             }
 
             if(allowMetaScan) {
-                var m = resolveSubClassInMetaClass(expression, id, isClassInterval, exprType);
+                var m = resolveSubClassInMetaClass(expression, id, isClassInterval, exprType, allowingVisibility);
                 if (m != null) return m;
+            }
+            if(invisibleResult != null){
+                throw new ResolveError("'%s' is not visible for '%s'".formatted(invisibleResult.getFullname(), scopeClass.getFullname()), id.sourceLocation);
             }
 
         } catch (CompilationError error){
@@ -1311,7 +1411,7 @@ public class NamePathResolver {
         return candidates;
     }
 
-    private Expression resolveVariable(Expression curr, Id id, boolean allowMetaScan){
+    private Expression resolveVariable(Expression curr, Id id, boolean allowMetaScan, int allowedVisibility){
         try {
             Objects.requireNonNull(curr);
 
@@ -1331,31 +1431,46 @@ public class NamePathResolver {
             }
             if(currType == null) return null;
 
-            var attribute = currType.getAttribute(id.text());
-            if(attribute != null && ownerFunction != null){
-                return new Attribute(ownerFunction, curr, attribute.getGetter(), attribute.getSetter()).setSourceLocation(id.sourceLocation);
-            }
-
             Variable c = currType.getVariable(id.text());
+            Variable invisibleVar = null;
             if (c != null) {
                 var r = Var.of(ownerFunction, curr, c).setSourceLocation(id.sourceLocation);
                 if(curr instanceof ConstClass cls && cls.getClassDef().isEnum()){
                     if(c.getType() == cls.getClassDef()){
                         return new EnumValue((Var.Field) r, (Field) c);
                     }
-                } else if(c.getConstLiteralValue() != null){
-                    return new ConstValue(scopeClass.getRoot(), c).setSourceLocation(r.getSourceLocation());
+                } else {
+                    if(!isVisible(c.getModifiers(), allowedVisibility)){
+                        invisibleVar = c;
+                    } else {
+                        if (c.getConstLiteralValue() != null) {
+                            return new ConstValue(scopeClass.getRoot(), c).setSourceLocation(r.getSourceLocation());
+                        }
+                    }
                 }
-                return r;
+                if(!isVisible(c.getModifiers(), allowedVisibility)) {
+                    invisibleVar = c;
+                } else {
+                    return r;
+                }
+            }
+            GetterSetterPair attribute = currType.getAttribute(id.text());
+            GetterSetterPair invisibleAttribute = attribute;
+            if(attribute != null && ownerFunction != null){
+                if(!isVisible(attribute.getGetter().getModifiers(), allowedVisibility)){
+                    invisibleAttribute = attribute;
+                } else {
+                    return new Attribute(ownerFunction, curr, attribute.getGetter(), attribute.getSetter(), allowedVisibility).setSourceLocation(id.sourceLocation);
+                }
             }
 
             Expression r;
             if (allowMetaScan) {
                 if(currType.getMetaClassDef() != null) {
                     if (!isClassInterval) {
-                        r = resolveVariable(ClassOf.create(curr), id, true);
+                        r = resolveVariable(ClassOf.create(curr), id, true, allowedVisibility);
                     } else {
-                        r = resolveVariable(new ClassOf.ClassOfScopedClassInterval(curr, currType.getMetaClassDef()).transform(), id, true);
+                        r = resolveVariable(new ClassOf.ClassOfScopedClassInterval(curr, currType.getMetaClassDef()).transform(), id, true, allowedVisibility);
                     }
                     if (r != null) return r;
                 }
@@ -1365,7 +1480,7 @@ public class NamePathResolver {
                         ClassDef currTypeInterface = interfaces.get(i);
                         AgoParser.InterfaceItemContext ast = currType.getInterfaceDecls() != null && currType.getInterfaceDecls().size() > i? currType.getInterfaceDecls().get(i) : null;
                         r = resolveVariable(new ConstClass(currTypeInterface).setSourceLocation(ownerFunction.getUnit()
-                                .sourceLocation(ast)), id, true);
+                                .sourceLocation(ast)), id, true, allowedVisibility);
                         if(r != null) return r;
                     }
                 }
@@ -1374,13 +1489,27 @@ public class NamePathResolver {
             if(curr instanceof Scope scope){
                 var parentScope = scope.getParentScope();
                 if(parentScope != null){
-                    return resolveVariable(parentScope, id, allowMetaScan);
+                    return resolveVariable(parentScope, id, allowMetaScan, PRIVATE_VISIBILITY);
                 }
+            }
+            if(invisibleAttribute != null){
+                throw new ResolveError("'%s' is not visible for '%s'".formatted(invisibleAttribute.getGetter().getFullname(), scopeClass.getFullname()), id.sourceLocation);
+            }
+            if(invisibleVar != null){
+                throw new ResolveError("'%s' is not visible for '%s'".formatted(invisibleVar.getName(), scopeClass.getFullname()), id.sourceLocation);
             }
         } catch (CompilationError error){
             this.error = error;
         }
         return null;
+    }
+
+    public static boolean isVisible(int modifier, int allowingVisibility){
+        if(Modifier.isPublic(modifier)) return true;
+        if(Modifier.isProtected(modifier)) {
+            return allowingVisibility >= PROTECTED_VISIBILITY;
+        }
+        return allowingVisibility == PRIVATE_VISIBILITY;
     }
 
     private int findPronounPos() throws SyntaxError {

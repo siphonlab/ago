@@ -23,7 +23,7 @@ import static org.siphonlab.ago.test.Util.run;
 
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.classloader.AgoClassLoader;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.ClassFile;
 import org.siphonlab.ago.compiler.Compiler;
@@ -42,19 +42,19 @@ import java.util.zip.ZipInputStream;
 public class BootstrapTest {
 
     @Test
-    public void hello_world() throws IOException, CompilationError, CompliationErrorsException {
+    public void hello_world() throws IOException, CompilationError, CompilationErrorsException {
         Util.run("bootstrap/hello_world.ago");
         assertTrue(Trace.outputted("hello world"));
     }
 
     @Test
-    public void add() throws IOException, CompilationError, CompliationErrorsException {
+    public void add() throws IOException, CompilationError, CompilationErrorsException {
         Util.run("bootstrap/0.add.ago");
         assertTrue(Trace.outputted("13", "22"));
     }
 
     @Test
-    public void Object_getClass() throws CompilationError, IOException, CompliationErrorsException {
+    public void Object_getClass() throws CompilationError, IOException, CompilationErrorsException {
         Util.run("bootstrap/base_types.ago", "Meta@<Test>.main#");
 //        Util.run("bootstrap/base_types.ago", "main#");
         Trace.printOutput();
@@ -62,31 +62,31 @@ public class BootstrapTest {
     }
 
     @Test
-    public void inherits_sample() throws CompilationError, IOException, CompliationErrorsException {
+    public void inherits_sample() throws CompilationError, IOException, CompilationErrorsException {
         Util.run("bootstrap/1.inherits.ago");
         assertTrue(Trace.outputted("Brand: Toyota", "Year: 2022", "Color: Blue", "Doors: 4", "Toyota"));
     }
 
     @Test
-    public void static_instance_sample() throws CompilationError, IOException, CompliationErrorsException {
+    public void static_instance_sample() throws CompilationError, IOException, CompilationErrorsException {
         Util.run("bootstrap/2.static_instance.ago");
         assertTrue(Trace.outputted("这是一个类方法", "类变量的值是: 10", "这是一个类方法", "类变量的值是: 20", "这是静态内部类的方法", "静态变量的值是: 20"));
     }
 
     @Test
-    public void pronoun_sample() throws CompilationError, IOException, CompliationErrorsException {
+    public void pronoun_sample() throws CompilationError, IOException, CompilationErrorsException {
         Util.run("bootstrap/3.pronoun.ago", "my.test.Meta@<B>.main#");
         assertTrue(Trace.outputted("2", "1", "4", "2029", "2029", "4", "2033", "2", "1", "4", "2029", "2029", "5", "2034"));
     }
 
     @Test
-    public void class_of_scope() throws CompilationError, IOException, CompliationErrorsException {
+    public void class_of_scope() throws CompilationError, IOException, CompilationErrorsException {
         Util.run("scope/1.ago");
         assertTrue(Trace.outputted("AA", "AAA"));
     }
 
     @Test
-    public void polymorphism() throws CompilationError, CompliationErrorsException, IOException {
+    public void polymorphism() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/4.polymorphism.ago");
         assertTrue(Trace.outputted(
                 "new 1 new0", "new 1 Abcd", "new 1 AA new", "new 1 AA new", "new 1 AA new",
@@ -95,188 +95,188 @@ public class BootstrapTest {
     }
 
     @Test
-    public void metaclass() throws CompilationError, CompliationErrorsException, IOException {
+    public void metaclass() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/5.metaclass.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("A", "lang.ScopedClassRef", "lang.ScopedClassRef", "lang.ScopedClassRef"));
     }
 
     @Test
-    public void array_sample() throws CompilationError, CompliationErrorsException, IOException {
+    public void array_sample() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/6.array.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("arr1.length: 10", "1", "3", "6", "115", "1", "2", "3", "4", "5", "a", "b"));
     }
 
     @Test
-    public void class_ref() throws CompilationError, CompliationErrorsException, IOException {
+    public void class_ref() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/7.class_ref.ago");
         assertTrue(Trace.outputted("Cat"));
     }
 
     @Test
-    public void box_unbox() throws CompilationError, CompliationErrorsException, IOException {
+    public void box_unbox() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/8.box_unbox.ago");
         assertTrue(Trace.outputtedMatch("30", "40", "Dog"));
     }
 
     @Test
-    public void parameterized_class() throws CompilationError, CompliationErrorsException, IOException {
+    public void parameterized_class() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/9.parameterized_class.ago");
         assertTrue(Trace.outputted("200", "广东省广州市天河区体育西路101号", "13812345678"));
     }
 
     @Test
-    public void class_interval() throws CompilationError, CompliationErrorsException, IOException {
+    public void class_interval() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/10.class_interval.ago");
         assertTrue(Trace.outputted("Cat.foo", "Animal.foo", "meow", "true", "true"));
     }
 
     @Test
-    public void generic() throws CompilationError, CompliationErrorsException, IOException {
+    public void generic() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/11.generictype.ago");
         assertTrue(Trace.outputted("meow", "meow"));
     }
 
     @Test
-    public void variance() throws CompilationError, CompliationErrorsException, IOException {
+    public void variance() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/12.variance.ago");
         // no output
     }
 
     @Test
-    public void interface_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void interface_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/13.interface.ago");
         assertTrue(Trace.outputted("Duck says quack!", "Duck is eating.", "Duck is flying.", "Duck is swimming.", "Duck is swimming.", "Duck says quack!"));
     }
 
     @Test
-    public void callback_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void callback_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/14.callback.ago");
         assertTrue(Trace.outputted("3", "6", "103", "106", "114", "160", "600", "600", "1120"));
     }
 
     @Test
-    public void initial_block_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void initial_block_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/15.initial_block.ago");
         assertTrue(Trace.outputted("Tom", "22"));
     }
 
     @Test
-    public void wrapper_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void wrapper_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/16.wrapper.ago");
         assertTrue(Trace.outputted("INFO: hehe"));
     }
 
     @Test
-    public void trait_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void trait_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/17.trait.ago");
         assertTrue(Trace.outputted("INFO: I can log too", "set log level INFO", "INFO: Creating user: Alice", "DEBUG", "INFO: Detailed user creation process for Alice", "set log level DEBUG", "DEBUG: Creating user: Bob", "DEBUG", "DEBUG: Detailed user creation process for Bob"));
     }
 
     @Test
-    public void getter_setter_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void getter_setter_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/18.getter_setter.ago");
         assertTrue(Trace.outputted("Jack", "22", "set age to 30", "Tom", "22", "M"));
     }
 
     @Test
-    public void boxer_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void boxer_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/20.boxer.ago");
         assertTrue(Trace.outputted("name:Tom", "str:Tom", "v:Tom"));
     }
 
     @Test
-    public void field_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void field_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/field.ago");
         assertTrue(Trace.outputted("John", "12822223333", "street freedom", "bar", "Contact name: John",
                 "Contact phone: 12822223333", "Contact address: street freedom", "Foo: bar", "not bar now"));
     }
 
     @Test
-    public void enum_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void enum_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/21.enum.ago");
         assertTrue(Trace.outputted("Today is 2", "Wednesday's value is 2", "Thursday", "Day 4 is 4", "Status 1", "Status value is 1"));
     }
 
     @Test
-    public void const_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void const_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/22.const.ago");
         assertTrue(Trace.outputted("20", "20", "星期五：周末快到了，放松一下！"));
     }
 
     @Test @Tag("generic")
-    public void varargs_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void varargs_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/23.var_args.ago");
         assertTrue(Trace.outputted("f#1", "1", "2", "3", "f#2", "1.0", "2", "4", "meow", "woof"));
     }
 
     @Test
-    public void runspace_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void runspace_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/24.runspace.ago");
         assertTrue(Trace.outputted("test", "open the door", "put the elephant in", "close the door"));
     }
 
     @Test
-    public void iterable_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void iterable_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/25.iterable.ago");
         assertTrue(Trace.outputted("1", "3", "5", "7", "9", "0", "2", "4", "6", "8"));
     }
 
     @Test @Tag("generic")
-    public void list_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void list_test() throws CompilationError, CompilationErrorsException, IOException {
         run("bootstrap/26.list.ago");
         assertTrue(Trace.outputted("2", "3", "5", "1", "2", "5", "4", "2", "6", "8", "4", "6"));
     }
 
     @Test @Tag("generic")
-    public void map_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void map_test() throws CompilationError, CompilationErrorsException, IOException {
         run("bootstrap/27.map.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("Jack", "Sally,John",
-                "2 = Sally", "3 = Sally,John", "1 = John", "100 = Jack",
-                "2", "3", "1", "100",
-                "Sally", "Sally,John", "John", "Jack",
+                "1 = John", "2 = Sally", "3 = Sally,John", "100 = Jack",        // not stable
+                "1", "2", "3", "100",
+                "John", "Sally", "Sally,John", "Jack",
                 "80"));
     }
 
     @Test
-    public void templ_string_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void templ_string_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/28.template_string.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("a + b =  `the result`", "         3", "\"Hello", "World! AB\"", "This is some", "    text", "        from", "            I.foo", "let me say, 1 < 2"));
     }
 
     @Test
-    public void literal_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void literal_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/29.literals.ago");
 //        Trace.printOutput();
         assertTrue(Trace.outputted("A", "\n", "A", "A", "a", "123.45", "6.02E23", "3.141592653589793", "0.484375", "456.78", "123", "6719", "511", "210", "123", "16"));
     }
 
     @Test
-    public void extension_method_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void extension_method_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/30.extension_method.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("-1", "-3", "Samoyed", "Samoyed", "Tweet", "Tweet", "Tweet", "-2", "-3"));
     }
 
     @Test
-    public void nullable_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void nullable_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/31.nullable.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("2026", "-2026", "can't cast null to 'int'", "animal is null or name is null", "animal is null", "Jerry", "woof", "Jerry", "woof"));
     }
 
     @Test
-    public void dynamic_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void dynamic_test() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("bootstrap/32.dynamic.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("meow", "3", "true", "true", "John", "20", "name: John do coding, already 60 min"));
     }
 
     @Test
-    public void package_test() throws CompilationError, IOException, CompliationErrorsException {
+    public void package_test() throws CompilationError, IOException, CompilationErrorsException {
         String filename = "ref1/entrance.ago";
 
         var project = new UnnamedProject(

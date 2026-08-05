@@ -79,6 +79,7 @@ public class Root extends Namespace<Package> {
     private ClassDef BOOLEAN_CLASS;
     private ClassDef STRING_CLASS;
     private ClassDef ARRAY_CLASS;
+    private ClassDef ARRAY_EXT_CLASS;
     private ClassDef ANY_ARRAY_CLASS;
     private ClassDef CLASS_REF_CLASS;
     private ClassDef SCOPED_CLASS_REF_CLASS;
@@ -245,6 +246,11 @@ public class Root extends Namespace<Package> {
         } catch (CompilationError e) {
             throw new IllegalStateException("impossible", e);
         }
+    }
+
+    public ClassDef getArrayExtClass(){
+        if(ARRAY_EXT_CLASS != null) return ARRAY_EXT_CLASS;
+        return ARRAY_EXT_CLASS = findByFullname("lang.ArrayExt");
     }
 
     public synchronized ClassDef getClassRefClass(){

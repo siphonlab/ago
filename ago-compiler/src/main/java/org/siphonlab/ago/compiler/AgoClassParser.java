@@ -20,6 +20,7 @@ import org.siphonlab.ago.classloader.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
+import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.module.Project;
@@ -39,6 +40,8 @@ public class AgoClassParser {
 
     Map<AgoClass, ClassDef> classes = new HashMap<>();
 
+    public record AgoClassCombineClassParser(AgoClass agoClass, AgoClassParser parser){}
+
     public AgoClassParser(AgoClassLoader classLoader, Compiler compiler, Root root) {
         this.classLoader = classLoader;
         this.compiler = compiler;
@@ -47,78 +50,66 @@ public class AgoClassParser {
 
     Collection<ClassDef> load() throws CompilationError {
         // ParseClassName stage
-
-        LinkedList<AgoClass> classesExcludeConcreteTypesAndMeta = new LinkedList<>();
-        LinkedList<AgoClass> templateClasses = new LinkedList<>();
-        LinkedList<AgoClass> allClasses = new LinkedList<>();
-        LinkedList<AgoClass> concreteChildren = new LinkedList<>();
-        LinkedList<AgoClass> metas = new LinkedList<>();
-
-        for (AgoClass agoClass : classLoader.getClasses()) {
-            if("<Meta>".equals(agoClass.getFullname())) continue;
-            allClasses.add(agoClass);
-            if (agoClass instanceof MetaClass || belongToMetaClass(agoClass)) {
-                metas.add(agoClass);
-                continue;      // create metaclass in processClass
+        LinkedHashSet<AgoClass> allClasses = new LinkedHashSet<>();
+        LinkedList<AgoClass> concretes = new LinkedList<>();
+        for(AgoClass agoClass : classLoader.getClasses()){
+            if(agoClass instanceof MetaClass) continue;
+            if(agoClass.getConcreteTypeInfo() == null || agoClass.getConcreteTypeInfo() instanceof GenericTypeParametersInfo){
+                allClasses.add(agoClass);
+            } else {
+                concretes.add(agoClass);
             }
-            ConcreteTypeInfo concreteTypeInfo = agoClass.getConcreteTypeInfo();
-            if (concreteTypeInfo != null) {
-                if (concreteTypeInfo instanceof GenericTypeParametersInfo) {
-                    templateClasses.add(agoClass);
+        }
+        // all metaclasses
+        for(AgoClass agoClass : classLoader.getClasses()){
+            if(agoClass instanceof MetaClass metaClass){
+                if("<Meta>".equals(agoClass.getFullname())) continue;
+                var instanceClass = metaClass.getInstanceClass();
+                if(instanceClass.getConcreteTypeInfo() == null || agoClass.getConcreteTypeInfo() instanceof GenericTypeParametersInfo){
+                    allClasses.add(metaClass);
                 } else {
-                    concreteTypes.add(agoClass);
-                    continue;       // ignore Array, ParameterizedClass, GenericInstantiation, preserve Template class
+                    concretes.add(metaClass);
                 }
             }
-
-            if (belongToConcreteTypes(agoClass)) {
-                concreteChildren.add(agoClass);
-                continue;
-            }
-
-            classesExcludeConcreteTypesAndMeta.add(agoClass);
         }
-        processStage(CompilingStage.ParseClassName, new LinkedList<>(classesExcludeConcreteTypesAndMeta));
+        for (AgoClass concrete : concretes) {
+            allClasses.removeIf(c -> c.belongsTo(concrete));
+        }
+
+        processStage(CompilingStage.ParseClassName, new LinkedList<>(allClasses));
         root.resolveLangClasses();
 
-        processStage(CompilingStage.ParseGenericParams, templateClasses);
+        appendNewFoundClasses(allClasses);
+        processStage(CompilingStage.ParseGenericParams, new LinkedList<>(allClasses));
 
-        LinkedList<AgoClass> concreteTypesToSolve = new LinkedList<>(concreteTypes.stream().sorted(Comparator.comparing(AgoClass::getFullname)).toList());
-        processStage(CompilingStage.ParseClassName, new LinkedList<>(concreteTypesToSolve));
+        appendNewFoundClasses(allClasses);
+        processStage(CompilingStage.ResolveHierarchicalClasses, new LinkedList<>(allClasses));
 
-        processStage(CompilingStage.ResolveHierarchicalClasses, new LinkedList<>(concreteTypesToSolve));
-
-        for (AgoClass child : concreteChildren) {
-            ClassDef classDef = root.findByFullname(child.getFullname());
-            assert classDef != null;
-            classes.put(child, classDef);
-        }
-        // ResolveHierarchicalClasses
-        classesExcludeConcreteTypesAndMeta.addAll(concreteChildren);
-        processStage(CompilingStage.ResolveHierarchicalClasses, classesExcludeConcreteTypesAndMeta);
-
-        root.resolveLangClasses();
         // ParseFields, no InheritsFields since the fields already inherited in AgoClass
         // and no AllocateSlots
+        appendNewFoundClasses(allClasses);
         processStage(CompilingStage.ParseFields, new LinkedList<>(allClasses));
 
+        appendNewFoundClasses(allClasses);
         processStage(CompilingStage.InheritsFields, new LinkedList<>(allClasses));
 
+        appendNewFoundClasses(allClasses);
         processStage(CompilingStage.InheritsInnerClasses, new LinkedList<>(allClasses));
 
-        for (AgoClass child : metas) {
-            ClassDef classDef = root.findByFullname(child.getFullname());
-            assert classDef != null;
-            classes.put(child, classDef);
-        }
-
+        appendNewFoundClasses(allClasses);
         processStage(CompilingStage.ValidateMembers, new LinkedList<>(allClasses));
 
+        appendNewFoundClasses(allClasses);
         processStage(CompilingStage.AllocateSlots, new LinkedList<>(allClasses));
 
-        root.getAndCleanNewFoundClasses();
+        var newFoundClasses = root.getAndCleanNewFoundClasses();
+        if(!newFoundClasses.isEmpty()){
+            for (ClassDef classDef : newFoundClasses) {
+                Compiler.processClassTillStage(classDef, CompilingStage.Compiled);
+            }
+        }
 
-        assert classes.size() == allClasses.size();
+//        assert classes.size() == allClasses.size();
 
         Collection<ClassDef> r = classes.values();
         while(true) {
@@ -142,6 +133,15 @@ public class AgoClassParser {
         }
 
         return r;
+    }
+
+    private void appendNewFoundClasses(LinkedHashSet<AgoClass> allClasses) {
+        for (ClassDef classDef : root.getAndCleanNewFoundClasses()) {
+            var c = classLoader.getClass(classDef.getFullname());
+            if(c != null){
+                allClasses.add(c);
+            }
+        }
     }
 
     void processStage(CompilingStage stage, LinkedList<AgoClass> toSolve) throws CompilationError {
@@ -187,25 +187,52 @@ public class AgoClassParser {
     }
 
     private boolean belongToConcreteTypes(AgoClass agoClass) {
-        for(var p = agoClass.getParent(); p != null; p = p.getParent()){
+        for(var p = agoClass.getParent(); p != null; ){
             ConcreteTypeInfo concreteTypeInfo = p.getConcreteTypeInfo();
             if(concreteTypeInfo != null){
                 if(!(concreteTypeInfo instanceof GenericTypeParametersInfo)){
                     return true;
                 }
             }
+            if(p instanceof MetaClass metaClass){
+                p = metaClass.getInstanceClass();
+            } else {
+                p = p.getParent();
+            }
         }
         return false;
     }
 
-    private boolean belongToMetaClass(AgoClass agoClass) {
+    private boolean belongToMetaClass(AgoClass agoClass, Set<AgoClass> metas) {
         for(var p = agoClass.getParent(); p != null; p = p.getParent()){
-            if(p instanceof MetaClass) return true;
+            if(p instanceof MetaClass || metas.contains(p)) return true;
+        }
+        ConcreteTypeInfo concreteTypeInfo = agoClass.getConcreteTypeInfo();
+        if(concreteTypeInfo != null){
+            if(concreteTypeInfo instanceof ArrayInfo arrayInfo){
+                if(arrayInfo.getElementType() instanceof MetaClass || belongToMetaClass(arrayInfo.getElementType(), metas))
+                    return true;
+            } else if(concreteTypeInfo instanceof GenericArgumentsInfo genericArgumentsInfo){
+                for (AgoClass argument : genericArgumentsInfo.getArguments()) {
+                    if(argument instanceof MetaClass || belongToMetaClass(argument, metas))
+                        return true;
+                }
+            } else if(concreteTypeInfo instanceof ParameterizedClassInfo parameterizedClassInfo){
+                for (Object argument : parameterizedClassInfo.getArguments()) {
+                    if(argument instanceof AgoClass c){
+                        if(belongToMetaClass(c, metas))
+                            return true;
+                    }
+                }
+            } else if(concreteTypeInfo instanceof NullableTypeInfo nullableTypeInfo){
+                if(nullableTypeInfo.getBaseClass() instanceof MetaClass || belongToMetaClass(nullableTypeInfo.getBaseClass(), metas))
+                    return true;
+            }
         }
         return false;
     }
 
-    private boolean resolveHierarchy(AgoClass agoClass, ClassDef classDef) throws CompilationError {
+    public boolean resolveHierarchy(AgoClass agoClass, ClassDef classDef) throws CompilationError {
         if (classDef.getCompilingStage() != CompilingStage.ResolveHierarchicalClasses) return true;
 
         if(classDef.isInGenericInstantiation()){
@@ -252,7 +279,7 @@ public class AgoClassParser {
         return true;
     }
 
-    private ClassDef mapClass(AgoClass agoClass) throws CompilationError {
+    public ClassDef mapClass(AgoClass agoClass) throws CompilationError {
         if(agoClass == null) return null;
         var existed = classes.get(agoClass);
         if(existed != null) return existed;
@@ -393,7 +420,7 @@ public class AgoClassParser {
         }
     }
 
-    private boolean parseFields(AgoClass agoClass, ClassDef classDef) throws CompilationError {
+    public boolean parseFields(AgoClass agoClass, ClassDef classDef) throws CompilationError {
         if(classDef.getCompilingStage() != CompilingStage.ParseFields) return true;
 
         if(classDef.isInGenericInstantiation()){
@@ -486,6 +513,7 @@ public class AgoClassParser {
             }
             functionDef.setBody(fun.getCode());     // for AgoFunction it's the compiled code, just make the body fulfilled
         }
+        classDef.instantiateWaitingChildren();
         classDef.setCompilingStage(CompilingStage.InheritsInnerClasses);
         return true;
     }
@@ -548,7 +576,15 @@ public class AgoClassParser {
             AgoClass instanceClass = metaClass.getInstanceClass();
             ClassDef instanceClassDef = mapClass(instanceClass);
             if(instanceClassDef == null) return null;
-            var classDef = new MetaClassDef(root, instanceClassDef, instanceClass instanceof MetaClass ? 2 : 1, null);
+            if(instanceClassDef instanceof GenericConcreteType) {
+                if(instanceClassDef.getCompilingStage() == CompilingStage.ResolveHierarchicalClasses){
+                    if(!resolveHierarchy(agoClass, instanceClassDef)) return null;
+                    return Objects.requireNonNull(instanceClassDef.getMetaClassDef());
+                } else {
+                    return null;        // will instance meta later
+                }
+            }
+            var classDef = new MetaClassDef(root, instanceClassDef, instanceClass instanceof MetaClass ? 2 : 1, new AgoClassCombineClassParser(metaClass, this));
             classDef.setSourceLocation(metaClass.getSourceLocation());
             instanceClassDef.getPackage().addChild(classDef);
             classes.put(agoClass, classDef);
@@ -562,9 +598,9 @@ public class AgoClassParser {
         ClassDef classDef;
         if(agoClass instanceof AgoFunction agoFunction){
             if(agoFunction.isConstructor()){
-                classDef = new ConstructorDef(root, agoFunction.getModifiers(),  agoFunction.getName());
+                classDef = new ConstructorDef(root, agoFunction.getModifiers(),  new AgoClassCombineClassParser(agoClass, this));
             } else {
-                classDef = new FunctionDef(root, agoClass.getName(),  null);     // TODO top function
+                classDef = new FunctionDef(root, new AgoClassCombineClassParser(agoClass, this));
             }
             if(agoFunction instanceof AgoNativeFunction agoNativeFunction){
                 ((FunctionDef)classDef).setNativeEntrance(agoNativeFunction.getNativeEntrance());
@@ -572,12 +608,13 @@ public class AgoClassParser {
         } else if(agoClass instanceof AgoAnyClass) {
             classDef = new AnyClassDef(root, agoClass.getName());
         } else {
-            classDef = new ClassDef(root, agoClass.getName());
+            classDef = new ClassDef(root, new AgoClassCombineClassParser(agoClass, this));
             if(agoClass instanceof AgoInterface){
                 classDef.setClassType(AgoClass.TYPE_INTERFACE);
             } else if(agoClass instanceof AgoTrait){
                 classDef.setClassType(AgoClass.TYPE_TRAIT);
             } else if(agoClass instanceof AgoEnum agoEnum){
+                // won't create EnumDef here
                 classDef.setClassType(AgoClass.TYPE_ENUM);
                 TypeCode primitiveType = agoEnum.getBasePrimitiveType();
                 PrimitiveClassDef enumBasePrimitiveType = root.fromPrimitiveTypeCode(primitiveType);
@@ -678,21 +715,17 @@ public class AgoClassParser {
         return true;
     }
 
-    private boolean inheritsFields(ClassDef classDef) throws CompilationError {
+    public boolean inheritsFields(ClassDef classDef) throws CompilationError {
         if(classDef.getCompilingStage() == CompilingStage.InheritsFields) {
             classDef.inheritsFields();
-            for (ClassDef child : classDef.getDirectChildren()) {
-                inheritsFields(child);
-            }
         }
         return true;
     }
 
-    private boolean parseGenericParams(AgoClass agoClass, ClassDef templClass) throws CompilationError {
+    public boolean parseGenericParams(AgoClass agoClass, ClassDef templClass) throws CompilationError {
         ConcreteTypeInfo concreteTypeInfo = agoClass.getConcreteTypeInfo();
         if(concreteTypeInfo instanceof GenericTypeParametersInfo genericTypeParametersInfo){
             templClass.shiftToTemplate();
-            TypeParamsContext typeParamsContext = templClass.getTypeParamsContext();
             for (var genericTypeCodeAvatar : genericTypeParametersInfo.getGenericParameters()) {
                 var avatarInfo = GenericTypeCodeAvatarInfo.extract(genericTypeCodeAvatar);
 
@@ -701,18 +734,21 @@ public class AgoClassParser {
                 var gt = root.getGenericTypeParameter();
                 // here we need the constructor of MetaClass of SharedGenericTypeParameterClassDef
                 if(gt.getCompilingStage().lte(CompilingStage.ResolveHierarchicalClasses)){
-                    resolveHierarchy(avatarInfo.genericParameter().getParameterizedBaseClass(), gt);
+//                    resolveHierarchy(avatarInfo.genericParameter().getParameterizedBaseClass(), gt);
+                    gt.resolveHierarchicalClasses();
                 }
                 var avatar = root.getGenericTypeCodeAvatar();
                 if(avatar.getCompilingStage().lte(CompilingStage.ResolveHierarchicalClasses)){
-                    resolveHierarchy(genericTypeCodeAvatar.getParameterizedBaseClass(), avatar);
+//                    resolveHierarchy(genericTypeCodeAvatar.getParameterizedBaseClass(), avatar);
+                    avatar.resolveHierarchicalClasses();
                 }
 
                 SharedGenericTypeParameterClassDef pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(null,
                         gt,
                         gt.getMetaClassDef().getConstructor(),
                         mapClass(sharedGenericTypeParameterClass.lBound()),
-                        mapClass(sharedGenericTypeParameterClass.uBound()), sharedGenericTypeParameterClass.variance(), null);
+                        mapClass(sharedGenericTypeParameterClass.uBound()),
+                        sharedGenericTypeParameterClass.variance(), null);
                 // needn't register concrete type, for it's loading
                 templClass.getTypeParamsContext().createGenericTypeParam(null, avatarInfo.name(), pc, avatarInfo.index());
             }
@@ -726,11 +762,6 @@ public class AgoClassParser {
         if(classDef.getCompilingStage() != CompilingStage.InheritsInnerClasses) return true;
         classDef.inheritsChildClasses();
         classDef.setCompilingStage(CompilingStage.AllocateSlots);
-        if(classDef.isInGenericInstantiation()){
-            for (ClassDef child : classDef.getDirectChildren()) {
-                inheritsInnerClasses(child);
-            }
-        }
         return true;
     }
 

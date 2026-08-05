@@ -1,0 +1,102 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+public class Char from Boxer<char>{
+    metaclass{
+        fun MIN_VALUE() as char
+            native "org.siphonlab.ago.lang.Lang.Char_MIN_VALUE";
+
+        fun MAX_VALUE() as char
+            native "org.siphonlab.ago.lang.Lang.Char_MAX_VALUE";
+    }
+
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof Char b) and value == b.value;
+    }
+
+    override toString() as string{
+        return this.value|string;
+    }
+
+    override hashCode() as int{
+        return this.value|int;
+    }
+
+    // --- Instance methods ---
+
+    public fun isDigit() as boolean
+        native "org.siphonlab.ago.lang.Lang.Char_isDigit";
+
+    public fun isLetter() as boolean
+        native "org.siphonlab.ago.lang.Lang.Char_isLetter";
+
+    public fun isWhitespace() as boolean
+        native "org.siphonlab.ago.lang.Lang.Char_isWhitespace";
+
+    public fun isUpperCase() as boolean
+        native "org.siphonlab.ago.lang.Lang.Char_isUpperCase";
+
+    public fun isLowerCase() as boolean
+        native "org.siphonlab.ago.lang.Lang.Char_isLowerCase";
+
+    public fun toLowerCaseChar() as char
+        native "org.siphonlab.ago.lang.Lang.Char_toLowerCaseChar";
+
+    public fun toUpperCaseChar() as char
+        native "org.siphonlab.ago.lang.Lang.Char_toUpperCaseChar";
+
+    public fun digitValue() as int
+        native "org.siphonlab.ago.lang.Lang.Char_digitValue";
+
+    public fun compareTo(other as char) as int
+        native "org.siphonlab.ago.lang.Lang.Char_compareTo";
+}
+
+// --- Extension methods on primitive char type (direct natives, no boxing) ---
+
+final class CharExt{
+    metaclass{
+        fun isDigit(this as char) as boolean
+            native "org.siphonlab.ago.lang.Lang.Char_isDigit_ext";
+
+        fun isLetter(this as char) as boolean
+            native "org.siphonlab.ago.lang.Lang.Char_isLetter_ext";
+
+        fun isWhitespace(this as char) as boolean
+            native "org.siphonlab.ago.lang.Lang.Char_isWhitespace_ext";
+
+        fun isUpperCase(this as char) as boolean
+            native "org.siphonlab.ago.lang.Lang.Char_isUpperCase_ext";
+
+        fun isLowerCase(this as char) as boolean
+            native "org.siphonlab.ago.lang.Lang.Char_isLowerCase_ext";
+
+        fun toLowerCaseChar(this as char) as char
+            native "org.siphonlab.ago.lang.Lang.Char_toLowerCaseChar_ext";
+
+        fun toUpperCaseChar(this as char) as char
+            native "org.siphonlab.ago.lang.Lang.Char_toUpperCaseChar_ext";
+
+        fun digitValue(this as char) as int
+            native "org.siphonlab.ago.lang.Lang.Char_digitValue_ext";
+
+        fun hashCode(this as char) as int{
+            return this | int;
+        }
+    }
+}

@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler;
 
 import org.antlr.v4.runtime.*;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
@@ -35,12 +36,14 @@ public class AgoErrorStrategy extends DefaultErrorStrategy {
         } else if(rule instanceof AgoParser.BlockContext){
             // this rule will be broken, just ignore it, then it will goto the outer tie
         } else {
-            //recognizer.notifyErrorListeners(e.getOffendingToken(), e.getMessage(), e);
+            // recognizer.notifyErrorListeners(e.getOffendingToken(), e.getMessage(), e);
             unhandledException(recognizer, e);
+            super.recover(recognizer, e);
         }
     }
 
     protected void unhandledException(Parser recognizer, RecognitionException e) {
+
     }
 
     public String getMessage(NoViableAltException e) {

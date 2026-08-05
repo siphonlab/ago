@@ -277,8 +277,8 @@ class Generator<+R> from Function<R>{
 }
 
 class GeneratorIterator<+R> with Iterator<R> {
-    prevValue as R;
-    hasValue as boolean = false;
+    private prevValue as R;
+    private hasValue as boolean = false;
     public fun new(field gen as Generator<R>){
         advance();
     }
@@ -326,44 +326,14 @@ class Boxer<T as [Primitive]>{
     fun new(field value as T){
 
     }
+    override equals(another as Object) as boolean{
+        return another instanceof Boxer<T> b and b.value == this.value
+    }
 }
 
 interface ViaObject{
     fun enter(f as Function<_>);
     fun exit(f as Function<_>);
-}
-
-// array creator will get ArrayInstance insteadof
-class Array<T> with Iterable<T>{
-    metaclass{
-        fun copy(source as T[], sourcePos as int, destination as T[], destPos as int, length as int) native "org.siphonlab.ago.lang.Lang.arrayCopy"
-    }
-    public final length as int;
-
-    override iterator() as Iterator<T>{
-        return new ArrayIterator<T>(this)
-    }
-
-    override toString() as string{
-        var s = '[';
-        for(var i=0; i<length; i++){
-            s += this[i]
-            if(i < length -1) s += ','
-        }
-        return s + ']';
-    }
-}
-
-class ArrayIterator<+T> with Iterator<T>{
-    i as int
-    fun new(field array as Array<T>){}
-
-    override hasNext() as boolean{
-        return i < array.length
-    }
-    override next() as T{
-        return array[i++];
-    }
 }
 
 abstract class Enum<T>{

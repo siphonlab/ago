@@ -145,7 +145,8 @@ public class BitShiftExpr extends ExpressionInFunctionBody {
                 if (left instanceof Literal<?> literal) {
                     blockCompiler.getCode().biOperateLiteralVariable(type.opCode, literal.getTypeCode(), literal, ((Var.LocalVar) right).getVariableSlot(), localVar.getVariableSlot());
                 } else if (right instanceof Literal<?> literal) {
-                    blockCompiler.getCode().biOperateVariableLiteral(type.opCode, left.inferType().getTypeCode(), ((Var.LocalVar) left).getVariableSlot(), literal, localVar.getVariableSlot());
+                    var intLiteral = ownerFunction.cast(literal, getRoot().INT()).transform();
+                    blockCompiler.getCode().bitShiftVariableLiteral(type.opCode, left.inferType().getTypeCode(), ((Var.LocalVar) left).getVariableSlot(), (IntLiteral) intLiteral, localVar.getVariableSlot());
                 } else {
                     blockCompiler.getCode().biOperate(type.opCode, left.inferType().getTypeCode(), ((Var.LocalVar) left).getVariableSlot(), ((Var.LocalVar) right).getVariableSlot(), localVar.getVariableSlot());
                 }

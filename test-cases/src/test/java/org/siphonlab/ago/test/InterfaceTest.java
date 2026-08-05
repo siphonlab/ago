@@ -15,7 +15,7 @@
  */
 package org.siphonlab.ago.test;
 
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -31,13 +31,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class InterfaceTest {
 
     @Test @Tag("parameterized")
-    public void interface_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void interface_test() throws CompilationError, CompilationErrorsException, IOException {
         run("interface/generic.ago");
         assertTrue(Trace.outputted("meow", "meow"));
     }
 
     @Test
-    public void meta_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void meta_test() throws CompilationError, CompilationErrorsException, IOException {
         run("interface/meta.ago");
         assertTrue(Trace.outputted("timeout: 100",
                 "timeout: 100",
@@ -48,7 +48,7 @@ public class InterfaceTest {
     }
 
     @Test
-    public void configurable_fun_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void configurable_fun_test() throws CompilationError, CompilationErrorsException, IOException {
         run("interface/configurable_fun.ago");
         assertTrue(Trace.outputted("200", "prod:1000", "dev:3000"));
     }

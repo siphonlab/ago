@@ -1,0 +1,410 @@
+/**
+ * Pure-ago HashMap using open addressing with linear probing.
+ * Properly calls ago's equals() for Object keys, solving the callback limitation of native HashMap.
+ */
+class KeyNotFoundException from RuntimeException{
+    fun new#message(message as string){
+        super(message);
+    }
+}
+
+final class HashCode{
+    metaclass{
+        fun computeHashCode<Key>(key as Key) as int{
+            if(key instanceof Object obj){
+                return obj.hashCode();
+            } else if(key instanceof int i){
+                return i.hashCode();
+            } else if(key instanceof long l){
+                return l.hashCode();
+            } else if(key instanceof short s){
+                return s.hashCode();
+            } else if(key instanceof byte b){
+                return b.hashCode();
+            } else if(key instanceof float f){
+                return f.hashCode();
+            } else if(key instanceof double d){
+                return d.hashCode();
+            } else if(key instanceof char c){
+                return c.hashCode();
+            } else if(key instanceof boolean bl){
+                return bl.hashCode();
+            } else {
+                return (key | Object).hashCode();
+            }
+        }
+    }
+}
+
+class HashMap<Key, Value> from Map<Key, Value>{
+
+    private keyStore as Key[];
+    private valueStore as Value[];
+    private occupied as boolean[];
+    private capacity as int = 4;
+    private count as int = 0;
+    private loadThreshold as int = 3;
+
+    fun new(){
+        this.keyStore = new Key[4];
+        this.valueStore = new Value[4];
+        this.occupied = new boolean[4];
+    }
+
+    override size#get() as int{
+        return this.count;
+    }
+
+    override isReadOnly() as boolean{
+        return false;
+    }
+
+    override get#key(index as Key) as Value{
+        var isObjectKey = index instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(index | Object);
+                } else {
+                    matched = (this.keyStore[slot] == index);
+                }
+                if(matched){
+                    return this.valueStore[slot];
+                }
+            } else {
+                break;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+        throw new KeyNotFoundException("key not found: " + index);
+    }
+
+    override put(index as Key, value as Value){
+        var isObjectKey = index instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(index | Object);
+                } else {
+                    matched = (this.keyStore[slot] == index);
+                }
+                if(matched){
+                    this.valueStore[slot] = value;
+                    return;
+                }
+            } else {
+                this.keyStore[slot] = index;
+                this.valueStore[slot] = value;
+                this.occupied[slot] = true;
+                this.count++;
+                checkResize();
+                return;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+    }
+
+    override containsKey(key as Key) as boolean{
+        var isObjectKey = key instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(key | Object);
+                } else {
+                    matched = (this.keyStore[slot] == key);
+                }
+                if(matched){
+                    return true;
+                }
+            } else {
+                break;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+        return false;
+    }
+
+    override remove(key as Key) as boolean{
+        var isObjectKey = key instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(key | Object);
+                } else {
+                    matched = (this.keyStore[slot] == key);
+                }
+                if(matched){
+                    this.occupied[slot] = false;
+                    this.count--;
+                    return true;
+                }
+            } else {
+                break;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+        return false;
+    }
+
+    override clear(){
+        for(var i = 0; i < this.capacity; i++){
+            this.occupied[i] = false;
+        }
+        this.count = 0;
+    }
+
+    override putAll(map as ReadOnlyMap<Key, Value>){
+        for(var entry in map){
+            this.put(entry.key, entry.value);
+        }
+    }
+
+    // --- Internal helpers ---
+
+    fun hashToSlot(h as int) as int{
+        var nonNeg = h band 0x7FFFFFFF;
+        return nonNeg % this.capacity;
+    }
+
+    fun checkResize(){
+        if(this.count > this.loadThreshold){
+            resize();
+        }
+    }
+
+    fun resize(){
+        var oldCapacity = this.capacity;
+        var oldKeyStore = this.keyStore;
+        var oldValueStore = this.valueStore;
+        var oldOccupied = this.occupied;
+
+        this.capacity = oldCapacity * 2;
+        this.loadThreshold = (this.capacity * 3 / 4);
+        this.keyStore = new Key[this.capacity];
+        this.valueStore = new Value[this.capacity];
+        this.occupied = new boolean[this.capacity];
+        this.count = 0;
+
+        for(var i = 0; i < oldCapacity; i++){
+            if(oldOccupied[i]){
+                this.put(oldKeyStore[i], oldValueStore[i]);
+            }
+        }
+    }
+
+    // --- keys / values views ---
+
+    override keys#get() as ReadOnlyCollection<Key>{
+        var result = new ArrayList<Key>();
+        for(var i = 0; i < this.capacity; i++){
+            if(this.occupied[i]){
+                result.add(this.keyStore[i]);
+            }
+        }
+        return result;
+    }
+
+    override values#get() as ReadOnlyCollection<Value>{
+        var result = new ArrayList<Value>();
+        for(var i = 0; i < this.capacity; i++){
+            if(this.occupied[i]){
+                result.add(this.valueStore[i]);
+            }
+        }
+        return result;
+    }
+
+    class HashMapIterator with Iterator<KeyValuePair<Key, Value>>{
+        pos as int = 0;
+        nextSlot as int = -1;
+
+        fun new(){
+            computeNextSlot();
+        }
+
+        override hasNext() as boolean{
+            return this.nextSlot >= 0;
+        }
+
+        override next() as KeyValuePair<Key, Value>{
+            var slot = this.nextSlot;
+            computeNextSlot();
+            return new KeyValuePair<Key, Value>(keyStore[slot], valueStore[slot]);
+        }
+
+        fun computeNextSlot(){
+            this.nextSlot = -1;
+            for(var i = this.pos; i < capacity; i++){
+                if(occupied[i]){
+                    this.nextSlot = i;
+                    this.pos = i + 1;
+                    return;
+                }
+            }
+        }
+    }
+
+    override iterator() as Iterator<KeyValuePair<Key, Value>>{
+        return new HashMapIterator();
+    }
+}
+
+// ==================== Test code ====================
+
+class Person{
+    name as string;
+    age as int;
+
+    fun new(name as string, age as int){
+        this.name = name;
+        this.age = age;
+    }
+
+    override hashCode() as int{
+        var h = this.name | Object .hashCode();
+        h = h * 31 + this.age;
+        return h;
+    }
+
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        if(obj instanceof Person other){
+            return this.name == other.name and this.age == other.age;
+        }
+        return false;
+    }
+}
+
+fun main(){
+    // --- Test 1: basic put/get with int keys ---
+    var map = new HashMap<int, string>();
+    Trace.print(map.size);      // 0
+
+    map = {HashMap<int, string> | [1]: "Alice", [2]: "Bob"}
+    Trace.print(map.size);      // 2
+    Trace.print(map[1]);    // Alice
+    Trace.print(map[2]);    // Bob
+
+    // --- Test 2: update existing key ---
+    map.put(2, "Robert");
+    Trace.print(map.get(2));    // Robert
+
+    // --- Test 3: containsKey and remove ---
+    Trace.print(map.containsKey(1));        // true
+    Trace.print(map.containsKey(99));       // false
+    Trace.print(map.remove(2));             // true
+    Trace.print(map.size);                  // 1
+
+    // --- Test 4: Object keys with equals() — THE CORE TEST ---
+    var personMap = new HashMap<Person, string>();
+    var p1 = new Person("Alice", 30);
+    var p2 = new Person("Bob", 25);
+    var p1Copy = new Person("Alice", 30);
+
+    personMap.put(p1, "Engineer");
+    personMap.put(p2, "Designer");
+    Trace.print(personMap.size);        // 2
+
+    // p1Copy equals p1 but is a different object reference!
+    Trace.print(personMap.containsKey(p1Copy));     // true
+    Trace.print(personMap.get(p1Copy));             // Engineer
+
+    // Update via equal key
+    personMap.put(p1Copy, "Senior Engineer");
+    Trace.print(personMap.get(p1));             // Senior Engineer
+    Trace.print(personMap.size);                // 2
+
+    // --- Test 5: string keys ---
+    var strMap = new HashMap<string, int>();
+    strMap['one'] = 1
+    strMap['two'] = 2
+    Trace.print(strMap["two"]);     // 2
+    Trace.print(strMap.size);           // 2
+
+    // --- Test 6: iteration ---
+    for(var entry in map){
+        Trace.print(entry.key + "=" + entry.value);     // 1=Alice
+    }
+
+    // --- Test 7: keys and values views ---
+    var keyList = strMap.keys;
+    Trace.print(keyList.size);          // 2
+
+    var valList = strMap.values;
+    Trace.print(valList.size);          // 2
+
+    // --- Test 8: clear ---
+    strMap.clear();
+    Trace.print(strMap.size);               // 0
+    Trace.print(strMap.containsKey("one"));     // false
+
+    // --- Test 9: putAll ---
+    var src = new HashMap<string, int>();
+    src.put("x", 10);
+    src.put("y", 20);
+    var dst = new HashMap<string, int>();
+    dst.put("z", 30);
+    dst.putAll(src);
+    Trace.print(dst.size);          // 3
+    Trace.print(dst.get("x"));      // 10
+    Trace.print(dst.get("y"));      // 20
+    Trace.print(dst.get("z"));      // 30
+
+    // --- Test 10: remove returns correct value ---
+    var rmMap = new HashMap<int, string>();
+    rmMap.put(1, "a");
+    rmMap.put(2, "b");
+    Trace.print(rmMap.remove(1));       // true
+    Trace.print(rmMap.remove(99));      // false
+    Trace.print(rmMap.size);            // 1
+
+    // --- Test 11: Object key remove uses equals ---
+    personMap.remove(p1Copy);
+    Trace.print(personMap.containsKey(p1));     // false
+    Trace.print(personMap.size);            // 1
+
+    // --- Test 12: collision handling (keys with same hash slot) ---
+    var colMap = new HashMap<int, string>();
+    for(var i = 0; i < 20; i++){
+        colMap.put(i, "v" + i);
+    }
+    Trace.print(colMap.size);           // 20
+    Trace.print(colMap.get(0));         // v0
+    Trace.print(colMap.get(19));        // v19
+    Trace.print(colMap.get(10));        // v10
+
+    // --- Test 13: resize test (fill beyond capacity) ---
+    var bigMap = new HashMap<int, string>();
+    for(var i = 0; i < 50; i++){
+        bigMap.put(i, "big" + i);
+    }
+    Trace.print(bigMap.size);           // 50
+    Trace.print(bigMap.get(49));        // big49
+    Trace.print(bigMap.get(25));        // big25
+
+    // --- Test 14: KeyNotFoundException for missing key ---
+    try {
+        bigMap.get(2222);
+    } catch (e as KeyNotFoundException) {
+        Trace.print("caught: " + e.message);
+    }
+
+    // Verify existing keys still work after exception
+    Trace.print(bigMap.get(0));         // big0
+}

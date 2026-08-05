@@ -1,0 +1,99 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+public class Decimal from Number<decimal>{
+    metaclass{
+        fun ZERO() as decimal
+            native "org.siphonlab.ago.lang.Lang.Decimal_ZERO";
+    }
+
+    public override intValue() as int    { return value|int; }
+    public override longValue() as long  { return value|long; }
+    public override floatValue() as float    { return value|float; }
+    public override doubleValue() as double  { return value; }
+    public override byteValue() as byte      { return value|byte; }
+    public override shortValue() as short    { return value|short; }
+
+    public override toString() as string native "org.siphonlab.ago.lang.Lang.Decimal_toString"
+
+    override hashCode() as int native "org.siphonlab.ago.lang.Lang.Decimal_hashCode";
+
+    // --- Instance methods ---
+
+    public fun abs() as decimal
+        native "org.siphonlab.ago.lang.Lang.Decimal_abs";
+
+    public fun isFinite() as boolean
+        native "org.siphonlab.ago.lang.Lang.Decimal_isFinite";
+
+    public fun isInfinite() as boolean
+        native "org.siphonlab.ago.lang.Lang.Decimal_isInfinite";
+
+    public fun isNaN() as boolean
+        native "org.siphonlab.ago.lang.Lang.Decimal_isNaN";
+
+    public fun roundToInt() as int
+        native "org.siphonlab.ago.lang.Lang.Decimal_roundToInt";
+
+    public fun roundToLong() as long
+        native "org.siphonlab.ago.lang.Lang.Decimal_roundToLong";
+
+    public fun scale() as int
+        native "org.siphonlab.ago.lang.Lang.Decimal_scale";
+
+    public fun setScale(newScale as int) as decimal
+        native "org.siphonlab.ago.lang.Lang.Decimal_setScale";
+
+    public fun compareTo(other as decimal) as int
+        native "org.siphonlab.ago.lang.Lang.Decimal_compareTo";
+}
+
+// --- Extension methods on primitive decimal type (direct natives, no boxing) ---
+
+final class DecimalExt{
+    metaclass{
+        fun abs(this as decimal) as decimal
+            native "org.siphonlab.ago.lang.Lang.Decimal_abs_ext";
+
+        fun isFinite(this as decimal) as boolean
+            native "org.siphonlab.ago.lang.Lang.Decimal_isFinite_ext";
+
+        fun isInfinite(this as decimal) as boolean
+            native "org.siphonlab.ago.lang.Lang.Decimal_isInfinite_ext";
+
+        fun isNaN(this as decimal) as boolean
+            native "org.siphonlab.ago.lang.Lang.Decimal_isNaN_ext";
+
+        fun roundToInt(this as decimal) as int
+            native "org.siphonlab.ago.lang.Lang.Decimal_roundToInt_ext";
+
+        fun roundToLong(this as decimal) as long
+            native "org.siphonlab.ago.lang.Lang.Decimal_roundToLong_ext";
+
+        fun scale(this as decimal) as int
+            native "org.siphonlab.ago.lang.Lang.Decimal_scale_ext";
+
+        fun setScale(this as decimal, newScale as int) as decimal
+            native "org.siphonlab.ago.lang.Lang.Decimal_setScale_ext";
+
+        fun compareTo(this as decimal, other as decimal) as int
+            native "org.siphonlab.ago.lang.Lang.Decimal_compareTo_ext";
+
+        fun hashCode(this as decimal) as int
+            native "org.siphonlab.ago.lang.Lang.Decimal_hashCode_ext";
+    }
+}

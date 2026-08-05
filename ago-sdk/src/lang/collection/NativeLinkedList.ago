@@ -1,0 +1,58 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+native class NativeLinkedList<E> from List<E>{
+
+    fun new() native "org.siphonlab.ago.lang.LinkedList.create"
+
+    fun new#array(array as E[]) native "org.siphonlab.ago.lang.LinkedList.create"
+
+    override size#get() as int native "org.siphonlab.ago.lang.LinkedList.getSize";
+    override isReadOnly() as boolean native "org.siphonlab.ago.lang.LinkedList.isReadOnly";
+    override add(item as E) native "org.siphonlab.ago.lang.LinkedList.add";
+    override clear() native "org.siphonlab.ago.lang.LinkedList.clear";
+    override contains(item as E) as boolean native "org.siphonlab.ago.lang.LinkedList.contains";
+    override remove(item as E) as boolean native "org.siphonlab.ago.lang.LinkedList.remove";
+
+    override get#index(index as int) as E native "org.siphonlab.ago.lang.LinkedList.getAtIndex";
+    override set#index(index as int, value as E) native "org.siphonlab.ago.lang.LinkedList.setAtIndex";
+
+    native class ListIterator with Iterator<E> {
+        fun new() {create()}
+        private fun create() native "org.siphonlab.ago.lang.LinkedList.Iterator_create";
+        override hasNext() as boolean native "org.siphonlab.ago.lang.LinkedList.Iterator_hasNext";
+        override next() as E native "org.siphonlab.ago.lang.LinkedList.Iterator_next";
+    }
+
+    override iterator() as ListIterator{
+        return new ListIterator();
+    }
+
+    override addAll#array(array as E[]){
+        for(var el in array){
+            this.add(el);
+        }
+    }
+
+    override addAll#collection(it as Collection<E>){
+        for(var el in it){
+            this.add(el);
+        }
+    }
+
+
+}

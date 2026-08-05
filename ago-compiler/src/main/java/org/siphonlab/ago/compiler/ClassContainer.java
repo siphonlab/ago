@@ -45,7 +45,7 @@ public class ClassContainer extends Namespace<ClassDef>{
         if (existed == null) {
             if (newFun.isOverride()) {
                 getSameSignatureFunction(newFun);
-                throw unit.syntaxError(newFun.getDeclarationAst(), "not found function to override");
+                throw unit.syntaxError(newFun.getDeclarationAst(), "no function to override for '%s'".formatted(newFun.getFullname()));
             }
             return;
         }

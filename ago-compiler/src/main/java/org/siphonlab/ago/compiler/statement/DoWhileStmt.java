@@ -66,14 +66,14 @@ public class DoWhileStmt extends LoopStmt {
             exitLabel = blockCompiler.createLabel();
             if (this.condition instanceof Literal<?> literal && BooleanLiteral.isTrue(literal)) {
                 continueLabel = blockCompiler.createLabel().here();
-                body.termVisit(blockCompiler);
+                ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
                 code.jump(continueLabel);
                 exitLabel.here();
                 return;
             }
 
             var bodyBegin = continueLabel = blockCompiler.createLabel().here();
-            this.body.termVisit(blockCompiler);
+            ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
 
             if (condition instanceof LiteralResultExpression literalResultExpression) {
                 var tempVar = blockCompiler.acquireTempVar(literalResultExpression);

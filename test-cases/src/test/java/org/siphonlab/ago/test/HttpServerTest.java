@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.classloader.AgoClassLoader;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.web.RestfulService;
 
@@ -33,17 +33,17 @@ import java.util.zip.ZipInputStream;
 public class HttpServerTest {
 
     @Test
-    public void greeting() throws CompilationError, CompliationErrorsException, IOException {
+    public void greeting() throws CompilationError, CompilationErrorsException, IOException {
         run("restful/greeting.ago");
     }
 
     @Test
-    public void testArmeria() throws CompilationError, CompliationErrorsException, IOException {
+    public void testArmeria() throws CompilationError, CompilationErrorsException, IOException {
         run("restful/armeria_publisher.ago");
     }
 
 
-    public void run(String filename) throws CompilationError, CompliationErrorsException, IOException {
+    public void run(String filename) throws CompilationError, CompilationErrorsException, IOException {
         Util.compile(filename);
 
         AgoEngine engine = new AgoEngine();

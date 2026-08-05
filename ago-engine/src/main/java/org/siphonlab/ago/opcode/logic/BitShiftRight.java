@@ -44,7 +44,7 @@ public class BitShiftRight {
     public static final int rshift_s_vcv = 0x29_09_05_03;
 
     public static final int rshift_l_vc    = 0x29_0b_01_02;
-    public static final int rshift_l_vvc   = 0x29_0b_02_04;
+    public static final int rshift_l_vvc   = 0x29_0b_02_03;
     public static final int rshift_l_vv    = 0x29_0b_03_02;
     public static final int rshift_l_vvv   = 0x29_0b_04_03;
     public static final int rshift_l_vcv = 0x29_0b_05_04;

@@ -1,0 +1,38 @@
+fun main(){
+    var l = 42L;
+    var boxed = new Long(l);
+
+    // abs
+    Trace.print(boxed.abs());
+    Trace.print((-42L).abs());
+
+    // negate
+    Trace.print(boxed.negate());
+    Trace.print((7L).negate());
+
+    // clamp
+    Trace.print(boxed.clamp(0, 100));
+    Trace.print((-5L).clamp(0, 100));
+    Trace.print((200L).clamp(0, 100));
+
+    // hexString
+    Trace.print(boxed.hexString());
+    Trace.print(l.hexString());
+
+    // toBinaryString
+    Trace.print(boxed.toBinaryString());
+    Trace.print(l.toBinaryString());
+
+    // bitCount
+    Trace.print(boxed.bitCount());
+    Trace.print(l.bitCount());
+
+    // reverseBytes
+    var rb = boxed.reverseBytes();
+    Trace.print(rb);
+    Trace.print(l.reverseBytes());
+
+    // metaclass statics
+    Trace.print(Long.MIN_VALUE());
+    Trace.print(Long.MAX_VALUE());
+}

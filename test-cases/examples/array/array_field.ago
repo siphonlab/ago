@@ -1,0 +1,8 @@
+class A<T>{
+    arr as T[]
+}
+fun main(){
+    var a = new A<int>();
+    a.arr = new int[20];
+}
+

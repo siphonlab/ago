@@ -16,7 +16,7 @@
 package org.siphonlab.ago.test;
 
 import org.junit.jupiter.api.Disabled;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -30,39 +30,39 @@ import static org.siphonlab.ago.test.Util.runInVertxSpace;
 public class ConcurrentTests {
 
     @Test
-    public void race() throws IOException, CompilationError, InterruptedException, CompliationErrorsException {
+    public void race() throws IOException, CompilationError, InterruptedException, CompilationErrorsException {
         runInVertxSpace("concurrent/race.ago", "main#");
         assertTrue(Trace.outputted("f1", "f2", "f3", "put the elephant in"));
     }
 
     @Test
-    public void create_runspace() throws IOException, CompilationError, InterruptedException, CompliationErrorsException {
+    public void create_runspace() throws IOException, CompilationError, InterruptedException, CompilationErrorsException {
         runInVertxSpace("concurrent/create_runspace.ago", "main#");
         Trace.printOutput();
         assertTrue(Trace.outputted("test", "3"));
     }
 
     @Test
-    public void spawn_many() throws IOException, CompilationError, InterruptedException, CompliationErrorsException {
+    public void spawn_many() throws IOException, CompilationError, InterruptedException, CompilationErrorsException {
         runInVertxSpace("concurrent/spawn_many.ago", "main#");
         assertTrue(Trace.outputted("f1", "f2", "f3", "put the elephant in", "close the door", "open the door"));
     }
 
     @Test
-    public void await_many() throws IOException, CompilationError, InterruptedException, CompliationErrorsException {
+    public void await_many() throws IOException, CompilationError, InterruptedException, CompilationErrorsException {
         runInVertxSpace("concurrent/await_many.ago", "main#");
         assertTrue(Trace.outputted("f1", "f2", "f3"));
     }
 
     @Test @Disabled
-    public void structured() throws IOException, CompilationError, InterruptedException, CompliationErrorsException {
+    public void structured() throws IOException, CompilationError, InterruptedException, CompilationErrorsException {
         runInVertxSpace("concurrent/structured.ago", "main#");
         Trace.printOutput();    // sometimes vertx won't terminate
         assertTrue(Trace.outputted("have a rest", "task1", "subtask 1", "subtask 2", "subtask 3", "move on", "subtask 2 done", "subtask 3 done", "subtask 1 done"));
     }
 
     @Test
-    public void forkContext() throws IOException, CompilationError, InterruptedException, CompliationErrorsException {
+    public void forkContext() throws IOException, CompilationError, InterruptedException, CompilationErrorsException {
         runInVertxSpace("concurrent/fork_context.ago", "main#");
     }
 

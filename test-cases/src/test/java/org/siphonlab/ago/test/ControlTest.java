@@ -16,7 +16,7 @@
 package org.siphonlab.ago.test;
 
 import org.junit.jupiter.api.Disabled;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -32,31 +32,31 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ControlTest{
 
     @Test
-    public void if_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void if_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/if.ago");
         assertTrue(Trace.outputted("success", "failed"));
     }
 
     @Test
-    public void while_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void while_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/while.ago");
         assertTrue(Trace.outputted("sum: 5050"));
     }
 
     @Test
-    public void break_label_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void break_label_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/break_label.ago");
         assertTrue(Trace.outputted("world", "0, 0", "0, 1", "0, 2", "1, 0"));
     }
 
     @Test
-    public void switch_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void switch_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/switch.ago");
         assertTrue(Trace.outputted("星期四", "星期三"));
     }
 
     @Test
-    public void for_performance_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void for_performance_test() throws CompilationError, CompilationErrorsException, IOException {
         if(parseEngine().equals("vertx")) {
             run("control/for_performance.ago");
             assertTrue(Trace.outputtedMatch("start", "end at ", "\\d+"));
@@ -64,19 +64,19 @@ public class ControlTest{
     }
 
     @Test
-    public void try_catch_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void try_catch_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/try_catch.ago");
         assertTrue(Trace.outputted("捕获到自定义异常：值 150 超过允许的最大值 100", "finally 块：总是会执行"));
     }
 
     @Test @Disabled
-    public void try_catch2_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void try_catch2_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/try_catch2.ago");
         assertTrue(Trace.outputted("捕获到自定义异常：值 150 超过允许的最大值 100", "finally 块：总是会执行", "finally output line 24", "yet another finally block", "outer finally output line 28"));
     }
 
     @Test
-    public void continue_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void continue_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/continue_label.ago");
         assertTrue(Trace.outputted(
                 "test 1", "1", "3", "5", "7", "9", "10", "12", "14", "16", "18",
@@ -84,7 +84,7 @@ public class ControlTest{
     }
 
     @Test
-    public void for_loop_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void for_loop_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/for_loop.ago");
         assertTrue(Trace.outputted("test 1", "0", "1", "2",
                 "test 2", "3", "2", "1", "0",
@@ -93,25 +93,25 @@ public class ControlTest{
     }
 
     @Test
-    public void switch_enum() throws CompilationError, CompliationErrorsException, IOException {
+    public void switch_enum() throws CompilationError, CompilationErrorsException, IOException {
         run("control/switch_enum.ago");
         assertTrue(Trace.outputted("星期五：周末快到了，放松一下！"));
     }
 
     @Test
-    public void with_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void with_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/with.ago");
         assertTrue(Trace.outputted("John", "20", "Tom", "21"));
     }
 
     @Test
-    public void via_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void via_test() throws CompilationError, CompilationErrorsException, IOException {
         run("control/via.ago");
         assertTrue(Trace.outputted("open file sample.txt", "read file content from sample.txt", "close file sample.txt"));
     }
 
     @Test
-    public void catchJavaException() throws CompilationError, CompliationErrorsException, IOException {
+    public void catchJavaException() throws CompilationError, CompilationErrorsException, IOException {
         run("control/catch_java_exception.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("java exception", "java exception from raiseJavaException", "test exception"));

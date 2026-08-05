@@ -1,0 +1,18 @@
+# Normalize all text files to LF in repository, convert to CRLF on Windows checkout
+* text=eol=lf
+
+# Binary files should not be normalized
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.jar binary
+*.class binary
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary

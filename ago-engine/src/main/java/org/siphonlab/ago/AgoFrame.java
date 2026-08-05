@@ -2042,7 +2042,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     @Override
     public SourceLocation resolveSourceLocation() {
         if(preservableSearcher == null) preservableSearcher = new PreservableSearcher<>(Arrays.asList(this.agoClass.getSourceMap()));
-        SourceMapEntry entry = preservableSearcher.search(s -> s.codeOffset() <= this.pc);
+        SourceMapEntry entry = preservableSearcher.search((c, n) -> this.pc >= c.codeOffset()  && (n == null || this.pc < n.codeOffset()));
         if(entry != null) return entry.sourceLocation();
         return this.agoClass.getSourceLocation();
     }
