@@ -19,6 +19,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.OpenOptions;
+import io.vertx.core.streams.ReadStream;
+import org.apache.commons.io.input.QueueInputStream;
 import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
@@ -36,10 +38,32 @@ public class IO {
     }
 
     public static void FileSystem_open(NativeFrame frame, String path){
+        if(frame.getReenterState() == NativeFrame.REENTER_CREATE_INSTANCE){
+            Object nativePayload = frame.getNativePayload();
+            frame.finishObjectAsync((Instance<?>) nativePayload);
+            return;
+        }
+
         frame.beginAsync();
         VertxRunSpaceHost runSpaceHost = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
         runSpaceHost.getVertx().fileSystem().open(path, new OpenOptions().setRead(true).setCreateNew(false).setCreate(false))
                 .onComplete(new VertXNativeFrameHandler<>(frame, "io.File"));
+    }
+
+    public static void File_create(NativeFrame frame){
+        Instance<?> fileInstance = frame.getParentScope();
+        ReadStream<?> file = (ReadStream<?>) fileInstance.getNativePayload();
+
+//        ReadStreamWrapper readStreamWrapper = new ReadStreamWrapper(file);
+//        file.endHandler(readStreamWrapper::endHandler);
+//        file.exceptionHandler(readStreamWrapper::exceptionHandler);
+//        file.handler(readStreamWrapper::handle);
+
+//        var wrapperInst = frame.getAgoEngine().createInstance(fileInstance.getAgoClass().getSlotDefs()[0].getAgoClass(), frame.getRunSpace());
+//        wrapperInst.setNativePayload(readStreamWrapper);
+
+//        fileInstance.getSlots().setObject(0, wrapperInst);     // readStreamWrapper
+        frame.finishVoid();
     }
 
     public static void File_read(NativeFrame frame, Instance<?> buffer, int offset, long position, int length){
@@ -48,5 +72,44 @@ public class IO {
         file.read((Buffer) buffer.getNativePayload(), offset, position, length)
                 .onComplete(new VertXNativeFrameHandler<>(frame, "io.Buffer"));
     }
+
+    public static void ReadStream_pause(NativeFrame frame){
+        frame.beginAsync();
+        ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
+        readStream.pause();
+        frame.finishVoid();
+    }
+
+    public static void ReadStream_resume(NativeFrame frame){
+        frame.beginAsync();
+        ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
+        readStream.resume();
+        frame.finishVoid();
+    }
+
+    public static void ReadStream_fetch(NativeFrame frame, long amount){
+        frame.beginAsync();
+        ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
+        readStream.fetch(amount);
+        frame.finishVoid();
+    }
+
+    public static void ReadStream_generator(NativeFrame frame){
+        ReadStreamGenerator<?> readStreamGenerator = (ReadStreamGenerator<?>) frame.getParentScope().getNativePayload();
+        if(frame.getNativePayload() == null){
+            ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
+            readStreamGenerator = new ReadStreamGenerator<>(readStream, frame);
+            frame.setNativePayload(readStreamGenerator);
+            readStreamGenerator.init();
+        }
+        readStreamGenerator.next(frame);
+    }
+
+    public static void ReadStream_hasNext(NativeFrame frame){
+        frame.beginAsync();
+        ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
+        frame.finishVoid();
+    }
+
 
 }

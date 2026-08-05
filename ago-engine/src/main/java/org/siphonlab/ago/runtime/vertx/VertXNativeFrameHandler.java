@@ -18,10 +18,7 @@ package org.siphonlab.ago.runtime.vertx;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import org.siphonlab.ago.AgoEngine;
-import org.siphonlab.ago.CallFrame;
-import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.Union;
+import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 
 import java.math.BigDecimal;
@@ -32,6 +29,8 @@ public class VertXNativeFrameHandler<T> implements Handler<AsyncResult<T>> {
     private final NativeFrame frame;
     private final String resultClass;
     private final String agoExceptionClass;
+
+    private Instance<?> objectResult;
 
     public VertXNativeFrameHandler(NativeFrame frame, String resultClass, String agoExceptionClass) {
         this.frame = frame;
@@ -69,7 +68,16 @@ public class VertXNativeFrameHandler<T> implements Handler<AsyncResult<T>> {
                         AgoEngine agoEngine = frame.getAgoEngine();
                         var instance = agoEngine.createNativeInstance(null, agoEngine.getClass(resultClass), frame.getRunSpace());
                         instance.setNativePayload(r);
-                        frame.finishObjectAsync(instance);
+
+                        AgoFunction constructor = instance.getAgoClass().getEmptyArgsConstructor();
+                        if(constructor != null){
+                            var fun = agoEngine.createFunctionInstance(instance, constructor, frame.getRunSpace());
+                            frame.setNativePayload(instance);
+                            frame.getRunSpace().resumeByAcceptResult();
+                            frame.invokeFrame(fun, NativeFrame.REENTER_CREATE_INSTANCE);
+                        } else {
+                            frame.finishObjectAsync(instance);
+                        }
                     }
                 } break;
                 case NULL_VALUE, VOID_VALUE:    frame.finishVoidAsync(); break;
