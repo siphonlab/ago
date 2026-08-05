@@ -76,6 +76,13 @@ public class FunctionTest {
     }
 
     @Test
+    public void native_generator() throws CompilationError, CompliationErrorsException, IOException, InterruptedException {
+        run("function/native_generator.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("0", "1", "2", "3"));
+    }
+
+    @Test
     public void defaultParameter() throws CompilationError, CompliationErrorsException, IOException {
         run("function/default_param.ago");
         Trace.printOutput();

@@ -1,0 +1,8 @@
+generator fun foo(n as int) as int
+    native "org.siphonlab.ago.test.TestFunctions.foo_generator";
+
+fun main(){
+    for(var i in foo(3)){
+        Trace.print(i);
+    }
+}
