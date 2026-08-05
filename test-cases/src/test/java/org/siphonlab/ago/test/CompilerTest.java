@@ -54,6 +54,19 @@ public class CompilerTest {
         new ClassFile(module).createPackage(new FileOutputStream("../ago-sdk/lang.agopkg"));
     }
 
+    @Test @Disabled
+    public void ioCompile() throws CompilationError, CompilationErrorsException, IOException {
+        var module = new ProjectParser().parse("../ago-sdk/src/io/module.info");
+        Compiler compiler = new Compiler(module);
+        try {
+            compiler.compile();
+        } catch (CompilationErrorsException e) {
+            System.err.println(e.getMessage());
+            return;
+        }
+        new ClassFile(module).saveToDirectory("../ago-sdk/compiled/io/");
+        new ClassFile(module).createPackage(new FileOutputStream("../ago-sdk/io.agopkg"));
+    }
 
 
 }

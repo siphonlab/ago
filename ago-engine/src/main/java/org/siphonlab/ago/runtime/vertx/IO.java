@@ -41,7 +41,7 @@ public class IO {
         VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
         host.getVertx().fileSystem()
                 .open(path, new OpenOptions().setRead(true).setCreateNew(false).setCreate(false))
-                .onComplete(new VertXNativeFrameHandler<>(frame, "io.File", "io.IOException"));
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
     }
 
     public static void FileSystem_readFile(NativeFrame frame, String path){
@@ -49,7 +49,7 @@ public class IO {
         VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
         host.getVertx().fileSystem()
                 .readFile(path)
-                .onComplete(new VertXNativeFrameHandler<>(frame, "io.Buffer", "io.IOException"));
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
     }
 
     public static void FileSystem_writeFile(NativeFrame frame, String path, Instance<?> data){
@@ -126,7 +126,7 @@ public class IO {
         frame.beginAsync();
         AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
         file.read((Buffer) buffer.getNativePayload(), offset, position, length)
-                .onComplete(new VertXNativeFrameHandler<>(frame, "io.Buffer", "io.IOException"));
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
     }
 
     public static void File_write(NativeFrame frame, Instance<?> buffer, long position){
@@ -225,7 +225,7 @@ public class IO {
     }
 
     public static void ReadStream_generator(NativeFrame frame){
-        ReadStreamGenerator<?> readStreamGenerator = (ReadStreamGenerator<?>) frame.getParentScope().getNativePayload();
+        ReadStreamGenerator<?> readStreamGenerator = (ReadStreamGenerator<?>) frame.getNativePayload();
         if(frame.getNativePayload() == null){
             ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
             readStreamGenerator = new ReadStreamGenerator<>(readStream, frame);

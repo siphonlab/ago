@@ -27,23 +27,17 @@ import static org.siphonlab.ago.TypeCode.*;
 
 public class VertXNativeFrameHandler<T> implements Handler<AsyncResult<T>> {
     private final NativeFrame frame;
-    private final String resultClass;
     private final String agoExceptionClass;
 
     private Instance<?> objectResult;
 
-    public VertXNativeFrameHandler(NativeFrame frame, String resultClass, String agoExceptionClass) {
+    public VertXNativeFrameHandler(NativeFrame frame, String agoExceptionClass) {
         this.frame = frame;
-        this.resultClass = resultClass;
         this.agoExceptionClass = agoExceptionClass;
     }
 
-    public VertXNativeFrameHandler(NativeFrame frame, String resultClass){
-        this(frame, resultClass, "lang.NativeException");
-    }
-
     public VertXNativeFrameHandler(NativeFrame frame){
-        this(frame, null, "lang.NativeException");
+        this(frame, "lang.NativeException");
     }
 
     @Override
@@ -66,7 +60,7 @@ public class VertXNativeFrameHandler<T> implements Handler<AsyncResult<T>> {
                         frame.finishObjectAsync(instance);
                     } else {
                         AgoEngine agoEngine = frame.getAgoEngine();
-                        var instance = agoEngine.createNativeInstance(null, agoEngine.getClass(resultClass), frame.getRunSpace());
+                        var instance = agoEngine.createNativeInstance(null, ClassMapping.map(r.getClass(), agoEngine), frame.getRunSpace());
                         instance.setNativePayload(r);
 
                         AgoFunction constructor = instance.getAgoClass().getEmptyArgsConstructor();
@@ -94,7 +88,7 @@ public class VertXNativeFrameHandler<T> implements Handler<AsyncResult<T>> {
                                 frame.finishUnionAsync(instance);
                             } else {
                                 AgoEngine agoEngine = frame.getAgoEngine();
-                                var instance = agoEngine.createNativeInstance(null, agoEngine.getClass(resultClass), frame.getRunSpace());
+                                var instance = agoEngine.createNativeInstance(null, ClassMapping.map(r.getClass(), agoEngine), frame.getRunSpace());
                                 instance.setNativePayload(r);
                                 frame.finishUnionAsync(instance);
                             }

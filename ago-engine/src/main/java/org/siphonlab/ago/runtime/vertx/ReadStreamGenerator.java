@@ -49,6 +49,8 @@ public class ReadStreamGenerator<E> implements Handler<E> {
 
     private NativeFrame receiverFrame;      // invoking next();
 
+    private boolean async = false;
+
     public ReadStreamGenerator(ReadStream<E> stream, NativeFrame frame, long highWaterMark, long lowWaterMark) {
         this.stream = stream;
         this.frame = frame;
@@ -79,9 +81,26 @@ public class ReadStreamGenerator<E> implements Handler<E> {
                 frame.raiseJavaException(frame.self(), ex, true);
             }
         });
-        stream.endHandler(v -> handleEnd());
+        stream.endHandler(v -> {
+            handleEnd();
+            if(receiverFrame != null && counter == 0) {
+                if(LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(frame + " finished");
+                }
+                finish(receiverFrame);
+            }
+        });
 
         stream.fetch(highWaterMark);
+    }
+
+    private void finish(NativeFrame receiverFrame) {
+        receiverFrame.getSlots().setBoolean(0, true);       // done
+        if(async) {
+            receiverFrame.finishVoidAsync();
+        } else {
+            receiverFrame.finishVoid();
+        }
     }
 
     // native frame is a generator
@@ -108,16 +127,21 @@ public class ReadStreamGenerator<E> implements Handler<E> {
                 stream.fetch(highWaterMark - counter);
             }
             lock.unlock();
-            frame.yieldObject((Instance<?>) t);
+            if(async) {
+                frame.finishObjectAsync(ClassMapping.mapObject(t, frame));
+                async = false;
+            } else {
+                frame.finishObject(ClassMapping.mapObject(t, frame));
+            }
         } else {
             if(this.ended) {
                 if(LOGGER.isDebugEnabled()) LOGGER.debug("stream ended, and no more data in buffer, now count:%d, stop generator".formatted(counter));
-                frame.getSlots().setBoolean(0, true);       // done
-                frame.finishVoid();
+                finish(frame);
             } else {
                 if(LOGGER.isDebugEnabled()) LOGGER.debug("no more data in buffer, but stream not ended, now count:%d, wait new data".formatted(counter));
                 receiverFrame = frame;
                 frame.beginAsync();
+                async = true;
             }
             lock.unlock();
         }
@@ -130,11 +154,12 @@ public class ReadStreamGenerator<E> implements Handler<E> {
         }
         lock.lock();
         if(receiverFrame != null){
-            if(LOGGER.isDebugEnabled()) LOGGER.debug("new data come in, receiver is waiting, now count:%d, send data '%s'".formatted(counter, element));
+            if(LOGGER.isDebugEnabled()) LOGGER.debug("new data come in, receiver is waiting, now count:%d, yield '%s'".formatted(counter, element));
             var f = receiverFrame;
             receiverFrame = null;
             lock.unlock();
-            f.yieldObject((Instance<?>) element);
+            f.finishObjectAsync(ClassMapping.mapObject(element, f));
+            async = false;
         } else {
             if (counter == 0) {
                 counter = 1;
@@ -155,6 +180,7 @@ public class ReadStreamGenerator<E> implements Handler<E> {
     }
 
     private void handleEnd() {
+        if(LOGGER.isDebugEnabled()) LOGGER.debug("stream end");
         lock.lock();
         ended = true;
         stream.endHandler(null);
