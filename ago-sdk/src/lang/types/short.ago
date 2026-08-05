@@ -49,21 +49,18 @@ public class Short from Number<short>{
         native "org.siphonlab.ago.lang.Lang.Short_toHexString";
 }
 
-// --- Extension methods on primitive short type ---
+// --- Extension methods on primitive short type (direct natives, no boxing) ---
 
 final class ShortExt{
     metaclass{
-        fun abs(this as short) as short{
-            return new Short(this).abs();
-        }
+        fun abs(this as short) as short
+            native "org.siphonlab.ago.lang.Lang.Short_abs_ext";
 
-        fun clamp(this as short, minVal as short, maxVal as short) as short{
-            return new Short(this).clamp(minVal, maxVal);
-        }
+        fun clamp(this as short, minVal as short, maxVal as short) as short
+            native "org.siphonlab.ago.lang.Lang.Short_clamp_ext";
 
-        fun toHexString(this as short) as string{
-            return new Short(this).toHexString();
-        }
+        fun toHexString(this as short) as string
+            native "org.siphonlab.ago.lang.Lang.Short_toHexString_ext";
 
         fun hashCode(this as short) as int{
             return this | int;

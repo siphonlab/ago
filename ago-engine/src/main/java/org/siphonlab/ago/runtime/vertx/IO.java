@@ -17,7 +17,6 @@ package org.siphonlab.ago.runtime.vertx;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.AsyncFile;
-import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.OpenOptions;
 import io.vertx.core.streams.ReadStream;
 import org.apache.commons.io.input.QueueInputStream;
@@ -27,15 +26,9 @@ import org.siphonlab.ago.native_.NativeFrame;
 
 public class IO {
 
-    public static void Buffer_create(NativeFrame frame){
-        frame.getParentScope().setNativePayload(Buffer.buffer());
-        frame.finishVoid();
-    }
-
-    public static void Buffer_toString(NativeFrame frame){
-        Buffer buffer = (Buffer) frame.getParentScope().getNativePayload();
-        frame.finishString(buffer.toString());
-    }
+    // ========================================================================
+    // FileSystem operations
+    // ========================================================================
 
     public static void FileSystem_open(NativeFrame frame, String path){
         if(frame.getReenterState() == NativeFrame.REENTER_CREATE_INSTANCE){
@@ -45,10 +38,73 @@ public class IO {
         }
 
         frame.beginAsync();
-        VertxRunSpaceHost runSpaceHost = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
-        runSpaceHost.getVertx().fileSystem().open(path, new OpenOptions().setRead(true).setCreateNew(false).setCreate(false))
-                .onComplete(new VertXNativeFrameHandler<>(frame, "io.File"));
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        host.getVertx().fileSystem()
+                .open(path, new OpenOptions().setRead(true).setCreateNew(false).setCreate(false))
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.File", "io.IOException"));
     }
+
+    public static void FileSystem_readFile(NativeFrame frame, String path){
+        frame.beginAsync();
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        host.getVertx().fileSystem()
+                .readFile(path)
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.Buffer", "io.IOException"));
+    }
+
+    public static void FileSystem_writeFile(NativeFrame frame, String path, Instance<?> data){
+        frame.beginAsync();
+        Buffer buffer = (Buffer) data.getNativePayload();
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        host.getVertx().fileSystem()
+                .writeFile(path, buffer)
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void FileSystem_exists(NativeFrame frame, String path){
+        frame.beginAsync();
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        host.getVertx().fileSystem()
+                .exists(path)
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void FileSystem_size(NativeFrame frame, String path){
+        frame.beginAsync();
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        host.getVertx().fileSystem()
+                .props(path)
+                .map(fp -> fp.size())
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void FileSystem_mkdir(NativeFrame frame, String path){
+        frame.beginAsync();
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        host.getVertx().fileSystem()
+                .mkdirs(path)
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void FileSystem_rename(NativeFrame frame, String oldPath, String newPath){
+        frame.beginAsync();
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        host.getVertx().fileSystem()
+                .move(oldPath, newPath)
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void FileSystem_delete(NativeFrame frame, String path){
+        frame.beginAsync();
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        host.getVertx().fileSystem()
+                .delete(path)
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    // ========================================================================
+    // File operations (wraps AsyncFile)
+    // ========================================================================
 
     public static void File_create(NativeFrame frame){
         Instance<?> fileInstance = frame.getParentScope();
@@ -70,7 +126,81 @@ public class IO {
         frame.beginAsync();
         AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
         file.read((Buffer) buffer.getNativePayload(), offset, position, length)
-                .onComplete(new VertXNativeFrameHandler<>(frame, "io.Buffer"));
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.Buffer", "io.IOException"));
+    }
+
+    public static void File_write(NativeFrame frame, Instance<?> buffer, long position){
+        frame.beginAsync();
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.write((Buffer) buffer.getNativePayload(), position)
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void File_pause(NativeFrame frame){
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.pause();
+        frame.finishObject(frame.getParentScope());
+    }
+
+    public static void File_resume(NativeFrame frame){
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.resume();
+        frame.finishObject(frame.getParentScope());
+    }
+
+    public static void File_fetch(NativeFrame frame, long amount){
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.fetch(amount);
+        frame.finishObject(frame.getParentScope());
+    }
+
+    public static void File_setReadPos(NativeFrame frame, long pos){
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.setReadPos(pos);
+        frame.finishVoid();
+    }
+
+    public static void File_setWritePos(NativeFrame frame, long pos){
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.setWritePos(pos);
+        frame.finishVoid();
+    }
+
+    public static void File_getWritePos(NativeFrame frame){
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        frame.finishLong(file.getWritePos());
+    }
+
+    public static void File_setReadLength(NativeFrame frame, long length){
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.setReadLength(length);
+        frame.finishVoid();
+    }
+
+    public static void File_getReadLength(NativeFrame frame){
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        frame.finishLong(file.getReadLength());
+    }
+
+    public static void File_size(NativeFrame frame){
+        frame.beginAsync();
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.size()
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void File_flush(NativeFrame frame){
+        frame.beginAsync();
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.flush()
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void File_close(NativeFrame frame){
+        frame.beginAsync();
+        AsyncFile file = (AsyncFile) frame.getParentScope().getNativePayload();
+        file.close()
+                .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
     }
 
     public static void ReadStream_pause(NativeFrame frame){

@@ -64,37 +64,30 @@ public class Long from Number<long>{
         native "org.siphonlab.ago.lang.Lang.Long_reverseBytes";
 }
 
-// --- Extension methods on primitive long type ---
+// --- Extension methods on primitive long type (direct natives, no boxing) ---
 
 final class LongExt{
     metaclass{
-        fun abs(this as long) as long{
-            return new Long(this).abs();
-        }
+        fun abs(this as long) as long
+            native "org.siphonlab.ago.lang.Lang.Long_abs_ext";
 
-        fun negate(this as long) as long{
-            return new Long(this).negate();
-        }
+        fun negate(this as long) as long
+            native "org.siphonlab.ago.lang.Lang.Long_negate_ext";
 
-        fun clamp(this as long, minVal as long, maxVal as long) as long{
-            return new Long(this).clamp(minVal, maxVal);
-        }
+        fun clamp(this as long, minVal as long, maxVal as long) as long
+            native "org.siphonlab.ago.lang.Lang.Long_clamp_ext";
 
-        fun hexString(this as long) as string{
-            return new Long(this).hexString();
-        }
+        fun hexString(this as long) as string
+            native "org.siphonlab.ago.lang.Lang.Long_hexString_ext";
 
-        fun toBinaryString(this as long) as string{
-            return new Long(this).toBinaryString();
-        }
+        fun toBinaryString(this as long) as string
+            native "org.siphonlab.ago.lang.Lang.Long_toBinaryString_ext";
 
-        fun bitCount(this as long) as int{
-            return new Long(this).bitCount();
-        }
+        fun bitCount(this as long) as int
+            native "org.siphonlab.ago.lang.Lang.Long_bitCount_ext";
 
-        fun reverseBytes(this as long) as long{
-            return new Long(this).reverseBytes();
-        }
+        fun reverseBytes(this as long) as long
+            native "org.siphonlab.ago.lang.Lang.Long_reverseBytes_ext";
 
         fun hashCode(this as long) as int{
             return (this bxor (this >>> 32)) | int;

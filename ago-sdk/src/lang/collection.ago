@@ -173,4 +173,11 @@ abstract class Map<Key, Value> with ReadWriteMap<Key, Value>, ReadOnlyMap<Key, V
     }
 }
 
+class KeyNotFoundException from RuntimeException{
+    fun new#message(message as string){
+        super(message);
+    }
+}
+
+
 

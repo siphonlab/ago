@@ -22,8 +22,8 @@ import org.siphonlab.ago.AgoEngine;
 import org.siphonlab.ago.classloader.AgoClassLoader;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.ClassFile;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.Compiler;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.module.UnnamedProject;
 import org.siphonlab.ago.lang.Trace;
@@ -42,7 +42,7 @@ import static org.siphonlab.ago.test.Util.run;
 public class IOTest {
 
     @Test
-    public void open_file() throws IOException, CompilationError, CompliationErrorsException {
+    public void open_file() throws IOException, CompilationError, CompilationErrorsException {
         Util.run("io/filesystem.ago", "io.main#");
     }
 

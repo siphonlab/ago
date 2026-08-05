@@ -1,25 +1,5 @@
 package io;
 
-native class Buffer{
-    fun new() native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_create';
-    override toString() as string native 'org.siphonlab.ago.runtime.vertx.IO.Buffer_toString';
-}
-
-class FileSystem{
-    private fun new(){}
-
-    metaclass{
-        fun open(path as string) as File
-                native 'org.siphonlab.ago.runtime.vertx.IO.FileSystem_open';
-    }
-}
-
-// according vertx AsyncFile
-native class File{
-    fun read(buffer as Buffer, offset as int, position as long, length as int) as Buffer
-            native 'org.siphonlab.ago.runtime.vertx.IO.File_read';
-}
-
 fun main(){
     var file = FileSystem.open('examples/bootstrap/hello_world.ago');
     var buffer = new Buffer();

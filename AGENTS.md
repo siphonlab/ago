@@ -49,11 +49,17 @@ Tests load the ago standard library at runtime from one of two locations (checke
 1. `../ago-sdk/compiled/lang/` — directory of compiled `.class` files
 2. `../ago-sdk/lang.agopkg` — pre-packaged ZIP archive
 
-Both paths are **relative to `test-cases/`**. If neither exists, tests will fail with class-loading errors. The `langCompile` method in `CompilerTest.java` (annotated `@Disabled`) rebuilds the SDK from source.
+Both paths are **relative to the test working directory** (`test-cases/`). If neither exists, tests will fail with class-loading errors. To rebuild the SDK from source, run:
+
+```bash
+mvn test -pl test-cases -Dtest=CompileSdk
+```
+
+(`CompilerTest.langCompile` is also available but annotated `@Disabled`.)
 
 ### PostgreSQL for RDB / workflow tests
 
-RDB and workflow tests need a live PostgreSQL instance. Configure via `test-cases/src/test/resources/database.properties`:
+RDB and workflow tests need a live PostgreSQL instance. Configure via `database.properties` on the test classpath (e.g., place in `test-cases/src/test/resources/`). If absent, these defaults are used:
 
 ```properties
 host=127.0.0.1
@@ -62,8 +68,6 @@ database=ago
 user=ago
 password=ago
 ```
-
-If the file is missing, defaults above are used. The `.gitignore` excludes this file.
 
 ### Engine selection env var
 
@@ -88,3 +92,15 @@ The `engine` environment variable controls which runtime engine tests use:
 - Compiled test output goes to `test-cases/output/` (gitignored).
 - The root `pom.xml` uses `maven.compiler.source/target=22`. No preview features are enabled.
 - `ago-engine-rdb` uses the Groovy-Eclipse compiler (`groovy-eclipse-compiler`) instead of the default JDK compiler — required for its build configuration.
+
+## Gitignored paths
+
+The following directories and files are gitignored and should not be committed:
+
+| Path | Contents |
+|---|---|
+| `**/gen/` | ANTLR-generated parser sources |
+| `**/target/` | Maven build output |
+| `**/output/` | Compiled `.ago` test results |
+| `*.agoc` | Compiled ago bytecode classes |
+| `ago-sdk/compiled/` | SDK compilation artifacts |

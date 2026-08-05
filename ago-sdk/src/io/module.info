@@ -8,7 +8,8 @@ repository:
   url: https://github.com/siphonlab/ago/tree/master/ago-sdk
 
 units:
-  filesystem.ago
+  - Buffer.ago
+  - filesystem.ago
 
 description: |
     IO module, a wrapper for vertx api

@@ -49,21 +49,18 @@ public class Byte from Number<byte>{
         native "org.siphonlab.ago.lang.Lang.Byte_toHexString";
 }
 
-// --- Extension methods on primitive byte type ---
+// --- Extension methods on primitive byte type (direct natives, no boxing) ---
 
 final class ByteExt{
     metaclass{
-        fun abs(this as byte) as byte{
-            return new Byte(this).abs();
-        }
+        fun abs(this as byte) as byte
+            native "org.siphonlab.ago.lang.Lang.Byte_abs_ext";
 
-        fun clamp(this as byte, minVal as byte, maxVal as byte) as byte{
-            return new Byte(this).clamp(minVal, maxVal);
-        }
+        fun clamp(this as byte, minVal as byte, maxVal as byte) as byte
+            native "org.siphonlab.ago.lang.Lang.Byte_clamp_ext";
 
-        fun toHexString(this as byte) as int{
-            return new Byte(this).toHexString();
-        }
+        fun toHexString(this as byte) as string
+            native "org.siphonlab.ago.lang.Lang.Byte_toHexString_ext";
 
         fun hashCode(this as byte) as int{
             return this | int;

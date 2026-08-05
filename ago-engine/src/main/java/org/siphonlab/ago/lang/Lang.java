@@ -283,6 +283,90 @@ public class Lang {
         frame.finishBoolean(s.equalsIgnoreCase(other));
     }
 
+    // --- String extension methods (receiver as first param, no boxing) ---
+
+    public static void String_length_ext(NativeFrame frame, String s){
+        frame.finishInt(s.length());
+    }
+
+    public static void String_charAt_ext(NativeFrame frame, String s, int index){
+        frame.finishChar(s.charAt(index));
+    }
+
+    public static void String_substring_begin_ext(NativeFrame frame, String s, int beginIndex){
+        frame.finishString(s.substring(beginIndex));
+    }
+
+    public static void String_substring_begin_end_ext(NativeFrame frame, String s, int beginIndex, int endIndex){
+        frame.finishString(s.substring(beginIndex, endIndex));
+    }
+
+    public static void String_contains_ext(NativeFrame frame, String s, String target){
+        frame.finishBoolean(s.contains(target));
+    }
+
+    public static void String_startsWith_ext(NativeFrame frame, String s, String prefix){
+        frame.finishBoolean(s.startsWith(prefix));
+    }
+
+    public static void String_endsWith_ext(NativeFrame frame, String s, String suffix){
+        frame.finishBoolean(s.endsWith(suffix));
+    }
+
+    public static void String_indexOf_char_ext(NativeFrame frame, String s, char ch){
+        frame.finishInt(s.indexOf(ch));
+    }
+
+    public static void String_indexOf_str_ext(NativeFrame frame, String s, String str){
+        frame.finishInt(s.indexOf(str));
+    }
+
+    public static void String_lastIndexOf_char_ext(NativeFrame frame, String s, char ch){
+        frame.finishInt(s.lastIndexOf(ch));
+    }
+
+    public static void String_lastIndexOf_str_ext(NativeFrame frame, String s, String str){
+        frame.finishInt(s.lastIndexOf(str));
+    }
+
+    public static void String_trim_ext(NativeFrame frame, String s){
+        frame.finishString(s.trim());
+    }
+
+    public static void String_toLowerCase_ext(NativeFrame frame, String s){
+        frame.finishString(s.toLowerCase());
+    }
+
+    public static void String_toUpperCase_ext(NativeFrame frame, String s){
+        frame.finishString(s.toUpperCase());
+    }
+
+    public static void String_replace_char_ext(NativeFrame frame, String s, char oldChar, char newChar){
+        frame.finishString(s.replace(oldChar, newChar));
+    }
+
+    public static void String_replace_str_ext(NativeFrame frame, String s, String oldStr, String newStr){
+        frame.finishString(s.replace(oldStr, newStr));
+    }
+
+    public static void String_split_ext(NativeFrame frame, String s, String separator){
+        var parts = s.split(separator, -1);
+        AgoEngine engine = frame.getAgoEngine();
+        var arrayInst = engine.createStringArray(frame.getAgoClass().getResultClass(), parts.length);
+        for (int i = 0; i < parts.length; i++) {
+            arrayInst.value[i] = parts[i];
+        }
+        frame.finishObject(arrayInst);
+    }
+
+    public static void String_equalsIgnoreCase_ext(NativeFrame frame, String s, String other){
+        frame.finishBoolean(s.equalsIgnoreCase(other));
+    }
+
+    public static void String_hashCode_ext(NativeFrame frame, String s){
+        frame.finishInt(s.hashCode());
+    }
+
     // --- Integer metaclass statics ---
 
     public static void Integer_MIN_VALUE(NativeFrame frame){
@@ -330,6 +414,36 @@ public class Lang {
         frame.finishInt(Integer.reverseBytes(v));
     }
 
+    // --- Integer extension methods (receiver as first param) ---
+
+    public static void Integer_abs_ext(NativeFrame frame, int v){
+        frame.finishInt(Math.abs(v));
+    }
+
+    public static void Integer_negate_ext(NativeFrame frame, int v){
+        frame.finishInt(-v);
+    }
+
+    public static void Integer_clamp_ext(NativeFrame frame, int v, int minVal, int maxVal){
+        frame.finishInt(Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Integer_hexString_ext(NativeFrame frame, int v){
+        frame.finishString(Integer.toHexString(v));
+    }
+
+    public static void Integer_toBinaryString_ext(NativeFrame frame, int v){
+        frame.finishString(Integer.toBinaryString(v));
+    }
+
+    public static void Integer_bitCount_ext(NativeFrame frame, int v){
+        frame.finishInt(Integer.bitCount(v));
+    }
+
+    public static void Integer_reverseBytes_ext(NativeFrame frame, int v){
+        frame.finishInt(Integer.reverseBytes(v));
+    }
+
     // --- Long metaclass statics ---
 
     public static void Long_MIN_VALUE(NativeFrame frame){
@@ -374,6 +488,36 @@ public class Lang {
 
     public static void Long_reverseBytes(NativeFrame frame){
         long v = frame.getParentScope().getSlots().getLong(0);
+        frame.finishLong(Long.reverseBytes(v));
+    }
+
+    // --- Long extension methods (receiver as first param) ---
+
+    public static void Long_abs_ext(NativeFrame frame, long v){
+        frame.finishLong(Math.abs(v));
+    }
+
+    public static void Long_negate_ext(NativeFrame frame, long v){
+        frame.finishLong(-v);
+    }
+
+    public static void Long_clamp_ext(NativeFrame frame, long v, long minVal, long maxVal){
+        frame.finishLong(Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Long_hexString_ext(NativeFrame frame, long v){
+        frame.finishString(Long.toHexString(v));
+    }
+
+    public static void Long_toBinaryString_ext(NativeFrame frame, long v){
+        frame.finishString(Long.toBinaryString(v));
+    }
+
+    public static void Long_bitCount_ext(NativeFrame frame, long v){
+        frame.finishInt(Long.bitCount(v));
+    }
+
+    public static void Long_reverseBytes_ext(NativeFrame frame, long v){
         frame.finishLong(Long.reverseBytes(v));
     }
 
@@ -660,6 +804,20 @@ public class Lang {
         frame.finishString(String.format("%02x", v & 0xFF));
     }
 
+    // --- Byte extension methods (receiver as first param) ---
+
+    public static void Byte_abs_ext(NativeFrame frame, byte v){
+        frame.finishByte((byte)Math.abs(v));
+    }
+
+    public static void Byte_clamp_ext(NativeFrame frame, byte v, byte minVal, byte maxVal){
+        frame.finishByte((byte)Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Byte_toHexString_ext(NativeFrame frame, byte v){
+        frame.finishString(String.format("%02x", v & 0xFF));
+    }
+
     // --- Short toString ---
 
     public static void Short_toString(NativeFrame frame){
@@ -691,6 +849,20 @@ public class Lang {
 
     public static void Short_toHexString(NativeFrame frame){
         short v = frame.getParentScope().getSlots().getShort(0);
+        frame.finishString(String.format("%04x", v & 0xFFFF));
+    }
+
+    // --- Short extension methods (receiver as first param) ---
+
+    public static void Short_abs_ext(NativeFrame frame, short v){
+        frame.finishShort((short)Math.abs(v));
+    }
+
+    public static void Short_clamp_ext(NativeFrame frame, short v, short minVal, short maxVal){
+        frame.finishShort((short)Math.max(minVal, Math.min(v, maxVal)));
+    }
+
+    public static void Short_toHexString_ext(NativeFrame frame, short v){
         frame.finishString(String.format("%04x", v & 0xFFFF));
     }
 
