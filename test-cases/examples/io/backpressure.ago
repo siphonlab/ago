@@ -1,0 +1,63 @@
+package io_test;
+
+import io.Buffer;
+
+interface ReadStream<+T> {
+    generator fun gen() as T;
+    fun byeRead();
+}
+
+interface WriteStream<-T> {
+    metaclass{
+        public class DrainHandler{
+           fun waitDrain() native "org.siphonlab.ago.runtime.vertx.IO.DrainHandler_wait"
+        }
+    }
+
+    fun write(data as T);
+    fun setWriteQueueMaxSize(maxSize as int);
+    fun writeQueueFull() as boolean;
+    fun watchDrain() as DrainHandler;
+    fun byeWrite();
+}
+
+fun pipe<T>(this as ReadStream<T>, dst as WriteStream<T>) throws Exception {
+    try{
+        var drainHandler = dst.watchDrain();
+        for(var item in this.gen()){
+            dst.write(item);
+            if(dst.writeQueueFull()){
+                drainHandler.waitDrain()
+            }
+        }
+    } catch(e as Exception){
+        throw e;
+    } finally {
+        dst.byeWrite();
+        this.byeRead();
+    }
+}
+
+native class FastProducer with ReadStream<Buffer> {
+    override generator fun gen() as Buffer native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_generator";
+    override fun byeRead() native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_byeRead";
+    fun start() native "org.siphonlab.ago.test.BackpressureDemo.Test_startProducer";
+}
+native class SlowConsumer with WriteStream<Buffer> {
+    override fun write(data as Buffer) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_write";
+    override fun setWriteQueueMaxSize(maxSize as int) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_setWriteQueueMaxSize";
+    override fun writeQueueFull() as boolean native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_writeQueueFull";
+    override fun byeWrite() native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_byeWrite";
+    override fun watchDrain() as WriteStream<Buffer>.DrainHandler native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_watchDrain";
+}
+
+fun testReadStream() as FastProducer native "org.siphonlab.ago.test.BackpressureDemo.Test_FastProducer";
+
+fun testWriteStream() as WriteStream<Buffer> native "org.siphonlab.ago.test.BackpressureDemo.Test_SlowConsumer";
+
+fun main(){
+    var readStream = testReadStream();
+    var writeStream = testWriteStream();
+    fork pipe(readStream, writeStream)
+    readStream.start()
+}

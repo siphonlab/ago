@@ -15,14 +15,15 @@
  */
 package org.siphonlab.ago.runtime.vertx;
 
+import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.OpenOptions;
 import io.vertx.core.streams.ReadStream;
-import org.apache.commons.io.input.QueueInputStream;
-import org.siphonlab.ago.AgoEngine;
+import io.vertx.core.streams.WriteStream;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.native_.NativeInstance;
 
 public class IO {
 
@@ -235,11 +236,63 @@ public class IO {
         readStreamGenerator.next(frame);
     }
 
-    public static void ReadStream_hasNext(NativeFrame frame){
-        frame.beginAsync();
+    public static void ReadStream_byeRead(NativeFrame frame){
         ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
+        readStream.handler(null);
+        readStream.endHandler(null);
+        readStream.exceptionHandler(null);
+        try {
+            readStream.pause();
+        } catch (Exception _) {}        // nothing to do
         frame.finishVoid();
     }
 
+    public static void WriteStream_byeWrite(NativeFrame frame){
+        WriteStream<?> writeStream = (WriteStream<?>) frame.getParentScope().getNativePayload();
+        writeStream.drainHandler(null);
+        writeStream.exceptionHandler(null);
+        try {
+            writeStream.end();
+        } catch (Exception _) {}        // nothing to do
+        frame.finishVoid();
+    }
+
+    public static void WriteStream_write(NativeFrame frame, Object data){
+//        frame.beginAsync();
+        WriteStream<Object> writeStream = (WriteStream<Object>) frame.getParentScope().getNativePayload();
+        Future<Void> written;
+        if(data instanceof NativeInstance nativeInstance) {
+            written = writeStream.write(nativeInstance.getNativePayload());
+        } else {
+            written = writeStream.write(data);
+        }
+        frame.finishVoid();     // the WriteStream may be async and give a Future.succeededFuture
+//        written.onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
+    }
+
+    public static void WriteStream_writeQueueFull(NativeFrame frame){
+        WriteStream<?> writeStream = (WriteStream<?>) frame.getParentScope().getNativePayload();
+        frame.finishBoolean(writeStream.writeQueueFull());
+    }
+
+    public static void WriteStream_setWriteQueueMaxSize(NativeFrame frame, int maxSize){
+        WriteStream<?> writeStream = (WriteStream<?>) frame.getParentScope().getNativePayload();
+        writeStream.setWriteQueueMaxSize(maxSize);
+        frame.finishVoid();
+    }
+
+    public static void WriteStream_watchDrain(NativeFrame frame){
+        WriteStream<?> writeStream = (WriteStream<?>) frame.getParentScope().getNativePayload();
+        var writeStreamClass = frame.getAgoEngine().getClass("io_test.WriteStream").asThatOrSuperOfThat(frame.getParentScope().getAgoClass());
+        var drainHandler = writeStreamClass.getAgoClass().findChild("DrainHandler");
+        var inst = frame.getAgoEngine().createNativeInstance(null, drainHandler, frame.getRunSpace());
+        inst.setNativePayload(new DrainHandler(writeStream));
+        frame.finishObject(inst);
+    }
+
+    public static void DrainHandler_wait(NativeFrame frame){
+        var drainHandler = (DrainHandler) frame.getParentScope().getNativePayload();
+        drainHandler.connect(frame);
+    }
 
 }

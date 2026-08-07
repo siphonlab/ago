@@ -46,4 +46,9 @@ public class IOTest {
         Util.run("io/filesystem.ago", "io_test.main#");
     }
 
+    @Test
+    public void backpressure() throws IOException, CompilationError, CompilationErrorsException {
+        Util.run("io/backpressure.ago", "io_test.main#");
+    }
+
 }
