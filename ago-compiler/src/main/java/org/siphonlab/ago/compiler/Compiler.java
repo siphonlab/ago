@@ -277,7 +277,7 @@ public class Compiler {
             } catch (CompilationError e) {
                 if(classDef.unit != null) {
                     classDef.unit.appendError(e);
-                    classDef.nextCompilingStage(CompilingStage.InheritsInnerClasses);
+                    classDef.setCompilingStage(CompilingStage.InheritsInnerClasses);
                 } else {
                     throw e;
                 }
