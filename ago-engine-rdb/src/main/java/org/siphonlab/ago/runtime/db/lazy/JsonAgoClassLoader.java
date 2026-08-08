@@ -205,7 +205,7 @@ public class JsonAgoClassLoader extends AgoClassLoader {
             agoClass = new AgoClass(this, metaClass, fullname, name);
             break;
         case AgoClass.TYPE_METACLASS:
-            agoClass = new MetaClass(this, metaClass, fullname);
+            agoClass = new MetaClass(this, metaClass, fullname, name);
             break;
         case AgoClass.TYPE_ENUM:
             agoClass = new AgoEnum(this, metaClass, fullname, name);

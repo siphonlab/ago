@@ -407,7 +407,7 @@ public class ClassHeader {
 //                name = this.name;
 //                fullname = parentInstantiation == null ? extractPackagePrefix() + name : parentInstantiation.fullname + '.' + name;
         inst = new ClassHeader(fullname, templ.type, templ.modifiers, templ.slice != null ? templ.slice.slice() : null, templ.classLoader);
-        inst.name = name;
+        inst.setName(name);
         templ.putInstantiatedClassToCache(args, inst);
         this.classLoader.registerNewClass(inst);
         templ.applyInstantiation(inst, args, parentInstantiation);
@@ -600,7 +600,7 @@ public class ClassHeader {
     // for child of template ClassHeader from org.siphonlab.ago.classloader.ClassHeader.instantiate
     // for template GenericInstantiationClassDef from GenericInstantiationClassHeader.PlaceHolder.resolve
     protected ClassHeader applyInstantiation(ClassHeader inst, InstantiationArguments typeArguments, ClassHeader newParent) {
-        if(inst.name == null) inst.name = name;
+        if(inst.name == null) inst.setName(name);
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s apply template to %s".formatted(this.fullname, inst.fullname));
         inst.genericSource = new GenericSource(this.fullname, typeArguments, typeArguments.takeFor(this));
         this.putInstantiatedClassToCache(typeArguments, inst);
@@ -970,7 +970,7 @@ public class ClassHeader {
         AgoClass agoClass;
         switch (this.type) {
             case TYPE_METACLASS:
-                agoClass = new MetaClass(classLoader, metaClass, this.fullname);
+                agoClass = new MetaClass(classLoader, metaClass, this.fullname, this.name);
                 break;
             case TYPE_CLASS:
                 agoClass = new AgoClass(classLoader, metaClass, this.fullname, this.name);

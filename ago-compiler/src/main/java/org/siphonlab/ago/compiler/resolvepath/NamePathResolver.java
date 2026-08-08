@@ -660,7 +660,7 @@ public class NamePathResolver {
         }
 
         if(resolveMode == ResolveMode.ForTypeName){
-            throw new SyntaxError( "cannot resolve type name from scope", id.sourceLocation);
+            throw new SyntaxError( "cannot resolve type name '%s' from scope".formatted(id.text()), id.sourceLocation);
         }
         var r = resolveVariableOrClass(scope, id, pos, true, allowingVisibility);
         if(r != null){
