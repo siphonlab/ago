@@ -77,6 +77,9 @@ public class Unit {
 
     public void importClass(ClassDef classDef) {
         this.importedClasses.put(classDef.name, classDef);
+        if(classDef instanceof FunctionDef functionDef){
+            this.importedClasses.put(functionDef.getCommonName(), functionDef);
+        }
     }
 
     public Root getRoot() {
