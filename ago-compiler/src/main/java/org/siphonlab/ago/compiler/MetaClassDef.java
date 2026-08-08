@@ -129,6 +129,12 @@ public class MetaClassDef extends ClassDef{
 
     public MetaClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var instanceClass = this.instanceClassDef.getCachedInstantiatedClass(instantiationArguments);
+        if(instanceClass == null){
+            instanceClass = this.instanceClassDef.instantiate(project, instantiationArguments, null);
+            if(instanceClass.getMetaClassDef() != null){
+                return instanceClass.getMetaClassDef();
+            }
+        }
         var clone = new MetaClassDef(root, instanceClass, metaLevel, metaclassDeclaration);
         super.cloneTo(project, instantiationArguments, clone, (ClassContainer) this.getParent());
         return clone;
