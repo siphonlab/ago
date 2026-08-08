@@ -62,16 +62,17 @@ public class VertXNativeFrameHandler<T> implements Handler<AsyncResult<T>> {
                         AgoEngine agoEngine = frame.getAgoEngine();
                         var instance = agoEngine.createNativeInstance(null, ClassMapping.map(r.getClass(), agoEngine), frame.getRunSpace());
                         instance.setNativePayload(r);
+                        frame.finishObjectAsync(instance);
 
-                        AgoFunction constructor = instance.getAgoClass().getEmptyArgsConstructor();
-                        if(constructor != null){
-                            var fun = agoEngine.createFunctionInstance(instance, constructor, frame.getRunSpace());
-                            frame.setNativePayload(instance);
-                            frame.getRunSpace().resumeByAcceptResult();
-                            frame.invokeFrame(fun, NativeFrame.REENTER_CREATE_INSTANCE);
-                        } else {
-                            frame.finishObjectAsync(instance);
-                        }
+//                        AgoFunction constructor = instance.getAgoClass().getEmptyArgsConstructor();
+//                        if(constructor != null){
+//                            var fun = agoEngine.createFunctionInstance(instance, constructor, frame.getRunSpace());
+//                            frame.setNativePayload(instance);
+//                            frame.getRunSpace().resumeByAcceptResult();
+//                            frame.invokeFrame(fun, NativeFrame.REENTER_CREATE_INSTANCE);
+//                        } else {
+//                            frame.finishObjectAsync(instance);
+//                        }
                     }
                 } break;
                 case NULL_VALUE, VOID_VALUE:    frame.finishVoidAsync(); break;
