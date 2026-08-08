@@ -1136,7 +1136,8 @@ public class ClassHeader {
                     MethodDesc interfaceMethod = methodDescs.get(i);
                     var index = this.nonPrivateFunctionIndexes.get(interfaceMethod.getName());
                     if (index == null) {
-                        if (!this.isAbstract()) throw new NullPointerException("'%s' not found in '%s'".formatted(interfaceMethod.getName()));
+                        if (!this.isAbstract())
+                            throw new NullPointerException("'%s' not found in '%s'".formatted(interfaceMethod.getName(), this));
                         map[interfaceMethod.getMethodIndex()] = -1;
                     } else {
                         map[interfaceMethod.getMethodIndex()] = index;

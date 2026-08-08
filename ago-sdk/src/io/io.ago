@@ -1,0 +1,51 @@
+package io;
+
+native class IOException from Exception{}
+
+// =============================================================================
+// ReadStream — generic pull-based read interface (wraps Vert.x ReadStream)
+// =============================================================================
+interface ReadStream<+T> {
+    generator fun gen() as T;
+    fun pause() as ReadStream<T>;
+    fun resume() as ReadStream<T>;
+    fun fetch(amount as long) as ReadStream<T>;
+    fun byeRead();
+}
+
+// =============================================================================
+// WriteStream — generic push-based write interface (wraps Vert.x WriteStream)
+// =============================================================================
+interface WriteStream<-T> {
+    metaclass{
+        public class DrainHandler{
+           fun waitDrain() native "org.siphonlab.ago.runtime.vertx.IO.DrainHandler_wait"
+        }
+    }
+
+    fun write(data as T);
+    fun setWriteQueueMaxSize(maxSize as int);
+    fun writeQueueFull() as boolean;
+    fun watchDrain() as DrainHandler;
+    fun byeWrite();
+}
+
+// =============================================================================
+// pipe — copy data from a ReadStream to a WriteStream with backpressure support
+// =============================================================================
+fun pipe<T>(src as ReadStream<T>, dst as WriteStream<T>) throws Exception {
+    try{
+        var drainHandler = dst.watchDrain();
+        for(var item in src.gen()){
+            dst.write(item);
+            if(dst.writeQueueFull()){
+                drainHandler.waitDrain()
+            }
+        }
+    } catch(e as Exception){
+        throw e;
+    } finally {
+        dst.byeWrite();
+        src.byeRead();
+    }
+}

@@ -43,7 +43,7 @@ public class IOTest {
 
     @Test
     public void open_file() throws IOException, CompilationError, CompilationErrorsException {
-        Util.run("io/filesystem.ago", "io_test.main#");
+        Util.run("io/filesystem.ago", "main#");
     }
 
     @Test
