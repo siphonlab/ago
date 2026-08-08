@@ -1356,6 +1356,14 @@ public class ClassDef extends ClassContainer {
                     result = cloneForInstantiate(project, args, parent, childExisted);
                 }
             } else {
+                if(agoClassCombineClassParser != null && parentInstantiation != null){
+                    ClassDef existedChild = parentInstantiation.getChild(templ.getName());
+                    if(existedChild != null){
+                        existedChild.setGenericSource(new GenericSource(this.getTemplateClass(), args, null));
+                        templ.putInstantiatedClassToCache(args, existedChild);
+                        return existedChild;
+                    }
+                }
                 result = cloneForInstantiate(project, args, parent, childExisted);
             }
             if(project != null && result instanceof ConcreteType c){
@@ -1369,7 +1377,10 @@ public class ClassDef extends ClassContainer {
         this.instantiatingChildren.add(arguments);
         for (ClassDef child : this.getUniqueChildren()) {
             if(this.agoClassCombineClassParser != null){
-                if(this.getChild(child.getName()) != null){
+                ClassDef existedChild = instantiatedClass.getChild(child.getName());
+                if(existedChild != null){
+                    existedChild.setGenericSource(new GenericSource(this.getTemplateClass(), arguments, null));
+                    existedChild.putInstantiatedClassToCache(arguments, existedChild);
                     continue;
                 }
             }
