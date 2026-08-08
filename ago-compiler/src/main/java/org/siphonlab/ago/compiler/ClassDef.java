@@ -1368,6 +1368,11 @@ public class ClassDef extends ClassContainer {
     protected void instantiateChildren(Project project, ClassDef instantiatedClass, InstantiationArguments arguments) throws CompilationError {
         this.instantiatingChildren.add(arguments);
         for (ClassDef child : this.getUniqueChildren()) {
+            if(this.agoClassCombineClassParser != null){
+                if(this.getChild(child.getName()) != null){
+                    continue;
+                }
+            }
             if(!this.gotFromInherited(child)){
                 InstantiationArguments childArgs;
                 if(child.getGenericSource() != null){
@@ -1433,7 +1438,7 @@ public class ClassDef extends ClassContainer {
         if(this.compilingStage.gt(CompilingStage.ParseFields)) {
             instantiateChildren(project, instantiateClass, instantiationArguments);
         } else {
-            if(waitInstantiateChildren == null) waitInstantiateChildren = new LinkedList<>();
+            if (waitInstantiateChildren == null) waitInstantiateChildren = new LinkedList<>();
             waitInstantiateChildren.add(new WaitInstantiateChildren(project, instantiateClass, instantiationArguments));
         }
     }

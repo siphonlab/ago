@@ -39,6 +39,7 @@ public class AgoClassParser {
     Set<AgoClass> concreteTypes = new HashSet<>();
 
     Map<AgoClass, ClassDef> classes = new HashMap<>();
+    private CompilingStage stage;
 
     public record AgoClassCombineClassParser(AgoClass agoClass, AgoClassParser parser){}
 
@@ -76,31 +77,31 @@ public class AgoClassParser {
             allClasses.removeIf(c -> c.belongsTo(concrete));
         }
 
-        processStage(CompilingStage.ParseClassName, new LinkedList<>(allClasses));
+        processStage(this.stage = CompilingStage.ParseClassName, new LinkedList<>(allClasses));
         root.resolveLangClasses();
 
         appendNewFoundClasses(allClasses);
-        processStage(CompilingStage.ParseGenericParams, new LinkedList<>(allClasses));
+        processStage(this.stage = CompilingStage.ParseGenericParams, new LinkedList<>(allClasses));
 
         appendNewFoundClasses(allClasses);
-        processStage(CompilingStage.ResolveHierarchicalClasses, new LinkedList<>(allClasses));
+        processStage(this.stage = CompilingStage.ResolveHierarchicalClasses, new LinkedList<>(allClasses));
 
         // ParseFields, no InheritsFields since the fields already inherited in AgoClass
         // and no AllocateSlots
         appendNewFoundClasses(allClasses);
-        processStage(CompilingStage.ParseFields, new LinkedList<>(allClasses));
+        processStage(this.stage = CompilingStage.ParseFields, new LinkedList<>(allClasses));
 
         appendNewFoundClasses(allClasses);
-        processStage(CompilingStage.InheritsFields, new LinkedList<>(allClasses));
+        processStage(this.stage = CompilingStage.InheritsFields, new LinkedList<>(allClasses));
 
         appendNewFoundClasses(allClasses);
-        processStage(CompilingStage.InheritsInnerClasses, new LinkedList<>(allClasses));
+        processStage(this.stage = CompilingStage.InheritsInnerClasses, new LinkedList<>(allClasses));
 
         appendNewFoundClasses(allClasses);
-        processStage(CompilingStage.ValidateMembers, new LinkedList<>(allClasses));
+        processStage(this.stage = CompilingStage.ValidateMembers, new LinkedList<>(allClasses));
 
         appendNewFoundClasses(allClasses);
-        processStage(CompilingStage.AllocateSlots, new LinkedList<>(allClasses));
+        processStage(this.stage = CompilingStage.AllocateSlots, new LinkedList<>(allClasses));
 
         var newFoundClasses = root.getAndCleanNewFoundClasses();
         if(!newFoundClasses.isEmpty()){
@@ -280,9 +281,33 @@ public class AgoClassParser {
     }
 
     public ClassDef mapClass(AgoClass agoClass) throws CompilationError {
-        if(agoClass == null) return null;
+        return mapClass(agoClass, false);
+    }
+
+    public ClassDef mapClass(AgoClass agoClass, boolean fromParent) throws CompilationError {
+        if (agoClass == null) return null;
         var existed = classes.get(agoClass);
-        if(existed != null) return existed;
+        if (existed != null) return existed;
+
+        if(!fromParent){
+            ClassDef parent;
+            if (agoClass.getParent() != null) {
+                parent = root.findByFullname(agoClass.getParent().getFullname());
+                if (parent == null) {
+                    parent = mapClass(agoClass.getParent());
+                    if(parent == null) return null;
+
+                    existed = root.findByFullname(agoClass.getFullname());
+                    if (existed != null) return existed;
+                    loadChildren(agoClass.getParent(), parent);
+                    existed = root.findByFullname(agoClass.getFullname());
+                    if (existed != null) return existed;
+                }
+                if (parent == null) return null;     // not ready
+            } else {
+                parent = null;
+            }
+        }
 
         ClassDef r;
         ConcreteTypeInfo concreteTypeInfo = agoClass.getConcreteTypeInfo();
@@ -335,7 +360,7 @@ public class AgoClassParser {
             }
             classes.put(agoClass,r);
             for (AgoClass child : agoClass.getChildren()) {
-                r.addChild(mapClass(child));
+                r.addChild(mapClass(child, true));
             }
         } else if(concreteTypeInfo instanceof GenericArgumentsInfo argumentsInfo) {
             var templateClass = mapClass(argumentsInfo.getTemplateClass());
@@ -632,7 +657,7 @@ public class AgoClassParser {
         classDef.setCompilingStage(agoClass.isGenericTemplate() ? CompilingStage.ParseGenericParams : CompilingStage.ResolveHierarchicalClasses);
 
         if(agoClass.getParent() != null){
-            //
+//            parent.addChild(classDef);
         } else if(n == null){
             Package pkg = root.createPackage(upname);
             pkg.addChild(classDef);
@@ -652,8 +677,9 @@ public class AgoClassParser {
 
     private void loadChildren(AgoClass agoClass, ClassDef classDef) throws CompilationError {
         for (AgoClass child : agoClass.getChildren()) {
-            ClassDef c = mapClass(child);
+            ClassDef c = mapClass(child, true);
             if(c != null) {
+//                assert classDef.getChildren().containsValue(c);
                 classDef.addChild(c);
             }
         }
