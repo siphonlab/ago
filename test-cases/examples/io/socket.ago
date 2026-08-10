@@ -1,0 +1,23 @@
+package io_test;
+
+import io.NetServer;
+import io.Socket;
+
+fun main(){
+    var server = new NetServer();
+    server.listen(12333);
+    fork acceptLoop(server);
+}
+
+fun acceptLoop(server as NetServer){
+    while(true){
+        var socket = server.accept();
+        fork echo(socket)
+    }
+}
+
+fun echo(socket as Socket){
+    for(var buffer in socket.gen()){
+        socket.write(buffer)
+    }
+}

@@ -29,7 +29,9 @@ public class ClassMapping {
     private static final Map<String, String> NAME_MAPPING = Map.of(
         "io.vertx.core.buffer.Buffer", "io.Buffer",
         "io.vertx.core.file.FileSystem", "io.FileSystem",
-        "io.vertx.core.file.AsyncFile", "io.File"
+        "io.vertx.core.file.AsyncFile", "io.File",
+        "io.vertx.core.net.NetServer", "io.NetServer",
+        "io.vertx.core.net.NetSocket", "io.Socket"
     );
 
     //TODO when ago engine release, should release the memory

@@ -1,0 +1,37 @@
+package io;
+
+// =============================================================================
+// NetServer — wraps Vert.x NetServer
+// =============================================================================
+native class NetServer{
+    metaclass{
+        native class ConnectionHandler{
+        }
+    }
+
+    final connectionHandler as ConnectionHandler;     // setup by create
+
+    fun new() native 'org.siphonlab.ago.runtime.vertx.NetServer.create';
+
+    fun listen(port as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServer.listen';
+    fun accept() as Socket native 'org.siphonlab.ago.runtime.vertx.NetServer.accept';
+}
+
+// =============================================================================
+// Socket — wraps Vert.x NetSocket (implements ReadStream<Buffer> + WriteStream<Buffer>)
+// =============================================================================
+native class Socket with ReadStream<Buffer>, WriteStream<Buffer>{
+    override generator fun gen() as Buffer native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_generator";
+    override fun pause() as Socket native 'org.siphonlab.ago.runtime.vertx.NetServer.Socket_pause';
+    override fun resume() as Socket native 'org.siphonlab.ago.runtime.vertx.NetServer.Socket_resume';
+    override fun fetch(amount as long) as Socket native 'org.siphonlab.ago.runtime.vertx.NetServer.Socket_fetch';
+    override fun byeRead() native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_byeRead";
+
+    override fun write(data as Buffer) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_write";
+    override fun setWriteQueueMaxSize(maxSize as int) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_setWriteQueueMaxSize";
+    override fun writeQueueFull() as boolean native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_writeQueueFull";
+    override fun byeWrite() native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_byeWrite";
+    override fun watchDrain() as WriteStream<Buffer>.DrainHandler native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_watchDrain";
+
+    fun close() as void native 'org.siphonlab.ago.runtime.vertx.NetServer.Socket_close';
+}

@@ -51,4 +51,11 @@ public class IOTest {
         Util.run("io/backpressure.ago", "io_test.main#");
     }
 
+    @Test
+    public void socket_server() throws IOException, CompilationError, CompilationErrorsException {
+        Util.run("io/socket.ago", "io_test.main#");
+        System.in.read();
+    }
+
+
 }

@@ -24,24 +24,22 @@ import org.siphonlab.ago.native_.NativeInstance;
 public class IO {
 
     public static void ReadStream_pause(NativeFrame frame){
-        frame.beginAsync();
         ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
         readStream.pause();
-        frame.finishVoid();
+        frame.finishObject(frame.getParentScope());
     }
 
     public static void ReadStream_resume(NativeFrame frame){
-        frame.beginAsync();
         ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
         readStream.resume();
-        frame.finishVoid();
+        frame.finishObject(frame.getParentScope());
     }
 
     public static void ReadStream_fetch(NativeFrame frame, long amount){
         frame.beginAsync();
         ReadStream<?> readStream = (ReadStream<?>) frame.getParentScope().getNativePayload();
         readStream.fetch(amount);
-        frame.finishVoid();
+        frame.finishObject(frame.getParentScope());
     }
 
     public static void ReadStream_generator(NativeFrame frame){
