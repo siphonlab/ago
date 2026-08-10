@@ -5,8 +5,8 @@ import io.Socket;
 
 fun main(){
     var server = new NetServer();
-    server.listen(12333);
     fork acceptLoop(server);
+    server.listen(12333);
 }
 
 fun acceptLoop(server as NetServer){
