@@ -28,8 +28,8 @@ public class IfThenElseStmt extends Statement {
 
 
     private Expression condition;
-    private final Statement trueBranch;
-    private final Statement falseBranch;
+    private Statement trueBranch;
+    private Statement falseBranch;
 
     private boolean conditionNeg = false;
 
@@ -62,11 +62,13 @@ public class IfThenElseStmt extends Statement {
         }
         if(this.condition instanceof Literal<?> literal){
             if(BooleanLiteral.isTrue(literal)){
-                return trueBranch;
+                return trueBranch.transform();
             } else {
-                return falseBranch != null ? falseBranch : new EmptyStmt(ownerFunction).setSourceLocation(this.getSourceLocation());
+                return falseBranch != null ? falseBranch.transform() : new EmptyStmt(ownerFunction).setSourceLocation(this.getSourceLocation());
             }
         }
+        this.trueBranch = this.trueBranch.transform();
+        if(this.falseBranch != null ) this.falseBranch = this.falseBranch.transform();
         return this;
     }
 
