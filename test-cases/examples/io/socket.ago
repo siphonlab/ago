@@ -4,7 +4,8 @@ import io.NetServer;
 import io.Socket;
 
 fun main(){
-    var server = new NetServer();
+    // benchmark setting
+    var server = new NetServer(new NetServer.Options() with { .acceptBacklog = 65535; .logActivity = false; .receiveBufferSize = 4096; .sendBufferSize = 4096; });
     fork acceptLoop(server);
     server.listen(12333);
 }

@@ -5,8 +5,6 @@ import io.vertx.core.net.NetSocket;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 public class NetServer {
 
     // ========================================================================
@@ -15,8 +13,24 @@ public class NetServer {
 
     public static void create(NativeFrame frame){
         VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
-        io.vertx.core.net.NetServer server = host.getVertx().createNetServer(new NetServerOptions()
-                .setAcceptBacklog(65535).setLogActivity(false).setReceiveBufferSize(4096).setSendBufferSize(4096));
+        io.vertx.core.net.NetServer server = host.getVertx().createNetServer();
+        Instance<?> inst = frame.getParentScope();
+        inst.setNativePayload(server);
+
+        var connectionHandlerClz = inst.getAgoClass().getAgoClass().findChild("ConnectionHandler");
+        var connHandlerInst = frame.getAgoEngine().createNativeInstance(null, connectionHandlerClz, frame.getRunSpace());
+        ConnectionHandler connectionHandler = new ConnectionHandler(server);
+        connHandlerInst.setNativePayload(connectionHandler);
+        inst.setObjectField("connectionHandler", connHandlerInst);
+        connectionHandler.init();
+
+        frame.finishVoid();
+    }
+
+    public static void createWithOptions(NativeFrame frame, Instance<?> options){
+        VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
+        NetServerOptions opts = (NetServerOptions) options.getNativePayload();
+        io.vertx.core.net.NetServer server = host.getVertx().createNetServer(opts);
         Instance<?> inst = frame.getParentScope();
         inst.setNativePayload(server);
 
