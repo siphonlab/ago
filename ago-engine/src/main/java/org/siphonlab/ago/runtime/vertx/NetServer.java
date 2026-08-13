@@ -1,5 +1,6 @@
 package org.siphonlab.ago.runtime.vertx;
 
+import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.NetSocket;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
@@ -14,7 +15,8 @@ public class NetServer {
 
     public static void create(NativeFrame frame){
         VertxRunSpaceHost host = (VertxRunSpaceHost) frame.getRunSpace().getRunSpaceHost();
-        io.vertx.core.net.NetServer server = host.getVertx().createNetServer();
+        io.vertx.core.net.NetServer server = host.getVertx().createNetServer(new NetServerOptions()
+                .setAcceptBacklog(65535).setLogActivity(false).setReceiveBufferSize(4096).setSendBufferSize(4096));
         Instance<?> inst = frame.getParentScope();
         inst.setNativePayload(server);
 
