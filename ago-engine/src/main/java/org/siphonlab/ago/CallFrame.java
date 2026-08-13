@@ -413,9 +413,9 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         exception.invokeMethod(self, REENTER_RAISE_EXCEPTION, 0, ExceptionClass.findMethod("new#message"), message);
     }
 
-    public void raiseJavaException(CallFrame<?> self, java.lang.Exception ex, boolean async) {
+    public void raiseJavaException(CallFrame<?> self, Throwable ex, String agoExceptionClassName, boolean async) {
         var engine = this.getAgoEngine();
-        var exceptionType = engine.getClass("lang.NativeException");
+        var exceptionType = engine.getClass(agoExceptionClassName);
         var exceptionInstance = engine.createNativeInstance(null, exceptionType, this.getRunSpace());
         exceptionInstance.setNativePayload(ex);
         exceptionInstance.invokeMethod(
@@ -430,5 +430,12 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
         }
     }
 
+    public void raiseJavaException(CallFrame<?> self, Throwable ex, boolean async){
+        raiseJavaException(self, ex, "lang.NativeException", async);
+    }
+
+    public void raiseJavaException(CallFrame<?> self, Throwable ex){
+        raiseJavaException(self, ex, "lang.NativeException", false);
+    }
 
 }

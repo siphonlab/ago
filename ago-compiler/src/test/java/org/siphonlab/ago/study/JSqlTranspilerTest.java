@@ -4,6 +4,7 @@ import ai.starlake.transpiler.JSQLColumResolver;
 import ai.starlake.transpiler.JSQLReplacer;
 import ai.starlake.transpiler.schema.JdbcResultSetMetaData;
 import net.sf.jsqlparser.JSQLParserException;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -11,7 +12,7 @@ import java.util.Map;
 import static com.fasterxml.jackson.databind.type.LogicalType.Map;
 
 public class JSqlTranspilerTest {
-    @Test
+    @Test @Disabled
     public void test1() throws JSQLParserException {
         String sql = """
                 SELECT
@@ -35,7 +36,7 @@ public class JSqlTranspilerTest {
         System.out.println(resultSetMetaData);
     }
 
-    @Test
+    @Test @Disabled
     public void test2() throws JSQLParserException {
         String sql = """
             SELECT a.*

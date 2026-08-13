@@ -56,10 +56,11 @@ public class NativeCallerGenerator {
         variableDescs[startParam ++] = invokeCM.param(0);
 
         var slots = invokeCM.param(1);
+        int paramBegin = nativeFunction.isGenerator() ? 1 : 0;
         for (int i = 0; i < parameters.length; i++) {
             AgoParameter parameter = parameters[i];
             TypeCode typeCode = parameter.getTypeCode();
-            variableDescs[i + startParam] = slots.invoke("get" + DefaultSlotsCreatorFactory.slotFunctionName(typeCode), i);
+            variableDescs[i + startParam] = slots.invoke("get" + DefaultSlotsCreatorFactory.slotFunctionName(typeCode), i + paramBegin);
         }
         try {
             invokeCM.var(Class.forName(className)).invoke(methodName, variableDescs);       // async function set result by itself

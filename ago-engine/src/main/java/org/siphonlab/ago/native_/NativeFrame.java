@@ -17,11 +17,15 @@ package org.siphonlab.ago.native_;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.runtime.ObjectArrayInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
 public class NativeFrame extends CallFrame<AgoNativeFunction> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NativeFrame.class);
 
     protected NativeFunctionCaller nativeFunctionCaller;
     protected final AgoEngine engine;
@@ -48,7 +52,8 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         try {
             nativeFunctionCaller.invoke(this, this.slots);
         } catch (java.lang.Exception javaException) {
-            this.raiseJavaException(self, javaException, false);
+//            LOGGER.error("invoke %s failed".formatted(this), javaException);
+            this.raiseJavaException(self, javaException);
         }
     }
 

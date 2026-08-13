@@ -2,16 +2,18 @@ package my.test;
 
 class A{
 
-    class B{
+    // default visibility of inner class is `private`
+    public class B{
         private f as int;
         public fun new(){
             f = 2;
         }
 
+        // default fun is `public`
         fun m(p as int) as int{
             var f as int = 1;
 
-            class G{
+            public class G{
                 metaclass{
                     f as int
                     fun new(){

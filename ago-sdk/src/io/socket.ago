@@ -1,0 +1,170 @@
+package io;
+
+// =============================================================================
+// NetServer — wraps Vert.x NetServer
+// =============================================================================
+native class NetServer{
+    metaclass{
+        native class ConnectionHandler{
+        }
+
+        // =============================================================================
+        // NetServerOptions — wraps Vert.x NetServerOptions (all getter/setter)
+        // =============================================================================
+        native class Options{
+            fun new() native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.create';
+
+            // -- NetServerOptions own properties --------------------------------------
+            fun port#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.port_get';
+            fun port#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.port_set';
+
+            fun host#get() as string native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.host_get';
+            fun host#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.host_set';
+
+            fun acceptBacklog#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.acceptBacklog_get';
+            fun acceptBacklog#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.acceptBacklog_set';
+
+            fun useProxyProtocol#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.useProxyProtocol_get';
+            fun useProxyProtocol#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.useProxyProtocol_set';
+
+            fun proxyProtocolTimeout#get() as long native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.proxyProtocolTimeout_get';
+            fun proxyProtocolTimeout#set(value as long) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.proxyProtocolTimeout_set';
+
+            fun proxyProtocolTimeoutUnit#get() as string native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.proxyProtocolTimeoutUnit_get';
+            fun proxyProtocolTimeoutUnit#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.proxyProtocolTimeoutUnit_set';
+
+            fun registerWriteHandler#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.registerWriteHandler_get';
+            fun registerWriteHandler#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.registerWriteHandler_set';
+
+            fun fileRegionEnabled#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.fileRegionEnabled_get';
+
+            // -- SSL/TLS properties (from TCPSSLOptions) ------------------------------
+            fun ssl#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.ssl_get';
+            fun ssl#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.ssl_set';
+
+            fun useAlpn#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.useAlpn_get';
+            fun useAlpn#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.useAlpn_set';
+
+            fun sslHandshakeTimeout#get() as long native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.sslHandshakeTimeout_get';
+            fun sslHandshakeTimeout#set(value as long) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.sslHandshakeTimeout_set';
+
+            fun sslHandshakeTimeoutUnit#get() as string native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.sslHandshakeTimeoutUnit_get';
+            fun sslHandshakeTimeoutUnit#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.sslHandshakeTimeoutUnit_set';
+
+//            // -- Client auth / SNI (from ServerSSLOptions) ----------------------------
+//            fun clientAuth#get() as string native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.clientAuth_get';
+//            fun clientAuth#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.clientAuth_set';
+
+            fun sni#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.sni_get';
+            fun sni#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.sni_set';
+
+            // -- Timeout properties (from TCPSSLOptions) ------------------------------
+            fun idleTimeout#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.idleTimeout_get';
+            fun idleTimeout#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.idleTimeout_set';
+
+            fun idleTimeoutUnit#get() as string native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.idleTimeoutUnit_get';
+            fun idleTimeoutUnit#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.idleTimeoutUnit_set';
+
+            fun readIdleTimeout#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.readIdleTimeout_get';
+            fun readIdleTimeout#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.readIdleTimeout_set';
+
+            fun writeIdleTimeout#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.writeIdleTimeout_get';
+            fun writeIdleTimeout#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.writeIdleTimeout_set';
+
+            // -- TCP socket options (from TCPSSLOptions) ------------------------------
+            fun tcpNoDelay#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpNoDelay_get';
+            fun tcpNoDelay#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpNoDelay_set';
+
+            fun tcpKeepAlive#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpKeepAlive_get';
+            fun tcpKeepAlive#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpKeepAlive_set';
+
+            fun soLinger#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.soLinger_get';
+            fun soLinger#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.soLinger_set';
+
+            fun tcpFastOpen#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpFastOpen_get';
+            fun tcpFastOpen#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpFastOpen_set';
+
+            fun tcpCork#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpCork_get';
+            fun tcpCork#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpCork_set';
+
+            fun tcpQuickAck#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpQuickAck_get';
+            fun tcpQuickAck#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpQuickAck_set';
+
+            fun tcpUserTimeout#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpUserTimeout_get';
+            fun tcpUserTimeout#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpUserTimeout_set';
+
+            fun tcpKeepAliveIdleSeconds#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpKeepAliveIdleSeconds_get';
+            fun tcpKeepAliveIdleSeconds#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpKeepAliveIdleSeconds_set';
+
+            fun tcpKeepAliveCount#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpKeepAliveCount_get';
+            fun tcpKeepAliveCount#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpKeepAliveCount_set';
+
+            fun tcpKeepAliveIntervalSeconds#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpKeepAliveIntervalSeconds_get';
+            fun tcpKeepAliveIntervalSeconds#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.tcpKeepAliveIntervalSeconds_set';
+
+            // -- Cipher suites (from TCPSSLOptions) -----------------------------------
+            fun enabledCipherSuites#get() as any native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.enabledCipherSuites_get';
+            fun addEnabledCipherSuite(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.addEnabledCipherSuite';
+            fun removeEnabledCipherSuite(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.removeEnabledCipherSuite';
+
+            // -- Secure transport protocols (from TCPSSLOptions) ----------------------
+            fun enabledSecureTransportProtocols#get() as any native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.enabledSecureTransportProtocols_get';
+            fun addEnabledSecureTransportProtocol(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.addEnabledSecureTransportProtocol';
+            fun removeEnabledSecureTransportProtocol(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.removeEnabledSecureTransportProtocol';
+
+            // -- CRL (from TCPSSLOptions) ---------------------------------------------
+            fun addCrlPath(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.addCrlPath';
+            fun addCrlValue(value as Buffer) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.addCrlValue';
+
+            // -- NetworkOptions properties (top of hierarchy) -------------------------
+            fun sendBufferSize#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.sendBufferSize_get';
+            fun sendBufferSize#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.sendBufferSize_set';
+
+            fun receiveBufferSize#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.receiveBufferSize_get';
+            fun receiveBufferSize#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.receiveBufferSize_set';
+
+            fun reuseAddress#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.reuseAddress_get';
+            fun reuseAddress#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.reuseAddress_set';
+
+            fun reusePort#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.reusePort_get';
+            fun reusePort#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.reusePort_set';
+
+            fun trafficClass#get() as int native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.trafficClass_get';
+            fun trafficClass#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.trafficClass_set';
+
+            fun logActivity#get() as boolean native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.logActivity_get';
+            fun logActivity#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.logActivity_set';
+
+            // -- Activity log data format (ByteBufFormat enum as string) --------------
+            fun activityLogDataFormat#get() as string native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.activityLogDataFormat_get';
+            fun activityLogDataFormat#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.NetServerOptions.activityLogDataFormat_set';
+        }
+    }
+
+    final connectionHandler as ConnectionHandler;     // setup by create
+
+    fun new() native 'org.siphonlab.ago.runtime.vertx.NetServer.create';
+    fun new#options(options as Options) native 'org.siphonlab.ago.runtime.vertx.NetServer.createWithOptions';
+
+    fun listen(port as int) as void native 'org.siphonlab.ago.runtime.vertx.NetServer.listen';
+    fun accept() as Socket native 'org.siphonlab.ago.runtime.vertx.NetServer.accept';
+}
+
+// =============================================================================
+// Socket — wraps Vert.x NetSocket (implements ReadStream<Buffer> + WriteStream<Buffer>)
+// =============================================================================
+native class Socket with ReadStream<Buffer>, WriteStream<Buffer>{
+    override generator fun gen() as Buffer native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_generator";
+    override fun pause() as Socket native 'org.siphonlab.ago.runtime.vertx.NetServer.Socket_pause';
+    override fun resume() as Socket native 'org.siphonlab.ago.runtime.vertx.NetServer.Socket_resume';
+    override fun fetch(amount as long) as Socket native 'org.siphonlab.ago.runtime.vertx.NetServer.Socket_fetch';
+    override fun byeRead() native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_byeRead";
+
+    override fun write(data as Buffer) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_write";
+    override fun setWriteQueueMaxSize(maxSize as int) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_setWriteQueueMaxSize";
+    override fun writeQueueFull() as boolean native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_writeQueueFull";
+    override fun byeWrite() native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_byeWrite";
+    override fun watchDrain() as WriteStream<Buffer>.DrainHandler native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_watchDrain";
+
+    fun close() as void native 'org.siphonlab.ago.runtime.vertx.NetServer.Socket_close';
+}

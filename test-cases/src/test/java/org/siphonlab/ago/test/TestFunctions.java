@@ -192,4 +192,21 @@ public class TestFunctions {
         }, consumerTag -> {});
     }
 
+    public static void foo_generator(NativeFrame frame, int n){
+        Object prev = frame.getNativePayload();
+        if (prev == null) {
+            frame.setNativePayload(0);
+            frame.yieldInt(0);
+        } else {
+            int v = (Integer) prev + 1;
+            frame.setNativePayload(v);
+            if(v > n){
+                frame.getSlots().setBoolean(0, true);       // done
+                frame.finishVoid();
+            } else {
+                frame.yieldInt(v);
+            }
+        }
+    }
+
 }

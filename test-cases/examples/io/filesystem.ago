@@ -1,0 +1,13 @@
+import io.FileSystem;
+import io.Buffer;
+
+fun main(){
+    var file = FileSystem.open('examples/bootstrap/hello_world.ago');
+    var buffer = new Buffer();
+    file.read(buffer, 0, 0, 20);
+    Trace.print(buffer)
+//    for(var buffer in file.gen()){
+//        Trace.print(buffer)
+//    }
+//    Trace.print("done");
+}

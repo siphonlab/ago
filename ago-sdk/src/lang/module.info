@@ -9,9 +9,26 @@ repository:
 
 units:
   - lang.ago
+  - array.ago
   - primitive.ago
   - types.ago
+  - types/string.ago
+  - types/boolean.ago
+  - types/char.ago
+  - types/int.ago
+  - types/long.ago
+  - types/float.ago
+  - types/double.ago
+  - types/byte.ago
+  - types/short.ago
+  - types/decimal.ago
   - collection.ago
+  - collection/ArrayList.ago
+  - collection/LinkedList.ago
+  - collection/HashMap.ago
+  - collection/NativeArrayList.ago
+  - collection/NativeLinkedList.ago
+  - collection/NativeHashMap.ago
   - runspace.ago
   - atomic.ago
   - tuple.ago

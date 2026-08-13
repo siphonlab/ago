@@ -128,7 +128,7 @@ public class App {
         module.appendUnits(inputFiles);
         try {
             compiler.compile();
-        } catch (CompliationErrorsException e) {
+        } catch (CompilationErrorsException e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }

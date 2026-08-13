@@ -311,6 +311,8 @@ public class AgoClassLoader implements ClassManager{
         var toSolve = new LinkedList<ClassHeader>();
         toSolve.addAll(headers.values());
         while(true){
+            Set<ClassHeader> doubting = new HashSet<>();
+
             while(!toSolve.isEmpty()){
                 ClassHeader classHeader = toSolve.poll();
                 if(classHeader.loadingStage.value <= stage.value){
@@ -341,8 +343,22 @@ public class AgoClassLoader implements ClassManager{
                         case BuildClass:    r = (classHeader.buildClass() != null); break;
                         case ResolveFunctionIndex:   resolveFunctionIndex(classHeader); r = true; break;
                     }
+
                     if(!r || classHeader.loadingStage.value <= stage.value)
                         toSolve.add(classHeader);
+
+                    if(!r){
+                        if(!doubting.contains(classHeader)){
+                            doubting.add(classHeader);
+                        } else if(doubting.size() == toSolve.size()){
+                            if(LOGGER.isDebugEnabled()){
+                                LOGGER.debug("some classes need solve later %s, at stage %s".formatted(doubting, stage));
+                            }
+                            return;     // cannot solve in this stage, i.e. Function<Meta@<Generic>.Child>
+                        }
+                    } else {
+                        doubting.remove(classHeader);
+                    }
                 }
             }
             if(headers.size() == initialSize){

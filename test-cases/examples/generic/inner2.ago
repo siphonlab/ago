@@ -26,13 +26,13 @@ class A<TA as [Animal to _]>{
         this.a = a
     }
 
-    class B{
+    public class B{
         public b as TA
         fun new(b as TA){
             this.b = b
         }
 
-        class BC<TBC as [Animal to _]>{
+        public class BC<TBC as [Animal to _]>{
             public a as TA
             public bc as TBC
 
@@ -43,7 +43,7 @@ class A<TA as [Animal to _]>{
         }
     }
 
-    class C<TC as [Animal to _]>{
+    public class C<TC as [Animal to _]>{
         public a as TA
         public c as TC
 
@@ -52,7 +52,7 @@ class A<TA as [Animal to _]>{
             this.c = c;
         }
 
-        class CC<TCC as [Animal to _]>{
+        public class CC<TCC as [Animal to _]>{
             public a as TA
             public cc as TCC
 

@@ -357,6 +357,9 @@ public class ClassHeader {
                     name = names[0];
                     fullname = names[1];
                 }
+                existed = classLoader.getClassHeader(fullname);
+                if(existed != null) return existed;     // will happen takeFor meta's instance class
+
                 assert parentInstantiation == null;
                 inst = metaClassHeader.instantiateMetaClass(parentInstantiation, name, fullname, args);
                 if (LOGGER.isDebugEnabled()) LOGGER.debug("%s apply template and got inst %s".formatted(templ.fullname, inst.fullname));
@@ -404,7 +407,7 @@ public class ClassHeader {
 //                name = this.name;
 //                fullname = parentInstantiation == null ? extractPackagePrefix() + name : parentInstantiation.fullname + '.' + name;
         inst = new ClassHeader(fullname, templ.type, templ.modifiers, templ.slice != null ? templ.slice.slice() : null, templ.classLoader);
-        inst.name = name;
+        inst.setName(name);
         templ.putInstantiatedClassToCache(args, inst);
         this.classLoader.registerNewClass(inst);
         templ.applyInstantiation(inst, args, parentInstantiation);
@@ -441,15 +444,30 @@ public class ClassHeader {
     }
 
     private static String[] composeGenericInstanceNames(String parentName, ClassHeader child, InstantiationArguments childArgs) {
-        if(child.isGenericTemplate() && childArgs.takeFor(child) != null) {
-            String name = GenericInstantiationClassHeader.composeClassName(child.name, childArgs.takeFor(child));
-            String fullname = parentName + '.' + name;
-            return new String[]{name, fullname};
-        } else if(child instanceof MetaClassHeader metaClassHeader){
-            return GenericInstantiationClassHeader.composeMetaClassName(metaClassHeader.instanceClass, childArgs);
-        } else {
-            return new String[]{child.name, parentName + '.' + child.name};
+        if(child.isGenericTemplate()) {
+            ClassRefValue[] argValues = childArgs.takeFor(child);
+            if (argValues != null) {
+                String name = GenericInstantiationClassHeader.composeClassName(child.name, argValues);
+                String fullname = parentName + '.' + name;
+                return new String[]{name, fullname};
+            }
         }
+        if(child.genericSource != null) {
+            var args = child.genericSource.instantiationArguments().apply(childArgs, child.classLoader);
+            if (args != null) {
+                ClassHeader sourceTemplate = child.getSourceTemplate();
+                ClassRefValue[] argValues = args.takeFor(sourceTemplate);
+                if (argValues != null) {
+                    String name = GenericInstantiationClassHeader.composeClassName(sourceTemplate.name, argValues);
+                    String fullname = parentName + '.' + name;
+                    return new String[]{name, fullname};
+                }
+            }
+        }
+        if(child instanceof MetaClassHeader metaClassHeader){
+            return GenericInstantiationClassHeader.composeMetaClassName(metaClassHeader.instanceClass, childArgs);
+        }
+        return new String[]{child.name, parentName + '.' + child.name};
     }
 
 
@@ -582,7 +600,7 @@ public class ClassHeader {
     // for child of template ClassHeader from org.siphonlab.ago.classloader.ClassHeader.instantiate
     // for template GenericInstantiationClassDef from GenericInstantiationClassHeader.PlaceHolder.resolve
     protected ClassHeader applyInstantiation(ClassHeader inst, InstantiationArguments typeArguments, ClassHeader newParent) {
-        if(inst.name == null) inst.name = name;
+        if(inst.name == null) inst.setName(name);
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s apply template to %s".formatted(this.fullname, inst.fullname));
         inst.genericSource = new GenericSource(this.fullname, typeArguments, typeArguments.takeFor(this));
         this.putInstantiatedClassToCache(typeArguments, inst);
@@ -708,11 +726,15 @@ public class ClassHeader {
         if(visited.contains(this.fullname)) return false;
         visited.add(this.fullname);
 
-        for(var p = this; p != null; p = p.parent){
+        for(var p = this; p != null; ){
             if(p.isGenericTemplate()){
                 var r = typeArguments.canApplyOnTemplate(p);
                 if(r) return true;
+            } else if(p instanceof MetaClassHeader m){
+                p = m.getInstanceClass();
+                continue;
             }
+            p = p.parent;
         }
         if(this.superClass != null && !this.superClass.equals(this.fullname)){
             var superClass = classLoader.getClassHeader(this.superClass);
@@ -948,7 +970,7 @@ public class ClassHeader {
         AgoClass agoClass;
         switch (this.type) {
             case TYPE_METACLASS:
-                agoClass = new MetaClass(classLoader, metaClass, this.fullname);
+                agoClass = new MetaClass(classLoader, metaClass, this.fullname, this.name);
                 break;
             case TYPE_CLASS:
                 agoClass = new AgoClass(classLoader, metaClass, this.fullname, this.name);
@@ -1114,7 +1136,8 @@ public class ClassHeader {
                     MethodDesc interfaceMethod = methodDescs.get(i);
                     var index = this.nonPrivateFunctionIndexes.get(interfaceMethod.getName());
                     if (index == null) {
-                        if (!this.isAbstract()) throw new NullPointerException("'%s' not found in '%s'".formatted(interfaceMethod.getName()));
+                        if (!this.isAbstract())
+                            throw new NullPointerException("'%s' not found in '%s'".formatted(interfaceMethod.getName(), this));
                         map[interfaceMethod.getMethodIndex()] = -1;
                     } else {
                         map[interfaceMethod.getMethodIndex()] = index;

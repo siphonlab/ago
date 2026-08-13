@@ -1,0 +1,44 @@
+fun main(){
+    var f = 3.14f;
+    var boxed = new Float(f);
+
+    // abs
+    Trace.print(boxed.abs());
+    Trace.print((-2.5f).abs());
+
+    // isFinite
+    Trace.print(new String(boxed.isFinite()));
+    Trace.print(new String(f.isFinite()));
+
+    // isInfinite
+    Trace.print(new String(Float.POSITIVE_INFINITY().isInfinite()));
+    Trace.print(new String(Float.NEGATIVE_INFINITY().isInfinite()));
+
+    // isNaN
+    Trace.print(new String(Float.NaN().isNaN()));
+    Trace.print(new String(f.isNaN()));
+
+    // roundToInt
+    Trace.print(boxed.roundToInt());
+    Trace.print(f.roundToInt());
+
+    // roundToLong
+    Trace.print(boxed.roundToLong());
+    Trace.print(f.roundToLong());
+
+    // ceil
+    Trace.print(boxed.ceil());
+    Trace.print(f.ceil());
+
+    // floor
+    Trace.print(boxed.floor());
+    Trace.print(f.floor());
+
+    // round decimals
+    var pi = 3.14159f;
+    Trace.print(pi.round(2));
+    Trace.print(new Float(pi).round(2));
+
+    // metaclass statics
+    Trace.print(Float.NaN().isNaN());
+}

@@ -15,7 +15,7 @@
  */
 package org.siphonlab.ago.crud.test;
 
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
 import java.io.IOException;
@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RestfulTest {
 
     @Test
-    public void crud() throws CompilationError, CompliationErrorsException, IOException {
+    public void crud() throws CompilationError, CompilationErrorsException, IOException {
         run("restful/crud.ago");
         System.in.read();
     }

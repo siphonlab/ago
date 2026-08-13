@@ -1,0 +1,171 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+public class String from Boxer<string>{
+
+    override hashCode() as int{
+        return stringHashCode(value);
+    }
+
+    fun stringHashCode(s as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_hashCode";
+
+    override equals(obj as Object) as boolean{
+        if(this == obj) return true;
+        return (obj instanceof String aString) and value == aString.value;
+    }
+
+    override toString() as string{
+        return value;
+    }
+
+    // --- Instance methods (native implementations) ---
+
+    public fun length() as int
+        native "org.siphonlab.ago.lang.Lang.String_length";
+
+    public fun charAt(index as int) as char
+        native "org.siphonlab.ago.lang.Lang.String_charAt";
+
+    public fun substring(beginIndex as int) as string
+        native "org.siphonlab.ago.lang.Lang.String_substring_begin";
+
+    public fun substring#se(beginIndex as int, endIndex as int) as string
+        native "org.siphonlab.ago.lang.Lang.String_substring_begin_end";
+
+    public fun concat(str as string) as string{
+        return value + str;
+    }
+
+    public fun contains(target as string) as boolean
+        native "org.siphonlab.ago.lang.Lang.String_contains";
+
+    public fun startsWith(prefix as string) as boolean
+        native "org.siphonlab.ago.lang.Lang.String_startsWith";
+
+    public fun endsWith(suffix as string) as boolean
+        native "org.siphonlab.ago.lang.Lang.String_endsWith";
+
+    public fun indexOf#ch(ch as char) as int
+        native "org.siphonlab.ago.lang.Lang.String_indexOf_char";
+
+    public fun indexOf#str(str as string) as int
+        native "org.siphonlab.ago.lang.Lang.String_indexOf_str";
+
+    public fun lastIndexOf#ch(ch as char) as int
+        native "org.siphonlab.ago.lang.Lang.String_lastIndexOf_char";
+
+    public fun lastIndexOf#str(str as string) as int
+        native "org.siphonlab.ago.lang.Lang.String_lastIndexOf_str";
+
+    public fun trim() as string
+        native "org.siphonlab.ago.lang.Lang.String_trim";
+
+    public fun toLowerCase() as string
+        native "org.siphonlab.ago.lang.Lang.String_toLowerCase";
+
+    public fun toUpperCase() as string
+        native "org.siphonlab.ago.lang.Lang.String_toUpperCase";
+
+    public fun replace#old_new(oldChar as char, newChar as char) as string
+        native "org.siphonlab.ago.lang.Lang.String_replace_char";
+
+    public fun replace#old_str(oldStr as string, newStr as string) as string
+        native "org.siphonlab.ago.lang.Lang.String_replace_str";
+
+    public fun split(separator as string) as string[]
+        native "org.siphonlab.ago.lang.Lang.String_split";
+
+    public fun isEmpty() as boolean{
+        return value == "";
+    }
+
+    public fun equalsIgnoreCase(other as string) as boolean
+        native "org.siphonlab.ago.lang.Lang.String_equalsIgnoreCase";
+
+}
+
+// --- Extension methods on primitive string type (direct natives, no boxing) ---
+
+final class StringExt{
+    metaclass{
+        fun length(this as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_length_ext";
+
+        fun charAt(this as string, index as int) as char
+            native "org.siphonlab.ago.lang.Lang.String_charAt_ext";
+
+        fun substring(this as string, beginIndex as int) as string
+            native "org.siphonlab.ago.lang.Lang.String_substring_begin_ext";
+
+        fun substring#se(this as string, beginIndex as int, endIndex as int) as string
+            native "org.siphonlab.ago.lang.Lang.String_substring_begin_end_ext";
+
+        fun concat(this as string, str as string) as string{
+            return this + str;
+        }
+
+        fun contains(this as string, target as string) as boolean
+            native "org.siphonlab.ago.lang.Lang.String_contains_ext";
+
+        fun startsWith(this as string, prefix as string) as boolean
+            native "org.siphonlab.ago.lang.Lang.String_startsWith_ext";
+
+        fun endsWith(this as string, suffix as string) as boolean
+            native "org.siphonlab.ago.lang.Lang.String_endsWith_ext";
+
+        fun indexOf#ch(this as string, ch as char) as int
+            native "org.siphonlab.ago.lang.Lang.String_indexOf_char_ext";
+
+        fun indexOf#str(this as string, str as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_indexOf_str_ext";
+
+        fun lastIndexOf#ch(this as string, ch as char) as int
+            native "org.siphonlab.ago.lang.Lang.String_lastIndexOf_char_ext";
+
+        fun lastIndexOf#str(this as string, str as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_lastIndexOf_str_ext";
+
+        fun trim(this as string) as string
+            native "org.siphonlab.ago.lang.Lang.String_trim_ext";
+
+        fun toLowerCase(this as string) as string
+            native "org.siphonlab.ago.lang.Lang.String_toLowerCase_ext";
+
+        fun toUpperCase(this as string) as string
+            native "org.siphonlab.ago.lang.Lang.String_toUpperCase_ext";
+
+        fun replace#old_new(this as string, oldChar as char, newChar as char) as string
+            native "org.siphonlab.ago.lang.Lang.String_replace_char_ext";
+
+        fun replace#old_str(this as string, oldStr as string, newStr as string) as string
+            native "org.siphonlab.ago.lang.Lang.String_replace_str_ext";
+
+        fun split(this as string, separator as string) as string[]
+            native "org.siphonlab.ago.lang.Lang.String_split_ext";
+
+        fun isEmpty(this as string) as boolean{
+            return this == "";
+        }
+
+        fun equalsIgnoreCase(this as string, other as string) as boolean
+            native "org.siphonlab.ago.lang.Lang.String_equalsIgnoreCase_ext";
+
+        fun hashCode(this as string) as int
+            native "org.siphonlab.ago.lang.Lang.String_hashCode_ext";
+    }
+}

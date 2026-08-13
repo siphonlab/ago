@@ -47,7 +47,7 @@ public class Unit {
     private final CharStream source;
     private final Root root;
 
-    private List<CompilationError> errors = new ArrayList<>();
+    private List<Exception> errors = new ArrayList<>();
 
     private List<ClassDef> classes = new ArrayList<>();
     private List<ClassDef> topClasses = new ArrayList<>();
@@ -77,6 +77,9 @@ public class Unit {
 
     public void importClass(ClassDef classDef) {
         this.importedClasses.put(classDef.name, classDef);
+        if(classDef instanceof FunctionDef functionDef){
+            this.importedClasses.put(functionDef.getCommonName(), functionDef);
+        }
     }
 
     public Root getRoot() {
@@ -99,6 +102,7 @@ public class Unit {
             public void unhandledException(Parser recognizer, RecognitionException e) {
                 CompilationError compileException = recognitionExceptionToCompileException(e, Unit.this);
                 errors.add(compileException);
+                super.unhandledException(recognizer, e);
             }
         };
         parser.getErrorListeners().clear();     // remove default console output
@@ -457,7 +461,11 @@ public class Unit {
             for (int j = i + 1; j < interfaces.size(); j++) {
                 var another = interfaces.get(j);
                 if(another == baseInterface){
-                    throw resolveError(classDef.getInterfaceDecls().get(j), "duplicated interface '%s' found".formatted(another.getFullname()));
+                    if(classDef.getInterfaceDecls() != null) {
+                        throw resolveError(classDef.getInterfaceDecls().get(j), "duplicated interface '%s' found".formatted(another.getFullname()));
+                    } else {
+                        throw resolveError(classDef.getDeclarationName(), "duplicated interface '%s' found".formatted(another.getFullname()));
+                    }
                 }
 //                        if(another.isDerivedFrom(baseInterface)){
 //                        // we don't handle this
@@ -556,7 +564,8 @@ public class Unit {
                 field = new Field(ownerClass, explicitType.identifier().getText(), variableDeclarator);
                 var type = parseType(ownerClass, explicitType.typeOfVariable(),false);
                 field.setType(type);
-                field.setModifiers(Compiler.fieldModifiers(this, fieldDeclaration.fieldModifier(), Compiler.ModifierTarget.Field));
+                int defaultVisibility = field.getGetterSetter() == null ? AgoClass.PUBLIC : AgoClass.PRIVATE;
+                field.setModifiers(Compiler.fieldModifiers(this, fieldDeclaration.fieldModifier(), Compiler.ModifierTarget.Field, defaultVisibility));
                 field.setDeclaration(fieldDeclaration);
                 field.setSourceLocation(sourceLocation(fieldDeclaration));
                 var variableInitializer = explicitType.variableInitializer();
@@ -936,7 +945,6 @@ public class Unit {
     }
 
     void parseFormalParameters(FunctionDef fun, AgoParser.FormalParametersContext formalParameters) throws CompilationError {
-        //TODO check ReceiverParameter at head if found, and VarArgsParameter at the end if found
         //formalParameters.receiverParameter()
         boolean receiverParamFound = false;
         AgoParser.VarArgsParameterContext varArgsParam = null;
@@ -951,12 +959,9 @@ public class Unit {
                     var paramType = parseType(fun, defaultParameter.typeOfVariable(), false);
                     Parameter parameter = new Parameter(paramName, param);
                     int modifiers = Compiler.variableModifiers(this, defaultParameter.variableModifier(), Compiler.ModifierTarget.Param);
-                    // default visibility of this field?
-//                    if((modifiers & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM){
-//                        if(defaultParameter.fieldGetterSetter() != null) {
-//                            modifiers |= AgoClass.PUBLIC;
-//                        }
-//                    }
+                    if((modifiers & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM && parameter.getGetterSetter() == null){
+                        modifiers |= AgoClass.PUBLIC;
+                    }
                     parameter.setModifiers(modifiers | AgoClass.PARAMETER);
                     parameter.setType(paramType);
                     parameter.setSourceLocation(sourceLocation(defaultParameter));
@@ -986,6 +991,9 @@ public class Unit {
                     var paramType = parseType(fun, varArgsParameter.typeOfVariable(), false);
                     Parameter parameter = new Parameter(paramName, param);
                     int modifiers = Compiler.variableModifiers(this, varArgsParameter.variableModifier(), Compiler.ModifierTarget.Param);
+                    if((modifiers & AgoClass.FIELD_PARAM) == AgoClass.FIELD_PARAM && parameter.getGetterSetter() == null){
+                        modifiers |= AgoClass.PUBLIC;
+                    }
                     parameter.setModifiers(modifiers | AgoClass.VAR_ARGS);
                     ArrayClassDef arrayType = fun.getOrCreateArrayType(paramType, null);
                     parameter.setType(arrayType);
@@ -1044,11 +1052,11 @@ public class Unit {
         return !errors.isEmpty();
     }
 
-    public List<CompilationError> getErrors() {
+    public List<Exception> getErrors() {
         return errors;
     }
 
-    public void appendError(CompilationError compilationError) {
+    public void appendError(Exception compilationError) {
         this.errors.add(compilationError);
     }
 }

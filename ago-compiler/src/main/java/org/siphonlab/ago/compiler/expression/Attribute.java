@@ -19,6 +19,7 @@ package org.siphonlab.ago.compiler.expression;
 import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.ResolveError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
 import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 
@@ -26,19 +27,28 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Objects;
 
+import static org.siphonlab.ago.compiler.resolvepath.NamePathResolver.PUBIC_VISIBILITY;
+import static org.siphonlab.ago.compiler.resolvepath.NamePathResolver.isVisible;
+
 public class Attribute extends ExpressionInFunctionBody implements Assign.Assignee{
 
     private final Expression scope;
     private final FunctionDef getter;
     private final FunctionDef setter;
+    private final int allowingVisibility;
 
     private Var.LocalVar processedScope;
 
-    public Attribute(FunctionDef ownerFunction, Expression scope, FunctionDef getter, FunctionDef setter) throws CompilationError {
+    public Attribute(FunctionDef ownerFunction, Expression scope, FunctionDef getter, FunctionDef setter, int allowingVisibility) throws CompilationError {
         super(ownerFunction);
         this.scope = scope.setParent(this).transform();
         this.getter = getter;
         this.setter = setter;
+        this.allowingVisibility = allowingVisibility;
+    }
+
+    public Attribute(FunctionDef ownerFunction, Expression scope, FunctionDef getter, FunctionDef setter) throws CompilationError {
+        this(ownerFunction, scope, getter, setter, PUBIC_VISIBILITY);
     }
 
     @Override
@@ -84,6 +94,17 @@ public class Attribute extends ExpressionInFunctionBody implements Assign.Assign
         @Override
         public ClassDef inferType() throws CompilationError {
             return getRoot().VOID();
+        }
+
+        @Override
+        public Expression transform() throws CompilationError {
+            if(this.attribute.setter == null){
+                throw new ResolveError("'%s' is not settable".formatted(attribute.getter.getCommonName()), this.getSourceLocation());
+            }
+            if(!isVisible(attribute.setter.getModifiers(), attribute.allowingVisibility)){
+                throw new ResolveError("'%s' is not visible for '%s'".formatted(attribute.setter.getFullname(), ownerFunction.getFullname()), this.getSourceLocation());
+            }
+            return super.transform();
         }
 
         @Override

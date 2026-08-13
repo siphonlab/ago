@@ -115,18 +115,20 @@ public class ArrayTypeHeader extends ClassHeader {
         this.strings = arrayBase.strings;
         this.blobs = arrayBase.blobs;
         this.blobOffset = arrayBase.blobOffset;
-        var instantiationMetaClass = classLoader.getClassHeader(instantiation.getMetaClass());
-        String metaFullname = this.extractPackagePrefix() + "Meta@<" + this.name + ">";
-        var existed = classLoader.getClassHeader(metaFullname);
-        if(existed == null){
-            var metaHeader = new MetaClassHeader(metaFullname, TYPE_METACLASS, instantiationMetaClass.modifiers, instantiationMetaClass.getSlice().slice(), instantiationMetaClass.classLoader);
-            metaHeader.setSuperClass(instantiationMetaClass.fullname);
-            metaHeader.resolveHierarchicalClasses();
-            classLoader.registerNewClass(metaHeader);
-            this.setMetaClass(metaHeader.fullname);
-            metaHeader.setInstanceClass(this);
-        } else {
-            this.setMetaClass(metaFullname);
+        if(instantiation.getMetaClass() != null) {
+            var instantiationMetaClass = classLoader.getClassHeader(instantiation.getMetaClass());
+            String metaFullname = this.extractPackagePrefix() + "Meta@<" + this.name + ">";
+            var existed = classLoader.getClassHeader(metaFullname);
+            if (existed == null) {
+                var metaHeader = new MetaClassHeader(metaFullname, TYPE_METACLASS, instantiationMetaClass.modifiers, instantiationMetaClass.getSlice().slice(), instantiationMetaClass.classLoader);
+                metaHeader.setSuperClass(instantiationMetaClass.fullname);
+                metaHeader.resolveHierarchicalClasses();
+                classLoader.registerNewClass(metaHeader);
+                this.setMetaClass(metaHeader.fullname);
+                metaHeader.setInstanceClass(this);
+            } else {
+                this.setMetaClass(metaFullname);
+            }
         }
         this.setInterfaces(instantiation.interfaces);
         this.setLoadingStage(LoadingStage.ParseFields);

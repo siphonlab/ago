@@ -40,8 +40,8 @@ public class MetaClass extends AgoClass{
         };
     }
 
-    public MetaClass(AgoClassLoader classLoader, MetaClass metaClass, String name) {
-        super(classLoader, metaClass, name, name);
+    public MetaClass(AgoClassLoader classLoader, MetaClass metaClass, String fullname, String name) {
+        super(classLoader, metaClass, fullname, name);
         this.type = AgoClass.TYPE_METACLASS;
     }
 

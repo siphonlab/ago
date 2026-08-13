@@ -15,7 +15,7 @@
  */
 package org.siphonlab.ago.test;
 
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class InheritsTest {
 
     @Test
-    public void child_class_test() throws CompilationError, CompliationErrorsException, IOException {
+    public void child_class_test() throws CompilationError, CompilationErrorsException, IOException {
         run("inherits/child_class.ago");
         assertTrue(Trace.outputted("test"));
     }

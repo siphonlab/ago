@@ -1,0 +1,185 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+class LinkedList<E> from List<E>{
+    metaclass{
+        private final NIL as LinkedListNode = new LinkedListNode();
+
+        class LinkedListNode{
+            value as E;
+            prev as LinkedListNode;
+            next as LinkedListNode;
+
+            private fun new#value(field value as E){}
+
+            private fun new(){}
+        }
+
+        fun new(){
+            NIL.next = NIL
+        }
+    }
+
+    private head as LinkedListNode = NIL;
+    private tail as LinkedListNode = head;
+    private count as int = 0;
+
+    fun new(){
+
+    }
+
+    fun new#array(array as E[]){
+        for(var i = 0; i < array.length; i++){
+            this.add(array[i]);
+        }
+    }
+
+    override size#get() as int{
+        return this.count;
+    }
+
+    override isReadOnly() as boolean{
+        return false;
+    }
+
+    override add(item as E){
+        var newNode = new LinkedListNode(item);
+        newNode.next = NIL;
+        if(this.count == 0){
+            newNode.prev = NIL;
+            this.head = newNode;
+            this.tail = newNode;
+        } else {
+            this.tail.next = newNode;
+            newNode.prev = this.tail;
+            this.tail = newNode;
+        }
+        this.count++;
+    }
+
+    override clear(){
+        this.head = NIL;
+        this.tail = NIL;
+        this.count = 0;
+    }
+
+    override contains(item as E) as boolean{
+        var current = this.head;
+        while(current != NIL){
+            if((current.value == item) or (item instanceof Object obj and obj.equals(current.value|Object))){
+                return true;
+            }
+            current = current.next;
+        }
+        return false;
+    }
+
+    override remove(item as E) as boolean{
+        var current = this.head;
+        while(current != NIL){
+            if((current.value == item) or (item instanceof Object obj and obj.equals(current.value|Object))){
+                unlinkNode(current);
+                return true;
+            }
+            current = current.next;
+        }
+        return false;
+    }
+
+    override get#index(index as int) as E{
+        checkBounds(index);
+        var node = getNodeAt(index);
+        return node.value;
+    }
+
+    override set#index(index as int, value as E){
+        checkBounds(index);
+        var node = getNodeAt(index);
+        node.value = value;
+    }
+
+    override addAll#array(array as E[]){
+        for(var i = 0; i < array.length; i++){
+            this.add(array[i]);
+        }
+    }
+
+    override addAll#collection(it as Collection<E>){
+        for(var el in it){
+            this.add(el);
+        }
+    }
+
+    class LinkedListIterator with Iterator<E>{
+        current as LinkedListNode = head;
+
+        override hasNext() as boolean{
+            return this.current != NIL;
+        }
+
+        override next() as E{
+            var result = current.value;
+            this.current = current.next;
+            return result;
+        }
+    }
+
+    override iterator() as Iterator<E>{
+        return new LinkedListIterator();
+    }
+
+    fun checkBounds(index as int){
+        if(index < 0 or index >= this.count){
+            throw new IllegalStateException("index " + index + " out of bounds for size " + this.count);
+        }
+    }
+
+    fun getNodeAt(index as int) as LinkedListNode{
+        var node as LinkedListNode;
+        if(index < this.count / 2){
+            node = this.head;
+            for(var i = 0; i < index; i++){
+                node = node.next;
+            }
+        } else {
+            node = this.tail;
+            for(var i = this.count - 1; i > index; i--){
+                node = node.prev;
+            }
+        }
+        return node;
+    }
+
+    fun unlinkNode(node as LinkedListNode){
+        var prevNode = node.prev;
+        var nextNode = node.next;
+
+        if(prevNode != NIL){
+            prevNode.next = nextNode;
+        } else {
+            this.head = nextNode;
+        }
+
+        if(nextNode != NIL){
+            nextNode.prev = prevNode;
+        } else {
+            this.tail = prevNode;
+        }
+
+        this.count--;
+    }
+}

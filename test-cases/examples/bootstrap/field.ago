@@ -6,7 +6,7 @@ class Contact{
             field address as string){
     }
 
-    fun report(foo as string){
+    fun report(field foo as string){
         Trace.print("Contact name: " + this.name)
         Trace.print("Contact phone: " + this.phone)
         Trace.print("Contact address: " + this.address)

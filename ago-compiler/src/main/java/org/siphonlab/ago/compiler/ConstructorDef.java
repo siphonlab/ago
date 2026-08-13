@@ -45,6 +45,11 @@ public class ConstructorDef extends FunctionDef{
         this.modifiers = modifiers | AgoClass.CONSTRUCTOR;
     }
 
+    public ConstructorDef(Root root, int modifiers, AgoClassParser.AgoClassCombineClassParser agoClassCombineClassParser) {
+        this(root,modifiers, agoClassCombineClassParser.agoClass().getName());
+        this.agoClassCombineClassParser = agoClassCombineClassParser;
+    }
+
     @Override
     public ClassDef getResultType() {
         return root.VOID();
@@ -77,6 +82,10 @@ public class ConstructorDef extends FunctionDef{
         if(!executeParseFieldsOfHierarchyClasses()) return false;
 
         if(LOGGER.isDebugEnabled()) LOGGER.debug("%s: parse function fields".formatted(this));
+        if(agoClassCombineClassParser != null){
+            return agoClassCombineClassParser.parser().parseFields(agoClassCombineClassParser.agoClass(), this);
+        }
+
         var constructorDeclaration = this.getConstructorDeclaration();
         unit.parseFormalParameters(this, constructorDeclaration.formalParameters());
         this.processFieldParameters();

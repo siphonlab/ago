@@ -18,16 +18,14 @@ package org.siphonlab.ago.compiler;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.AgoClassLoader;
-import org.siphonlab.ago.compiler.exception.CompilationError;
-import org.siphonlab.ago.compiler.exception.ResolveError;
-import org.siphonlab.ago.compiler.exception.SyntaxError;
-import org.siphonlab.ago.compiler.exception.UnsupportedExpressionError;
+import org.siphonlab.ago.compiler.exception.*;
 import org.siphonlab.ago.compiler.expression.LiteralParser;
 import org.siphonlab.ago.Variance;
 import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
+import org.siphonlab.collection.DuplicatedKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +48,7 @@ public class Compiler {
         this.root = project.getRoot();
     }
 
-    public Unit[] compile() throws IOException, CompilationError, CompliationErrorsException {
+    public Unit[] compile() throws IOException, CompilationError, CompilationErrorsException {
         Unit[] units = project.getUnits().toArray(new Unit[0]);
 
         for (var unit : units) {
@@ -63,8 +61,14 @@ public class Compiler {
 
         // parse classes and member function declarations
         for (var unit : units) {
-            unit.classNames();
+            try {
+                unit.classNames();
+            } catch (DuplicatedKeyException e) {
+                unit.appendError(new DuplicatedError(e.getMessage(), SourceLocation.UNKNOWN));
+            }
         }
+        throwErrorsIfExists(units);
+
         root.getAndCleanNewFoundClasses();      // skip these new-found classes
         root.resolveLangClasses();
 
@@ -96,6 +100,7 @@ public class Compiler {
 
         root.setCompilingStage(CompilingStage.ValidateHierarchy);
         validateHierarchy();
+        throwErrorsIfExists(units);
         root.sortClasses();
 
         root.setCompilingStage(CompilingStage.InheritsFields);
@@ -132,17 +137,21 @@ public class Compiler {
         }
         root.setCompilingStage(CompilingStage.Compiled);
 
-        List<CompilationError> errors = new ArrayList<>();
+        throwErrorsIfExists(units);
+
+        return units;
+    }
+
+    private static void throwErrorsIfExists(Unit[] units) throws CompilationErrorsException {
+        List<Exception> errors = new ArrayList<>();
         for (Unit unit : units) {
             if(unit.hasErrors()){
                 errors.addAll(unit.getErrors());
             }
         }
         if(!errors.isEmpty()){
-            throw new CompliationErrorsException(errors);
+            throw new CompilationErrorsException(errors);
         }
-
-        return units;
     }
 
     private void setupBoxTypes() {
@@ -195,10 +204,15 @@ public class Compiler {
             if (classDef.getCompilingStage() != CompilingStage.ValidateHierarchy)
                 continue;
 
-            if(classDef.unit != null)
-                classDef.unit.validateHierarchy(classDef);
-            else
+            if(classDef.unit != null) {
+                try {
+                    classDef.unit.validateHierarchy(classDef);
+                } catch (CompilationError e) {
+                    classDef.unit.appendError(e);
+                }
+            } else {
                 classDef.nextCompilingStage(CompilingStage.InheritsFields);     // i.e. lang.ScopedClassInterval::Clang$Function2<int|int|int>|Clang$Any
+            }
         }
     }
 
@@ -219,53 +233,7 @@ public class Compiler {
                 assert p.getCompilingStage() != CompilingStage.ParseGenericParams;      // already finish this stage
             }
 
-            AgoParser.GenericTypeParametersContext genericTypeParameters = null;
-            if (scopeClass instanceof MetaClassDef) {
-//                throw new TypeMismatchError("metaclass cannot be generic template", scopeClass.getUnit().sourceLocation());
-                // metaclass can be involved by its class in generic, but has no generic type param itself
-            } else {
-                genericTypeParameters = scopeClass.getGenericTypeParametersContextAST();
-            }
-            if (genericTypeParameters != null) {
-                var templClass = scopeClass;
-                templClass.shiftToTemplate();
-                TypeParamsContext templClassTypeParamsContext = templClass.getTypeParamsContext();
-
-                List<AgoParser.GenericTypeParameterContext> genericTypeParameter = genericTypeParameters.genericTypeParameter();
-                for (int i = 0; i < genericTypeParameter.size(); i++) {
-                    var genericTypeParameterContext = genericTypeParameter.get(i);
-                    var identifier = genericTypeParameterContext.identifier();
-                    var name = identifier.getText();
-                    if (templClass.findGenericType(name) != null) {
-                        throw scopeClass.unit.resolveError(identifier, "duplicated generic param id '%s'".formatted(name));
-                    }
-                    var variance = Variance.Invariance;
-                    if (genericTypeParameterContext.ADD() != null) {
-                        variance = Variance.Covariance;
-                    } else if (genericTypeParameterContext.SUB() != null) {
-                        variance = Variance.Contravariance;
-                    }
-
-                    var typeOfGenericParam = genericTypeParameterContext.typeOfGenericParam();
-                    ClassDef[] bound;
-                    if (typeOfGenericParam != null) {
-                        bound = scopeClass.unit.parseTypeRange(typeOfGenericParam.typeRange(), templClass);
-                    } else {
-                        bound = new ClassDef[]{root.getAnyClass(), root.getAnyClass()};
-                    }
-
-                    var gt = root.getGenericTypeParameter();
-                    var pc = ((ClassContainer) gt.getParent()).getOrCreateGenericTypeParameter(this.project, gt, gt.getMetaClassDef().getConstructor(), bound[0], bound[1], variance, null);
-                    templClass.registerConcreteType((ConcreteType) pc);
-                    templClass.getTypeParamsContext().createGenericTypeParam(null, name, pc, i);
-                    if (pc.getUnit() == null) {
-                        pc.setUnit(templClass.getUnit());
-                        pc.setSourceLocation(templClass.getUnit().sourceLocation(typeOfGenericParam));
-                    }
-                }
-                templClass.createTemplateDefaultGenericSource();
-            }
-            scopeClass.nextCompilingStage(CompilingStage.ResolveHierarchicalClasses);    // to ExpandHierarchicalClasses
+            scopeClass.parseGenericParams();
         }
     }
 
@@ -309,7 +277,7 @@ public class Compiler {
             } catch (CompilationError e) {
                 if(classDef.unit != null) {
                     classDef.unit.appendError(e);
-                    classDef.nextCompilingStage(CompilingStage.InheritsInnerClasses);
+                    classDef.setCompilingStage(CompilingStage.InheritsInnerClasses);
                 } else {
                     throw e;
                 }
@@ -320,6 +288,7 @@ public class Compiler {
     static void validateFunction(ClassDef classDef) throws CompilationError {
         if(classDef.getCompilingStage() == CompilingStage.ValidateNewFunctions) {
             classDef.nextCompilingStage(CompilingStage.InheritsInnerClasses);
+            if(classDef.isFromAgoClass()) return;
             for (ClassDef child : classDef.getDirectChildren()) {
                 if (child instanceof FunctionDef functionDef) {
                     classDef.validateNewFunction(functionDef);
@@ -386,7 +355,7 @@ public class Compiler {
         for (ClassDef classDef : root.getSortedClassesAndFunctions()) {
             try {
                 classDef.compileBody();
-            } catch (CompilationError e) {
+            } catch (Exception e) {
                 if(classDef.unit != null) {
                     classDef.unit.appendError(e);
                     classDef.setCompilingStage(CompilingStage.Compiled);
@@ -540,7 +509,7 @@ public class Compiler {
         return result;
     }
 
-    static int fieldModifiers(Unit unit, List<AgoParser.FieldModifierContext> modifiers, ModifierTarget target) throws SyntaxError {
+    static int fieldModifiers(Unit unit, List<AgoParser.FieldModifierContext> modifiers, ModifierTarget target, int defaultVisibility) throws SyntaxError {
         int result = 0;
         boolean visibilityFound = false;
         if(modifiers != null){
@@ -571,7 +540,8 @@ public class Compiler {
             }
         }
         if(!visibilityFound){
-            result |= commonVisibility(unit, null, target);
+            result |= defaultVisibility;
+//            result |= commonVisibility(unit, null, target);
         }
         return result;
     }
@@ -580,7 +550,7 @@ public class Compiler {
         int result = 0;
         boolean visibilityFound = false;
         if(methodStarter.OVERRIDE() != null) {
-            result = fieldModifiers(unit, methodStarter.fieldModifier(), ModifierTarget.Method);
+            result = fieldModifiers(unit, methodStarter.fieldModifier(), ModifierTarget.Method, AgoClass.PUBLIC);
             result |= AgoClass.OVERRIDE;
         } else {
             if(methodStarter.GENERATOR() != null) {
@@ -672,7 +642,7 @@ public class Compiler {
 
     static int commonVisibility(Unit unit, AgoParser.CommonVisiblilityContext commonVisibilility, ModifierTarget target) throws SyntaxError{
         if(commonVisibilility == null) return switch (target){
-            case Field -> AgoClass.PRIVATE;
+            case Field -> AgoClass.PUBLIC;
             case Variable -> AgoClass.PRIVATE;
             case Param -> AgoClass.PRIVATE;
             case Class -> AgoClass.PUBLIC;

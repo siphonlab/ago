@@ -1,0 +1,142 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+class ArrayList<E> from List<E>{
+    private elements as E[];
+    private count as int = 0;
+    private defaultCapacity as int = 16;
+
+    fun new(){
+        this.elements = new E[this.defaultCapacity];
+    }
+
+    fun new#array(array as E[]){
+        this.elements = new E[array.length];
+        for(var i = 0; i < array.length; i++){
+            this.elements[i] = array[i];
+        }
+        this.count = array.length;
+    }
+
+    override size#get() as int{
+        return this.count;
+    }
+
+    override isReadOnly() as boolean{
+        return false;
+    }
+
+    override add(item as E){
+        ensureCapacity(this.count + 1);
+        this.elements[this.count] = item;
+        this.count++;
+    }
+
+    override clear(){
+        this.count = 0;
+    }
+
+    override contains(item as E) as boolean{
+        for(var i = 0; i < this.count; i++){
+            if((this.elements[i] | Object).equals(item | Object)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    override remove(item as E) as boolean{
+        for(var i = 0; i < this.count; i++){
+            if((this.elements[i] | Object).equals(item | Object)){
+                shiftLeft(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    override get#index(index as int) as E{
+        checkBounds(index);
+        return this.elements[index];
+    }
+
+    override set#index(index as int, value as E){
+        checkBounds(index);
+        this.elements[index] = value;
+    }
+
+    override addAll#array(array as E[]){
+        ensureCapacity(this.count + array.length);
+        for(var i = 0; i < array.length; i++){
+            this.elements[this.count] = array[i];
+            this.count++;
+        }
+    }
+
+    override addAll#collection(it as Collection<E>){
+        ensureCapacity(this.count + it.size);
+        for(var el in it){
+            this.add(el);
+        }
+    }
+
+    class ArrayListIterator with Iterator<E>{
+        pos as int = 0;
+
+        override hasNext() as boolean{
+            return this.pos < count;
+        }
+
+        override next() as E{
+            var result = elements[this.pos];
+            this.pos++;
+            return result;
+        }
+    }
+
+    override iterator() as Iterator<E>{
+        return new ArrayListIterator();
+    }
+
+    fun checkBounds(index as int){
+        if(index < 0 or index >= this.count){
+            throw new IllegalStateException("index " + index + " out of bounds for size " + this.count);
+        }
+    }
+
+    fun ensureCapacity(minimalSize as int){
+        if(minimalSize <= this.elements.length){
+            return;
+        }
+        var newCapacity = this.elements.length * 2;
+        if(newCapacity < minimalSize){
+            newCapacity = minimalSize;
+        }
+        var oldElements = this.elements;
+        this.elements = new E[newCapacity];
+        for(var i = 0; i < this.count; i++){
+            this.elements[i] = oldElements[i];
+        }
+    }
+
+    fun shiftLeft(fromIndex as int){
+        for(var i = fromIndex; i < this.count - 1; i++){
+            this.elements[i] = this.elements[i + 1];
+        }
+        this.count--;
+    }
+}

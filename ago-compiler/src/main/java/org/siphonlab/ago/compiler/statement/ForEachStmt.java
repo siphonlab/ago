@@ -120,7 +120,7 @@ public class ForEachStmt extends LoopStmt{
             var invokeNext = ownerFunction.invoke(Invoke.InvokeMode.Invoke, nextFun, Collections.emptyList(), expression.getSourceLocation()).transform();
             ownerFunction.assign(iterVar, invokeNext).setSourceLocation(enhanceControlPartSourceLocation).termVisit(blockCompiler);
 
-            this.body.termVisit(blockCompiler);
+            ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
 
             blockCompiler.releaseRegister(iteratorValue);
 
@@ -167,7 +167,7 @@ public class ForEachStmt extends LoopStmt{
             code.jumpIfNot(r.getVariableSlot(), exitLabel);
             ownerFunction.assign(iterVar, new ArrayElement(ownerFunction, array, i)).setSourceLocation(enhanceControlPartSourceLocation).termVisit(blockCompiler);
 
-            this.body.termVisit(blockCompiler);
+            ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
 
             new SelfArithmetic(ownerFunction, i, getRoot().createIntLiteral(1), SelfArithmetic.Type.Inc).setSourceLocation(enhanceControlPartSourceLocation).termVisit(blockCompiler);
             code.jump(continueLabel);
@@ -241,7 +241,7 @@ public class ForEachStmt extends LoopStmt{
 
                 code.accept(iterVar.getVariableSlot());
 
-                this.body.termVisit(blockCompiler);
+                ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
 
                 continueLabel.here();
                 code.resume(generator.getVariableSlot());       // resume after the second time
@@ -258,7 +258,7 @@ public class ForEachStmt extends LoopStmt{
 
                 code.accept(iterVar.getVariableSlot());
 
-                this.body.termVisit(blockCompiler);
+                ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
 
                 code.jump(continueLabel);
 

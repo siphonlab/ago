@@ -20,6 +20,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.ParserATNSimulator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.siphonlab.ago.compiler.parser.AgoLexer;
 import org.siphonlab.ago.compiler.parser.AgoParser;
@@ -38,7 +39,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public class ParserTest {
-    @Test
+
+    @Test @Disabled
     public void classDef() throws IOException, ExecutionException, InterruptedException {
 //        String code = IOUtils.toString(new FileInputStream("D:\\ficfio\\ago\\examples\\bootstrap\\20.boxer.ago"));
         String code = """
@@ -62,7 +64,7 @@ public class ParserTest {
         showAstTreeview(parser, compilationUnitContext);
     }
 
-    @Test
+    @Test @Disabled
     public void genericOfGeneric() throws IOException, ExecutionException, InterruptedException {
 //        ParserATNSimulator.debug = true;
 //        ParserATNSimulator.trace_atn_sim = true;
@@ -92,7 +94,7 @@ public class ParserTest {
         showAstTreeview(parser, compilationUnitContext);
     }
 
-    @Test
+    @Test @Disabled
     public void strings() throws IOException, ExecutionException, InterruptedException {
         String code = IOUtils.toString(new FileInputStream("D:\\My Work\\ago\\examples\\strings.ago"));
         AgoLexer lexer = new AgoLexer(CharStreams.fromString(code));
@@ -112,7 +114,7 @@ public class ParserTest {
         showAstTreeview(parser, compilationUnitContext);
     }
 
-    @Test
+    @Test @Disabled
     public void eos() throws IOException, ExecutionException, InterruptedException {
         String code = """
                     {
@@ -125,7 +127,7 @@ public class ParserTest {
         showAstTreeview(parser, ast);
     }
 
-    @Test
+    @Test @Disabled
     public void lang() throws IOException, ExecutionException, InterruptedException {
         String code = FileUtils.readFileToString(new File("src/main/ago/lang.ago"), "utf-8");
         AgoLexer lexer = new AgoLexer(CharStreams.fromString(code));
@@ -134,7 +136,7 @@ public class ParserTest {
         showAstTreeview(parser, ast);
     }
 
-    @Test
+    @Test @Disabled
     public void base_types() throws IOException, ExecutionException, InterruptedException {
         String code = FileUtils.readFileToString(new File("examples/bootstrap/base_types.ago"), "utf-8");
         AgoLexer lexer = new AgoLexer(CharStreams.fromString(code));
@@ -143,7 +145,7 @@ public class ParserTest {
         showAstTreeview(parser, ast);
     }
 
-    @Test
+    @Test @Disabled
     public void interface_test() throws IOException, ExecutionException, InterruptedException {
         String code = FileUtils.readFileToString(new File("examples/bootstrap/13.interface.ago"), "utf-8");
         AgoLexer lexer = new AgoLexer(CharStreams.fromString(code));
@@ -173,7 +175,7 @@ public class ParserTest {
         showAstTreeview(parser, ast);
     }
 
-    @Test
+    @Test @Disabled
     public void test() throws IOException, ExecutionException, InterruptedException {
 //        ParserATNSimulator.debug = true;
 //        ParserATNSimulator.trace_atn_sim = true;

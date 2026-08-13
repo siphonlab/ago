@@ -16,7 +16,7 @@
 package org.siphonlab.ago.test;
 
 import org.junit.jupiter.api.Test;
-import org.siphonlab.ago.compiler.CompliationErrorsException;
+import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 
@@ -28,28 +28,28 @@ import static org.siphonlab.ago.test.Util.run;
 public class ReflectionTests {
 
     @Test
-    public void property() throws CompilationError, CompliationErrorsException, IOException {
+    public void property() throws CompilationError, CompilationErrorsException, IOException {
         run("reflection/property.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("name", "age", "Tom", "20", "John", "22"));
     }
 
     @Test
-    public void method() throws CompilationError, CompliationErrorsException, IOException {
+    public void method() throws CompilationError, CompilationErrorsException, IOException {
         run("reflection/method.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("Calc.add#", "3", "4"));
     }
 
     @Test
-    public void creation() throws CompilationError, CompliationErrorsException, IOException {
+    public void creation() throws CompilationError, CompilationErrorsException, IOException {
         run("reflection/creation.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("Jack", "22", "I am A", "I am A foobar"));
     }
 
     @Test
-    public void class_for_name() throws CompilationError, CompliationErrorsException, IOException {
+    public void class_for_name() throws CompilationError, CompilationErrorsException, IOException {
         run("reflection/class_for_name.ago");
         Trace.printOutput();
         assertTrue(Trace.outputted("Jack", "22"));

@@ -3,27 +3,27 @@ fun main(){
     var ls = new ArrayList<int>(arr)
     var arr2 = [9,8,7,6];
 
-    Array<int>.copy(arr2, 1, arr, 1, 2)
+    arr2.copyTo(1, arr, 1, 2)
     Trace.print(arr);       // [1,8,7,4]
 
     ls.addAll(arr2);
-    Trace.print(ls);        // [ArrayList<int>|1,8,7,4,9,8,7,6]
+    Trace.print(ls);        // [ArrayList<int>|1,2,3,4,9,8,7,6]
 
     arr = ls.toArray();
-    Trace.print(arr);
+    Trace.print(arr);       // [1,2,3,4,9,8,7,6]
 
     var ls2 = new LinkedList<int>();
     ls2.addAll(ls)
     ls2.addAll(arr)
-    Trace.print(ls2);
+    Trace.print(ls2);       // [lang.LinkedList<int>|1,2,3,4,9,8,7,6,1,2,3,4,9,8,7,6]
 
     arr = new int[10];
     ls.copyTo(arr, 2, 3);
-    Trace.print(arr)        // [0,0,1,8,7,0,0,0,0,0]
+    Trace.print(arr)        // [0,0,1,2,3,0,0,0,0,0]
 
     ls.copyTo(arr, 5)
-    Trace.print(arr)        // [0,0,1,8,7,1,8,7,4,9]
+    Trace.print(arr)        // [0,0,1,2,3,1,2,3,4,9]
 
     ls.copyTo(arr);
-    Trace.print(arr);       // [1,8,7,4,9,8,7,6,4,9]
+    Trace.print(arr);       // [1,2,3,4,9,8,7,6,4,9]
 }

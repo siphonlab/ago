@@ -1,0 +1,278 @@
+/*
+ * Copyright © 2026 Inshua (inshua@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lang;
+
+/**
+ * Pure-ago HashMap using open addressing with linear probing.
+ * Properly calls ago's equals() for Object keys, solving the callback limitation of native HashMap.
+ */
+
+final class HashCode{
+    metaclass{
+        fun computeHashCode<Key>(key as Key) as int{
+            if(key instanceof Object obj){
+                return obj.hashCode();
+            } else if(key instanceof int i){
+                return i.hashCode();
+            } else if(key instanceof long l){
+                return l.hashCode();
+            } else if(key instanceof short s){
+                return s.hashCode();
+            } else if(key instanceof byte b){
+                return b.hashCode();
+            } else if(key instanceof float f){
+                return f.hashCode();
+            } else if(key instanceof double d){
+                return d.hashCode();
+            } else if(key instanceof char c){
+                return c.hashCode();
+            } else if(key instanceof boolean bl){
+                return bl.hashCode();
+            } else {
+                return (key | Object).hashCode();
+            }
+        }
+    }
+}
+
+class HashMap<Key, Value> from Map<Key, Value>{
+
+    private keyStore as Key[];
+    private valueStore as Value[];
+    private occupied as boolean[];
+    private capacity as int = 4;
+    private count as int = 0;
+    private loadThreshold as int = 3;
+
+    fun new(){
+        this.keyStore = new Key[4];
+        this.valueStore = new Value[4];
+        this.occupied = new boolean[4];
+    }
+
+    override size#get() as int{
+        return this.count;
+    }
+
+    override isReadOnly() as boolean{
+        return false;
+    }
+
+    override get#key(index as Key) as Value{
+        var isObjectKey = index instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(index | Object);
+                } else {
+                    matched = (this.keyStore[slot] == index);
+                }
+                if(matched){
+                    return this.valueStore[slot];
+                }
+            } else {
+                break;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+        throw new KeyNotFoundException("key not found: " + index);
+    }
+
+    override put(index as Key, value as Value){
+        var isObjectKey = index instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(index));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(index | Object);
+                } else {
+                    matched = (this.keyStore[slot] == index);
+                }
+                if(matched){
+                    this.valueStore[slot] = value;
+                    return;
+                }
+            } else {
+                this.keyStore[slot] = index;
+                this.valueStore[slot] = value;
+                this.occupied[slot] = true;
+                this.count++;
+                checkResize();
+                return;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+    }
+
+    override containsKey(key as Key) as boolean{
+        var isObjectKey = key instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(key | Object);
+                } else {
+                    matched = (this.keyStore[slot] == key);
+                }
+                if(matched){
+                    return true;
+                }
+            } else {
+                break;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+        return false;
+    }
+
+    override remove(key as Key) as boolean{
+        var isObjectKey = key instanceof Object;
+        var slot = hashToSlot(HashCode.computeHashCode<Key>(key));
+        var probe = 0;
+        while(probe < this.capacity){
+            if(this.occupied[slot]){
+                var matched = false;
+                if(isObjectKey){
+                    matched = (this.keyStore[slot] | Object).equals(key | Object);
+                } else {
+                    matched = (this.keyStore[slot] == key);
+                }
+                if(matched){
+                    this.occupied[slot] = false;
+                    this.count--;
+                    return true;
+                }
+            } else {
+                break;
+            }
+            slot = (slot + 1) % this.capacity;
+            probe++;
+        }
+        return false;
+    }
+
+    override clear(){
+        for(var i = 0; i < this.capacity; i++){
+            this.occupied[i] = false;
+        }
+        this.count = 0;
+    }
+
+    override putAll(map as ReadOnlyMap<Key, Value>){
+        for(var entry in map){
+            this.put(entry.key, entry.value);
+        }
+    }
+
+    // --- Internal helpers ---
+
+    fun hashToSlot(h as int) as int{
+        var nonNeg = h band 0x7FFFFFFF;
+        return nonNeg % this.capacity;
+    }
+
+    fun checkResize(){
+        if(this.count > this.loadThreshold){
+            resize();
+        }
+    }
+
+    fun resize(){
+        var oldCapacity = this.capacity;
+        var oldKeyStore = this.keyStore;
+        var oldValueStore = this.valueStore;
+        var oldOccupied = this.occupied;
+
+        this.capacity = oldCapacity * 2;
+        this.loadThreshold = (this.capacity * 3 / 4);
+        this.keyStore = new Key[this.capacity];
+        this.valueStore = new Value[this.capacity];
+        this.occupied = new boolean[this.capacity];
+        this.count = 0;
+
+        for(var i = 0; i < oldCapacity; i++){
+            if(oldOccupied[i]){
+                this.put(oldKeyStore[i], oldValueStore[i]);
+            }
+        }
+    }
+
+    // --- keys / values views ---
+
+    override keys#get() as ReadOnlyCollection<Key>{
+        var result = new ArrayList<Key>();
+        for(var i = 0; i < this.capacity; i++){
+            if(this.occupied[i]){
+                result.add(this.keyStore[i]);
+            }
+        }
+        return result;
+    }
+
+    override values#get() as ReadOnlyCollection<Value>{
+        var result = new ArrayList<Value>();
+        for(var i = 0; i < this.capacity; i++){
+            if(this.occupied[i]){
+                result.add(this.valueStore[i]);
+            }
+        }
+        return result;
+    }
+
+    class HashMapIterator with Iterator<KeyValuePair<Key, Value>>{
+        pos as int = 0;
+        nextSlot as int = -1;
+
+        fun new(){
+            computeNextSlot();
+        }
+
+        override hasNext() as boolean{
+            return this.nextSlot >= 0;
+        }
+
+        override next() as KeyValuePair<Key, Value>{
+            var slot = this.nextSlot;
+            computeNextSlot();
+            return new KeyValuePair<Key, Value>(keyStore[slot], valueStore[slot]);
+        }
+
+        fun computeNextSlot(){
+            this.nextSlot = -1;
+            for(var i = this.pos; i < capacity; i++){
+                if(occupied[i]){
+                    this.nextSlot = i;
+                    this.pos = i + 1;
+                    return;
+                }
+            }
+        }
+    }
+
+    override iterator() as Iterator<KeyValuePair<Key, Value>>{
+        return new HashMapIterator();
+    }
+}

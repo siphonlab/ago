@@ -1,0 +1,24 @@
+package io_test;
+
+import io.NetServer;
+import io.Socket;
+
+fun main(){
+    // benchmark setting
+    var server = new NetServer(new NetServer.Options() with { .acceptBacklog = 65535; .logActivity = false; .receiveBufferSize = 4096; .sendBufferSize = 4096; });
+    fork acceptLoop(server);
+    server.listen(12333);
+}
+
+fun acceptLoop(server as NetServer){
+    while(true){
+        var socket = server.accept();
+        fork echo(socket)
+    }
+}
+
+fun echo(socket as Socket){
+    for(var buffer in socket.gen()){
+        socket.write(buffer)
+    }
+}

@@ -66,7 +66,7 @@ public class WhileStmt extends LoopStmt {
 
             if (this.condition instanceof Literal<?> literal && BooleanLiteral.isTrue(literal)) {
                 var continueLabel = blockCompiler.createLabel().here();
-                this.body.termVisit(blockCompiler);
+                ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
                 code.jump(continueLabel);
                 this.exitLabel.here();
                 return;
@@ -110,7 +110,7 @@ public class WhileStmt extends LoopStmt {
                 }
             }
             loopBodyLabel.here();
-            this.body.termVisit(blockCompiler);
+            ReusableScope.wrap(this.body, ownerFunction).termVisit(blockCompiler);
             code.jump(continueLabel);       // evaluate condition again
             exitLabel.here();
         } catch (CompilationError e) {

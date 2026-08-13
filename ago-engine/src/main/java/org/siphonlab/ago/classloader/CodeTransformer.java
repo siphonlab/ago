@@ -15,11 +15,13 @@
  */
 package org.siphonlab.ago.classloader;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.siphonlab.ago.opcode.*;
 import org.siphonlab.ago.opcode.arithmetic.*;
 import org.siphonlab.ago.opcode.compare.*;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -123,8 +125,12 @@ public class CodeTransformer {
         var method = headers.get(methodDesc.getFullname());
         assert clazz.getMethod(p) == method.agoClass;
         if(method.isInGenericTemplate() && this.header.isGenericInstantiation()){
+            // for example HashCode.computeHash<Key>, the original is Key from class Map, now it should instantiate with real Key type, i.e. string
             method = classLoader.instantiateReferenceClass(methodDesc.getFullname(), this.header.genericSource.instantiationArguments());
-            p = methodDesc.getMethodIndex();
+            ClassHeader finalMethod = method;
+            var instantiated = methodClass.methods.stream().filter(m -> m.getFunctionClassHeader() == finalMethod).findFirst();
+            assert instantiated.isPresent();
+            p = instantiated.get().getMethodIndex();
             assert clazz.getMethod(p).getName().equals(method.agoClass.getName());
         }
         assert p != -1;

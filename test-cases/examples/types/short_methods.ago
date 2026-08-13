@@ -1,0 +1,21 @@
+fun main(){
+    var s = 32768|short;
+    var boxed = new Short(s);
+
+    // abs
+    Trace.print(boxed.abs());
+    Trace.print((-100).abs());
+
+    // clamp
+    Trace.print(boxed.clamp(0|short, 500|short));
+    Trace.print(((-10|short)).clamp(0|short, 500|short));
+    Trace.print((1000|short).clamp(0|short, 500|short));
+
+    // toHexString
+    Trace.print(boxed.toHexString());
+    Trace.print(s.toHexString());
+
+    // metaclass statics
+    Trace.print(Short.MIN_VALUE());
+    Trace.print(Short.MAX_VALUE());
+}

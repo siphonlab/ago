@@ -1,0 +1,33 @@
+package io_test;
+
+import io.ReadStream;
+import io.WriteStream;
+import io.Buffer;
+import io.pipe#;
+
+native class FastProducer with ReadStream<Buffer> {
+    override generator fun gen() as Buffer native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_generator";
+    override fun pause() as ReadStream<Buffer> native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_pause";
+    override fun resume() as ReadStream<Buffer> native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_resume";
+    override fun fetch(amount as long) as ReadStream<Buffer> native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_fetch";
+    override fun byeRead() native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_byeRead";
+    fun start() native "org.siphonlab.ago.test.BackpressureDemo.Test_startProducer";
+}
+native class SlowConsumer with WriteStream<Buffer> {
+    override fun write(data as Buffer) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_write";
+    override fun setWriteQueueMaxSize(maxSize as int) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_setWriteQueueMaxSize";
+    override fun writeQueueFull() as boolean native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_writeQueueFull";
+    override fun byeWrite() native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_byeWrite";
+    override fun watchDrain() as WriteStream<Buffer>.DrainHandler native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_watchDrain";
+}
+
+fun testReadStream() as FastProducer native "org.siphonlab.ago.test.BackpressureDemo.Test_FastProducer";
+
+fun testWriteStream() as WriteStream<Buffer> native "org.siphonlab.ago.test.BackpressureDemo.Test_SlowConsumer";
+
+fun main(){
+    var readStream = testReadStream();
+    var writeStream = testWriteStream();
+    fork pipe(readStream, writeStream)
+    readStream.start()
+}

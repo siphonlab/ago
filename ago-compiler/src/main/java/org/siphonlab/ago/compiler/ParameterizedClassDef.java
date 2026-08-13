@@ -346,6 +346,9 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
         if(this.baseClass.compilingStage == CompilingStage.ParseFields){
             if(!this.baseClass.parseFields()) return false;
         }
+        if(agoClassCombineClassParser != null){
+            return agoClassCombineClassParser.parser().parseFields(agoClassCombineClassParser.agoClass(), this);
+        }
         this.nextCompilingStage(CompilingStage.ValidateHierarchy);
         return true;
     }
@@ -360,6 +363,7 @@ public class ParameterizedClassDef extends ClassDef implements ConcreteType{
                 baseClass.inheritsFields();
             }
             this.inheritsFields(baseClass.getFields(), baseClass);
+
             if (baseClass.isInterfaceOrTrait()) {
                 this.setFieldForPermitClass(baseClass.getFieldForPermitClass());
             }

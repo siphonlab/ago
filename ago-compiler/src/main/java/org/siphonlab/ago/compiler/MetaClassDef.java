@@ -50,6 +50,11 @@ public class MetaClassDef extends ClassDef{
         if(instanceClassDef.isFinal()) this.modifiers |= AgoClass.FINAL;
     }
 
+    public MetaClassDef(Root root, ClassDef instanceClassDef, int metaLevel, AgoClassParser.AgoClassCombineClassParser agoClassCombineClassParser) {
+        this(root, instanceClassDef, metaLevel, (AgoParser.MetaclassDeclarationContext) null);
+        this.agoClassCombineClassParser = agoClassCombineClassParser;
+    }
+
     public ClassDef getInstanceClassDef() {
         return instanceClassDef;
     }
@@ -57,6 +62,12 @@ public class MetaClassDef extends ClassDef{
     @Override
     public AgoParser.ClassBodyContext getClassBody() {
         return this.metaclassDeclaration == null? null : this.metaclassDeclaration.classBody();
+    }
+
+    @Override
+    public void parseGenericParams() {
+        // metaclass can be involved by its class in generic, but has no generic type param itself
+        this.nextCompilingStage(CompilingStage.ResolveHierarchicalClasses);
     }
 
     @Override
@@ -118,6 +129,12 @@ public class MetaClassDef extends ClassDef{
 
     public MetaClassDef cloneForInstantiate(Project project, InstantiationArguments instantiationArguments, ClassContainer parent, MutableBoolean returnExisted) throws CompilationError {
         var instanceClass = this.instanceClassDef.getCachedInstantiatedClass(instantiationArguments);
+        if(instanceClass == null){
+            instanceClass = this.instanceClassDef.instantiate(project, instantiationArguments, null);
+            if(instanceClass.getMetaClassDef() != null){
+                return instanceClass.getMetaClassDef();
+            }
+        }
         var clone = new MetaClassDef(root, instanceClass, metaLevel, metaclassDeclaration);
         super.cloneTo(project, instantiationArguments, clone, (ClassContainer) this.getParent());
         return clone;

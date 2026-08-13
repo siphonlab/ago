@@ -1,0 +1,135 @@
+package io;
+
+// =============================================================================
+// Charset — placeholder for Vert.x charset parameter
+// =============================================================================
+final native class Charset{
+    fun new(name as string) native 'org.siphonlab.ago.runtime.vertx.NioCharset.create';
+    override toString() as string native 'org.siphonlab.ago.runtime.vertx.NioCharset.toString';
+
+    metaclass{
+        fun UTF_8() as Charset native 'org.siphonlab.ago.runtime.vertx.NioCharset.UTF_8';
+        fun UTF_16() as Charset native 'org.siphonlab.ago.runtime.vertx.NioCharset.UTF_16';
+        fun ISO_8859_1() as Charset native 'org.siphonlab.ago.runtime.vertx.NioCharset.ISO_8859_1';
+    }
+}
+
+// =============================================================================
+// Buffer — 1:1 wrapper for Vert.x io.vertx.core.buffer.Buffer
+// =============================================================================
+final native class Buffer{
+    // -- constructors ---------------------------------------------------------
+    fun new() native 'org.siphonlab.ago.runtime.vertx.Buffer.create';
+    fun new#size(size as int) native 'org.siphonlab.ago.runtime.vertx.Buffer.createSize';
+    fun new#str(s as string) native 'org.siphonlab.ago.runtime.vertx.Buffer.createString';
+    fun new#strEnc(s as string, enc as string) native 'org.siphonlab.ago.runtime.vertx.Buffer.createStringEncoding';
+
+    // -- property -------------------------------------------------------------
+    fun length() as int native 'org.siphonlab.ago.runtime.vertx.Buffer.length';
+
+    // -- read (getter) operations ---------------------------------------------
+    fun getByte(pos as int) as byte native 'org.siphonlab.ago.runtime.vertx.Buffer.getByte';
+    fun getShort(pos as int) as short native 'org.siphonlab.ago.runtime.vertx.Buffer.getShort';
+    fun getShortLE(pos as int) as short native 'org.siphonlab.ago.runtime.vertx.Buffer.getShortLE';
+    fun getInt(pos as int) as int native 'org.siphonlab.ago.runtime.vertx.Buffer.getInt';
+    fun getIntLE(pos as int) as int native 'org.siphonlab.ago.runtime.vertx.Buffer.getIntLE';
+    fun getLong(pos as int) as long native 'org.siphonlab.ago.runtime.vertx.Buffer.getLong';
+    fun getLongLE(pos as int) as long native 'org.siphonlab.ago.runtime.vertx.Buffer.getLongLE';
+    fun getFloat(pos as int) as float native 'org.siphonlab.ago.runtime.vertx.Buffer.getFloat';
+    fun getFloatLE(pos as int) as float native 'org.siphonlab.ago.runtime.vertx.Buffer.getFloatLE';
+    fun getDouble(pos as int) as double native 'org.siphonlab.ago.runtime.vertx.Buffer.getDouble';
+    fun getDoubleLE(pos as int) as double native 'org.siphonlab.ago.runtime.vertx.Buffer.getDoubleLE';
+    fun getMedium(pos as int) as int native 'org.siphonlab.ago.runtime.vertx.Buffer.getMedium';
+    fun getMediumLE(pos as int) as int native 'org.siphonlab.ago.runtime.vertx.Buffer.getMediumLE';
+    fun getString(start as int, end as int) as string
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.getString';
+    fun getStringEnc(start as int, end as int, enc as string) as string
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.getStringEnc';
+
+    // -- write (setter) operations — return Buffer for chaining ----------------
+    fun setByte(pos as int, value as byte) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setByte';
+    fun setShort(pos as int, value as short) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setShort';
+    fun setShortLE(pos as int, value as short) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setShortLE';
+    fun setInt(pos as int, value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setInt';
+    fun setIntLE(pos as int, value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setIntLE';
+    fun setLong(pos as int, value as long) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setLong';
+    fun setLongLE(pos as int, value as long) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setLongLE';
+    fun setFloat(pos as int, value as float) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setFloat';
+    fun setFloatLE(pos as int, value as float) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setFloatLE';
+    fun setDouble(pos as int, value as double) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setDouble';
+    fun setDoubleLE(pos as int, value as double) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setDoubleLE';
+    fun setMedium(pos as int, value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setMedium';
+    fun setMediumLE(pos as int, value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setMediumLE';
+    fun setString(pos as int, s as string) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setString';
+    fun setStringEnc(pos as int, s as string, enc as string) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setStringEnc';
+    fun setBuffer(pos as int, other as Buffer) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setBuffer';
+    fun setBufferRange(pos as int, other as Buffer, offset as int, len as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.setBufferRange';
+
+    // -- append operations — return Buffer for chaining ------------------------
+    fun appendByte(value as byte) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendByte';
+    fun appendShort(value as short) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendShort';
+    fun appendShortLE(value as short) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendShortLE';
+    fun appendInt(value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendInt';
+    fun appendIntLE(value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendIntLE';
+    fun appendLong(value as long) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendLong';
+    fun appendLongLE(value as long) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendLongLE';
+    fun appendFloat(value as float) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendFloat';
+    fun appendFloatLE(value as float) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendFloatLE';
+    fun appendDouble(value as double) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendDouble';
+    fun appendDoubleLE(value as double) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendDoubleLE';
+    fun appendMedium(value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendMedium';
+    fun appendMediumLE(value as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendMediumLE';
+    fun appendString(s as string) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendString';
+    fun appendStringEnc(s as string, enc as string) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendStringEnc';
+    fun appendBuffer(other as Buffer) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendBuffer';
+    fun appendBufferRange(other as Buffer, offset as int, len as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.appendBufferRange';
+
+    // -- copy / slice ---------------------------------------------------------
+    fun copy() as Buffer native 'org.siphonlab.ago.runtime.vertx.Buffer.copy';
+    fun slice() as Buffer native 'org.siphonlab.ago.runtime.vertx.Buffer.slice';
+    fun slice#range(start as int, end as int) as Buffer
+            native 'org.siphonlab.ago.runtime.vertx.Buffer.sliceRange';
+
+    // -- static factory -------------------------------------------------------
+    metaclass{
+        fun buffer() as Buffer native 'org.siphonlab.ago.runtime.vertx.Buffer.staticBuffer';
+        fun buffer#size(size as int) as Buffer native 'org.siphonlab.ago.runtime.vertx.Buffer.staticBufferSize';
+        fun buffer#str(s as string) as Buffer native 'org.siphonlab.ago.runtime.vertx.Buffer.staticBufferString';
+    }
+
+    override toString() as string native 'org.siphonlab.ago.runtime.vertx.Buffer.toString';
+}

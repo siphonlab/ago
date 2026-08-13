@@ -484,10 +484,12 @@ public class RunSpace implements Runnable{
     public void acceptExceptionByAsync(Instance<?> exception) {
         this.setException(exception);
         var caller = this.currCallFrame;
-        if (caller.handleException(exception)) {
-            this.setCurrCallFrame(caller);
-        } else {
-            caller.finishException(exception);
+        if(caller != null) {
+            if (caller.handleException(exception)) {
+                this.setCurrCallFrame(caller);
+            } else {
+                caller.finishException(exception);
+            }
         }
         resumeByAcceptResult();
     }

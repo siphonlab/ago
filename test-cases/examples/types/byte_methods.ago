@@ -1,0 +1,21 @@
+fun main(){
+    var b = 64b;
+    var boxed = new Byte(b);
+
+    // abs
+    Trace.print(boxed.abs());
+    Trace.print((-127b).abs());
+
+    // clamp
+    Trace.print(boxed.clamp(0b, 50b));
+    Trace.print(((-10b)).clamp(0b, 50b));
+    Trace.print((100b).clamp(0b, 50b));
+
+    // toHexString
+    Trace.print(boxed.toHexString());
+    Trace.print(b.toHexString());
+
+    // metaclass statics
+    Trace.print(Byte.MIN_VALUE());
+    Trace.print(Byte.MAX_VALUE());
+}
