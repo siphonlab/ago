@@ -17,6 +17,7 @@ package org.siphonlab.ago.compiler;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.jspecify.annotations.NonNull;
 import org.siphonlab.ago.AgoClass;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.SyntaxError;
@@ -27,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 
 public class TraitDef extends ClassDef{
 
@@ -38,6 +40,12 @@ public class TraitDef extends ClassDef{
         super(root, name);
         this.traitDeclaration = traitDeclaration;
         this.classType = AgoClass.TYPE_TRAIT;
+    }
+
+    public TraitDef(Root root, AgoClassParser.AgoClassCombineClassParser agoClassCombineClassParser) {
+        super(root, agoClassCombineClassParser);
+        this.classType = AgoClass.TYPE_TRAIT;
+        this.traitDeclaration = null;
     }
 
     @Override
@@ -118,7 +126,7 @@ public class TraitDef extends ClassDef{
 
         if(this.permitClass != null && this.permitClass != getRoot().getObjectClass()){
             if(this.fieldForPermitClass == null){
-                String fldName = "@permit_" + (!permitClass.isGenericInstantiation() ? permitClass.getName(): permitClass.getGenericSource().originalTemplate().getName());
+                String fldName = composePermitFieldName();
                 for(var i = 0; ;i++) {
                     String s = fldName + "_" + i;
                     if (this.fields.containsKey(s)) {
@@ -137,6 +145,10 @@ public class TraitDef extends ClassDef{
             }
         }
         return true;
+    }
+
+    private @NonNull String composePermitFieldName() {
+        return "@permit_" + (!permitClass.isGenericInstantiation() ? permitClass.getName() : permitClass.getGenericSource().originalTemplate().getName());
     }
 
     @Override
@@ -178,6 +190,7 @@ public class TraitDef extends ClassDef{
         this.setCompilingStage(CompilingStage.ParseFields);
     }
 
-
-
+    public void restorePermitField() {
+        this.fieldForPermitClass = Objects.requireNonNull(this.fields.get(composePermitFieldName()));
+    }
 }

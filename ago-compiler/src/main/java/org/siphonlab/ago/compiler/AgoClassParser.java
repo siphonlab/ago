@@ -22,7 +22,6 @@ import org.siphonlab.ago.compiler.expression.Literal;
 import org.siphonlab.ago.compiler.expression.literal.*;
 import org.siphonlab.ago.compiler.generic.GenericConcreteType;
 import org.siphonlab.ago.compiler.generic.SharedGenericTypeParameterClassDef;
-import org.siphonlab.ago.compiler.generic.TypeParamsContext;
 import org.siphonlab.ago.compiler.module.Project;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.slf4j.Logger;
@@ -539,6 +538,9 @@ public class AgoClassParser {
             functionDef.setBody(fun.getCode());     // for AgoFunction it's the compiled code, just make the body fulfilled
         }
         classDef.instantiateWaitingChildren();
+        if(classDef instanceof TraitDef traitDef){
+            traitDef.restorePermitField();
+        }
         classDef.setCompilingStage(CompilingStage.InheritsInnerClasses);
         return true;
     }
@@ -633,12 +635,13 @@ public class AgoClassParser {
         } else if(agoClass instanceof AgoAnyClass) {
             classDef = new AnyClassDef(root, agoClass.getName());
         } else {
-            classDef = new ClassDef(root, new AgoClassCombineClassParser(agoClass, this));
             if(agoClass instanceof AgoInterface){
+                classDef = new ClassDef(root, new AgoClassCombineClassParser(agoClass, this));
                 classDef.setClassType(AgoClass.TYPE_INTERFACE);
             } else if(agoClass instanceof AgoTrait){
-                classDef.setClassType(AgoClass.TYPE_TRAIT);
+                classDef = new TraitDef(root, new AgoClassCombineClassParser(agoClass, this));
             } else if(agoClass instanceof AgoEnum agoEnum){
+                classDef = new ClassDef(root, new AgoClassCombineClassParser(agoClass, this));
                 // won't create EnumDef here
                 classDef.setClassType(AgoClass.TYPE_ENUM);
                 TypeCode primitiveType = agoEnum.getBasePrimitiveType();
@@ -650,6 +653,8 @@ public class AgoClassParser {
                     values.put(entry.getKey(), objectToLiteral(entry.getValue(),primitiveType));  // TODO source location
                 }
                 classDef.setEnumValues(values);
+            } else {
+                classDef = new ClassDef(root, new AgoClassCombineClassParser(agoClass, this));
             }
         }
         classDef.setModifiers(agoClass.getModifiers());
