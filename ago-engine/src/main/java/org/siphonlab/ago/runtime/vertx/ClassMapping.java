@@ -23,6 +23,7 @@ import org.siphonlab.ago.Instance;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ClassMapping {
@@ -31,7 +32,10 @@ public class ClassMapping {
         "io.vertx.core.file.FileSystem", "io.FileSystem",
         "io.vertx.core.file.AsyncFile", "io.File",
         "io.vertx.core.net.NetServer", "io.NetServer",
-        "io.vertx.core.net.NetSocket", "io.Socket"
+        "io.vertx.core.net.NetSocket", "io.Socket",
+        "io.vertx.core.http.HttpServer", "io.HttpServer",
+        "io.vertx.core.http.HttpServerRequest", "io.HttpServerRequest",
+        "io.vertx.core.http.HttpServerResponse", "io.HttpResponse"
     );
 
     //TODO when ago engine release, should release the memory
@@ -47,7 +51,7 @@ public class ClassMapping {
     }
 
     public static String findByName(Class<?> clazz){
-        for(var c = clazz; c != Object.class;  c = clazz.getSuperclass()){
+        for(var c = clazz; c != Object.class;  c = c.getSuperclass()){
             var n = NAME_MAPPING.get(c.getName());
             if(n != null) return n;
             for (Class<?> anInterface : ClassUtils.getAllInterfaces(clazz)) {
@@ -61,7 +65,7 @@ public class ClassMapping {
     public static Instance<?> mapObject(Object object, CallFrame<?> callFrame){
         AgoEngine engine = callFrame.getAgoEngine();
         var agoClass = map(object.getClass(), engine);
-        var instance = engine.createNativeInstance(null, agoClass, callFrame.getRunSpace());
+        var instance = engine.createNativeInstance(null, Objects.requireNonNull(agoClass), callFrame.getRunSpace());
         instance.setNativePayload(object);
         return instance;
     }

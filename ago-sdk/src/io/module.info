@@ -12,6 +12,7 @@ units:
   - Buffer.ago
   - file.ago
   - socket.ago
+  - http_server.ago
 
 description: |
     IO module, a wrapper for vertx api

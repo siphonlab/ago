@@ -1,0 +1,38 @@
+package io_test;
+
+import io.HttpServer;
+import io.HttpServerRequest;
+import io.HttpResponse;
+
+fun main(){
+    var server = new HttpServer(new HttpServer.Options() with { .logActivity = false; });
+    fork requestLoop(server);
+    server.listen(8080);
+}
+
+fun requestLoop(server as HttpServer){
+    while(true){
+        var request = server.acceptRequest();
+        fork handleRequest(request)
+    }
+}
+
+fun handleRequest(request as HttpServerRequest){
+    var response = request.response;
+    if(request.path == "/"){
+        response.end("Hello World!");
+    } else if((request.path == "/echo") and (request.method == "POST")){
+        request.resume();
+        // cannot capture body, for "Request has already been read"
+//        var s = ""
+//        for(var buff in request.gen()){
+//            s += buff.toString()
+//        }
+        var s = request.body;
+        response.putHeader("Content-Type", "text/plain");
+        response.end(s.toString());
+    } else {
+        response.statusCode = 404;
+        response.end("Not Found");
+    }
+}

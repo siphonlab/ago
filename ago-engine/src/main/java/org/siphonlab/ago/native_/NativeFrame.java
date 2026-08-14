@@ -52,7 +52,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
         try {
             nativeFunctionCaller.invoke(this, this.slots);
         } catch (java.lang.Exception javaException) {
-//            LOGGER.error("invoke %s failed".formatted(this), javaException);
+            LOGGER.error("invoke %s failed".formatted(this), javaException);
             this.raiseJavaException(self, javaException);
         }
     }

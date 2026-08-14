@@ -1,0 +1,164 @@
+package io;
+
+// =============================================================================
+// HttpServer — wraps Vert.x HttpServer
+// =============================================================================
+native class HttpServer{
+    metaclass{
+        native class ConnectionHandler{
+        }
+
+        // =============================================================================
+        // HttpServerOptions — wraps Vert.x HttpServerOptions
+        // =============================================================================
+        native class Options{
+            fun new() native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.create';
+
+            // -- HttpServerOptions own properties --------------------------------------
+            fun port#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.port_get';
+            fun port#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.port_set';
+
+            fun host#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.host_get';
+            fun host#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.host_set';
+
+            fun acceptBacklog#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.acceptBacklog_get';
+            fun acceptBacklog#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.acceptBacklog_set';
+
+            // -- HTTP-specific properties ----------------------------------------------
+            fun decompressionSupported#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.decompressionSupported_get';
+            fun decompressionSupported#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.decompressionSupported_set';
+
+            fun handle100ContinueAutomatically#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.handle100ContinueAutomatically_get';
+            fun handle100ContinueAutomatically#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.handle100ContinueAutomatically_set';
+
+            fun http2#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.http2_get';
+            fun http2#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.http2_set';
+
+            fun http2ConnectionWindowSize#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.http2ConnectionWindowSize_get';
+            fun http2ConnectionWindowSize#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.http2ConnectionWindowSize_set';
+
+            fun compressionLevel#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.compressionLevel_get';
+            fun compressionLevel#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.compressionLevel_set';
+
+//            fun maxFormAttrs#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.maxFormAttrs_get';
+//            fun maxFormAttrs#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.maxFormAttrs_set';
+
+            fun maxFormFields#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.maxFormFields_get';
+            fun maxFormFields#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.maxFormFields_set';
+
+            // -- SSL/TLS properties (inherited from NetServerOptions) ------------------
+            fun ssl#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.ssl_get';
+            fun ssl#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.ssl_set';
+
+            fun useAlpn#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.useAlpn_get';
+            fun useAlpn#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.useAlpn_set';
+
+            // -- Timeout properties ----------------------------------------------------
+            fun idleTimeout#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.idleTimeout_get';
+            fun idleTimeout#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.idleTimeout_set';
+
+            fun idleTimeoutUnit#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.idleTimeoutUnit_get';
+            fun idleTimeoutUnit#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.idleTimeoutUnit_set';
+
+            // -- NetworkOptions properties (inherited) ---------------------------------
+            fun sendBufferSize#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.sendBufferSize_get';
+            fun sendBufferSize#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.sendBufferSize_set';
+
+            fun receiveBufferSize#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.receiveBufferSize_get';
+            fun receiveBufferSize#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.receiveBufferSize_set';
+
+            fun reuseAddress#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.reuseAddress_get';
+            fun reuseAddress#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.reuseAddress_set';
+
+            fun logActivity#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.logActivity_get';
+            fun logActivity#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.logActivity_set';
+
+            // -- Activity log data format ----------------------------------------------
+            fun activityLogDataFormat#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.activityLogDataFormat_get';
+            fun activityLogDataFormat#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.activityLogDataFormat_set';
+
+            // -- TCP options (inherited) -----------------------------------------------
+            fun tcpNoDelay#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.tcpNoDelay_get';
+            fun tcpNoDelay#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.tcpNoDelay_set';
+
+            fun tcpKeepAlive#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.tcpKeepAlive_get';
+            fun tcpKeepAlive#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpServerOptions.tcpKeepAlive_set';
+        }
+    }
+
+    final connectionHandler as ConnectionHandler;
+
+    fun new() native 'org.siphonlab.ago.runtime.vertx.HttpServer.create';
+    fun new#options(options as Options) native 'org.siphonlab.ago.runtime.vertx.HttpServer.createWithOptions';
+
+    fun listen(port as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServer.listen';
+    fun acceptRequest() as HttpServerRequest native 'org.siphonlab.ago.runtime.vertx.HttpServer.acceptRequest';
+    fun close() as void native 'org.siphonlab.ago.runtime.vertx.HttpServer.close';
+}
+
+// =============================================================================
+// HttpServerRequest — wraps Vert.x HttpServerRequest (implements ReadStream<Buffer>)
+// =============================================================================
+native class HttpServerRequest with ReadStream<Buffer>{
+    override generator fun gen() as Buffer native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_generator";
+    override fun pause() as HttpServerRequest native 'org.siphonlab.ago.runtime.vertx.HttpRequest.pause';
+    override fun resume() as HttpServerRequest native 'org.siphonlab.ago.runtime.vertx.HttpRequest.resume';
+    override fun fetch(amount as long) as HttpServerRequest native 'org.siphonlab.ago.runtime.vertx.HttpRequest.fetch';
+    override fun byeRead() native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_byeRead";
+
+    // -- Basic properties ----------------------------------------------------
+    fun method#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.method_get';
+    fun path#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.path_get';
+    fun uri#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.uri_get';
+    fun version#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.version_get';
+
+    // -- Headers --------------------------------------------------------------
+    fun getHeader(name as string) as string? native 'org.siphonlab.ago.runtime.vertx.HttpRequest.getHeader';
+    fun headers#get() as HttpHeaders native 'org.siphonlab.ago.runtime.vertx.HttpRequest.headers_get';
+
+    // -- Query parameters -----------------------------------------------------
+    fun query#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.query_get';
+    fun getQueryParam(name as string) as string? native 'org.siphonlab.ago.runtime.vertx.HttpRequest.getQueryParam';
+
+    // -- Body — Future<Buffer>, async -----------------------------------------
+    fun body#get() as Buffer native 'org.siphonlab.ago.runtime.vertx.HttpRequest.body_get';
+
+    // -- Response -------------------------------------------------------------
+    fun response#get() as HttpResponse native 'org.siphonlab.ago.runtime.vertx.HttpRequest.response_get';
+
+    // -- Address info ---------------------------------------------------------
+    fun remoteAddress#get() as string? native 'org.siphonlab.ago.runtime.vertx.HttpRequest.remoteAddress_get';
+    fun remotePort#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpRequest.remotePort_get';
+}
+
+// =============================================================================
+// HttpResponse — wraps Vert.x HttpServerResponse
+// =============================================================================
+native class HttpResponse{
+    // -- Status code ----------------------------------------------------------
+    set statusCode(statusCode as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.setStatusCode';
+    fun statusCode#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpResponse.statusCode_get';
+
+    // -- Headers --------------------------------------------------------------
+    fun putHeader(name as string, value as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.putHeader';
+    fun removeHeader(name as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.removeHeader';
+    fun headers#get() as HttpHeaders native 'org.siphonlab.ago.runtime.vertx.HttpResponse.headers_get';
+
+    // -- Writing response body ------------------------------------------------
+    fun end() as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.end';
+    fun end#data(data as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.end_string';
+    fun write(data as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.write_string';
+    fun write#data(data as Buffer) as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.write_buffer';
+
+    // -- Chunked encoding -----------------------------------------------------
+    fun setChunked(chunked as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.setChunked';
+}
+
+// =============================================================================
+// HttpHeaders — wraps Vert.x MultiMap for HTTP headers
+// =============================================================================
+native class HttpHeaders{
+    fun getAll(name as string) as any native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.getAll';
+    fun contains(name as string) as boolean native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.contains';
+    fun size#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.size_get';
+}

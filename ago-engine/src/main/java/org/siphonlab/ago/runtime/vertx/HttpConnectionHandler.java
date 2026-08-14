@@ -1,7 +1,7 @@
 package org.siphonlab.ago.runtime.vertx;
 
 import io.vertx.core.Handler;
-import io.vertx.core.net.NetSocket;
+import io.vertx.core.http.HttpServerRequest;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.slf4j.Logger;
@@ -11,18 +11,17 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class ConnectionHandler extends QueuedHandler<NetSocket> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionHandler.class);
+public class HttpConnectionHandler extends QueuedHandler<HttpServerRequest> {
 
-    private final io.vertx.core.net.NetServer server;
+    private final io.vertx.core.http.HttpServer server;
 
-    public ConnectionHandler(io.vertx.core.net.NetServer server) {
+    public HttpConnectionHandler(io.vertx.core.http.HttpServer server) {
         this.server = server;
     }
 
     public synchronized void init() {
         if (!initialized) {
-            server.connectHandler(this);
+            server.requestHandler(this);
             initialized = true;
         }
     }

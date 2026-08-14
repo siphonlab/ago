@@ -15,7 +15,11 @@
  */
 package org.siphonlab.ago.test;
 
+import io.netty.handler.codec.http.HttpRequest;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerRequest;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -54,7 +58,15 @@ public class IOTest {
 
     @Test @Disabled
     public void socket_server() throws IOException, CompilationError, CompilationErrorsException {
-        Util.run("io/socket.ago", "io_test.main#");
+        Util.run("io/net_server.ago", "io_test.main#");
+        System.in.read();
+    }
+
+    @Test @Disabled
+    public void http_server() throws IOException, CompilationError, CompilationErrorsException {
+        Util.run("io/http_server.ago", "io_test.main#");
+        HttpServerRequest request;
+//        Future<Buffer> body = request.body();
         System.in.read();
     }
 
