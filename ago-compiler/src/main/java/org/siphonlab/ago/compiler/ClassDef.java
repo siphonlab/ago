@@ -462,6 +462,9 @@ public class ClassDef extends ClassContainer {
                         others.add(child);
                         continue;
                     }
+                    if(Modifier.getVisibility(child.getVisibility()) == Visibility.Private){
+                        continue;
+                    }
                     if (this.getChild(child.getName()) != null)
                         continue;        // already provided an overloaded function
 

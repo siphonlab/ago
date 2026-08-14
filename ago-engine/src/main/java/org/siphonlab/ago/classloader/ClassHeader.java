@@ -285,6 +285,10 @@ public class ClassHeader {
         copyToClone(inst);
         inst.parent = newParent;
         classLoader.registerNewClass(inst);
+        if(inst.getLoadingStage() == Done && inst.isFunction()){
+            // load from previous library
+            inst.setLoadingStage(BuildClass);
+        }
         return inst;
     }
     protected void copyToClone(ClassHeader inst){
@@ -303,6 +307,8 @@ public class ClassHeader {
             inst.functionParams = this.functionParams;
             inst.functionVariables = this.functionVariables;
             inst.nativeFunctionEntrance = this.nativeFunctionEntrance;
+            if(this.compiledCode != null) inst.compiledCode = this.compiledCode.duplicate();
+            inst.sourceMap = this.sourceMap;
         }
 
         inst.fields = this.fields;
@@ -1134,6 +1140,7 @@ public class ClassHeader {
                 List<MethodDesc> methodDescs = interfaceHeader.methods;
                 for (int i = 0; i < methodDescs.size(); i++) {
                     MethodDesc interfaceMethod = methodDescs.get(i);
+                    if(Modifier.getVisibility(interfaceMethod.getFunctionClassHeader().modifiers()) == Visibility.Private) continue;
                     var index = this.nonPrivateFunctionIndexes.get(interfaceMethod.getName());
                     if (index == null) {
                         if (!this.isAbstract())
