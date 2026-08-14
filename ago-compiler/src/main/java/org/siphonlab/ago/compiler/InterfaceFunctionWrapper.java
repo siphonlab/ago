@@ -29,6 +29,8 @@ import org.siphonlab.ago.compiler.parser.AgoParser;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.siphonlab.ago.AgoClass.ABSTRACT;
+
 public class InterfaceFunctionWrapper extends FunctionDef{
 
     private FunctionDef interfaceFun;
@@ -50,7 +52,7 @@ public class InterfaceFunctionWrapper extends FunctionDef{
         this.interfaceFun = interfaceFun;
         this.setInterfaces(interfaceFun.getInterfaces());
         this.setSuperClass(interfaceFun.getSuperClass());
-        int modifiers = (AgoClass.OVERRIDE | AgoClass.PUBLIC | interfaceFun.modifiers) & 0xffff_fbff;   // remove `abstract` modifier
+        int modifiers = (AgoClass.OVERRIDE | AgoClass.PUBLIC | interfaceFun.modifiers) & (~ABSTRACT & ~AgoClass.NATIVE);   // remove `abstract` and `native` modifier
         this.setModifiers(modifiers);
     }
 
