@@ -67,7 +67,7 @@ public class DynamicOp {
                     return Union.toUnionValue(self.getAgoEngine(), object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value);
                 } else if(property instanceof Property.AttributeProperty attributeProperty){
                     // invoke getter
-                    object.invokeMethod(self, AgoFrame.REENTER_INVOKE_GETTER, dest, attributeProperty.getGetter());
+                    object.invokeMethod(self, ReenterState.REENTER_INVOKE_GETTER, dest, attributeProperty.getGetter());
                     this.result = RESULT_WITH_GETTER;
                     return null;
                 } else {

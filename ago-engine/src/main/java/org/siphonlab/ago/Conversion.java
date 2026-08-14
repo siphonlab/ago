@@ -6,6 +6,7 @@ import org.siphonlab.ago.classloader.ClassRefValue;
 import java.math.BigDecimal;
 
 import static org.siphonlab.ago.AgoFrame.*;
+import static org.siphonlab.ago.ReenterState.REENTER_INVOKE_TO_STRING;
 import static org.siphonlab.ago.TypeCode.*;
 import static org.siphonlab.ago.TypeCode.BOOLEAN_VALUE;
 import static org.siphonlab.ago.TypeCode.CHAR_VALUE;

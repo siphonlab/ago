@@ -44,10 +44,6 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     protected final AgoEngine engine;
 
-    private final static int REENTER_CREATE_SCOPED_CLASS = 2;
-    final static int REENTER_INVOKE_GETTER = 3;
-    final static int REENTER_INVOKE_TO_STRING = 4;
-
     public AgoFrame(Slots slots, AgoFunction agoFunction, AgoEngine engine) {
         super(slots, agoFunction );
         this.setAgoClass(agoFunction);
@@ -1213,7 +1209,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
         AgoFunction emptyArgsConstructor = c.getAgoClass().getEmptyArgsConstructor();
         if(emptyArgsConstructor != null){
-            c.invokeMethod(self, REENTER_CREATE_SCOPED_CLASS, pc, emptyArgsConstructor);
+            c.invokeMethod(self, ReenterState.REENTER_CREATE_SCOPED_CLASS, pc, emptyArgsConstructor);
         }
         return c;
     }
@@ -2068,7 +2064,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         switch (state){
             case REENTER_RAISE_EXCEPTION:
                 return super.reenter(reentrantProxyFrame, state, additionalState);
-            case REENTER_CREATE_SCOPED_CLASS: {
+            case ReenterState.REENTER_CREATE_SCOPED_CLASS: {
                 var caller = reentrantProxyFrame.getCaller();       // it's self
                 AgoFrame agoFrame;
                 if (caller instanceof EntranceCallFrame<?> entranceCallFrame) {
@@ -2080,7 +2076,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 agoFrame.getRunSpace().setCurrCallFrame(caller);
                 break;
             }
-            case REENTER_INVOKE_GETTER:{
+            case ReenterState.REENTER_INVOKE_GETTER:{
                 var caller = reentrantProxyFrame.getCaller();       // it's self
                 AgoFrame agoFrame;
                 if(caller instanceof EntranceCallFrame<?> entranceCallFrame){
@@ -2092,7 +2088,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 agoFrame.getRunSpace().setCurrCallFrame(caller);
                 break;
             }
-            case REENTER_INVOKE_TO_STRING:{
+            case ReenterState.REENTER_INVOKE_TO_STRING:{
                 var caller = reentrantProxyFrame.getCaller();       // it's self
                 AgoFrame agoFrame;
                 if(caller instanceof EntranceCallFrame<?> entranceCallFrame){

@@ -22,6 +22,8 @@ import org.siphonlab.ago.runtime.UnionArrayInstance;
 import java.util.Collection;
 import java.util.List;
 
+import static org.siphonlab.ago.ReenterState.*;
+
 public class Reflect {
 
 
@@ -176,7 +178,7 @@ public class Reflect {
     }
 
     public static void Property_getValue(NativeFrame frame, Instance<?> object, String propName){
-        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_GETTER){
+        if(frame.getReenterState() == REENTER_INVOKE_GETTER){
             var inst = frame.getRunSpace().getResultSlots().takeResultAsUnion();
             frame.finishUnion(inst);
             return;
@@ -190,7 +192,7 @@ public class Reflect {
     }
 
     public static void Property_getValue(NativeFrame frame, Instance<?> object, Instance<?> propertyInst){
-        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_GETTER){
+        if(frame.getReenterState() == REENTER_INVOKE_GETTER){
             var inst = frame.getRunSpace().getResultSlots().takeResultAsUnion();
             frame.finishUnion(inst);
             return;
@@ -214,14 +216,14 @@ public class Reflect {
             frame.finishUnion(Union.toUnionValue(engine, object.getSlots(), agoField.getSlotIndex(), agoField.getTypeCode().value));
         } else if(property instanceof Property.AttributeProperty attributeProperty){
             var getter = attributeProperty.getGetter();
-            object.invokeMethod(frame, NativeFrame.REENTER_INVOKE_GETTER, 0, getter);
+            object.invokeMethod(frame, REENTER_INVOKE_GETTER, 0, getter);
         } else {
             throw new IllegalStateException("unknown property type " + property);
         }
     }
 
     public static void Property_setValue(NativeFrame frame, Instance<?> object, String propName, Object value){
-        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_SETTER){
+        if(frame.getReenterState() == REENTER_INVOKE_SETTER){
             frame.finishVoid();
             return;
         }
@@ -234,7 +236,7 @@ public class Reflect {
     }
 
     public static void Property_setValue(NativeFrame frame, Instance<?> object, Instance<?> propertyInst, Object value){
-        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_SETTER){
+        if(frame.getReenterState() == REENTER_INVOKE_SETTER){
             frame.finishVoid();
             return;
         }
@@ -272,7 +274,7 @@ public class Reflect {
                 return;
             }
 
-            frame.invokeFrame(setter, NativeFrame.REENTER_INVOKE_SETTER);
+            frame.invokeFrame(setter, REENTER_INVOKE_SETTER);
         } else {
             throw new IllegalStateException("unknown property type " + property);
         }
@@ -281,7 +283,7 @@ public class Reflect {
     // arguments type is any..., values are boxed as Instance
     // method is a ClassRef object
     public static void Method_invoke(NativeFrame frame, Instance<?> object, Instance<?> method, Instance<?> arguments){
-        if(frame.getReenterState() == NativeFrame.REENTER_INVOKE_FUNCTION){
+        if(frame.getReenterState() == REENTER_INVOKE_FUNCTION){
             var inst = frame.getRunSpace().getResultSlots().takeResultAsUnion();
             frame.finishUnion(inst);
             return;
@@ -300,7 +302,7 @@ public class Reflect {
                 return;
             }
         }
-        frame.invokeFrame(toInvoke, NativeFrame.REENTER_INVOKE_FUNCTION);
+        frame.invokeFrame(toInvoke, REENTER_INVOKE_FUNCTION);
     }
 
     public static void Method_invoke(NativeFrame frame, Instance<?> object, String method, Instance<?> arguments){
@@ -325,7 +327,7 @@ public class Reflect {
     }
 
     public static void createInstance(NativeFrame frame, Instance<?> scope, Instance<?> constructor, Instance<?> arguments){
-        if(frame.getReenterState() == NativeFrame.REENTER_CREATE_INSTANCE){
+        if(frame.getReenterState() == REENTER_CREATE_INSTANCE){
             Object nativePayload = frame.getNativePayload();
             frame.finishObject((Instance<?>) nativePayload);
             return;
@@ -353,7 +355,7 @@ public class Reflect {
                 }
             }
             frame.setNativePayload(result);
-            frame.invokeFrame(toInvoke, NativeFrame.REENTER_CREATE_INSTANCE);
+            frame.invokeFrame(toInvoke, REENTER_CREATE_INSTANCE);
         } else {
             frame.finishObject(result);
         }
