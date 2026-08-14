@@ -174,7 +174,7 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
             throw new CommitFailedException(e);
         }
 
-        nextRunSpace.start(new AsyncEntranceCallFrame<>(frame));
+        nextRunSpace.start(new EntranceCallFrame<>(frame));
     }
 
     @Override
