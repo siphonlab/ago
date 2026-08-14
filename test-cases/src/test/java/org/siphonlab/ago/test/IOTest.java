@@ -17,9 +17,13 @@ package org.siphonlab.ago.test;
 
 import io.netty.handler.codec.http.HttpRequest;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.Route;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -63,10 +67,20 @@ public class IOTest {
     }
 
     @Test @Disabled
-    public void http_server() throws IOException, CompilationError, CompilationErrorsException {
-        Util.run("io/http_server.ago", "io_test.main#");
-        HttpServerRequest request;
-//        Future<Buffer> body = request.body();
+    public void http_server_test1() throws IOException, CompilationError, CompilationErrorsException {
+        Util.run("io/http_server_test1.ago", "io_test.main#");
+        System.in.read();
+    }
+
+    @Test @Disabled
+    public void http_server_test2() throws IOException, CompilationError, CompilationErrorsException {
+        Util.run("io/http_server_test2.ago", "io_test.main#");
+//        Router.router(vertx).get("abcd").handler(new Handler<RoutingContext>() {
+//            @Override
+//            public void handle(RoutingContext event) {
+//
+//            }
+//        })
         System.in.read();
     }
 

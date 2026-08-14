@@ -35,7 +35,8 @@ public class ClassMapping {
         "io.vertx.core.net.NetSocket", "io.Socket",
         "io.vertx.core.http.HttpServer", "io.HttpServer",
         "io.vertx.core.http.HttpServerRequest", "io.HttpServerRequest",
-        "io.vertx.core.http.HttpServerResponse", "io.HttpResponse"
+        "io.vertx.core.http.HttpServerResponse", "io.HttpResponse",
+            "io.vertx.ext.web.RoutingContext", "io.RoutingContext"
     );
 
     //TODO when ago engine release, should release the memory

@@ -1,0 +1,21 @@
+// with route() support
+package io_test;
+
+import io.HttpServer;
+import io.HttpServerRequest;
+import io.HttpResponse;
+import io.Route;
+
+fun main(){
+    var server = new HttpServer(new HttpServer.Options() with { .logActivity = false; });
+
+    server.route(hello);
+
+    server.listen(8080);
+}
+
+
+fun hello() with Route::("GET", "/hello"){
+    ctxt.end("fine")
+}
+

@@ -87,6 +87,7 @@ native class HttpServer{
     }
 
     final connectionHandler as ConnectionHandler;
+    final router as Router?;
 
     fun new() native 'org.siphonlab.ago.runtime.vertx.HttpServer.create';
     fun new#options(options as Options) native 'org.siphonlab.ago.runtime.vertx.HttpServer.createWithOptions';
@@ -94,6 +95,45 @@ native class HttpServer{
     fun listen(port as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpServer.listen';
     fun acceptRequest() as HttpServerRequest native 'org.siphonlab.ago.runtime.vertx.HttpServer.acceptRequest';
     fun close() as void native 'org.siphonlab.ago.runtime.vertx.HttpServer.close';
+
+//    fun route#iterator(routes as Iterable<[Route]>){
+//        if(this.router == null) this.router = new Router(this);
+//        for(var route in routes){
+//            this.router!.route(route);
+//        }
+//    }
+
+    fun route#one(route as [Route]){
+        if(this.router == null) this.router = new Router(this);
+        this.router!.route(route);
+    }
+}
+
+native class Router{
+    fun new(field server as HttpServer) native 'org.siphonlab.ago.runtime.vertx.Router.create';
+
+    fun route(action as [Route]) native "org.siphonlab.ago.runtime.vertx.Router.route";
+}
+
+
+native class RoutingContext{
+    fun end(s as string) native "org.siphonlab.ago.runtime.vertx.RoutingContext.end";
+}
+
+trait Route for Function<_>{
+    routingContext as RoutingContext;
+    metaclass{
+        // int order, HttpMethod method, String regex, boolean bregex
+        fun new(field method as string, field path as string){
+        }
+    }
+    fun new() {
+        routingContext = bindContext(class.this);
+    }
+    private fun bindContext(f as Function<_>) as RoutingContext native "org.siphonlab.ago.runtime.vertx.Router.Route_bindRoutingContext";
+    fun ctxt#get() as RoutingContext{
+        return routingContext
+    }
 }
 
 // =============================================================================

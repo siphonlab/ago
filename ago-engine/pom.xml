@@ -53,16 +53,16 @@
             <version>1.38.0</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->
         <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-            <version>3.8.0-M4</version>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>5.1.5</version>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-core</artifactId>
+            <artifactId>vertx-web</artifactId>
             <version>5.1.5</version>
             <scope>compile</scope>
         </dependency>
