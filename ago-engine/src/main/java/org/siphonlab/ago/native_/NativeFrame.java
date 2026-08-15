@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class NativeFrame extends CallFrame<AgoNativeFunction> {
 
@@ -36,7 +37,7 @@ public class NativeFrame extends CallFrame<AgoNativeFunction> {
     public NativeFrame(AgoEngine engine, Slots slots, AgoNativeFunction agoClass) {
         super(slots, agoClass);
         this.engine = engine;
-        this.nativeFunctionCaller = this.agoClass.getNativeFunctionCaller();
+        this.nativeFunctionCaller = Objects.requireNonNull(this.agoClass.getNativeFunctionCaller());
     }
 
     public void run(CallFrame<?> self){
