@@ -24,6 +24,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -81,6 +82,22 @@ public class IOTest {
 //
 //            }
 //        })
+        System.in.read();
+    }
+
+    public static void main(String[] args) throws IOException {
+        Vertx vertx = Vertx.vertx();
+        var router = Router.router(vertx);
+        router.route().handler(BodyHandler.create());
+
+        router.post("/echo").handler(new Handler<RoutingContext>() {
+            @Override
+            public void handle(RoutingContext event) {
+                var s = event.body().asString();
+                event.end(s);
+            }
+        });
+        vertx.createHttpServer().requestHandler(router).listen(8080);
         System.in.read();
     }
 

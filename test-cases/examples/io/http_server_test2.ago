@@ -10,6 +10,7 @@ fun main(){
     var server = new HttpServer(new HttpServer.Options() with { .logActivity = false; });
 
     server.route(hello);
+    server.route(echo);
 
     server.listen(8080);
 }
@@ -17,5 +18,15 @@ fun main(){
 
 fun hello() with Route::("GET", "/hello"){
     ctxt.end("fine")
+}
+
+fun echo() with Route::("POST", "/echo"){
+    var body = ctxt.body();     // RequestBody
+    var s = body.asString();
+    Trace.print(s);
+    if(s != null)
+        ctxt.end(s)
+    else
+        ctxt.end('<no data>')
 }
 

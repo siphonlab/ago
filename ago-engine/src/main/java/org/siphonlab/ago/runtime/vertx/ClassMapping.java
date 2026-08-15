@@ -27,16 +27,18 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ClassMapping {
-    private static final Map<String, String> NAME_MAPPING = Map.of(
-        "io.vertx.core.buffer.Buffer", "io.Buffer",
-        "io.vertx.core.file.FileSystem", "io.FileSystem",
-        "io.vertx.core.file.AsyncFile", "io.File",
-        "io.vertx.core.net.NetServer", "io.NetServer",
-        "io.vertx.core.net.NetSocket", "io.Socket",
-        "io.vertx.core.http.HttpServer", "io.HttpServer",
-        "io.vertx.core.http.HttpServerRequest", "io.HttpServerRequest",
-        "io.vertx.core.http.HttpServerResponse", "io.HttpResponse",
-            "io.vertx.ext.web.RoutingContext", "io.RoutingContext"
+    private static final Map<String, String> NAME_MAPPING = Map.ofEntries(
+        Map.entry("io.vertx.core.buffer.Buffer", "io.Buffer"),
+        Map.entry("io.vertx.core.file.FileSystem", "io.FileSystem"),
+        Map.entry("io.vertx.core.file.AsyncFile", "io.File"),
+        Map.entry("io.vertx.core.net.NetServer", "io.NetServer"),
+        Map.entry("io.vertx.core.net.NetSocket", "io.Socket"),
+        Map.entry("io.vertx.core.http.HttpServer", "io.HttpServer"),
+        Map.entry("io.vertx.core.http.HttpServerRequest", "io.HttpServerRequest"),
+        Map.entry("io.vertx.core.http.HttpServerResponse", "io.HttpResponse"),
+        Map.entry("io.vertx.ext.web.RoutingContext", "io.RoutingContext"),
+        Map.entry("io.vertx.ext.web.RequestBody", "io.RequestBody"),
+        Map.entry("io.vertx.ext.web.Session", "io.Session")
     );
 
     //TODO when ago engine release, should release the memory

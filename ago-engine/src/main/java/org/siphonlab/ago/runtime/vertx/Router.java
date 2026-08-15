@@ -18,6 +18,7 @@ package org.siphonlab.ago.runtime.vertx;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 
@@ -30,6 +31,15 @@ public class Router {
         VertxRunSpaceHost host = (VertxRunSpaceHost) creator.getRunSpace().getRunSpaceHost();
         var inst = creator.getParentScope();
         io.vertx.ext.web.Router router = io.vertx.ext.web.Router.router(host.getVertx());
+
+        // enable body handler
+        router.route()
+            .method(HttpMethod.POST)
+            .method(HttpMethod.PUT)
+            .method(HttpMethod.PATCH)
+            .method(HttpMethod.DELETE)
+            .handler(BodyHandler.create());
+
         inst.setNativePayload(router);
 
         io.vertx.core.http.HttpServer server = (io.vertx.core.http.HttpServer) serverInst.getNativePayload();

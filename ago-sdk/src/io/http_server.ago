@@ -117,7 +117,123 @@ native class Router{
 
 
 native class RoutingContext{
-    fun end(s as string) native "org.siphonlab.ago.runtime.vertx.RoutingContext.end";
+    // -- end — write response body and finish ----------------------------------
+    fun end#str(s as string) native "org.siphonlab.ago.runtime.vertx.RoutingContext.end";
+    fun end#buffer(buffer as Buffer) native "org.siphonlab.ago.runtime.vertx.RoutingContext.end";
+
+    // -- request / response accessors ------------------------------------------
+    fun request#get() as HttpServerRequest native 'org.siphonlab.ago.runtime.vertx.RoutingContext.request_get';
+    fun response#get() as HttpResponse native 'org.siphonlab.ago.runtime.vertx.RoutingContext.response_get';
+
+    // -- body — returns RequestBody (synchronous in Vert.x 5) ------------------
+    fun body#get() as RequestBody native 'org.siphonlab.ago.runtime.vertx.RoutingContext.body_get';
+
+    // -- path parameters -------------------------------------------------------
+    fun pathParam(name as string) as string? native 'org.siphonlab.ago.runtime.vertx.RoutingContext.pathParam';
+
+    // -- query parameters ------------------------------------------------------
+    fun queryParams#get() as HttpHeaders native 'org.siphonlab.ago.runtime.vertx.RoutingContext.queryParams_get';
+    fun queryParam(name as string) as string? native 'org.siphonlab.ago.runtime.vertx.RoutingContext.queryParam';
+
+    // -- next — continue to next matching route handler ------------------------
+    fun next() as void native 'org.siphonlab.ago.runtime.vertx.RoutingContext.next';
+
+    // -- fail — mark request as failed with status code ------------------------
+    fun fail(statusCode as int) as void native 'org.siphonlab.ago.runtime.vertx.RoutingContext.fail';
+
+    // -- data — user-defined key/value storage on the context ------------------
+    fun putData(key as string, value as any) as void native 'org.siphonlab.ago.runtime.vertx.RoutingContext.putData';
+    fun data#get(key as string) as any? native 'org.siphonlab.ago.runtime.vertx.RoutingContext.data_get';
+
+    // -- mountPoint — the mount point of the current route ---------------------
+    fun mountPoint#get() as string? native 'org.siphonlab.ago.runtime.vertx.RoutingContext.mountPoint_get';
+
+    // -- normalizedPath --------------------------------------------------------
+    fun normalizedPath#get() as string? native 'org.siphonlab.ago.runtime.vertx.RoutingContext.normalizedPath_get';
+
+    // -- isFailed — check whether request processing has failed ----------------
+    fun isFailed#get() as boolean native 'org.siphonlab.ago.runtime.vertx.RoutingContext.isFailed_get';
+
+    // -- statusCode -----------------------------------------------------------
+    fun statusCode#get() as int native 'org.siphonlab.ago.runtime.vertx.RoutingContext.statusCode_get';
+
+    // -- session — get HTTP session (may be null if no session handler) --------
+    fun session#get() as Session? native 'org.siphonlab.ago.runtime.vertx.RoutingContext.session_get';
+
+    // -- isSessionAccessed -----------------------------------------------------
+    fun isSessionAccessed#get() as boolean native 'org.siphonlab.ago.runtime.vertx.RoutingContext.isSessionAccessed_get';
+
+    // -- fileUploads -----------------------------------------------------------
+    fun fileUploads#get() as any? native 'org.siphonlab.ago.runtime.vertx.RoutingContext.fileUploads_get';
+
+    // -- redirect — send HTTP redirect -----------------------------------------
+    fun redirect(location as string) as void native 'org.siphonlab.ago.runtime.vertx.RoutingContext.redirect';
+
+//    // -- json — send JSON response ---------------------------------------------
+//    fun json(obj as any) as void native 'org.siphonlab.ago.runtime.vertx.RoutingContext.json';
+
+    // -- preferredLanguage -----------------------------------------------------
+    fun preferredLanguage#get() as string? native 'org.siphonlab.ago.runtime.vertx.RoutingContext.preferredLanguage_get';
+}
+
+// =============================================================================
+// RequestBody — wraps Vert.x io.vertx.ext.web.RequestBody
+// =============================================================================
+native class RequestBody{
+    // -- buffer — body as Buffer (synchronous in Vert.x 5) --------------------
+    fun buffer#get() as Buffer native 'org.siphonlab.ago.runtime.vertx.RequestBody.buffer_get';
+
+    // -- asString — body as String (synchronous) -------------------------------
+    fun asString() as string? native 'org.siphonlab.ago.runtime.vertx.RequestBody.asString';
+
+    // -- length — content-length in bytes --------------------------------------
+    fun length#get() as int native 'org.siphonlab.ago.runtime.vertx.RequestBody.length_get';
+
+    // -- isEmpty ---------------------------------------------------------------
+    fun isEmpty#get() as boolean native 'org.siphonlab.ago.runtime.vertx.RequestBody.isEmpty_get';
+
+    // -- available — whether body has been read and is available ---------------
+    fun available#get() as boolean native 'org.siphonlab.ago.runtime.vertx.RequestBody.available_get';
+}
+
+// =============================================================================
+// Session — wraps Vert.x io.vertx.ext.web.Session
+// =============================================================================
+native class Session{
+    // -- id --------------------------------------------------------------------
+    fun id#get() as string native 'org.siphonlab.ago.runtime.vertx.Session.id_get';
+
+    // -- put / get / remove ----------------------------------------------------
+    fun put(key as string, value as any) as void native 'org.siphonlab.ago.runtime.vertx.Session.put';
+    fun get(key as string) as any? native 'org.siphonlab.ago.runtime.vertx.Session.get';
+    fun remove(key as string) as any? native 'org.siphonlab.ago.runtime.vertx.Session.remove';
+
+    // -- data — all session attributes -----------------------------------------
+    fun data#get() as any native 'org.siphonlab.ago.runtime.vertx.Session.data_get';
+
+    // -- isEmpty ---------------------------------------------------------------
+    fun isEmpty#get() as boolean native 'org.siphonlab.ago.runtime.vertx.Session.isEmpty_get';
+
+    // -- lastAccessed ----------------------------------------------------------
+    fun lastAccessed#get() as long native 'org.siphonlab.ago.runtime.vertx.Session.lastAccessed_get';
+
+    // -- timeout ---------------------------------------------------------------
+    fun timeout#get() as long native 'org.siphonlab.ago.runtime.vertx.Session.timeout_get';
+
+    // -- destroy ---------------------------------------------------------------
+    fun destroy() as void native 'org.siphonlab.ago.runtime.vertx.Session.destroy';
+
+    // -- isDestroyed -----------------------------------------------------------
+    fun isDestroyed#get() as boolean native 'org.siphonlab.ago.runtime.vertx.Session.isDestroyed_get';
+
+    // -- regenerateId ----------------------------------------------------------
+    fun regenerateId() as Session native 'org.siphonlab.ago.runtime.vertx.Session.regenerateId';
+
+    // -- oldId -----------------------------------------------------------------
+    fun oldId#get() as string? native 'org.siphonlab.ago.runtime.vertx.Session.oldId_get';
+
+    // -- isRegenerated ---------------------------------------------------------
+    fun isRegenerated#get() as boolean native 'org.siphonlab.ago.runtime.vertx.Session.isRegenerated_get';
 }
 
 trait Route for Function<_>{
@@ -198,7 +314,7 @@ native class HttpResponse{
 // HttpHeaders — wraps Vert.x MultiMap for HTTP headers
 // =============================================================================
 native class HttpHeaders{
-    fun getAll(name as string) as any native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.getAll';
+    fun getAll(name as string) as NativeList<string>? native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.getAll';
     fun contains(name as string) as boolean native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.contains';
     fun size#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.size_get';
 }

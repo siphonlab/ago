@@ -15,12 +15,134 @@
  */
 package org.siphonlab.ago.runtime.vertx;
 
+import io.vertx.core.buffer.Buffer;
+import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.native_.NativeInstance;
+
+import java.util.List;
 
 public class RoutingContext {
+
+    private static io.vertx.ext.web.RoutingContext get(NativeFrame frame){
+        return (io.vertx.ext.web.RoutingContext) frame.getParentScope().getNativePayload();
+    }
+
     public static void end(NativeFrame frame, String s){
-        io.vertx.ext.web.RoutingContext routingContext = (io.vertx.ext.web.RoutingContext) frame.getParentScope().getNativePayload();
-        routingContext.end(s);
+        get(frame).response().end(s);
         frame.finishVoid();
+    }
+
+    public static void end(NativeFrame frame, Instance<?> buffer){
+        Buffer buf = (Buffer) ((NativeInstance)buffer).getNativePayload();
+        get(frame).response().end(buf);
+        frame.finishVoid();
+    }
+
+    public static void request_get(NativeFrame frame){
+        var inst = ClassMapping.mapObject(get(frame).request(), frame);
+        frame.finishObject(inst);
+    }
+
+    public static void response_get(NativeFrame frame){
+        var inst = ClassMapping.mapObject(get(frame).response(), frame);
+        frame.finishObject(inst);
+    }
+
+    public static void body_get(NativeFrame frame){
+        var agoClass = frame.getAgoEngine().getClass("io.RequestBody");
+        Instance<?> inst = frame.getAgoEngine().createNativeInstance(null, agoClass, frame.getRunSpace());
+        inst.setNativePayload(get(frame).body());
+        frame.finishObject(inst);
+    }
+
+    public static void pathParam(NativeFrame frame, String name){
+        var val = get(frame).pathParam(name);
+        frame.finishUnion(val);
+    }
+
+    public static void queryParams_get(NativeFrame frame){
+        var inst = ClassMapping.mapObject(get(frame).queryParams(), frame);
+        frame.finishObject(inst);
+    }
+
+    public static void queryParam(NativeFrame frame, String name){
+        List<String> val = get(frame).queryParam(name);
+        if(val == null){
+            frame.finishUnion(null);
+        } else {
+            throw new UnsupportedOperationException("TODO");
+//            frame.finishUnion(ClassMapping.mapObject(val, frame));
+        }
+    }
+
+    public static void next(NativeFrame frame){
+        get(frame).next();
+        frame.finishVoid();
+    }
+
+    public static void fail(NativeFrame frame, int statusCode){
+        get(frame).fail(statusCode);
+        frame.finishVoid();
+    }
+
+    public static void putData(NativeFrame frame, String key, Object value){
+        get(frame).put(key, value);
+        frame.finishVoid();
+    }
+
+    public static void data_get(NativeFrame frame, String key){
+        var val = get(frame).get(key);
+        frame.finishUnion(val);
+    }
+
+    public static void mountPoint_get(NativeFrame frame){
+        var val = get(frame).mountPoint();
+        frame.finishUnion(val);
+    }
+
+    public static void normalizedPath_get(NativeFrame frame){
+        var val = get(frame).normalizedPath();
+        frame.finishUnion(val);
+    }
+
+    public static void isFailed_get(NativeFrame frame){
+        frame.finishBoolean(get(frame).failed());
+    }
+
+    public static void statusCode_get(NativeFrame frame){
+        frame.finishInt(get(frame).response().getStatusCode());
+    }
+
+    public static void session_get(NativeFrame frame){
+        var session = get(frame).session();
+        if(session != null){
+            var inst = ClassMapping.mapObject(session, frame);
+            frame.finishUnion(inst);
+        } else {
+            frame.finishUnion(null);
+        }
+    }
+
+    public static void isSessionAccessed_get(NativeFrame frame){
+        frame.finishBoolean(get(frame).isSessionAccessed());
+    }
+
+    public static void fileUploads_get(NativeFrame frame){
+        frame.finishUnion(null);
+    }
+
+    public static void redirect(NativeFrame frame, String location){
+        get(frame).redirect(location);
+        frame.finishVoid();
+    }
+
+//    public static void json(NativeFrame frame, Object obj){
+//        get(frame).response().putHeader("Content-Type", "application/json").end(String.valueOf(obj));
+//        frame.finishVoid();
+//    }
+
+    public static void preferredLanguage_get(NativeFrame frame){
+        frame.finishUnion(get(frame).preferredLanguage());
     }
 }
