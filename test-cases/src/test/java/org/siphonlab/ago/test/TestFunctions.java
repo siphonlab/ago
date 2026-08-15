@@ -209,4 +209,11 @@ public class TestFunctions {
         }
     }
 
+    public static void createNativeList(NativeFrame frame) {
+        AgoClass agoClass = frame.getAgoClass().getResultClass();
+        Instance<?> inst = frame.getAgoEngine().createNativeInstance(null, agoClass, frame.getRunSpace());
+        inst.setNativePayload(new java.util.ArrayList<>());
+        frame.finishObject(inst);
+    }
+
 }

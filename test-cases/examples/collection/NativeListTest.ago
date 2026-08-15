@@ -1,0 +1,73 @@
+fun createNativeList() as NativeList<string> native "org.siphonlab.ago.test.TestFunctions.createNativeList";
+fun createIntList() as NativeList<int> native "org.siphonlab.ago.test.TestFunctions.createNativeList";
+
+fun main(){
+    // --- Test 1: basic add/size/get (string) ---
+    var list = createNativeList();
+    Trace.print(list.size);          // 0
+
+    list.add("Alice");
+    list.add("Bob");
+    list.add("Charlie");
+    Trace.print(list.size);          // 3
+
+    Trace.print(list[0]);            // Alice
+    Trace.print(list[1]);            // Bob
+    Trace.print(list[2]);            // Charlie
+
+    // --- Test 2: contains (string) ---
+    Trace.print(list.contains("Bob"));       // true
+    Trace.print(list.contains("Alice"));     // true
+    Trace.print(list.contains("Nobody"));    // false
+
+    // --- Test 3: set existing index ---
+    list.set(1, "Robert");
+    Trace.print(list[1]);            // Robert
+
+    // --- Test 4: remove present element ---
+    Trace.print(list.remove("Charlie"));     // true
+    Trace.print(list.size);                 // 2
+    Trace.print(list[1]);                   // Robert (shifted)
+
+    // --- Test 5: iteration after mutation ---
+    for(var item in list){
+        Trace.print(item);                  // Alice, Robert
+    }
+
+    // --- Test 6: int elements ---
+    var intList = createIntList();
+    intList.add(10);
+    intList.add(20);
+    intList.add(30);
+    Trace.print(intList.size);              // 3
+    Trace.print(intList[1]);                // 20
+    Trace.print(intList.contains(20));      // true
+    Trace.print(intList.remove(20));        // true
+    Trace.print(intList.size);              // 2
+
+    // --- Test 7: large list ---
+    var bigList = createIntList();
+    for(var i = 0; i < 100; i++){
+        bigList.add(i);
+    }
+    Trace.print(bigList.size);              // 100
+    Trace.print(bigList[99]);               // 99
+    Trace.print(bigList[50]);               // 50
+
+    // --- Test 8: clear ---
+    list.clear();
+    Trace.print(list.size);                 // 0
+
+    // --- Test 9: addAll ---
+    var src = createIntList();
+    src.add(1);
+    src.add(2);
+    var dst = createIntList();
+    dst.add(0);
+    dst.addAll(src);
+    Trace.print(dst.size);                  // 3
+    Trace.print(dst[2]);                    // 2
+
+    // --- Test 10: isReadOnly ---
+    Trace.print(list.isReadOnly());         // false
+}
