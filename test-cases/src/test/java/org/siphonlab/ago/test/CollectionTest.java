@@ -46,4 +46,11 @@ public class CollectionTest {
         Trace.printOutput();
         assertTrue(Trace.outputted("0", "3", "Alice", "Bob", "Charlie", "true", "true", "false", "Robert", "true", "2", "Robert", "Alice", "Robert", "3", "20", "true", "true", "2", "100", "99", "50", "0", "3", "2", "false"));
     }
+
+    @Test
+    public void nativeMap() throws CompilationError, CompilationErrorsException, IOException {
+        run("collection/NativeMapTest.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("0", "3", "Alice", "Bob", "Charlie", "true", "true", "false", "Robert", "3", "true", "2", "false", "a=Alice", "b=Robert", "3", "two", "true", "true", "2", "2", "2", "0", "3", "two", "false"));
+    }
 }

@@ -65,6 +65,7 @@ public class LangClasses {
     private final AgoClass arrayListClass;
     private final AgoClass linkedListClass;
     private final AgoClass nativeListClass;
+    private final AgoClass nativeMapClass;
     private final AgoClass mapClass;
 
     private final AgoClass intEnumClass;
@@ -131,6 +132,7 @@ public class LangClasses {
         this.arrayListClass = (AgoClass) classManager.getClass("lang.ArrayList");
         this.linkedListClass = (AgoClass) classManager.getClass("lang.LinkedList");
         this.nativeListClass = (AgoClass) classManager.getClass("lang.NativeList");
+        this.nativeMapClass = (AgoClass) classManager.getClass("lang.NativeMap");
         this.mapClass = (AgoClass) classManager.getClass("lang.Map");
 
         this.taskInterface = (AgoInterface) classManager.getClass("lang.Task");
@@ -336,6 +338,10 @@ public class LangClasses {
 
     public AgoClass getNativeListClass() {
         return nativeListClass;
+    }
+
+    public AgoClass getNativeMapClass() {
+        return nativeMapClass;
     }
 
     public AgoClass getEntityClass() {

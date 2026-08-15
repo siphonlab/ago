@@ -30,6 +30,7 @@ units:
   - collection/NativeLinkedList.ago
   - collection/NativeHashMap.ago
   - collection/NativeList.ago
+  - collection/NativeMap.ago
   - runspace.ago
   - atomic.ago
   - tuple.ago

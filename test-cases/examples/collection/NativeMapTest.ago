@@ -1,0 +1,71 @@
+fun createNativeMap() as NativeMap<string, string> native "org.siphonlab.ago.test.TestFunctions.createNativeMap";
+fun createIntStrMap() as NativeMap<int, string> native "org.siphonlab.ago.test.TestFunctions.createNativeMap";
+
+fun main(){
+    // --- Test 1: basic put/size/get (string->string) ---
+    var map = createNativeMap();
+    Trace.print(map.size);          // 0
+
+    map.put("a", "Alice");
+    map.put("b", "Bob");
+    map.put("c", "Charlie");
+    Trace.print(map.size);          // 3
+
+    Trace.print(map["a"]);            // Alice
+    Trace.print(map["b"]);            // Bob
+    Trace.print(map["c"]);            // Charlie
+
+    // --- Test 2: containsKey (string) ---
+    Trace.print(map.containsKey("b"));       // true
+    Trace.print(map.containsKey("a"));     // true
+    Trace.print(map.containsKey("nobody"));    // false
+
+    // --- Test 3: overwrite existing key ---
+    map.put("b", "Robert");
+    Trace.print(map["b"]);            // Robert
+    Trace.print(map.size);                 // 3 (no new entry)
+
+    // --- Test 4: remove present key ---
+    Trace.print(map.remove("c"));     // true
+    Trace.print(map.size);                 // 2
+    Trace.print(map.containsKey("c"));   // false
+
+    // --- Test 5: iteration after mutation ---
+    for(var kvp in map){
+        Trace.print(kvp.key + "=" + kvp.value);
+    }
+
+    // --- Test 6: int->string elements ---
+    var intMap = createIntStrMap();
+    intMap.put(1, "one");
+    intMap.put(2, "two");
+    intMap.put(3, "three");
+    Trace.print(intMap.size);              // 3
+    Trace.print(intMap[2]);                // two
+    Trace.print(intMap.containsKey(2));      // true
+    Trace.print(intMap.remove(2));        // true
+    Trace.print(intMap.size);              // 2
+
+    // --- Test 7: keys / values ---
+    var keyList = intMap.keys;
+    Trace.print(keyList.size);             // 2
+    var valList = intMap.values;
+    Trace.print(valList.size);             // 2
+
+    // --- Test 8: clear ---
+    map.clear();
+    Trace.print(map.size);                 // 0
+
+    // --- Test 9: putAll ---
+    var src = createIntStrMap();
+    src.put(1, "one");
+    src.put(2, "two");
+    var dst = createIntStrMap();
+    dst.put(0, "zero");
+    dst.putAll(src);
+    Trace.print(dst.size);                  // 3
+    Trace.print(dst[2]);                    // two
+
+    // --- Test 10: isReadOnly ---
+    Trace.print(map.isReadOnly());         // false
+}

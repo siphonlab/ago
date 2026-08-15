@@ -216,4 +216,11 @@ public class TestFunctions {
         frame.finishObject(inst);
     }
 
+    public static void createNativeMap(NativeFrame frame) {
+        AgoClass agoClass = frame.getAgoClass().getResultClass();
+        Instance<?> inst = frame.getAgoEngine().createNativeInstance(null, agoClass, frame.getRunSpace());
+        inst.setNativePayload(new java.util.HashMap<>());
+        frame.finishObject(inst);
+    }
+
 }
