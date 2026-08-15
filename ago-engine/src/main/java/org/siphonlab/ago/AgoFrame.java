@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Objects;
 
+import static org.siphonlab.ago.ReenterState.REENTER_RAISE_EXCEPTION;
 import static org.siphonlab.ago.TypeCode.*;
 
 /**

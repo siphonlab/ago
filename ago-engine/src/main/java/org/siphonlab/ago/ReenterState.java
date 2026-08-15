@@ -17,11 +17,12 @@ package org.siphonlab.ago;
 
 public class ReenterState {
 
-    public final static int REENTER_CREATE_SCOPED_CLASS = 1;
-    public final static int REENTER_INVOKE_TO_STRING = 2;
+    public final static int REENTER_RAISE_EXCEPTION = 1;
+    public final static int REENTER_CREATE_SCOPED_CLASS = 2;
+    public final static int REENTER_INVOKE_TO_STRING = 3;
 
-    public static final int REENTER_INVOKE_GETTER = 3;
-    public static final int REENTER_INVOKE_SETTER = 4;
-    public static final int REENTER_INVOKE_FUNCTION = 5;
-    public static final int REENTER_CREATE_INSTANCE = 6;
+    public static final int REENTER_INVOKE_GETTER = 4;
+    public static final int REENTER_INVOKE_SETTER = 5;
+    public static final int REENTER_INVOKE_FUNCTION = 6;
+    public static final int REENTER_CREATE_INSTANCE = 7;
 }

@@ -21,13 +21,12 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 
+import static org.siphonlab.ago.ReenterState.REENTER_RAISE_EXCEPTION;
 import static org.siphonlab.ago.TypeCode.*;
 
 public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
 
     private final static Logger logger = LoggerFactory.getLogger(CallFrame.class);
-
-    public final static int REENTER_RAISE_EXCEPTION = 1;
 
     protected CallFrame<?> caller;
 
