@@ -63,7 +63,14 @@ public abstract class CallFrame<F extends AgoFunction> extends Instance<F> {
                         this.getSlots().setClassRef(i, ((AgoClass) argument).getClassId());
                     }
                 } break;
-                case OBJECT_VALUE:    this.getSlots().setObject(i, (Instance<?>) argument); break;
+                case OBJECT_VALUE:    {
+                    AgoSlotDef slotDef = this.getAgoClass().getSlotDefs()[i];
+                    if(slotDef.getAgoClass() instanceof AgoEnum agoEnum){
+                        this.getSlots().setObject(i, agoEnum.findMember(argument));
+                    } else {
+                        this.getSlots().setObject(i, (Instance<?>) argument);
+                    }
+                } break;
                 case UNION_VALUE:     this.getSlots().setUnion(i, argument);
                 case VOID_VALUE:      this.getSlots().setVoid(i, null);
                 default:
