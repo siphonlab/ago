@@ -20,6 +20,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
@@ -76,28 +78,64 @@ public class IOTest {
     @Test @Disabled
     public void http_server_test2() throws IOException, CompilationError, CompilationErrorsException {
         Util.run("io/http_server_test2.ago", "io_test.main#");
-//        Router.router(vertx).get("abcd").handler(new Handler<RoutingContext>() {
-//            @Override
-//            public void handle(RoutingContext event) {
-//
-//            }
-//        })
+        System.in.read();
+    }
+
+    @Test @Disabled
+    public void http_client_test1() throws IOException, CompilationError, CompilationErrorsException {
+        Util.run("io/http_client_test1.ago", "main#");
         System.in.read();
     }
 
     public static void main(String[] args) throws IOException {
-        Vertx vertx = Vertx.vertx();
-        var router = Router.router(vertx);
-        router.route().handler(BodyHandler.create());
+//        Vertx vertx = Vertx.vertx();
+//        var router = Router.router(vertx);
+//        router.route().handler(BodyHandler.create());
+//
+//        router.post("/echo").handler(new Handler<RoutingContext>() {
+//            @Override
+//            public void handle(RoutingContext event) {
+//                var s = event.body().asString();
+//                event.end(s);
+//            }
+//        });
+//        vertx.createHttpServer().requestHandler(router).listen(8080);
 
-        router.post("/echo").handler(new Handler<RoutingContext>() {
-            @Override
-            public void handle(RoutingContext event) {
-                var s = event.body().asString();
-                event.end(s);
-            }
-        });
-        vertx.createHttpServer().requestHandler(router).listen(8080);
+        var httpClient = Vertx.vertx().createHttpClient();
+
+// 1. 发起请求
+        Future<HttpClientRequest> req = httpClient.request(HttpMethod.GET, 8080, "127.0.0.1", "/hello");
+
+        req.compose(request -> {
+                    // 2. 发送请求体并结束请求，同时立即把流转接到 response 的 Future 上
+                    return request.end().compose( _ -> request.response());
+                })
+                .compose(response -> {
+                    // 3. 【最核心的关键点】
+                    // 此时 response 刚刚就绪，在同一个事件循环内，**必须立即**调用 body()。
+                    // compose 会等待 bodyFuture 完成，并把最终的 Buffer 传给下一步。
+                    return response.body();
+                })
+                .onSuccess(buffer -> {
+                    // 4. 完美、安全地拿到数据
+                    System.out.println("底层 HttpClient 100% 抓住 body: " + buffer.toString());
+                })
+                .onFailure(err -> {
+                    err.printStackTrace();
+                });
+
+
+//        httpClient.request(HttpMethod.POST, 80, "example.com", "/hello")
+//                .compose(request -> request.send("hello world"))
+//                .onSuccess(response -> {
+//                    // 必须在入口处立刻调用 body() 转换为 Future
+//                    Future<Buffer> bodyFuture = response.body();
+//
+//                    bodyFuture.onSuccess(buffer -> {
+//                        System.out.println("底层 HttpClient 抓住 body: " + buffer.toString());
+//                    });
+//                });
+
         System.in.read();
     }
 

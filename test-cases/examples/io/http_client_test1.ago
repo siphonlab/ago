@@ -1,0 +1,11 @@
+import io.HttpClient;
+
+fun main(){
+    var client = new HttpClient();
+    var request = client.request("GET", 8080, "127.0.0.1", "/hello");
+    request.putHeader("Accept", "text/plain");
+    var response = request.handleBody().send();
+    Trace.print(response.statusCode);       // 200
+    var body = response.body;
+    Trace.print(body)
+}

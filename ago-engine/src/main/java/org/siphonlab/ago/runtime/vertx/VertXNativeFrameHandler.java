@@ -16,7 +16,6 @@
 package org.siphonlab.ago.runtime.vertx;
 
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
@@ -40,28 +39,33 @@ public class VertXNativeFrameHandler<T> implements Handler<AsyncResult<T>> {
         this(frame, "lang.NativeException");
     }
 
+    public void onReceiveInstance(T result, Instance<?> instance){
+
+    }
+
     @Override
     public void handle(AsyncResult<T> result) {
         if(result.succeeded()){
+            T r = result.result();
             switch (frame.getAgoClass().getResultTypeCode().value){
-                case INT_VALUE:     frame.finishIntAsync((Integer) result.result()); break;
-                case LONG_VALUE:    frame.finishLongAsync((Long) result.result()); break;
-                case FLOAT_VALUE:   frame.finishFloatAsync((Float) result.result()); break;
-                case DOUBLE_VALUE:  frame.finishDoubleAsync((Double) result.result()); break;
-                case DECIMAL_VALUE: frame.finishDecimalAsync((BigDecimal) result.result()); break;
-                case BOOLEAN_VALUE: frame.finishBooleanAsync((Boolean) result.result()); break;
-                case STRING_VALUE:  frame.finishStringAsync((String) result.result()); break;
-                case SHORT_VALUE:   frame.finishShortAsync((Short) result.result()); break;
-                case BYTE_VALUE:    frame.finishByteAsync((Byte) result.result()); break;
-                case CHAR_VALUE:    frame.finishCharAsync((Character) result.result()); break;
+                case INT_VALUE:     frame.finishIntAsync((Integer) r); break;
+                case LONG_VALUE:    frame.finishLongAsync((Long) r); break;
+                case FLOAT_VALUE:   frame.finishFloatAsync((Float) r); break;
+                case DOUBLE_VALUE:  frame.finishDoubleAsync((Double) r); break;
+                case DECIMAL_VALUE: frame.finishDecimalAsync((BigDecimal) r); break;
+                case BOOLEAN_VALUE: frame.finishBooleanAsync((Boolean) r); break;
+                case STRING_VALUE:  frame.finishStringAsync((String) r); break;
+                case SHORT_VALUE:   frame.finishShortAsync((Short) r); break;
+                case BYTE_VALUE:    frame.finishByteAsync((Byte) r); break;
+                case CHAR_VALUE:    frame.finishCharAsync((Character) r); break;
                 case OBJECT_VALUE:  {
-                    Object r = result.result();
                     if(r instanceof Instance<?> instance){
                         frame.finishObjectAsync(instance);
                     } else {
                         AgoEngine agoEngine = frame.getAgoEngine();
                         var instance = agoEngine.createNativeInstance(null, ClassMapping.map(r.getClass(), agoEngine), frame.getRunSpace());
                         instance.setNativePayload(r);
+                        onReceiveInstance(r, instance);
                         frame.finishObjectAsync(instance);
 
 //                        AgoFunction constructor = instance.getAgoClass().getEmptyArgsConstructor();
@@ -78,19 +82,18 @@ public class VertXNativeFrameHandler<T> implements Handler<AsyncResult<T>> {
                 case NULL_VALUE, VOID_VALUE:    frame.finishVoidAsync(); break;
                 case CLASS_REF_VALUE:   throw new IllegalStateException("impossible");
                 case UNION_VALUE:   {
-                    Object value = result.result();
-                    switch (Union.extractUnionType(value).value){
+                    switch (Union.extractUnionType(r).value){
                         case INT_VALUE, LONG_VALUE, FLOAT_VALUE, DECIMAL_VALUE, DOUBLE_VALUE, STRING_VALUE,
                              BOOLEAN_VALUE, BYTE_VALUE, SHORT_VALUE, CHAR_VALUE:
-                                frame.finishUnionAsync(value); break;
+                                frame.finishUnionAsync(r); break;
                         case OBJECT_VALUE:  {
-                            Object r = result.result();
                             if(r instanceof Instance<?> instance){
                                 frame.finishUnionAsync(instance);
                             } else {
                                 AgoEngine agoEngine = frame.getAgoEngine();
                                 var instance = agoEngine.createNativeInstance(null, ClassMapping.map(r.getClass(), agoEngine), frame.getRunSpace());
                                 instance.setNativePayload(r);
+                                onReceiveInstance(r, instance);
                                 frame.finishUnionAsync(instance);
                             }
                         } break;
