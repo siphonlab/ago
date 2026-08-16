@@ -68,6 +68,8 @@ public class LangClasses {
     private final AgoClass nativeMapClass;
     private final AgoClass mapClass;
 
+    private final AgoClass nativeObjectClass;
+
     private final AgoClass intEnumClass;
     private final AgoClass byteEnumClass;
     private final AgoClass shortEnumClass;
@@ -134,6 +136,7 @@ public class LangClasses {
         this.nativeListClass = (AgoClass) classManager.getClass("lang.NativeList");
         this.nativeMapClass = (AgoClass) classManager.getClass("lang.NativeMap");
         this.mapClass = (AgoClass) classManager.getClass("lang.Map");
+        this.nativeObjectClass = classManager.getClass("lang.NativeObject");
 
         this.taskInterface = (AgoInterface) classManager.getClass("lang.Task");
         this.entityClass = classManager.getClass("lang.Entity");
@@ -342,6 +345,10 @@ public class LangClasses {
 
     public AgoClass getNativeMapClass() {
         return nativeMapClass;
+    }
+
+    public AgoClass getNativeObjectClass() {
+        return nativeObjectClass;
     }
 
     public AgoClass getEntityClass() {

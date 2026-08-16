@@ -372,6 +372,13 @@ interface Iterable<+T> {
     fun iterator() as Iterator<T>;
 }
 
+// store some native object in native payload
+native class NativeObject{
+    fun new(){
+        throw new IllegalStateException("NativeObject has no constructor, use runtime to create instance");
+    }
+}
+
 class Trace{
     metaclass{
         final fun print#int(number as int?) native "org.siphonlab.ago.lang.Trace.print_int";
