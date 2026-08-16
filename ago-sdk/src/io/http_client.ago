@@ -1,0 +1,136 @@
+package io;
+
+// =============================================================================
+// HttpClient — wraps Vert.x HttpClient (via HttpClientAgent)
+// =============================================================================
+native class HttpClient{
+    metaclass{
+        native class ConnectionHandler{
+        }
+
+        // =============================================================================
+        // Options — wraps Vert.x HttpClientOptions
+        // =============================================================================
+        native class Options{
+            fun new() native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.create';
+
+            // -- Default port / host --------------------------------------------------
+            fun defaultPort#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.defaultPort_get';
+            fun defaultPort#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.defaultPort_set';
+
+            fun defaultHost#get() as string? native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.defaultHost_get';
+            fun defaultHost#set(value as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.defaultHost_set';
+
+            // -- Keep-alive -----------------------------------------------------------
+            fun keepAlive#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.keepAlive_get';
+            fun keepAlive#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.keepAlive_set';
+
+            fun keepAliveTimeout#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.keepAliveTimeout_get';
+            fun keepAliveTimeout#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.keepAliveTimeout_set';
+
+            // -- Timeout properties ---------------------------------------------------
+            fun idleTimeout#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.idleTimeout_get';
+            fun idleTimeout#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.idleTimeout_set';
+
+            fun connectTimeout#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.connectTimeout_get';
+            fun connectTimeout#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.connectTimeout_set';
+
+            // -- SSL / TLS ------------------------------------------------------------
+            fun ssl#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.ssl_get';
+            fun ssl#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.ssl_set';
+
+            fun trustAll#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.trustAll_get';
+            fun trustAll#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.trustAll_set';
+
+            fun verifyHost#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.verifyHost_get';
+            fun verifyHost#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.verifyHost_set';
+
+            // -- Decompression --------------------------------------------------------
+            fun decompression#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.decompression_get';
+            fun decompression#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.decompression_set';
+
+            // -- Pipelining -----------------------------------------------------------
+            fun pipelining#get() as boolean native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.pipelining_get';
+            fun pipelining#set(value as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.pipelining_set';
+
+            fun pipeliningLimit#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.pipeliningLimit_get';
+            fun pipeliningLimit#set(value as int) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientOptions.pipeliningLimit_set';
+        }
+    }
+
+    final connectionHandler as ConnectionHandler;
+
+    fun new() native 'org.siphonlab.ago.runtime.vertx.HttpClient.create';
+    fun new#options(options as Options) native 'org.siphonlab.ago.runtime.vertx.HttpClient.createWithOptions';
+
+    // -- Request method (returns HttpClientRequest for configuration before send) ---
+    fun request(method as string, port as int, host as string, path as string) as HttpClientRequest
+            native 'org.siphonlab.ago.runtime.vertx.HttpClient.request';
+
+    // -- Close ---------------------------------------------------------------------
+    fun close() as void native 'org.siphonlab.ago.runtime.vertx.HttpClient.close';
+}
+
+// =============================================================================
+// HttpClientRequest — wraps Vert.x HttpClientRequest (implements WriteStream<Buffer>)
+// =============================================================================
+native class HttpClientRequest with WriteStream<Buffer>{
+
+    private handleBody as boolean;
+
+    override fun write(data as Buffer) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_write";
+    override fun setWriteQueueMaxSize(maxSize as int) native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_setWriteQueueMaxSize";
+    override fun writeQueueFull() as boolean native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_writeQueueFull";
+    override fun byeWrite() native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_byeWrite";
+    override fun watchDrain() as WriteStream<Buffer>.DrainHandler native "org.siphonlab.ago.runtime.vertx.IO.WriteStream_watchDrain";
+
+    // -- Headers ------------------------------------------------------------------
+    fun putHeader(name as string, value as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientRequest.putHeader';
+    fun headers#get() as HttpHeaders native 'org.siphonlab.ago.runtime.vertx.HttpClientRequest.headers_get';
+
+    fun handleBody() as HttpClientRequest{
+        this.handleBody = true;
+        return this;
+    }
+
+    // -- Send request and get response (async) ------------------------------------
+    fun send#getResponse() as HttpClientResponse native 'org.siphonlab.ago.runtime.vertx.HttpClientRequest.send_getResponse';
+    fun send#buffer(data as Buffer) as HttpClientResponse native 'org.siphonlab.ago.runtime.vertx.HttpClientRequest.send_buffer';
+
+    // -- End request (no body, async) ---------------------------------------------
+    fun end() as void native 'org.siphonlab.ago.runtime.vertx.HttpClientRequest.end';
+
+    // -- Write chunks (for streaming request body) --------------------------------
+    fun write#chunk(data as string) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientRequest.write_string';
+
+    // -- Chunked encoding ---------------------------------------------------------
+    fun setChunked(chunked as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpClientRequest.setChunked';
+
+}
+
+// =============================================================================
+// HttpClientResponse — wraps Vert.x HttpClientResponse (implements ReadStream<Buffer>)
+// =============================================================================
+native class HttpClientResponse with ReadStream<Buffer>{
+    private body as NativeObject;
+
+    override generator fun gen() as Buffer native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_generator";
+    override fun pause() as HttpClientResponse native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.pause';
+    override fun resume() as HttpClientResponse native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.resume';
+    override fun fetch(amount as long) as HttpClientResponse native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.fetch';
+    override fun byeRead() native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_byeRead";
+
+    // -- Status code and reason phrase --------------------------------------------
+    fun statusCode#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.statusCode_get';
+    fun statusMessage#get() as string? native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.statusMessage_get';
+
+    // -- HTTP version -------------------------------------------------------------
+    fun version#get() as string? native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.version_get';
+
+    // -- Headers ------------------------------------------------------------------
+    fun headers#get() as HttpHeaders native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.headers_get';
+    fun getHeader(name as string) as string? native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.getHeader';
+
+    // -- Body as Buffer (async) ---------------------------------------------------
+    fun body#get() as Buffer native 'org.siphonlab.ago.runtime.vertx.HttpClientResponse.body_get';
+}

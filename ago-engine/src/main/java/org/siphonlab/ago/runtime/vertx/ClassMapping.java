@@ -36,6 +36,9 @@ public class ClassMapping {
         Map.entry("io.vertx.core.http.HttpServer", "io.HttpServer"),
         Map.entry("io.vertx.core.http.HttpServerRequest", "io.HttpServerRequest"),
         Map.entry("io.vertx.core.http.HttpServerResponse", "io.HttpResponse"),
+        Map.entry("io.vertx.core.http.HttpClient", "io.HttpClient"),
+        Map.entry("io.vertx.core.http.HttpClientRequest", "io.HttpClientRequest"),
+        Map.entry("io.vertx.core.http.HttpClientResponse", "io.HttpClientResponse"),
         Map.entry("io.vertx.ext.web.RoutingContext", "io.RoutingContext"),
         Map.entry("io.vertx.ext.web.RequestBody", "io.RequestBody"),
         Map.entry("io.vertx.ext.web.Session", "io.Session")

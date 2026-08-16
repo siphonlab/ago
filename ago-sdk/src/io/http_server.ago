@@ -1,9 +1,5 @@
 package io;
 
-enum HttpMethod{
-    Get, Post, Put, Delete, Patch, Options, Head
-}
-
 // =============================================================================
 // HttpServer — wraps Vert.x HttpServer
 // =============================================================================
@@ -314,11 +310,4 @@ native class HttpResponse{
     fun setChunked(chunked as boolean) as void native 'org.siphonlab.ago.runtime.vertx.HttpResponse.setChunked';
 }
 
-// =============================================================================
-// HttpHeaders — wraps Vert.x MultiMap for HTTP headers
-// =============================================================================
-native class HttpHeaders{
-    fun getAll(name as string) as NativeList<string>? native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.getAll';
-    fun contains(name as string) as boolean native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.contains';
-    fun size#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.size_get';
-}
+

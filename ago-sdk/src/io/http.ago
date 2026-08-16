@@ -1,0 +1,11 @@
+package io;
+
+enum HttpMethod{
+    Get, Post, Put, Delete, Patch, Options, Head
+}
+
+native class HttpHeaders{
+    fun getAll(name as string) as NativeList<string>? native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.getAll';
+    fun contains(name as string) as boolean native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.contains';
+    fun size#get() as int native 'org.siphonlab.ago.runtime.vertx.HttpHeaders.size_get';
+}
