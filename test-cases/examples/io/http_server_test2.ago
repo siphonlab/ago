@@ -1,6 +1,7 @@
 // with route() support
 package io_test;
 
+import io.HttpMethod;
 import io.HttpServer;
 import io.HttpServerRequest;
 import io.HttpResponse;
@@ -16,11 +17,11 @@ fun main(){
 }
 
 
-fun hello() with Route::("GET", "/hello"){
+fun hello() with Route::(HttpMethod.Get, "/hello"){
     ctxt.end("fine")
 }
 
-fun echo() with Route::("POST", "/echo"){
+fun echo() with Route::(HttpMethod.Post, "/echo"){
     var body = ctxt.body();     // RequestBody
     var s = body.asString();
     Trace.print(s);

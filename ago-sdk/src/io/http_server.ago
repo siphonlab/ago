@@ -1,5 +1,9 @@
 package io;
 
+enum HttpMethod{
+    Get, Post, Put, Delete, Patch, Options, Head
+}
+
 // =============================================================================
 // HttpServer — wraps Vert.x HttpServer
 // =============================================================================
@@ -240,7 +244,7 @@ trait Route for Function<_>{
     routingContext as RoutingContext;
     metaclass{
         // int order, HttpMethod method, String regex, boolean bregex
-        fun new(field method as string, field path as string){
+        fun new(field method as HttpMethod, field path as string){
         }
     }
     fun new() {
@@ -263,7 +267,7 @@ native class HttpServerRequest with ReadStream<Buffer>{
     override fun byeRead() native "org.siphonlab.ago.runtime.vertx.IO.ReadStream_byeRead";
 
     // -- Basic properties ----------------------------------------------------
-    fun method#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.method_get';
+    fun method#get() as HttpMethod native 'org.siphonlab.ago.runtime.vertx.HttpRequest.method_get';
     fun path#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.path_get';
     fun uri#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.uri_get';
     fun version#get() as string native 'org.siphonlab.ago.runtime.vertx.HttpRequest.version_get';

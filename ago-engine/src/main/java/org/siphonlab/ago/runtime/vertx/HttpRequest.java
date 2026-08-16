@@ -4,6 +4,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import org.siphonlab.ago.AgoEnum;
 import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.native_.NativeFrame;
 
@@ -18,7 +19,11 @@ public class HttpRequest {
     // ========================================================================
 
     public static void method_get(NativeFrame frame){
-        frame.finishString(get(frame).method().name());
+        String methodName = get(frame).method().name();
+        String capitalized = methodName.substring(0, 1) + methodName.substring(1).toLowerCase();
+        AgoEnum httpMethodEnum = (AgoEnum) frame.getAgoEngine().getClass("io.HttpMethod");
+        Instance<?> enumInstance = httpMethodEnum.findMember(capitalized);
+        frame.finishObject(enumInstance);
     }
 
     public static void path_get(NativeFrame frame){

@@ -1,6 +1,7 @@
 package io_test;
 
 import io.HttpServer;
+import io.HttpMethod;
 import io.HttpServerRequest;
 import io.HttpResponse;
 
@@ -21,7 +22,8 @@ fun handleRequest(request as HttpServerRequest){
     var response = request.response;
     if(request.path == "/"){
         response.end("Hello World!");
-    } else if((request.path == "/echo") and (request.method == "POST")){
+    } else if((request.path == "/echo") and (request.method == HttpMethod.Post)){
+        Trace.print("echo")
         request.resume();
         // cannot capture body, for "Request has already been read"
 //        var s = ""

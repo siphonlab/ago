@@ -27,6 +27,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Router {
 
+    private static final String[] HTTP_METHOD_NAMES = {"Get", "Post", "Put", "Delete", "Patch", "Options", "Head"};
+
+    private static String extractMethodName(AgoEnum httpMethodEnum, Instance<?> methodInstance){
+        for (String name : HTTP_METHOD_NAMES) {
+            if(httpMethodEnum.findMember(name) == methodInstance){
+                return name.toUpperCase();
+            }
+        }
+        throw new IllegalArgumentException("Unknown HttpMethod instance: " + methodInstance);
+    }
+
     public static void create(NativeFrame creator, Instance<?> serverInst){
         VertxRunSpaceHost host = (VertxRunSpaceHost) creator.getRunSpace().getRunSpaceHost();
         var inst = creator.getParentScope();
@@ -57,10 +68,12 @@ public class Router {
 
         var parameterizedRouteClass = engine.getClass("io.Route").asThatOrSuperOfThat(fun);
         String path = parameterizedRouteClass.getStringField("path");
-        String method = parameterizedRouteClass.getStringField("method");
+        Instance<?> methodInstance = parameterizedRouteClass.getObjectField("method");
+        AgoEnum httpMethodEnum = (AgoEnum) engine.getClass("io.HttpMethod");
+        String methodName = extractMethodName(httpMethodEnum, methodInstance);
         io.vertx.ext.web.Router router = (io.vertx.ext.web.Router) frame.getParentScope().getNativePayload();
 
-        router.route(HttpMethod.valueOf(method), path).handler(new Handler<RoutingContext>() {
+        router.route(HttpMethod.valueOf(methodName), path).handler(new Handler<RoutingContext>() {
             @Override
             public void handle(RoutingContext event) {
                 ScopedClassIntervalExtractor.Result scopedClassInterval = ScopedClassIntervalExtractor.extract(routeClass);
