@@ -37,6 +37,80 @@ public class Reflect {
         }
     }
 
+    public static void getSlots(NativeFrame frame){
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = getClassFromClassRef(frame);
+
+        AgoSlotDef[] slotDefs = agoClass.getSlotDefs();
+        if(slotDefs == null) {
+            slotDefs = new AgoSlotDef[0];
+        }
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), slotDefs.length);
+        for (int i = 0; i < slotDefs.length; i++) {
+            AgoSlotDef slotDef = slotDefs[i];
+            var inst = engine.createNativeInstance(null, engine.getClass("lang.SlotDef"), frame.getRunSpace());
+            inst.setNativePayload(slotDef);
+            arr.value[i] = inst;
+        }
+        frame.finishObject(arr);
+    }
+
+    public static void getParameters(NativeFrame frame){
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = getClassFromClassRef(frame);
+
+        if(!(agoClass instanceof AgoFunction agoFunction)) {
+            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), 0);
+            frame.finishObject(arr);
+            return;
+        }
+
+        AgoParameter[] parameters = agoFunction.getParameters();
+        if(parameters == null) {
+            parameters = new AgoParameter[0];
+        }
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), parameters.length);
+        for (int i = 0; i < parameters.length; i++) {
+            AgoParameter parameter = parameters[i];
+            var inst = engine.createNativeInstance(null, engine.getClass("lang.ParameterDesc"), frame.getRunSpace());
+            inst.setNativePayload(parameter);
+            arr.value[i] = inst;
+        }
+        frame.finishObject(arr);
+    }
+
+    public static void SlotDef_getName(NativeFrame frame){
+        AgoSlotDef slotDef = (AgoSlotDef) frame.getParentScope().getNativePayload();
+        frame.finishString(slotDef.getName());
+    }
+
+    public static void SlotDef_getType(NativeFrame frame){
+        AgoSlotDef slotDef = (AgoSlotDef) frame.getParentScope().getNativePayload();
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass typeClass = slotDef.getAgoClass();
+        if(typeClass == null) {
+            frame.finishUnion(engine.getBoxer().boxClassRef(slotDef.getTypeCode().getValue()));
+        } else {
+            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), typeClass));
+        }
+    }
+
+    public static void ParameterDesc_getName(NativeFrame frame){
+        AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
+        frame.finishString(parameter.getName());
+    }
+
+    public static void ParameterDesc_getType(NativeFrame frame){
+        AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass typeClass = parameter.getAgoClass();
+        if(typeClass == null) {
+            frame.finishUnion(engine.getBoxer().boxClassRef(parameter.getTypeCode().getValue()));
+        } else {
+            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), typeClass));
+        }
+    }
+
     private static AgoClass getClassFromClassRef(NativeFrame frame) {
         return Boxer.getClassFromClassRef(frame.getParentScope());
     }

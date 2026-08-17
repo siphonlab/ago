@@ -83,6 +83,8 @@ class ClassRef from Boxer<classref>{
     fun getProperties(includePrivate as boolean) as PropertyDesc[] native "org.siphonlab.ago.lang.Reflect.getProperties";
     fun getMethods(includePrivate as boolean) as ClassRef[] native "org.siphonlab.ago.lang.Reflect.getMethods";
     fun getChildren(includePrivate as boolean) as ClassRef[] native "org.siphonlab.ago.lang.Reflect.getChildren";
+    fun getSlots() as SlotDef[] native "org.siphonlab.ago.lang.Reflect.getSlots";
+    fun getParameters() as ParameterDesc[] native "org.siphonlab.ago.lang.Reflect.getParameters";
 
     fun getProperty#pub(name as string) as PropertyDesc?{
         return getProperty(name, false);

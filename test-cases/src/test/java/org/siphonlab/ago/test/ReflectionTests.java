@@ -55,5 +55,12 @@ public class ReflectionTests {
         assertTrue(Trace.outputted("Jack", "22"));
     }
 
+    @Test
+    public void slots_methods_parameters() throws CompilationError, CompilationErrorsException, IOException {
+        run("reflection/slots_methods_params.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("2", "7", "2"));
+    }
+
 
 }

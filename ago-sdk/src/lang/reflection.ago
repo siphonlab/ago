@@ -28,6 +28,16 @@ native class PropertyDesc{
     fun type#get() as ClassRef native "org.siphonlab.ago.lang.Reflect.Property_getType";
 }
 
+native class SlotDef{
+    fun name#get() as string native "org.siphonlab.ago.lang.Reflect.SlotDef_getName";
+    fun type#get() as ClassRef native "org.siphonlab.ago.lang.Reflect.SlotDef_getType";
+}
+
+native class ParameterDesc{
+    fun name#get() as string native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getName";
+    fun type#get() as ClassRef native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getType";
+}
+
 fun prop#get_name(this as Object, propName as string) as any native "org.siphonlab.ago.lang.Reflect.Property_getValue";
 
 fun prop#set_name(this as Object, propName as string, value as any) native "org.siphonlab.ago.lang.Reflect.Property_setValue";
