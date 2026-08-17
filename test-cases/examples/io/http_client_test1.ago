@@ -1,11 +1,16 @@
 import io.HttpClient;
+import io.HttpMethod
 
 fun main(){
     var client = new HttpClient();
-    var request = client.request("GET", 8080, "127.0.0.1", "/hello");
-    request.putHeader("Accept", "text/plain");
-    var response = request.handleBody().send();
-    Trace.print(response.statusCode);       // 200
-    var body = response.body;
-    Trace.print(body)
+    try{
+        var request = client.request(HttpMethod.Get, 8080, "127.0.0.1", "/hello");
+        request.putHeader("Accept", "text/plain");
+        var response = request.handleBody().send();
+        Trace.print(response.statusCode);       // 200
+        var body = response.body;
+        Trace.print(body)
+    } catch (e as Exception){
+        Trace.print(e.message)
+    }
 }
