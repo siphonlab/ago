@@ -64,7 +64,7 @@ native class HttpClient{
     fun new#options(options as Options) native 'org.siphonlab.ago.runtime.vertx.HttpClient.createWithOptions';
 
     // -- Request method (returns HttpClientRequest for configuration before send) ---
-    fun request(method as string, port as int, host as string, path as string) as HttpClientRequest
+    fun request(method as HttpMethod, port as int, host as string, path as string) as HttpClientRequest
             native 'org.siphonlab.ago.runtime.vertx.HttpClient.request';
 
     // -- Close ---------------------------------------------------------------------

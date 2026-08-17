@@ -35,10 +35,11 @@ public class HttpClient {
     // Request methods (return HttpClientRequest)
     // ========================================================================
 
-    public static void request(NativeFrame frame, String method, int port, String host, String path){
+    public static void request(NativeFrame frame, Instance<?> methodEnum, int port, String host, String path){
         frame.beginAsync();
         io.vertx.core.http.HttpClient client = get(frame);
-        io.vertx.core.http.HttpMethod httpMethod = new io.vertx.core.http.HttpMethod(method.toUpperCase());
+        String methodName = methodEnum.getAgoClass().getName().toUpperCase();
+        io.vertx.core.http.HttpMethod httpMethod = new io.vertx.core.http.HttpMethod(methodName);
         client.request(httpMethod, port, host, path)
                 .onComplete(new VertXNativeFrameHandler<>(frame, "io.IOException"));
     }
