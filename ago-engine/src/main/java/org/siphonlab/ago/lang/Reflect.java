@@ -84,6 +84,16 @@ public class Reflect {
         frame.finishString(slotDef.getName());
     }
 
+    public static void SlotDef_getIndex(NativeFrame frame){
+        AgoSlotDef slotDef = (AgoSlotDef) frame.getParentScope().getNativePayload();
+        frame.finishInt(slotDef.getIndex());
+    }
+
+    public static void SlotDef_toString(NativeFrame frame){
+        AgoSlotDef slotDef = (AgoSlotDef) frame.getParentScope().getNativePayload();
+        frame.finishString("SlotDef[" + slotDef.getIndex() + " " + slotDef.getName() + "]");
+    }
+
     public static void SlotDef_getType(NativeFrame frame){
         AgoSlotDef slotDef = (AgoSlotDef) frame.getParentScope().getNativePayload();
         AgoEngine engine = frame.getAgoEngine();
@@ -98,6 +108,16 @@ public class Reflect {
     public static void ParameterDesc_getName(NativeFrame frame){
         AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
         frame.finishString(parameter.getName());
+    }
+
+    public static void ParameterDesc_getIndex(NativeFrame frame){
+        AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
+        frame.finishInt(parameter.getSlotIndex());
+    }
+
+    public static void ParameterDesc_toString(NativeFrame frame){
+        AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
+        frame.finishString("Parameter[" + parameter.getSlotIndex() + " " + parameter.getName() + "]");
     }
 
     public static void ParameterDesc_getType(NativeFrame frame){

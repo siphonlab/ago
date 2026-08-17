@@ -24,12 +24,18 @@ class Staff{
 
 fun main(){
     var slots = Staff.class.getSlots();
-    Trace.print(slots.length);
-    
+    for(var slot in slots){
+        Trace.print(slot.toString());
+        Trace.print(slot.index);
+    }
+
     var methods = Staff.class.methods;
     Trace.print(methods.length);
 
     var workMethod = Staff.class.getMethod('work#', false);
     var params = workMethod!.getParameters();
-    Trace.print(params.length);
+    for(var param in params){
+        Trace.print(param.toString());
+        Trace.print(param.index);
+    }
 }
