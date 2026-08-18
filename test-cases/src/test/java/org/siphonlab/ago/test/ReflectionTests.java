@@ -59,7 +59,7 @@ public class ReflectionTests {
     public void slots_methods_parameters() throws CompilationError, CompilationErrorsException, IOException {
         run("reflection/slots_methods_params.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("SlotDef[0 name]", "0", "SlotDef[1 age]", "1", "7", "Parameter[0 title]", "0", "0", "Parameter[1 duration]", "1", "1"));
+        assertTrue(Trace.outputted("(Slot name 0 string)", "0", "(Slot age 1 int)", "1", "7", "(Parameter title 0 string)", "0", "0", "(Parameter duration 1 int)", "1", "1"));
     }
 
 

@@ -32,15 +32,20 @@ native class SlotDef{
     fun name#get() as string native "org.siphonlab.ago.lang.Reflect.SlotDef_getName";
     fun index#get() as int native "org.siphonlab.ago.lang.Reflect.SlotDef_getIndex";
     fun type#get() as ClassRef native "org.siphonlab.ago.lang.Reflect.SlotDef_getType";
-    override toString() as string native "org.siphonlab.ago.lang.Reflect.SlotDef_toString";
+
+    override toString() as string {
+        return $"(Slot ${name} ${index} ${type})"$
+    }
 }
 
 native class ParameterDesc{
+    index as int {get;}
     fun name#get() as string native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getName";
-    fun index#get() as int native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getIndex";
     fun slotIndex#get() as int native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getSlotIndex";
     fun type#get() as ClassRef native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getType";
-    override toString() as string native "org.siphonlab.ago.lang.Reflect.ParameterDesc_toString";
+    override toString() as string {
+        return $"(Parameter ${name} ${index} ${type})"$
+    }
 }
 
 fun prop#get_name(this as Object, propName as string) as any native "org.siphonlab.ago.lang.Reflect.Property_getValue";

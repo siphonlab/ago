@@ -73,6 +73,7 @@ public class Reflect {
         for (int i = 0; i < parameters.length; i++) {
             AgoParameter parameter = parameters[i];
             var inst = engine.createNativeInstance(null, engine.getClass("lang.ParameterDesc"), frame.getRunSpace());
+            inst.setIntField("index", i);
             inst.setNativePayload(parameter);
             arr.value[i] = inst;
         }
@@ -89,20 +90,17 @@ public class Reflect {
         frame.finishInt(slotDef.getIndex());
     }
 
-    public static void SlotDef_toString(NativeFrame frame){
-        AgoSlotDef slotDef = (AgoSlotDef) frame.getParentScope().getNativePayload();
-        frame.finishString("SlotDef[" + slotDef.getIndex() + " " + slotDef.getName() + "]");
-    }
-
     public static void SlotDef_getType(NativeFrame frame){
         AgoSlotDef slotDef = (AgoSlotDef) frame.getParentScope().getNativePayload();
         AgoEngine engine = frame.getAgoEngine();
         AgoClass typeClass = slotDef.getAgoClass();
-        if(typeClass == null) {
-            frame.finishUnion(engine.getBoxer().boxClassRef(slotDef.getTypeCode().getValue()));
+        Instance<?> boxedClassRef;
+        if(typeClass.getParentScope() == null){
+            boxedClassRef = engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), typeClass);
         } else {
-            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), typeClass));
+            boxedClassRef = engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getScopedClassRefClass(), typeClass, typeClass.getParentScope());
         }
+        frame.finishObject(boxedClassRef);
     }
 
     public static void ParameterDesc_getName(NativeFrame frame){
@@ -110,30 +108,22 @@ public class Reflect {
         frame.finishString(parameter.getName());
     }
 
-    public static void ParameterDesc_getIndex(NativeFrame frame){
-        AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
-        frame.finishInt(parameter.getSlotIndex());
-    }
-
     public static void ParameterDesc_getSlotIndex(NativeFrame frame){
         AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
         frame.finishInt(parameter.getSlotIndex());
-    }
-
-    public static void ParameterDesc_toString(NativeFrame frame){
-        AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
-        frame.finishString("Parameter[" + parameter.getSlotIndex() + " " + parameter.getName() + "]");
     }
 
     public static void ParameterDesc_getType(NativeFrame frame){
         AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
         AgoEngine engine = frame.getAgoEngine();
         AgoClass typeClass = parameter.getAgoClass();
-        if(typeClass == null) {
-            frame.finishUnion(engine.getBoxer().boxClassRef(parameter.getTypeCode().getValue()));
+        Instance<?> boxedClassRef;
+        if(typeClass.getParentScope() == null){
+            boxedClassRef = engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), typeClass);
         } else {
-            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), typeClass));
+            boxedClassRef = engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getScopedClassRefClass(), typeClass, typeClass.getParentScope());
         }
+        frame.finishObject(boxedClassRef);
     }
 
     private static AgoClass getClassFromClassRef(NativeFrame frame) {
