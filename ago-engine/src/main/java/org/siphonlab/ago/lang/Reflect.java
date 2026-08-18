@@ -115,6 +115,11 @@ public class Reflect {
         frame.finishInt(parameter.getSlotIndex());
     }
 
+    public static void ParameterDesc_getSlotIndex(NativeFrame frame){
+        AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
+        frame.finishInt(parameter.getSlotIndex());
+    }
+
     public static void ParameterDesc_toString(NativeFrame frame){
         AgoParameter parameter = (AgoParameter) frame.getParentScope().getNativePayload();
         frame.finishString("Parameter[" + parameter.getSlotIndex() + " " + parameter.getName() + "]");

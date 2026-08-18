@@ -38,6 +38,7 @@ native class SlotDef{
 native class ParameterDesc{
     fun name#get() as string native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getName";
     fun index#get() as int native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getIndex";
+    fun slotIndex#get() as int native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getSlotIndex";
     fun type#get() as ClassRef native "org.siphonlab.ago.lang.Reflect.ParameterDesc_getType";
     override toString() as string native "org.siphonlab.ago.lang.Reflect.ParameterDesc_toString";
 }

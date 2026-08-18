@@ -37,5 +37,6 @@ fun main(){
     for(var param in params){
         Trace.print(param.toString());
         Trace.print(param.index);
+        Trace.print(param.slotIndex);
     }
 }
