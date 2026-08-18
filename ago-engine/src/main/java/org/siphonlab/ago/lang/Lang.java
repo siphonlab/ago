@@ -22,6 +22,8 @@ import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.runtime.AgoArrayInstance;
 import org.siphonlab.ago.runtime.ObjectArrayInstance;
 
+import org.apache.commons.text.StringEscapeUtils;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -283,6 +285,16 @@ public class Lang {
         frame.finishBoolean(s.equalsIgnoreCase(other));
     }
 
+    public static void String_escapeJson(NativeFrame frame){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(StringEscapeUtils.escapeJson(s));
+    }
+
+    public static void String_unescapeJson(NativeFrame frame){
+        String s = frame.getParentScope().getSlots().getString(0);
+        frame.finishString(StringEscapeUtils.unescapeJson(s));
+    }
+
     // --- String extension methods (receiver as first param, no boxing) ---
 
     public static void String_length_ext(NativeFrame frame, String s){
@@ -365,6 +377,14 @@ public class Lang {
 
     public static void String_hashCode_ext(NativeFrame frame, String s){
         frame.finishInt(s.hashCode());
+    }
+
+    public static void String_escapeJson_ext(NativeFrame frame, String s){
+        frame.finishString(StringEscapeUtils.escapeJson(s));
+    }
+
+    public static void String_unescapeJson_ext(NativeFrame frame, String s){
+        frame.finishString(StringEscapeUtils.unescapeJson(s));
     }
 
     // --- Integer metaclass statics ---
