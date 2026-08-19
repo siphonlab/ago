@@ -19,9 +19,13 @@ import org.siphonlab.ago.SourceLocation;
 import org.siphonlab.ago.compiler.BlockCompiler;
 import org.siphonlab.ago.compiler.ClassDef;
 import org.siphonlab.ago.compiler.FunctionDef;
+import org.siphonlab.ago.compiler.MetaClassDef;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.compiler.exception.SyntaxError;
+import org.siphonlab.ago.compiler.expression.invoke.Invoke;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 
 public class BindExtensionMethod extends ExpressionInFunctionBody implements MaybeFunction{
@@ -43,8 +47,25 @@ public class BindExtensionMethod extends ExpressionInFunctionBody implements May
     }
 
     @Override
-    public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+    protected Expression transformInner() throws CompilationError {
+        if(extensionMethod.getParameters().size() != 1){
+            throw new SyntaxError("arguments 1..%d for %s not found".formatted(extensionMethod.getParameters().size(), extensionMethod.getFullname()), getSourceLocation());
+        }
+        FunctionDef function = extensionMethod;
+        MaybeFunction maybeFunction;
+        if(function.isTop()){
+            maybeFunction = new ConstClass(function).setSourceLocation(getSourceLocation());
+        } else {
+            MetaClassDef metaClass = (MetaClassDef) function.getParentClass();
+            maybeFunction = ClassUnder.create(ownerFunction, new ConstClass(metaClass.getInstanceClassDef()), function).setSourceLocation(getSourceLocation());
+        }
+        maybeFunction.setCandidates(this.getCandidates());
+        return ownerFunction.invoke(Invoke.InvokeMode.Invoke, maybeFunction, Collections.singletonList(this.getTarget()), getSourceLocation());
+    }
 
+    @Override
+    public void outputToLocalVar(Var.LocalVar localVar, BlockCompiler blockCompiler) throws CompilationError {
+        throw new  UnsupportedOperationException("BindExtensionMethod should handled already");
     }
 
     @Override
