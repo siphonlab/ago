@@ -1,0 +1,31 @@
+import json.Encoder;
+
+class Data{
+    public f as float;
+    public d as double;
+    public b as byte;
+    public s as short;
+    public ch as char;
+}
+
+fun main(){
+    var data = new Data();
+    data.f = 3.14f;
+    data.d = 2.71828;
+    data.b = 42;
+    data.s = 100;
+    data.ch = 'A';
+
+    var enc = new Encoder();
+    enc.encode(data);
+    Trace.print(enc.toString());
+
+    // Decimal as local variable works fine (class field with decimal type is a runtime bug)
+    var dec as decimal = 99.99d;
+    var enc2 = new Encoder();
+    enc2.beginObject();
+    enc2.writeKey("dec");
+    enc2.encode#decimal(dec);
+    enc2.endObject();
+    Trace.print(enc2.toString());
+}

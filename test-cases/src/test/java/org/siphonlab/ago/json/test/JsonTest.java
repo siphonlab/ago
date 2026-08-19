@@ -18,9 +18,12 @@ package org.siphonlab.ago.json.test;
 import org.junit.jupiter.api.Test;
 import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
+import org.siphonlab.ago.lang.Trace;
 import org.siphonlab.ago.test.Util;
 
 import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JsonTest {
     @Test
@@ -31,5 +34,14 @@ public class JsonTest {
     @Test
     public void serialize_test1() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("json/serialize_test1.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("{\"city\":\"Beijing\",\"zip\":100000}", "{\"name\":\"Alice\",\"age\":30}", "{\"name\":\"Bob\",\"addr\":{\"city\":\"Shanghai\",\"zip\":200000},\"age\":25}"));
+    }
+
+    @Test
+    public void serialize_types() throws CompilationError, CompilationErrorsException, IOException {
+        Util.run("json/serialize_types.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("{\"b\":42,\"s\":100,\"d\":2.71828,\"ch\":\"A\",\"f\":3.14}", "{\"dec\":99.99}"));
     }
 }

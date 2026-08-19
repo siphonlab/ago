@@ -56,6 +56,37 @@ class Encoder{
         writeRaw(value|string);
     }
 
+    // Encode a float value.
+    fun encode#float(value as float){
+        writeRaw(value|string);
+    }
+
+    // Encode a double value.
+    fun encode#double(value as double){
+        writeRaw(value|string);
+    }
+
+    // Encode a decimal value.
+    fun encode#decimal(value as decimal){
+        writeRaw(value|string);
+    }
+
+
+    // Encode a char value (as JSON string).
+    fun encode#char(value as char){
+        writeRaw("\"" + value|string + "\"");
+    }
+
+    // Encode a byte value.
+    fun encode#byte(value as byte){
+        writeRaw(value|string);
+    }
+
+    // Encode a short value.
+    fun encode#short(value as short){
+        writeRaw(value|string);
+    }
+
     // Encode a string value (null-safe).
     fun encode#string(value as string?){
         if(value == null){
@@ -134,14 +165,28 @@ class Encoder{
     fun encode#any(v as any){
         if(v == null){
             writeRaw('null');
-        } else if(v instanceof int i){
-            encode(i);
-        } else if(v instanceof long l){
-            encode(l);
         } else if(v instanceof string str){
             encode(str);
         } else if(v instanceof Object obj){
             encode(obj);
+        } else if(v instanceof boolean B){
+            encode(B);
+        } else if(v instanceof int i){
+            encode(i);
+        } else if(v instanceof double d){
+            encode(d);
+        } else if(v instanceof long l){
+            encode(l);
+        } else if(v instanceof decimal dec){
+            encode(dec);
+        } else if(v instanceof float f){
+            encode(f);
+        } else if(v instanceof char c){
+            encode(c);
+        } else if(v instanceof byte b){
+            encode(b);
+        } else if(v instanceof short s){
+            encode(s);
         } else {
             Trace.print($"unknown v = ${v}"$);
         }
