@@ -265,14 +265,15 @@ class NoSuchMethodException from RuntimeException{
 }
 
 class Function<+R>{
-    fun runspace#get() as RunSpace native "org.siphonlab.ago.lang.RunSpaceAware.getRunSpace";
 
-    fun notify() native "org.siphonlab.ago.lang.Lang.Function_notify";      // wakeup current function paused by `await`, there is no Function<R>.wait() or pause(), for it must put in the function body itself
 }
+
+fun runspace#get(this as Function<_>) as RunSpace native "org.siphonlab.ago.lang.RunSpaceAware.getRunSpace";
+
+fun notify(this as Function<_>) native "org.siphonlab.ago.lang.Lang.Function_notify";      // wakeup current function paused by `await`, there is no Function<R>.wait() or pause(), for it must put in the function body itself
 
 interface NativeFunction for Function<_>{
 }
-
 
 class Generator<+R> from Function<R>{
     private done as boolean {public get;}

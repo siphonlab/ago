@@ -167,8 +167,8 @@ public class Lang {
 //        frame.finishVoid();
 //    }
 //
-    public static void Function_notify(NativeFrame frame) {
-        var caller = (CallFrame<?>) frame.getParentScope();
+    public static void Function_notify(NativeFrame frame, Instance<?> funInst) {
+        var caller = (CallFrame<?>) funInst;
         caller.resume();
         frame.finishVoid();
     }

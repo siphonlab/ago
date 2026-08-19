@@ -33,8 +33,8 @@ import static org.siphonlab.ago.TypeCode.STRING_VALUE;
 
 public class RunSpaceAware {
 
-    public static void getRunSpace(NativeFrame nativeFrame) {
-        CallFrame<?> fun = (CallFrame<?>) nativeFrame.getParentScope();       // Function<R>
+    public static void getRunSpace(NativeFrame nativeFrame, Instance<?> funInst) {
+        CallFrame<?> fun = (CallFrame<?>) funInst;       // Function<R>
         RunSpace runSpace = fun.getRunSpace();
 
         AgoEngine agoEngine = runSpace.getAgoEngine();
