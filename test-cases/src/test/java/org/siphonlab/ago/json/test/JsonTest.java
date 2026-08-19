@@ -44,4 +44,21 @@ public class JsonTest {
         Trace.printOutput();
         assertTrue(Trace.outputted("{\"b\":42,\"s\":100,\"d\":2.71828,\"ch\":\"A\",\"f\":3.14}", "{\"dec\":99.99}"));
     }
+
+    @Test
+    public void serialize_boxed() throws CompilationError, CompilationErrorsException, IOException {
+        Util.run("json/serialize_boxed.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+            "{\"val\":42}",
+            "{\"val\":999}",
+            "{\"val\":3.14}",
+            "{\"val\":2.718}",
+            "{\"val\":127}",
+            "{\"val\":32767}",
+            "{\"val\":\"X\"}",
+            "{\"val\":true}",
+            "{\"val\":\"hello\"}"
+        ));
+    }
 }

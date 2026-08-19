@@ -1,0 +1,84 @@
+import json.Encoder;
+
+fun main(){
+    // Boxed int (Integer from Number<int> from Boxer<int>)
+    var bi = new Integer(42);
+    var enc1 = new Encoder();
+    enc1.beginObject();
+    enc1.writeKey("val");
+    enc1.encode(bi|Object);
+    enc1.endObject();
+    Trace.print(enc1.toString());
+
+    // Boxed long (Long from Number<long> from Boxer<long>)
+    var bl = new Long(999L);
+    var enc2 = new Encoder();
+    enc2.beginObject();
+    enc2.writeKey("val");
+    enc2.encode(bl|Object);
+    enc2.endObject();
+    Trace.print(enc2.toString());
+
+    // Boxed float (Float from Number<float> from Boxer<float>)
+    var bf = new Float(3.14f);
+    var enc3 = new Encoder();
+    enc3.beginObject();
+    enc3.writeKey("val");
+    enc3.encode(bf|Object);
+    enc3.endObject();
+    Trace.print(enc3.toString());
+
+    // Boxed double (Double from Number<double> from Boxer<double>)
+    var bd = new Double(2.718);
+    var enc4 = new Encoder();
+    enc4.beginObject();
+    enc4.writeKey("val");
+    enc4.encode(bd|Object);
+    enc4.endObject();
+    Trace.print(enc4.toString());
+
+    // Boxed byte (Byte from Number<byte> from Boxer<byte>)
+    var bb = new Byte(127|byte);
+    var enc5 = new Encoder();
+    enc5.beginObject();
+    enc5.writeKey("val");
+    enc5.encode(bb|Object);
+    enc5.endObject();
+    Trace.print(enc5.toString());
+
+    // Boxed short (Short from Number<short> from Boxer<short>)
+    var bs = new Short(32767|short);
+    var enc6 = new Encoder();
+    enc6.beginObject();
+    enc6.writeKey("val");
+    enc6.encode(bs|Object);
+    enc6.endObject();
+    Trace.print(enc6.toString());
+
+    // Boxed char (Char from Boxer<char>)
+    var bc = new Char(c'X');
+    var enc7 = new Encoder();
+    enc7.beginObject();
+    enc7.writeKey("val");
+    enc7.encode(bc|Object);
+    enc7.endObject();
+    Trace.print(enc7.toString());
+
+    // Boxed boolean (Boolean from Boxer<boolean>)
+    var bbool = new Boolean(true);
+    var enc8 = new Encoder();
+    enc8.beginObject();
+    enc8.writeKey("val");
+    enc8.encode(bbool|Object);
+    enc8.endObject();
+    Trace.print(enc8.toString());
+
+    // Boxed string (String from Boxer<string>)
+    var bstr = new String("hello");
+    var enc9 = new Encoder();
+    enc9.beginObject();
+    enc9.writeKey("val");
+    enc9.encode(bstr|Object);
+    enc9.endObject();
+    Trace.print(enc9.toString());
+}
