@@ -123,7 +123,8 @@ public class Creator extends ExpressionInFunctionBody{
             }
             classDef = classOfScope.getClassDef();
         } else if(typeExpr instanceof ClassOf.ClassOfInstance classOfInstance){
-            throw new UnsupportedOperationException("unsupported creator for " + typeExpr);
+            scope = classOfInstance.getExpression();
+            classDef = classOfInstance.getClassDef();
         } else if(typeExpr instanceof ClassUnder.ClassUnderScope classUnderScope){
             scope = classUnderScope.getScope();
             classDef = classUnderScope.getClassDef();

@@ -197,7 +197,12 @@ public abstract class ClassOf extends ExpressionBase{
 
         @Override
         public ClassDef inferType() throws CompilationError {
-            return getClassDef().getMetaClassDef();
+            var classDef = getClassDef();
+            var m = classDef.getMetaClassDef();
+            if(m == null){
+                return new PhantomMetaClassDef(classDef);
+            }
+            return m;
         }
 
         public ClassDef getClassDef() throws CompilationError {
@@ -242,6 +247,10 @@ public abstract class ClassOf extends ExpressionBase{
         @Override
         public int hashCode() {
             return Objects.hashCode(expression);
+        }
+
+        public Expression getExpression() {
+            return expression;
         }
     }
 

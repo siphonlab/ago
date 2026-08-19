@@ -26,6 +26,7 @@ import org.siphonlab.ago.opcode.arithmetic.Neg;
 import org.siphonlab.ago.opcode.compare.Equals;
 import org.siphonlab.ago.opcode.compare.InstanceOf;
 import org.siphonlab.ago.opcode.compare.NotEquals;
+import org.siphonlab.ago.opcode.compare.UnionInstanceOf;
 import org.siphonlab.ago.opcode.logic.And;
 import org.siphonlab.ago.opcode.logic.BitNot;
 import org.siphonlab.ago.opcode.logic.Not;
@@ -592,6 +593,14 @@ public class CodeBuffer {
         sizeVerifier.verify();
     }
 
+    public void loadClassOfInstanceAsBoxed(SlotDef target, int boxedClassName, SlotDef instance, int metaLevel) {
+        SizeVerifier sizeVerifier = this.sizeVerifier();
+        ls.addInt(metaLevel == 1 ? Load.loadclsref_vCo : Load.loadclsref2_vCo);
+        slot(target);
+        ls.addInt(boxedClassName);
+        slot(instance);
+        sizeVerifier.verify();
+    }
 
     public void bindClassUnderInstance(SlotDef target, int className, SlotDef instance) {
         SizeVerifier sizeVerifier = this.sizeVerifier();
@@ -909,22 +918,23 @@ public class CodeBuffer {
         slot(variableSlot);
     }
 
-    public void instanceOf(SlotDef target, SlotDef value, TypeCode primitiveTypeCode) {
-        ls.add((InstanceOf.instanceof_g_vvC & OpCode.DTYPE_MASK_NEG)  | (primitiveTypeCode.getValue() << 16));
+    public void instanceOf(SlotDef target, SlotDef value, TypeCode primitiveTypeCode, boolean union) {
+        int op = union ? UnionInstanceOf.uinstanceof_g_vvC : InstanceOf.instanceof_g_vvC;
+        ls.add((op & OpCode.DTYPE_MASK_NEG)  | (primitiveTypeCode.getValue() << 16));
         slot(target);
         slot(value);
         ls.addInt(0);
     }
 
-    public void instanceOf(SlotDef target, SlotDef value, int className) {
-        ls.add(InstanceOf.instanceof_o_vvC);
+    public void instanceOf(SlotDef target, SlotDef value, int className, boolean union) {
+        ls.add(union ? UnionInstanceOf.uinstanceof_o_vvC : InstanceOf.instanceof_o_vvC);
         slot(target);
         slot(value);
         ls.addInt(className);
     }
 
-    public void instanceOf_primitive(SlotDef target, SlotDef value, int className) {
-        ls.add(InstanceOf.instanceof_p_vvC);
+    public void instanceOf_primitive(SlotDef target, SlotDef value, int className, boolean union) {
+        ls.add(union ? UnionInstanceOf.uinstanceof_p_vvC : InstanceOf.instanceof_p_vvC);
         slot(target);
         slot(value);
         ls.addInt(className);

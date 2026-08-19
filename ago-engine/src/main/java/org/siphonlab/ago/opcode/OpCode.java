@@ -25,6 +25,7 @@ public class OpCode {
     // for positive number, get the instance from frame.slots[i]
 
     public static final int KIND_MASK       = 0xff000000;
+    public static final int KIND_MASK_NEG   = 0x00ffffff;
     public static final int DTYPE_MASK      = 0x00ff0000;
     public static final int DTYPE_MASK_NEG  = 0xff00ffff;
     public static final int SIZE_MASK       = 0x000000ff;

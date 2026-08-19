@@ -50,20 +50,24 @@ public class CastToScopedClassRef extends ExpressionInFunctionBody{
             ClassDef classDef = pair.getRight();
 
             blockCompiler.lockRegister(localVar);
-            ownerFunction.box(classDef.toClassRefLiteral(), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);
+            if(expression instanceof ClassOf.ClassOfInstance classOfInstance) {
+                Var.LocalVar cls = (Var.LocalVar) classOfInstance.getExpression().visit(blockCompiler);
+                blockCompiler.getCode().loadClassOfInstanceAsBoxed(localVar.getVariableSlot(), ownerFunction.idOfClass(this.scopedClassIntervalClassDef), cls.getVariableSlot(), classOfInstance.getMetaLevel());
+            } else {
+                ownerFunction.box(classDef.toClassRefLiteral(), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);
 
-            ClassDef varType = localVar.inferType();
-            if (!varType.isThatOrDerivedFromThat(getRoot().getScopedClassInterval()) && !varType.isThatOrDerivedFromThat(getRoot().getScopedClassRefClass())) {
-                throw new TypeMismatchError("a ScopedClassRef or ScopedClassInterval expression expected", this.getSourceLocation());
+                ClassDef varType = localVar.inferType();
+                if (!varType.isThatOrDerivedFromThat(getRoot().getScopedClassInterval()) && !varType.isThatOrDerivedFromThat(getRoot().getScopedClassRefClass())) {
+                    throw new TypeMismatchError("a ScopedClassRef or ScopedClassInterval expression expected", this.getSourceLocation());
+                }
+                Compiler.processClassTillStage(varType, CompilingStage.Compiled);
+
+                var fld = new Var.Field(ownerFunction, localVar, varType.getVariable("scope"));
+
+                if (scope != null) {
+                    Assign.to(ownerFunction, fld, scope, false).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
+                }
             }
-            Compiler.processClassTillStage(varType, CompilingStage.Compiled);
-
-            var fld = new Var.Field(ownerFunction, localVar, varType.getVariable("scope"));
-
-            if(scope != null) {
-                Assign.to(ownerFunction, fld, scope, false).setSourceLocation(this.getSourceLocation()).termVisit(blockCompiler);
-            }
-
             blockCompiler.releaseRegister(localVar);
         } catch (CompilationError e) {
             throw e;
