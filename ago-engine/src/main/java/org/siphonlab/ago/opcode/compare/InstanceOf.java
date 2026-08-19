@@ -37,7 +37,6 @@ public class InstanceOf implements GenericOpCode {
     public static final int instanceof_s_vv = 0x31_09_01_03;
     public static final int instanceof_l_vv = 0x31_0b_01_03;
 
-
     public static final int instanceof_o_vvC = 0x31_01_01_03;
     public static final int instanceof_p_vvC = 0x31_01_02_03;       // determine is Primitive or PrimitiveNumber
 

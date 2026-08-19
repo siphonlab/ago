@@ -288,7 +288,7 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 if(unionType == OBJECT){
                     slots.setBoolean(target, isInstanceOf((Instance<?>) obj, engine.getClass(code[pc++])));
                 } else {
-                    pc += 2;        // skip getObject and getClass
+                    pc ++;
                     slots.setBoolean(target, false);
                 }
             }
@@ -1200,8 +1200,22 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 }
             } break;
 
+            case Load.loadclsref_vCo:
+                loadClassRefOfInstance(self, engine, slots, code[pc++], engine.getClass(code[pc++]), slots.getObject(code[pc++]));
+                break;
+
+            case Load.loadclsref2_vCo:
+                loadClassRefOfInstance(self, engine, slots, code[pc++], engine.getClass(code[pc++]), slots.getObject(code[pc++]).getAgoClass());
+                break;
+
         }
         return pc;
+    }
+
+    private void loadClassRefOfInstance(CallFrame<?> self, AgoEngine engine, Slots slots, int target, AgoClass classRefBoxType, Instance<?> instance){
+        AgoClass cls = instance.getAgoClass();
+        var inst = engine.getBoxer().boxClassRef(self, classRefBoxType, cls, cls.getParentScope());
+        slots.setObject(target, inst);
     }
 
     public AgoClass createScopedClass(CallFrame<?> self, int classId, Instance<?> parentScope, int pc) {

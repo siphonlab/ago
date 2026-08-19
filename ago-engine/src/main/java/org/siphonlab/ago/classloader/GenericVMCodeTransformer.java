@@ -29,6 +29,7 @@ import static org.siphonlab.ago.AgoClass.TYPE_TRAIT;
 import static org.siphonlab.ago.TypeCode.GENERIC_TYPE_START;
 import static org.siphonlab.ago.TypeCode.OBJECT_VALUE;
 import static org.siphonlab.ago.opcode.Const.const_ng_v;
+import static org.siphonlab.ago.opcode.OpCode.KIND_MASK_NEG;
 
 public class GenericVMCodeTransformer {
 
@@ -52,7 +53,8 @@ public class GenericVMCodeTransformer {
         boolean isMethod = false;
         while (code.hasRemaining()) {
             var instruction = code.getInt();
-            switch (instruction >> 24) {
+            int op = instruction >> 24;
+            switch (op) {
 //                    case Load.loadcls_vC:
 //                    case Load.bindcls_vCo:
 //                    case Load.bindcls_scope_vCc:
@@ -196,17 +198,38 @@ public class GenericVMCodeTransformer {
                     }
                     break;
 
-                case InstanceOf.OP: {
+                case InstanceOf.OP:         //TODO we have the slot type now, it can be direct change to const_B_vc if not union
+                case UnionInstanceOf.OP: {
+                    var slot = code.getInt(code.position() + 4);
+                    var slotType = instantFunction.getSlots()[slot].type();
+                    boolean isUnion = (op == UnionInstanceOf.OP);
+                    if(slotType.getTypeCode().value >= GENERIC_TYPE_START){
+                        // still generic
+                    } else {
+                        isUnion = (slotType.getTypeCode() == TypeCode.UNION);
+                    }
                     var type = (instruction & OpCode.DTYPE_MASK) >> 16;
+                    int instruction2;
+                    if(op == UnionInstanceOf.OP && !isUnion) {
+                        instruction2 = (instruction & KIND_MASK_NEG) | InstanceOf.OP;
+                    } else if(op == InstanceOf.OP && isUnion) {
+                        instruction2 = (instruction & KIND_MASK_NEG) | UnionInstanceOf.OP;
+                    } else {
+                        instruction2 = instruction;
+                    }
                     if (type >= GENERIC_TYPE_START) {
                         var mappedType = instantiationArguments.mapType(type);
-                        int instruction2 = (instruction & OpCode.DTYPE_MASK_NEG) | (mappedType.getTypeCode().value << 16);
-                        replaceWithInstruction(code, instruction2);
+                        instruction2 = (instruction2 & OpCode.DTYPE_MASK_NEG) | (mappedType.getTypeCode().value << 16);
                         if(mappedType.getTypeCode().isObject() || mappedType.getTypeCode() == TypeCode.UNION){
                             instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
                         }
-                    } else if(type == TypeCode.OBJECT_VALUE || type == TypeCode.UNION_VALUE){
+                    } else if(type == TypeCode.OBJECT_VALUE){
                         instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
+                    } else if(type == TypeCode.UNION_VALUE){
+                        instantiateClassName(code, 2, strings, instantiationArguments, instantFunction);
+                    }
+                    if(instruction2 != instruction){
+                        replaceWithInstruction(code, instruction2);
                     }
                     break;
                 }

@@ -57,7 +57,13 @@ public class Conversion {
         if(targetTypeCode == UNION_VALUE){
             return castToUnion(self, agoFrame, slots, targetIndex, targetClass, srcSlotIndex, srcTypeCode, srcClass) ? CAST_TO_ANY_SUCCESS : CAST_TO_ANY_FAILED;
         } else if(srcTypeCode == UNION_VALUE){
-            return castFromUnion(self, agoFrame, slots, targetIndex, targetTypeCode, targetClass, slots.getUnion(srcSlotIndex), srcClass) ? CAST_TO_ANY_SUCCESS : CAST_TO_ANY_FAILED;
+            Object unionValue = slots.getUnion(srcSlotIndex);
+            if(unionValue instanceof Instance<?> object && targetTypeCode == TypeCode.STRING_VALUE){
+                object.invokeMethod(self, REENTER_INVOKE_TO_STRING, targetIndex, object.getAgoClass().findMethod("toString#"));
+                return CAST_TO_ANY_WAIT_RESULT;
+            } else {
+                return castFromUnion(self, agoFrame, slots, targetIndex, targetTypeCode, targetClass, unionValue, srcClass) ? CAST_TO_ANY_SUCCESS : CAST_TO_ANY_FAILED;
+            }
         }
         if(isPrimitiveExcludeNull(srcTypeCode)) {   // primitive src
             if (isPrimitiveExcludeNull(targetTypeCode)) {
@@ -107,6 +113,7 @@ public class Conversion {
         return CAST_TO_ANY_SUCCESS;
     }
 
+    // TODO this function not support instance -> string, invoke toString()
     public static boolean castFromUnion(CallFrame<?> self, CallFrame<?> agoFrame, Slots slots, int targetIndex, int targetTypeCode, AgoClass targetClass, Object unionValue, AgoClass srcClass) {
         var srcTypeOfUnionValue = Union.extractUnionType(unionValue).value;
         var boxer = agoFrame.getAgoEngine().getBoxer();
@@ -118,7 +125,7 @@ public class Conversion {
                 return false;
             } else {
                 var unboxed = boxer.unbox((Instance<?>) unionValue);
-                if(unboxed != unionValue && unboxed != null){
+                if(unboxed != unionValue && unboxed != null) {
                     castPrimitiveToPrimitive(slots, targetIndex, targetTypeCode, unboxed, agoFrame);
                 } else {
                     agoFrame.raiseException(self, "lang.ClassCastException", "'%s' can't cast to '%s'".formatted(srcClass.getFullname(), targetClass.getFullname()));

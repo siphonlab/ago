@@ -201,6 +201,8 @@ public class CodeTransformer {
                     updateStringId(instruction, 0); break;
 
                 case Load.loadcls_vC:           updateClassId(instruction, 1); break;
+                case Load.loadclsref_vCo:           updateClassId(instruction, 1); break;
+                case Load.loadclsref2_vCo:           updateClassId(instruction, 1); break;
                 //TODO not sure it should support Generic
                 case Load.bindcls_scope_vCc:    updateClassId(instruction, 1); break;
                 case Load.bindcls_vCo:          updateClassId(instruction, 1); break;
@@ -295,6 +297,8 @@ public class CodeTransformer {
 
                 case InstanceOf.instanceof_o_vvC:
                 case InstanceOf.instanceof_p_vvC:
+                case UnionInstanceOf.uinstanceof_o_vvC:
+                case UnionInstanceOf.uinstanceof_p_vvC:
                     updateClassId(instruction, 2);
                     break;
 

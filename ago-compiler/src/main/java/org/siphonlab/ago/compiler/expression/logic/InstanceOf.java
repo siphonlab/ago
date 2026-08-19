@@ -15,6 +15,7 @@
  */
 package org.siphonlab.ago.compiler.expression.logic;
 
+import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 
@@ -84,12 +85,13 @@ public class InstanceOf extends ExpressionInFunctionBody {
             } else {
                 expressionResult = (Var.LocalVar) t;
             }
+            boolean union = (expressionResult.inferType().getTypeCode() == TypeCode.UNION);
             if (type.isPrimitive()) {
-                code.instanceOf(localVar.getVariableSlot(), expressionResult.getVariableSlot(), type.getTypeCode());
+                code.instanceOf(localVar.getVariableSlot(), expressionResult.getVariableSlot(), type.getTypeCode(), union);
             } else if(type.isPrimitiveFamily()) {
-                code.instanceOf_primitive(localVar.getVariableSlot(), expressionResult.getVariableSlot(), blockCompiler.getFunctionDef().idOfClass(type));
+                code.instanceOf_primitive(localVar.getVariableSlot(), expressionResult.getVariableSlot(), blockCompiler.getFunctionDef().idOfClass(type), union);
             } else {
-                code.instanceOf(localVar.getVariableSlot(), expressionResult.getVariableSlot(), blockCompiler.getFunctionDef().idOfClass(type));
+                code.instanceOf(localVar.getVariableSlot(), expressionResult.getVariableSlot(), blockCompiler.getFunctionDef().idOfClass(type), union);
             }
             if (this.receiverVar != null) {
                 var exitLabel = blockCompiler.createLabel();
@@ -100,7 +102,11 @@ public class InstanceOf extends ExpressionInFunctionBody {
                     10	jump_f_vc	3,40
                  */
                 code.jumpIfNot(localVar.getVariableSlot(), exitLabel);
-                ownerFunction.assign(receiverVar, expressionResult).termVisit(blockCompiler);
+                if(!union) {
+                    ownerFunction.assign(receiverVar, expressionResult).termVisit(blockCompiler);
+                } else {
+                    ownerFunction.assign(receiverVar, ownerFunction.cast(expressionResult, receiverVar.inferType(), true).transform()).termVisit(blockCompiler);
+                }
                 exitLabel.here();
             }
         } catch (CompilationError e) {
