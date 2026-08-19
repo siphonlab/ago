@@ -69,7 +69,8 @@ public class Lang {
     public static void Object_getClass( NativeFrame frame){
         Instance<?> object = frame.getParentScope();
         AgoEngine engine = frame.getAgoEngine();
-        var scopedClassRef = engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getScopedClassRefClass(), object.getAgoClass(), object.getParentScope());
+        AgoClass agoClass = object.getAgoClass();
+        var scopedClassRef = engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getScopedClassRefClass(), agoClass, object.getParentScope());
         frame.finishObject(scopedClassRef);
     }
 
@@ -172,6 +173,15 @@ public class Lang {
         caller.resume();
         frame.finishVoid();
     }
+
+    public static void Function_getResultType(NativeFrame frame, Instance<?> funInst) {
+        AgoEngine engine = frame.getAgoEngine();
+        var typeArgs = engine.getLangClasses().getFunctionClass().asThatOrSuperOfThat(funInst.getAgoClass()).getConcreteTypeInfo();
+        var R = ((GenericArgumentsInfo) typeArgs).getArguments()[0];
+        var scopedClassRef = engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getScopedClassRefClass(), R, R.getParentScope());
+        frame.finishObject(scopedClassRef);
+    }
+
 //
 //    public static void Function_cancel(NativeFrame frame) {
 //        System.out.println("cancel " + frame);

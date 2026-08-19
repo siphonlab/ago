@@ -272,6 +272,8 @@ fun runspace#get(this as Function<_>) as RunSpace native "org.siphonlab.ago.lang
 
 fun notify(this as Function<_>) native "org.siphonlab.ago.lang.Lang.Function_notify";      // wakeup current function paused by `await`, there is no Function<R>.wait() or pause(), for it must put in the function body itself
 
+fun resultType#get(this as Function<_>) as ScopedClassRef native "org.siphonlab.ago.lang.Lang.Function_getResultType";
+
 interface NativeFunction for Function<_>{
 }
 

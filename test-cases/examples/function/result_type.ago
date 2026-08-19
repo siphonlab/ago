@@ -1,0 +1,11 @@
+fun multi(a as int, b as int) as int{
+    return a * b;
+}
+
+fun main(){
+    var r = new multi(2, 3);
+
+    Trace.print(fun.this.resultType);
+
+    Trace.print(r.resultType);
+}

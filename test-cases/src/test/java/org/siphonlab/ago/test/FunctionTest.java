@@ -89,4 +89,12 @@ public class FunctionTest {
         assertTrue(Trace.outputted("8", "12"));
     }
 
+    @Test
+    public void result_type() throws CompilationError, CompilationErrorsException, IOException {
+        run("function/result_type.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("void", "int"));
+    }
+
+
 }
