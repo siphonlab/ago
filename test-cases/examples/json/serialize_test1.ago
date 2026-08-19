@@ -1,0 +1,99 @@
+import json.JsonSerializable;
+import json.Encoder;
+import json.Decoder;
+
+class Person{
+    public name as string;
+    public age as int;
+}
+
+class Address with JsonSerializable{
+    city as string;
+    zip as int;
+
+    fun new(city as string, zip as int){
+        this.city = city;
+        this.zip = zip;
+    }
+
+    override fun encode(encoder as Encoder){
+        encoder.beginObject();      // atValue = false
+        encoder.writeKey("city");   // atValue = false
+        encoder.encode#string(city);    // atValue = false, dont append ','; append city
+        encoder.writeKey("zip");    // atValue = false
+        encoder.encode#int(zip);
+        encoder.endObject();
+    }
+
+    metaclass{
+        fun json_decoder(decoder as Decoder) as Address{
+            return new Address("", 0);
+        }
+    }
+}
+
+fun serializePerson(p as Person, encoder as Encoder){
+    encoder.beginObject();
+    encoder.writeKey("name");
+    encoder.encode#string(p.name);
+    encoder.writeKey("age");
+    encoder.encode#int(p.age);
+    encoder.endObject();
+}
+
+fun serializeAddress(addr as Address, encoder as Encoder){
+    (addr|JsonSerializable).encode(encoder);
+}
+
+class Employee{
+    public name as string;
+    public age as int;
+    public addr as Address;
+}
+
+fun serializeEmployee(emp as Employee, encoder as Encoder){
+    encoder.beginObject();
+    encoder.writeKey("name");
+    encoder.encode(emp.name);
+    encoder.writeKey("age");
+    encoder.encode(emp.age);
+    encoder.writeKey("addr");
+    (emp.addr|JsonSerializable).encode(encoder);
+    encoder.endObject();
+}
+
+fun main(){
+    // Test 1: JsonSerializable object — Address implements encode()
+    var addr = new Address("Beijing", 100000);
+    var enc1 = new Encoder();
+    serializeAddress(addr, enc1);
+    Trace.print(enc1.toString());
+
+    // Test 2: Plain object — Person serialized via explicit property access
+    var p = new Person();
+    p.name = "Alice";
+    p.age = 30;
+    var enc2 = new Encoder();
+    enc2.encode(p);
+    Trace.print(enc2);
+
+    // Test 3: Nested — Employee with Address field (Address is JsonSerializable)
+    var emp = new Employee();
+    emp.name = "Bob";
+    emp.age = 25;
+    emp.addr = new Address("Shanghai", 200000);
+    var enc3 = new Encoder();
+    enc3.encode(emp);
+    Trace.print(enc3);
+
+//    // Test 4: Array of objects
+//    var enc4 = new Encoder();
+//    enc4.beginArray();
+//    serializePerson(p, enc4);
+//    var p2 = new Person();
+//    p2.name = "Charlie";
+//    p2.age = 35;
+//    serializePerson(p2, enc4);
+//    enc4.endArray();
+//    Trace.print(enc4.toString());
+}

@@ -1,0 +1,177 @@
+package json;
+
+// =============================================================================
+// JsonSerializable — marker interface for types that can encode/decode JSON
+// Implementing classes should provide:
+//   fun encode(encoder as Encoder);
+//   metaclass { fun json_decoder(decoder as Decoder) as <ClassName>; }
+// =============================================================================
+interface JsonSerializable{
+    fun encode(encoder as Encoder);
+    //fun new#json_decoder(decoder as Decoder);
+}
+
+// =============================================================================
+// Encoder — writes JSON text using a StringBuilder
+// =============================================================================
+class Encoder{
+    sb as StringBuilder;
+    pretty as boolean = false;
+    atValue as boolean = false;
+    depth as int = 0;
+
+    fun new(){
+        this.sb = new StringBuilder();
+    }
+
+    override toString() as string{
+        return sb.toString();
+    }
+
+    fun setPretty(pretty as boolean){
+        this.pretty = pretty;
+    }
+
+    // Write a raw JSON value (adds comma separator if needed).
+    fun writeRaw(s as string){
+        if(atValue){
+            sb.append(",");
+        }
+        atValue = true;
+        sb.append(s);
+    }
+
+    // Encode an int value.
+    fun encode#int(value as int){
+        writeRaw(value|string);
+    }
+
+    // Encode a long value.
+    fun encode#long(value as long){
+        writeRaw(value|string);
+    }
+
+    // Encode a boolean value.
+    fun encode#boolean(value as boolean){
+        writeRaw(value|string);
+    }
+
+    // Encode a string value (null-safe).
+    fun encode#string(value as string?){
+        if(value == null){
+            writeRaw("null");
+        } else {
+            writeRaw("\"" + value.escapeJson() + "\"");
+        }
+    }
+
+    // Begin encoding an array.
+    fun beginArray(){
+        if(atValue){
+            sb.append(",");
+        }
+        depth++;
+        atValue = false;
+        sb.append("[");
+    }
+
+    // Finish encoding an array.
+    fun endArray(){
+        depth--;
+        if(depth == 0){
+            atValue = false;
+        }
+        sb.append("]");
+    }
+
+    // Begin encoding an object.
+    fun beginObject(){
+        if(atValue){
+            sb.append(",");
+        }
+        depth++;
+        atValue = false;
+        sb.append("{");
+    }
+
+    // Finish encoding an object.
+    fun endObject(){
+        depth--;
+        if(depth == 0){
+            atValue = false;
+        }
+        sb.append("}");
+    }
+
+    // Write an object key.
+    fun writeKey(key as string){
+        if(atValue){
+            sb.append(",");
+        }
+        atValue = false;
+        sb.append("\"");
+        sb.append(key.escapeJson());
+        sb.append("\":");
+    }
+
+    fun encode#object(value as Object){
+        if(value instanceof JsonSerializable ser){
+            ser.encode(this);
+        } else {
+            beginObject();
+            var props = value.class.getProperties(false);
+            var l = props.length;
+            for(var i=0; i < l; i++){
+                var p = props[i];
+                var name = p.name;
+                writeKey(name);
+                encode(value[name]);
+            }
+            endObject();
+        }
+    }
+
+    fun encode#any(v as any){
+        if(v == null){
+            writeRaw('null');
+        } else if(v instanceof int i){
+            encode(i);
+        } else if(v instanceof long l){
+            encode(l);
+        } else if(v instanceof string str){
+            encode(str);
+        } else if(v instanceof Object obj){
+            encode(obj);
+        } else {
+            Trace.print($"unknown v = ${v}"$);
+        }
+    }
+
+}
+
+// =============================================================================
+// Decoder — basic JSON decoder stub
+// Full parsing implementation requires native method backing for string
+// manipulation and number parsing not available in pure ago.
+// =============================================================================
+class Decoder{
+    input as string;
+
+    fun new(input as string){
+        this.input = input;
+    }
+
+    // Get the raw input string (caller must parse).
+    fun getInput() as string{
+        return input;
+    }
+}
+
+// =============================================================================
+// JsonException — runtime exception for JSON errors
+// =============================================================================
+class JsonException from RuntimeException{
+    fun new#message(message as string){
+        super(message);
+    }
+}

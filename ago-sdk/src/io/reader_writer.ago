@@ -1,0 +1,71 @@
+package io;
+
+// =============================================================================
+// Reader — abstract base class for character-input streams
+// =============================================================================
+abstract class Reader{
+    abstract fun read() as int;
+    abstract fun close();
+}
+
+// =============================================================================
+// Writer — abstract base class for character-output streams
+// =============================================================================
+abstract class ChWriter{
+    abstract fun write(c as int);
+    abstract fun flush();
+    abstract fun close();
+}
+
+// =============================================================================
+// StringReader — reads from an in-memory string
+// =============================================================================
+class StringReader from Reader{
+    input as string;
+    pos as int = 0;
+    count as int;
+
+    fun new(input as string){
+        this.input = input;
+        this.count = input.length();
+    }
+
+    override fun read() as int{
+        if(pos >= count) return -1;
+        var ch = input[pos];
+        pos++;
+        return (ch|int);
+    }
+
+    override fun close() as void{
+    }
+}
+
+// =============================================================================
+// StringWriter — writes into an internal buffer (backed by StringBuilder)
+// =============================================================================
+class StringWriter from ChWriter{
+    buf as StringBuilder;
+
+    fun new(){
+        this.buf = new StringBuilder();
+    }
+
+    override fun write(c as int){
+        buf.append((c|char));
+    }
+
+    override fun flush() as void{
+    }
+
+    override fun close() as void{
+    }
+
+    fun getBuffer() as string{
+        return buf.toString();
+    }
+
+    override toString() as string{
+        return getBuffer();
+    }
+}

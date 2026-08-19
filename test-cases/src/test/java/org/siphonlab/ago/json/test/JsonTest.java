@@ -27,4 +27,9 @@ public class JsonTest {
     public void serialize() throws CompilationError, CompilationErrorsException, IOException {
         Util.run("json/serialize.ago");
     }
+
+    @Test
+    public void serialize_test1() throws CompilationError, CompilationErrorsException, IOException {
+        Util.run("json/serialize_test1.ago");
+    }
 }

@@ -10,6 +10,8 @@ repository:
 units:
   - io.ago
   - Buffer.ago
+  - reader_writer.ago
+  - json.ago
   - file.ago
   - socket.ago
   - http.ago
