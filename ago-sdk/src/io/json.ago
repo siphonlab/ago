@@ -168,6 +168,8 @@ class Encoder{
             encode(bbool.value);
         } else if(value instanceof Boxer<string> bstr){
             encode(bstr.value);
+        } else if(value instanceof Boxer<classref> bclassref){
+            encode(bclassref.toString());       // Raw mode should encode the scope
         } else {
             beginObject();
             var props = value.class.getProperties(false);
@@ -207,6 +209,8 @@ class Encoder{
             encode(b);
         } else if(v instanceof short s){
             encode(s);
+        } else if(v instanceof classref cr){
+            encode((cr|ClassRef).toString())
         } else {
             Trace.print($"unknown v = ${v}"$);
         }

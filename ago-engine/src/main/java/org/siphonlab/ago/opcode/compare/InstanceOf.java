@@ -41,7 +41,7 @@ public class InstanceOf implements GenericOpCode {
     public static final int instanceof_p_vvC = 0x31_01_02_03;       // determine is Primitive or PrimitiveNumber
 
     // like(target, classref, class interval)
-    public static final int instanceof_C_vvC = 0x31_0c_02_03;
+    public static final int instanceof_C_vvC = 0x31_0c_01_03;
 
     public static String getName(int code){
         return switch(code){

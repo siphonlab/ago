@@ -628,9 +628,9 @@ public class CastStrategy {
         if(fromType.getUnboxedTypeCode() == CLASS_REF){
             throw new TypeMismatchError("classref not allowed", expression.getSourceLocation());
         }
-        if(toType.getUnboxedTypeCode() == CLASS_REF){
-            throw new TypeMismatchError("can't cast to classref", this.sourceLocation);
-        }
+//        if(toType.getUnboxedTypeCode() == CLASS_REF){
+//            throw new TypeMismatchError("can't cast to classref", this.sourceLocation);
+//        }
         return new ForceCast(ownerFunction, expression, toType, ForceCast.CastMode.CastToAny);
     }
 

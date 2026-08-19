@@ -294,8 +294,11 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             }
             break;
 
-            case InstanceOf.instanceof_p_vvC:  slots.setBoolean(code[pc++],
-                    isInstanceOfPrimitive(agoClass.slotsCreator.getSlotType(code[pc++]), engine.getClass(code[pc++])));break;
+            case UnionInstanceOf.uinstanceof_p_vvC:  slots.setBoolean(code[pc++],
+                    isInstanceOfPrimitive(slots.getUnion(code[pc++]), engine.getClass(code[pc++])));break;
+
+            case UnionInstanceOf.uinstanceof_C_vvC:  slots.setBoolean(code[pc++],
+                    isInstanceOfClassRef(slots.getUnion(code[pc++]), engine.getClass(code[pc++])));break;
 
         }
         return pc;
@@ -330,6 +333,9 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case InstanceOf.instanceof_p_vvC:  slots.setBoolean(code[pc++],
                         isInstanceOfPrimitive(agoClass.slotsCreator.getSlotType(code[pc++]), engine.getClass(code[pc++])));break;
 
+            case InstanceOf.instanceof_C_vvC:  slots.setBoolean(code[pc++],
+                    isInstanceOfClassRef(agoClass.getSlotDefs()[code[pc++]], engine.getClass(code[pc++])));break;
+
         }
         return pc;
     }
@@ -338,12 +344,47 @@ public class AgoFrame extends CallFrame<AgoFunction>{
         if(agoClass == engine.PRIMITIVE_TYPE){
             return slotType == int.class || slotType == long.class || slotType == short.class || slotType == byte.class
                     || slotType == String.class || slotType == double.class || slotType == float.class
-                          || slotType == boolean.class || slotType == char.class;
+                          || slotType == boolean.class || slotType == char.class || slotType == BigDecimal.class;
         } else if(agoClass == engine.PRIMITIVE_NUMBER_TYPE){
             return slotType == int.class || slotType == long.class || slotType == short.class || slotType == byte.class
-                                || slotType == double.class || slotType == float.class;
+                                || slotType == double.class || slotType == float.class || slotType == BigDecimal.class;
         }
         throw new IllegalArgumentException("illegal type '%s', only lang.Primitive and lang.PrimitiveNumber allowed".formatted(agoClass.getFullname()));
+    }
+
+    private boolean isInstanceOfPrimitive(Object union, AgoClass agoClass) {
+        if(union == null) return false;
+        if(agoClass == engine.PRIMITIVE_TYPE){
+            return union instanceof Integer || union instanceof Long || union instanceof Short || union instanceof Byte
+                    || union instanceof String || union instanceof Double || union instanceof Float
+                    || union instanceof Boolean || union instanceof Character;
+        } else if(agoClass == engine.PRIMITIVE_NUMBER_TYPE){
+            return union instanceof Integer || union instanceof Long || union instanceof Short || union instanceof Byte
+                    || union instanceof Double || union instanceof Float;
+        }
+        throw new IllegalArgumentException("illegal type '%s', only lang.Primitive and lang.PrimitiveNumber allowed".formatted(agoClass.getFullname()));
+    }
+
+
+    private boolean isInstanceOfClassRef(AgoSlotDef slotType, AgoClass agoClass) {
+        if(agoClass == null){
+            return slotType.getTypeCode() == CLASS_REF;
+        } else {
+            return slotType.getAgoClass().isThatOrDerivedFrom(agoClass);
+        }
+    }
+
+    private boolean isInstanceOfClassRef(Object union, AgoClass agoClass) {
+        TypeCode type = Union.extractUnionType(union);
+        if(agoClass == null){
+            return type == CLASS_REF;
+        } else {
+            if(type == CLASS_REF){
+                var classref = Union.unionToClassRef(union, engine);
+                return agoClass.isThatOrSuperOfThat(engine.getClass(classref));
+            }
+            return type == OBJECT && ((Instance<?>)union).getAgoClass().isThatOrDerivedFrom(agoClass);
+        }
     }
 
     private boolean isInstanceOf(Instance<?> object, AgoClass aClass) {
