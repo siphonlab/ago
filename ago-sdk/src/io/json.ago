@@ -148,6 +148,22 @@ class Encoder{
     fun encode#object(value as Object){
         if(value instanceof JsonSerializable ser){
             ser.encode(this);
+        } else if(value instanceof Integer bi){
+            encode(bi.value);
+        } else if(value instanceof Long bl){
+            encode(bl.value);
+        } else if(value instanceof Float bf){
+            encode(bf.value);
+        } else if(value instanceof Double bd){
+            encode(bd.value);
+        } else if(value instanceof Byte bb){
+            encode(bb.value);
+        } else if(value instanceof Short bs){
+            encode(bs.value);
+        } else if(value instanceof Char bc){
+            encode(bc.value);
+        } else if(value instanceof Boolean bbool){
+            encode(bbool.value);
         } else {
             beginObject();
             var props = value.class.getProperties(false);
