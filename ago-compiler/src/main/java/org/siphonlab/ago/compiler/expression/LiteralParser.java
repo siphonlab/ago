@@ -183,10 +183,11 @@ public class LiteralParser {
         } else if(last == 'D'){
             type = TypeCode.DECIMAL;
             text = text.substring(0, text.length() - 1);
-        } else if(suggestionType != null){
-            type = suggestionType;
         } else {
             type = TypeCode.DOUBLE;
+        }
+        if(suggestionType != null){
+            type = suggestionType;
         }
 
         // Hexadecimal floating point starts with 0x/0X and contains a p/P exponent
