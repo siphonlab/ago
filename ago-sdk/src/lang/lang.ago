@@ -51,6 +51,24 @@ class Object from any{
         native "org.siphonlab.ago.lang.Lang.Object_hashCode";
 }
 
+enum TypeCode{
+    VOID,
+    OBJECT,
+    NULL,
+    STRING,
+    BOOLEAN,
+    CHAR,
+    FLOAT,
+    DOUBLE,
+    BYTE,
+    SHORT,
+    INT,
+    LONG,
+    CLASS_REF,
+    DECIMAL,
+    UNION
+}
+
 // box type for classref
 class ClassRef from Boxer<classref>{
     protected final value as classref;
@@ -63,6 +81,8 @@ class ClassRef from Boxer<classref>{
     final fun getBoxedClass() as Class {
         return boxedClass;
     }
+
+    final fun typeCode#get() as int native "org.siphonlab.ago.lang.Lang.ClassRef_typeCode"
 
     public override toString() as string native "org.siphonlab.ago.lang.Lang.ClassRef_toString"
 

@@ -61,6 +61,11 @@ public class Lang {
         frame.finishString(((AgoClass) scope).getName());
     }
 
+    public static void ClassRef_typeCode(NativeFrame frame){
+        AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
+        frame.finishInt(agoClass.getTypeCode().value);
+    }
+
     public static void ClassRef_getName(NativeFrame frame){
         AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
         frame.finishString(agoClass.getFullname());
