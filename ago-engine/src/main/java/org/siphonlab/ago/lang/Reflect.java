@@ -450,5 +450,23 @@ public class Reflect {
         }
     }
 
+    public static void isThatOrSuperOfThat(NativeFrame frame, Instance<?> anotherClassRef){
+        AgoClass agoClass = getClassFromClassRef(frame);
+        AgoClass anotherClass = Boxer.getClassFromClassRef(anotherClassRef);
+        frame.finishBoolean(agoClass.isThatOrSuperOfThat(anotherClass));
+    }
+
+    public static void asThatOrSuperOfThat(NativeFrame frame, Instance<?> anotherClassRef){
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass agoClass = getClassFromClassRef(frame);
+        AgoClass anotherClass = Boxer.getClassFromClassRef(anotherClassRef);
+        AgoClass result = agoClass.asThatOrSuperOfThat(anotherClass);
+        if(result == null){
+            frame.finishUnion(null);
+        } else {
+            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), result));
+        }
+    }
+
 
 }

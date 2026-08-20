@@ -126,6 +126,9 @@ class ClassRef from Boxer<classref>{
     fun createInstance#1(scope as Object) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
     fun createInstance#2(constructor as ClassRef, arguments as any ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
     fun createInstance#3(scope as Object, constructor as ClassRef, arguments as any ...) as Object native "org.siphonlab.ago.lang.Reflect.createInstance";
+
+    fun isThatOrSuperOfThat(another as ClassRef) as boolean native "org.siphonlab.ago.lang.Reflect.isThatOrSuperOfThat";
+    fun asThatOrSuperOfThat(another as ClassRef) as ClassRef? native "org.siphonlab.ago.lang.Reflect.asThatOrSuperOfThat";
 }
 
 class ScopedClassRef from ClassRef{
