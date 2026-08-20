@@ -219,12 +219,15 @@ class Encoder{
 }
 
 // =============================================================================
-// Decoder — basic JSON decoder stub
-// Full parsing implementation requires native method backing for string
-// manipulation and number parsing not available in pure ago.
+// Decoder — JSON decoder
+// For object types, call decode<T>() where T is the target class.
+// Inside the generic function, fun.this.resultType yields a ScopedClassRef
+// that can be used with createInstance() to instantiate the target type.
+// Only classes with a no-arg constructor are supported.
 // =============================================================================
 class Decoder{
     input as string;
+    pos as int = 0;
 
     fun new(input as string){
         this.input = input;
@@ -233,6 +236,427 @@ class Decoder{
     // Get the raw input string (caller must parse).
     fun getInput() as string{
         return input;
+    }
+
+    // --- low-level parsing helpers ---
+
+    fun skipWhitespace(){
+        var len = input.length();
+        while(pos < len){
+            var c = input.charAt(pos);
+            if(c != ' ' and c != '\t' and c != '\n' and c != '\r'){
+                break;
+            }
+            pos++;
+        }
+    }
+
+    fun currentChar() as char{
+        skipWhitespace();
+        if(pos >= input.length()){
+            throw new JsonException("Unexpected end of JSON input");
+        }
+        return input.charAt(pos);
+    }
+
+    fun match(expected as char){
+        skipWhitespace();
+        if(pos >= input.length()){
+            throw new JsonException($"Expecting '${expected}' but reached end of input"$);
+        }
+        var c = input.charAt(pos);
+        if(c != expected){
+            throw new JsonException($"Expecting '{expected}' at position ${pos}, got '{c}'"$);
+        }
+        pos++;
+    }
+
+    // --- value decoders ---
+
+    fun decodeString() as string{
+        match(c'"');
+        var sb = new StringBuilder();
+        while(pos < input.length()){
+            var c = input.charAt(pos);
+            if(c == c'"'){
+                pos++;
+                return sb.toString().unescapeJson();
+            }
+            if(c == c'\\'){
+                pos++;
+                var esc = input.charAt(pos);
+                switch(esc){
+                    case '"':  sb.append('"'); break;
+                    case '\\': sb.append('\\'); break;
+                    case '/':  sb.append('/'); break;
+                    case 'b':  sb.append('\b'); break;
+                    case 'f':  sb.append('\f'); break;
+                    case 'n':  sb.append('\n'); break;
+                    case 'r':  sb.append('\r'); break;
+                    case 't':  sb.append('\t'); break;
+                    default:
+                        sb.append('\\');
+                        sb.append(esc);
+                        break;
+                }
+            } else {
+                sb.append(c);
+            }
+            pos++;
+        }
+        throw new JsonException("Unterminated string");
+    }
+
+    fun decodeNumber() as any{
+        var start = pos;
+        if(input.charAt(pos) == c'-'){
+            pos++;
+        }
+        while(pos < input.length()){
+            var c = input.charAt(pos);
+            if(c >= c'0' and c <= c'9'){
+                pos++;
+            } else {
+                break;
+            }
+        }
+        var hasFraction = false;
+        var hasExponent = false;
+        if(pos < input.length() and input.charAt(pos) == c'.'){
+            hasFraction = true;
+            pos++;
+            while(pos < input.length()){
+                var c = input.charAt(pos);
+                if(c >= c'0' and c <= c'9'){
+                    pos++;
+                } else {
+                    break;
+                }
+            }
+        }
+        if(pos < input.length() and (input.charAt(pos) == c'e' or input.charAt(pos) == c'E')){
+            hasExponent = true;
+            pos++;
+            if(pos < input.length() and (input.charAt(pos) == c'+' or input.charAt(pos) == c'-')){
+                pos++;
+            }
+            while(pos < input.length()){
+                var c = input.charAt(pos);
+                if(c >= c'0' and c <= c'9'){
+                    pos++;
+                } else {
+                    break;
+                }
+            }
+        }
+        var numStr = input.substring(start, pos);
+        if(hasFraction or hasExponent){
+            return numStr | double;
+        } else {
+            return numStr | long;
+        }
+    }
+
+    fun decodeLiteral() as Object?{
+        var ch = input.charAt(pos);
+        if(ch == c't'){
+            if(input.substring(pos, pos+4) == "true"){
+                pos += 4;
+                return true | Object;
+            }
+            throw new JsonException($"Unexpected token at position ${pos}"$);
+        }
+        if(ch == c'f'){
+            if(input.substring(pos, pos+5) == "false"){
+                pos += 5;
+                return false | Object;
+            }
+            throw new JsonException($"Unexpected token at position ${pos}"$);
+        }
+        if(ch == c'n'){
+            if(input.substring(pos, pos+4) == "null"){
+                pos += 4;
+                return null;
+            }
+            throw new JsonException($"Unexpected token at position ${pos}"$);
+        }
+        throw new JsonException($"Unexpected character '{ch}' at position ${pos}"$);
+    }
+
+    // Decode a JSON array, returns an Object[].
+    fun decodeArray() as Object[]{
+        match(c'[');
+        var list = new ArrayList<Object>();
+        if(currentChar() == c']'){
+            pos++;
+            return list.toArray();
+        }
+        while(decodeOneArrayElement(list)){
+        }
+        match(c']');
+        return list.toArray();
+    }
+
+    fun decodeOneArrayElement(list as ArrayList<Object>) as boolean{
+        var value = decodeValue();
+        list.add(value | Object);
+        skipWhitespace();
+        if(pos < input.length() and input.charAt(pos) == c','){
+            pos++;
+            return true;
+        }
+        return false;
+    }
+
+    // Decode a JSON object into a plain map-like structure (key-value pairs).
+    // Returns an array of [key, value] pairs.
+    fun decodeObjectRaw() as Object[]{
+        match(c'{');
+        var keys = new ArrayList<string>();
+        var values = new ArrayList<any>();
+        if(currentChar() == c'}'){
+            pos++;
+            return packPairs(keys, values);
+        }
+        while(decodeOneRawPair(keys, values)){
+        }
+        match(c'}');
+        return packPairs(keys, values);
+    }
+
+    fun decodeOneRawPair(keys as ArrayList<string>, values as ArrayList<any>) as boolean{
+        skipWhitespace();
+        var key = decodeString();
+        match(c':');
+        var value = decodeValue();
+        keys.add(key);
+        values.add(value);
+        skipWhitespace();
+        if(pos < input.length() and input.charAt(pos) == c','){
+            pos++;
+            return true;
+        }
+        return false;
+    }
+
+    fun packPairs(keys as ArrayList<string>, values as ArrayList<any>) as Object[]{
+        var len = keys.size();
+        var result = new Object[len];
+        for(var i = 0; i < len; i++){
+            // Store key at even index, value at odd index
+            if(i * 2 < len){
+                result[i*2] = keys.get(i) | Object;
+            }
+            if(i * 2 + 1 < len){
+                result[i*2+1] = values.get(i) | Object;
+            }
+        }
+        return result;
+    }
+
+    // Decode a single JSON value (dispatches by first character).
+    fun decodeValue() as Object?{
+        var ch = currentChar();
+        if(ch == c'"'){
+            return decodeString() | Object;
+        }
+        if(ch == c'-' or (ch >= c'0' and ch <= c'9')){
+            return decodeNumber() | Object;
+        }
+        if(ch == c't' or ch == c'f' or ch == c'n'){
+            return decodeLiteral();
+        }
+        if(ch == c'['){
+            return decodeArray() | Object;
+        }
+        if(ch == c'{'){
+            return decodeObjectRaw() | Object;
+        }
+        throw new JsonException($"Unexpected character '{ch}' at position ${pos}"$);
+    }
+
+    // Decode JSON into an instance of the generic result type T.
+    // Usage: decoder.decode<Person>()
+    // The class must have a no-arg constructor. Properties are matched by name.
+    fun decode#object<T as [_ to _]>() as T{
+        var clazz = fun.this.resultType | ScopedClassRef;
+        var instance = clazz.createInstance();
+
+        match(c'{');
+        if(currentChar() == c'}'){
+            pos++;
+            return instance;
+        }
+
+        while(decodeOneProperty(instance)){
+        }
+        match(c'}');
+        return instance;
+    }
+
+    fun decodeOneProperty(instance as Object) as boolean{
+        skipWhitespace();
+        var key = decodeString();
+        match(c':');
+        var ch = currentChar();
+
+        if(ch == c'{'){
+            instance[key] = decodeNestedObject();
+        } else if(ch == c'['){
+            instance[key] = decodeArray();
+        } else {
+            var value = decodeValue();
+            instance[key] = castPropertyValue(instance, key, value);
+        }
+
+        skipWhitespace();
+        if(pos < input.length() and input.charAt(pos) == c','){
+            pos++;
+            return true;
+        }
+        return false;
+    }
+
+    // Decode a nested JSON object into a key-value pair list.
+    // Returns an ArrayList<Object> where even indices are keys and odd indices are values.
+    fun decodeNestedObject() as Object{
+        match(c'{');
+        var pairs = new ArrayList<Object>();
+        if(currentChar() == c'}'){
+            pos++;
+            return pairs | Object;
+        }
+
+        while(decodeOneNestedPair(pairs)){
+        }
+        match(c'}');
+        return pairs | Object;
+    }
+
+    fun decodeOneNestedPair(pairs as ArrayList<Object>) as boolean{
+        skipWhitespace();
+        var key = decodeString();
+        match(c':');
+        var ch = currentChar();
+
+        if(ch == c'{'){
+            pairs.add(key | Object);
+            pairs.add(decodeNestedObject());
+        } else if(ch == c'['){
+            pairs.add(key | Object);
+            pairs.add(decodeArray() | Object);
+        } else {
+            pairs.add(key | Object);
+            pairs.add(decodeValue() | Object);
+        }
+
+        skipWhitespace();
+        if(pos < input.length() and input.charAt(pos) == c','){
+            pos++;
+            return true;
+        }
+        return false;
+    }
+
+    // Cast a decoded JSON value to the property's expected type.
+    fun castPropertyValue(instance as Object, propName as string, value as Object?) as Object?{
+        if(value == null){
+            return null;
+        }
+        var props = instance.class.getProperties(false);
+        var l = props.length;
+        for(var i = 0; i < l; i++){
+            var p = props[i];
+            if(p.name == propName){
+                var propType = p.type;
+                return castToType(value, propType);
+            }
+        }
+        return value;
+    }
+
+    fun castToType(value as Object?, targetType as ClassRef) as Object?{
+        if(value == null){
+            return null;
+        }
+        var tc = targetType.typeCode;
+        if(tc == TypeCode.STRING){
+            return value | string;
+        }
+        if(tc == TypeCode.INT){
+            return castToInt(value);
+        }
+        if(tc == TypeCode.LONG){
+            return castToLong(value);
+        }
+        if(tc == TypeCode.FLOAT){
+            return castToFloat(value);
+        }
+        if(tc == TypeCode.DOUBLE){
+            return castToDouble(value);
+        }
+        if(tc == TypeCode.BOOLEAN){
+            return value | boolean;
+        }
+        if(tc == TypeCode.BYTE){
+            return castToByte(value);
+        }
+        if(tc == TypeCode.SHORT){
+            return castToShort(value);
+        }
+        if(tc == TypeCode.CHAR){
+            var s = value | string;
+            if(s.length() > 0){
+                return s.charAt(0);
+            }
+            return c'\0';
+        }
+        if(tc == TypeCode.DECIMAL){
+            return value | decimal;
+        }
+        return value;
+    }
+
+    fun castToInt(v as any) as int{
+        if(v instanceof double){
+            return (v | long) | int;
+        }
+        if(v instanceof long){
+            return v | int;
+        }
+        return v | int;
+    }
+
+    fun castToLong(v as any) as long{
+        if(v instanceof double){
+            return v | long;
+        }
+        return v | long;
+    }
+
+    fun castToFloat(v as any) as float{
+        if(v instanceof double){
+            return (v | int) | float;
+        }
+        return v | float;
+    }
+
+    fun castToDouble(v as any) as double{
+        return v | double;
+    }
+
+    fun castToByte(v as any) as byte{
+        if(v instanceof double){
+            return (v | long) | byte;
+        }
+        return v | byte;
+    }
+
+    fun castToShort(v as any) as short{
+        if(v instanceof double){
+            return (v | long) | short;
+        }
+        return v | short;
     }
 }
 

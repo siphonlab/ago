@@ -61,4 +61,11 @@ public class JsonTest {
             "{\"val\":\"hello\"}"
         ));
     }
+
+    @Test
+    public void decode_test1() throws CompilationError, CompilationErrorsException, IOException {
+        Util.run("json/decode_test1.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("Alice", "30"));
+    }
 }

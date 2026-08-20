@@ -1,0 +1,14 @@
+import json.Decoder;
+
+class Person{
+    public name as string;
+    public age as int;
+}
+
+fun main(){
+    var json = '{"name":"Alice","age":30}';
+    var decoder = new Decoder(json);
+    var p = decoder.decode<Person>();
+    Trace.print(p.name);
+    Trace.print(p.age);
+}
