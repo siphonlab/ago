@@ -58,7 +58,7 @@ public class InterfaceTest {
     public void constructor_test() throws CompilationError, CompilationErrorsException, IOException {
         run("interface/constructor.ago");
         Trace.printOutput();
-        assertTrue(Trace.outputted("2", "3", "'I' is an interface, not instantiable"));
+        assertTrue(Trace.outputted("2", "3", "'I' is an interface, not instantiable", "C is instantiable", "D isn't instantiable"));
     }
 
 }
