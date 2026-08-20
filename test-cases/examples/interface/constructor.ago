@@ -1,0 +1,37 @@
+interface I{
+    fun new#i_need(i as int);
+}
+
+abstract class A with I{
+}
+
+class C from A {
+    public value as int;
+
+    fun new#i_need(i as int){       // without this constructor throw compile error
+         this.value = i;
+    }
+
+    override toString() as string{
+        return value | string;
+    }
+}
+
+fun main(){
+    var c = new C(2);
+    Trace.print(c.value);
+
+    var i as [I to _];
+    i = C;
+
+    var c2 = new i(3)
+    Trace.print(c2)
+
+    try{
+        i = I
+        var c3 = new i(4)
+        Trace.print(c3)         // lang.TypeMismatchException:'I' is an interface, not instantiable
+    } catch(e as TypeMismatchException){
+        Trace.print(e.message)
+    }
+}
