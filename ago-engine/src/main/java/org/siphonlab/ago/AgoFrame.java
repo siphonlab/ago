@@ -1420,75 +1420,75 @@ public class AgoFrame extends CallFrame<AgoFunction>{
     protected int evaluateNew(Slots slots, int pc, int instruction) {
         switch (instruction){
 
-                // ------------------- new ----------------------
-                case New.new_vC: {
-                    slots.setObject(code[pc++], engine.createInstance(null, code[pc++], getRunSpace()));
-                    break;
-                }
-                case New.newn_vC: {
-                    slots.setObject(code[pc++], engine.createNativeInstance(null, code[pc++], getRunSpace() ));
-                    break;
-                }
-                case New.new_child_voC:{
-                    slots.setObject(code[pc++], engine.createInstance(slots.getObject(code[pc++]), code[pc++], getRunSpace()));
-                    break;
-                }
-                case New.newn_child_voC:{
-                    slots.setObject(code[pc++], engine.createNativeInstance(slots.getObject(code[pc++]), code[pc++], getRunSpace() ));
-                    break;
-                }
-                case New.new_vo: {
-                    slots.setObject(code[pc++], engine.createInstanceFromScopedClassInterval(slots.getObject(code[pc++]),getRunSpace() ));
-                    break;
-                }
-                case New.new_scope_vc:{
-                    Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createInstance((scope = getScope(code[pc++])).parentScope, scope.getAgoClass(),getRunSpace() ));
-                    break;
-                }
-                case New.new_scope_v:{
-                    Instance<?> scope = this;
-                    slots.setObject(code[pc++], engine.createInstance(scope.parentScope, scope.getAgoClass(),getRunSpace() ));
-                    break;
-                }
-                case New.new_method_voCm: {
-                    // here the C was used in transform code, to locate method index
-                    // and the class of scope will use to implement method overriding
-                    Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), getRunSpace() ));
-                    pc++;
-                    break;
-                }
-                case New.new_method_voIm: {
-                    Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().resolveMethodByInterface(code[pc++], code[pc++]), getRunSpace() ));
-                    break;
-                }
-                case New.new_cls_method_vCm:{
-                    AgoClass scopeClass;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scopeClass = engine.getClass(code[pc++]), scopeClass.getAgoClass().getMethod(code[pc++]), getRunSpace()  ));
-                    break;
-                }
-                case New.new_scope_child_vcC:{
-                    slots.setObject(code[pc++], engine.createInstance(getScope(code[pc++]), engine.getClass(code[pc++]),  getRunSpace() ));
-                    break;
-                }
-                case New.newn_scope_child_vcC:{
-                    Instance<?> instance;
-                    slots.setObject(code[pc++], instance = engine.createNativeInstance(getScope(code[pc++]), code[pc++],getRunSpace() ));
-                    break;
-                }
-                case New.new_scope_method_vcCm:{
-                    // like new_method_voCm, C wa used in transform code
-                    Instance<?> scope;
-                    slots.setObject(code[pc++], engine.createFunctionInstance(scope = getScope(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), getRunSpace()  ));
-                    pc++;
-                    break;
-                }
-                case New.new_scope_method_fix_vcCm:{
-                    slots.setObject(code[pc++], engine.createFunctionInstance(getScope(code[pc++]), engine.getClass(code[pc++]).getMethod(code[pc++]), getRunSpace()  ));
-                    break;
-                }
+            // ------------------- new ----------------------
+            case New.new_vC: {
+                slots.setObject(code[pc++], engine.createInstance(null, code[pc++], getRunSpace()));
+                break;
+            }
+            case New.newn_vC: {
+                slots.setObject(code[pc++], engine.createNativeInstance(null, code[pc++], getRunSpace() ));
+                break;
+            }
+            case New.new_child_voC:{
+                slots.setObject(code[pc++], engine.createInstance(slots.getObject(code[pc++]), code[pc++], getRunSpace()));
+                break;
+            }
+            case New.newn_child_voC:{
+                slots.setObject(code[pc++], engine.createNativeInstance(slots.getObject(code[pc++]), code[pc++], getRunSpace() ));
+                break;
+            }
+            case New.new_vo: {
+                slots.setObject(code[pc++], engine.createInstanceFromScopedClassInterval(slots.getObject(code[pc++]),getRunSpace() ));
+                break;
+            }
+            case New.new_scope_vc:{
+                Instance<?> scope;
+                slots.setObject(code[pc++], engine.createInstance((scope = getScope(code[pc++])).parentScope, scope.getAgoClass(),getRunSpace() ));
+                break;
+            }
+            case New.new_scope_v:{
+                Instance<?> scope = this;
+                slots.setObject(code[pc++], engine.createInstance(scope.parentScope, scope.getAgoClass(),getRunSpace() ));
+                break;
+            }
+            case New.new_method_voCm: {
+                // here the C was used in transform code, to locate method index
+                // and the class of scope will use to implement method overriding
+                Instance<?> scope;
+                slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), getRunSpace() ));
+                pc++;
+                break;
+            }
+            case New.new_method_voIm: {
+                Instance<?> scope;
+                slots.setObject(code[pc++], engine.createFunctionInstance(scope = slots.getObject(code[pc++]), scope.getAgoClass().resolveMethodByInterface(code[pc++], code[pc++]), getRunSpace() ));
+                break;
+            }
+            case New.new_cls_method_vCm:{
+                AgoClass scopeClass;
+                slots.setObject(code[pc++], engine.createFunctionInstance(scopeClass = engine.getClass(code[pc++]), scopeClass.getAgoClass().getMethod(code[pc++]), getRunSpace()  ));
+                break;
+            }
+            case New.new_scope_child_vcC:{
+                slots.setObject(code[pc++], engine.createInstance(getScope(code[pc++]), engine.getClass(code[pc++]),  getRunSpace() ));
+                break;
+            }
+            case New.newn_scope_child_vcC:{
+                Instance<?> instance;
+                slots.setObject(code[pc++], instance = engine.createNativeInstance(getScope(code[pc++]), code[pc++],getRunSpace() ));
+                break;
+            }
+            case New.new_scope_method_vcCm:{
+                // like new_method_voCm, C wa used in transform code
+                Instance<?> scope;
+                slots.setObject(code[pc++], engine.createFunctionInstance(scope = getScope(code[pc++]), scope.getAgoClass().getMethod(code[++pc]), getRunSpace()  ));
+                pc++;
+                break;
+            }
+            case New.new_scope_method_fix_vcCm:{
+                slots.setObject(code[pc++], engine.createFunctionInstance(getScope(code[pc++]), engine.getClass(code[pc++]).getMethod(code[pc++]), getRunSpace()  ));
+                break;
+            }
         }
         return pc;
     }
@@ -1702,6 +1702,19 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 slots.setObject(dest, frame);
                 break;
             }
+            case Dynamic.dyn_ensure_instantiable_v:{
+                var dest = code[pc++];
+                var slotDef = this.getAgoClass().getSlotDefs()[dest];
+                if(slotDef.getTypeCode() == UNION){
+                    if(!ensureInstantiable(slots.getUnion(dest), self)) return -1;
+                } else if(slotDef.getTypeCode() == OBJECT){
+                    if(!ensureInstantiable(slots.getObject(dest), self)) return -1;
+                } else {
+                    raiseException(self, "lang.TypeMismatchException", "'%s' is not instantible".formatted(slotDef.getAgoClass().fullname));
+                    return -1;
+                }
+                break;
+            }
             case Dynamic.dyn_new_vu: {
                 var dest = code[pc++];
                 var instance = new DynamicOp(this).createDynamicInstance(self, slots.getObject(code[pc++]), null);
@@ -1724,6 +1737,34 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 break;
         }
         return pc;
+    }
+
+    private boolean ensureInstantiable(Object object, CallFrame<?> self) {
+        if(object == null){
+            raiseException(self, "lang.NullPointerException", "no class found to create instance");
+            return false;
+        }
+        if(object instanceof Instance<?> scopedClass) {
+            // after getClass(scopedClass.classId), the ScopedClass restore to the original class
+            if(!engine.getLangClasses().getClassRefClass().isThatOrSuperOfThat(scopedClass.getAgoClass())){
+                raiseException(self, "lang.TypeMismatchException", "'%s' is not a ClassRef".formatted(scopedClass.getAgoClass().fullname));
+                return false;
+            }
+            Slots slots = scopedClass.getSlots();
+            int classId = slots.getClassRef(0);
+            AgoClass agoClass = (AgoClass) slots.getObject(1);
+            if (agoClass == null) {
+                raiseException(self, "lang.NullPointerException", "no class found to create instance");
+                return false;
+            } else if (agoClass.type == AgoClass.TYPE_INTERFACE) {
+                raiseException(self, "lang.TypeMismatchException", "'%s' is an interface, not instantiable".formatted(agoClass.fullname));
+                return false;
+            }
+        } else {
+            raiseException(self, "lang.TypeMismatchException", "'%s' is not instantiable".formatted(object.getClass().getName()));
+            return false;
+        }
+        return true;
     }
 
 

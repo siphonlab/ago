@@ -60,10 +60,14 @@ public class Creator extends ExpressionInFunctionBody{
         ClassDef classDef;
         if(typeExpr.inferType() instanceof ScopedClassIntervalClassDef scopedClassIntervalClassDef){
             ClassDef lBoundClass = scopedClassIntervalClassDef.getLBoundClass();
-            if(lBoundClass != scopedClassIntervalClassDef.getUBoundClass() || lBoundClass == scopedClassIntervalClassDef.getRoot().getAnyClass()){
-                throw new TypeMismatchError("for creator the scope must limit to single class, that means lbound equals ubound, and `any` was denied", sourceLocation);
-            } else if(lBoundClass.getTypeCode() != TypeCode.OBJECT){
-                throw new TypeMismatchError("object type expected", sourceLocation);
+            if(lBoundClass.isInterface() && lBoundClass.getConstructor() != null){
+                //
+            } else {
+                if (lBoundClass != scopedClassIntervalClassDef.getUBoundClass() || lBoundClass == scopedClassIntervalClassDef.getRoot().getAnyClass()) {
+                    throw new TypeMismatchError("for creator the scope must limit to single class, that means lbound equals ubound, and `any` was denied", sourceLocation);
+                } else if (lBoundClass.getTypeCode() != TypeCode.OBJECT) {
+                    throw new TypeMismatchError("object type expected", sourceLocation);
+                }
             }
             MetaClassDef metaClassDef = ScopedClassIntervalClassDef.getMetaOfLBoundClass(scopedClassIntervalClassDef);
             this.typeExpr = new ClassOf.ClassOfScopedClassInterval(typeExpr, metaClassDef).setParent(this);
@@ -100,7 +104,13 @@ public class Creator extends ExpressionInFunctionBody{
 
     protected void validate(ClassDef classDef) throws TypeMismatchError {
         if(classDef.isInterfaceOrTrait()){
-            throw new TypeMismatchError("'%s' is an interface, cannot create instance".formatted(classDef.getFullname()), this.sourceLocation);
+            if(classDef.isInterface() && classDef.getConstructor() != null){
+                //
+            } else {
+                if (classDef.getConstructor() == null) {
+                    throw new TypeMismatchError("'%s' is an interface, cannot create instance".formatted(classDef.getFullname()), this.sourceLocation);
+                }
+            }
         } else if(classDef.isAbstract()){
             throw new TypeMismatchError("'%s' is an abstract class".formatted(classDef.getFullname()), this.sourceLocation);
         }
@@ -160,6 +170,7 @@ public class Creator extends ExpressionInFunctionBody{
             if(typeExpr instanceof ClassOf.ClassOfScopedClassInterval classOfScopedClassInterval){
                 Var.LocalVar r = (Var.LocalVar) classOfScopedClassInterval.getScopedClassIntervalInstance().visit(blockCompiler);
                 blockCompiler.lockRegister(r);
+                code.ensureInstantiable(r.getVariableSlot());
                 code.new_bound_class(localVar.getVariableSlot(), r.getVariableSlot());
                 blockCompiler.releaseRegister(r);
             } else {

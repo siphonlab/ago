@@ -327,13 +327,38 @@ public class AgoEngine implements ClassManager{
     }
 
     public Instance<?> createInstanceFromScopedClassInterval(Instance<?> scopedClass, RunSpace runSpace){
+        if(scopedClass == null){
+            return null;
+        }
         assert !(scopedClass instanceof AgoClass);
         // after getClass(scopedClass.classId), the ScopedClass restore to the original class
         Slots slots = scopedClass.getSlots();
         int classId = slots.getClassRef(0);
         AgoClass agoClass = (AgoClass) slots.getObject(1);
+        if(agoClass == null || agoClass.type == AgoClass.TYPE_INTERFACE){
+            return null;
+        }
         Instance<?> scope = slots.getObject(2);
         return createInstance(scope, agoClass, runSpace);
+    }
+
+    public Instance<?> createInstanceFromScopedClassInterval(Instance<?> scopedClass, CallFrame<?> callFrame, CallFrame<?> self){
+        if(scopedClass == null){
+            callFrame.raiseException(self, "lang.NullPointerException", "no class found to create instance");
+        }
+        assert !(scopedClass instanceof AgoClass);
+        // after getClass(scopedClass.classId), the ScopedClass restore to the original class
+        Slots slots = scopedClass.getSlots();
+        int classId = slots.getClassRef(0);
+        AgoClass agoClass = (AgoClass) slots.getObject(1);
+
+        if(agoClass == null){
+            callFrame.raiseException(self, "lang.NullPointerException", "no class found to create instance");
+        } else if(agoClass.type == AgoClass.TYPE_INTERFACE){
+            callFrame.raiseException(self, "lang.TypeMismatchException", "'%s' is an interface, not instantiable".formatted(agoClass.fullname));
+        }
+        Instance<?> scope = slots.getObject(2);
+        return createInstance(scope, agoClass, callFrame.getRunSpace());
     }
 
     public RunSpace getDefaultRunSpace() {

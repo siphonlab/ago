@@ -1020,6 +1020,11 @@ public class CodeBuffer {
         slot(callFrameSlot);
     }
 
+    public void ensureInstantiable(SlotDef classRefSlot) {
+        ls.addInt(Dynamic.dyn_ensure_instantiable_v);
+        slot(classRefSlot);
+    }
+
     private static class SizeVerifier{
         final CodeBuffer thisBuff;
         final int start;

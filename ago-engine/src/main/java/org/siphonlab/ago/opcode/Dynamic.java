@@ -29,6 +29,8 @@ public class Dynamic {
     public static final int dyn_contains_member_vov = 0x36_00_05_03;
     public static final int dyn_contains_member_voc = 0x36_00_06_03;
 
+    // ensure a variable is instantiable, which means, is a ClassRef/ScopedClassRef/AgoClass, and not an interface
+    public static final int dyn_ensure_instantiable_v = 0x36_00_07_01;
 
     public static String getName(int code){
         return switch (code) {
@@ -40,6 +42,7 @@ public class Dynamic {
             case dyn_new_vu -> "dyn_new_vu";
             case dyn_contains_member_vov -> "dyn_contains_member_vov";
             case dyn_contains_member_voc -> "dyn_contains_member_voc";
+            case dyn_ensure_instantiable_v -> "dyn_ensure_instantiable_v";
             default -> throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
         };
 

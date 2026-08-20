@@ -259,6 +259,10 @@ class ClassCastException from RuntimeException{
 
 }
 
+class TypeMismatchException from RuntimeException{
+
+}
+
 class NullPointerException from RuntimeException{
 
 }

@@ -185,7 +185,7 @@ public class DynamicOp {
 
         AgoClass agoClass = obj.getAgoClass();
         if(engine.getLangClasses().getScopedClassIntervalClass().isThatOrSuperOfThat(agoClass)) {
-            return (CallFrame<?>) engine.createInstanceFromScopedClassInterval(obj, frame.getRunSpace());
+            return (CallFrame<?>) engine.createInstanceFromScopedClassInterval(obj, frame, self);
         } else if(obj instanceof AgoFunction f){
             return (CallFrame<?>) engine.createInstanceFromScopedClass(f, frame.getRunSpace());
         } else {
@@ -198,7 +198,7 @@ public class DynamicOp {
         Instance<?> instance;
         AgoClass agoClass = creator.getAgoClass();
         if(engine.getLangClasses().getScopedClassIntervalClass().isThatOrSuperOfThat(agoClass)) {
-            instance = engine.createInstanceFromScopedClassInterval(creator, frame.getRunSpace());
+            instance = engine.createInstanceFromScopedClassInterval(creator, frame, self);
         } else if(creator instanceof AgoFunction f){
             instance = engine.createInstanceFromScopedClass(f, frame.getRunSpace());
         } else {

@@ -154,14 +154,17 @@ public class InvokeFunctionType extends ExpressionInFunctionBody {
     private Var.LocalVar createInstance(BlockCompiler blockCompiler) throws CompilationError {
         var temp = blockCompiler.acquireTempVar(new SomeInstance(ownerFunction, this.scopedFunctionExpr.inferType()).setSourceLocation(scopedFunctionExpr.getSourceLocation()));
         SlotDef resultSlot = temp.getVariableSlot();
+        CodeBuffer code = blockCompiler.getCode();
         if(this.scopedFunctionExpr instanceof ClassOf.ClassOfScopedClassInterval scopedClassInterval){
             Var.LocalVar r = (Var.LocalVar) scopedClassInterval.getScopedClassIntervalInstance().visit(blockCompiler);
             blockCompiler.lockRegister(r);
-            blockCompiler.getCode().new_bound_class(temp.getVariableSlot(), r.getVariableSlot());
+            code.ensureInstantiable(r.getVariableSlot());
+            code.new_bound_class(temp.getVariableSlot(), r.getVariableSlot());
             blockCompiler.releaseRegister(r);
         } else {
             var instanceVar = (Var.LocalVar) this.scopedFunctionExpr.visit(blockCompiler);        // stored the class instance(function)
-            blockCompiler.getCode().new_bound_class(resultSlot, instanceVar.getVariableSlot());
+            code.ensureInstantiable(instanceVar.getVariableSlot());
+            code.new_bound_class(resultSlot, instanceVar.getVariableSlot());
         }
         return temp;
     }

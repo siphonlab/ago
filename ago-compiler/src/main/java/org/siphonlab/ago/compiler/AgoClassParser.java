@@ -537,7 +537,6 @@ public class AgoClassParser {
             }
             functionDef.setBody(fun.getCode());     // for AgoFunction it's the compiled code, just make the body fulfilled
         }
-        classDef.instantiateWaitingChildren();
         if(classDef instanceof TraitDef traitDef){
             traitDef.restorePermitField();
         }
