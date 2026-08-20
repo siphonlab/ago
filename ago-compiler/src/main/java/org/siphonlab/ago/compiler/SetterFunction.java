@@ -23,23 +23,21 @@ import org.siphonlab.ago.compiler.expression.Var;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.List;
+import java.util.Objects;
 
 public class SetterFunction extends FunctionDef implements ManualCreatedFunction{
 
-    private Field field;
+    private final String fieldName;
     private final AgoParser.SetterContext setterContext;
 
-    public SetterFunction(Root root, Field field, AgoParser.SetterContext setterContext) throws SyntaxError {
-        super(root, field.name + "#set", null);
-        this.field = field;
+    public SetterFunction(Root root, String fieldName, AgoParser.SetterContext setterContext) throws SyntaxError {
+        super(root, fieldName + "#set", null);
+        this.fieldName = fieldName;
         this.setterContext = setterContext;
-        this.setUnit(field.getOwnerClass().unit);
         //this.setGenericSource(getter.getGenericSource());
         int visibility = Compiler.commonVisibility(unit, setterContext.commonVisiblility(), Compiler.ModifierTarget.Method);
         this.setModifiers(visibility | AgoClass.SETTER);
-        this.setResultType(root.VOID());
-        this.setSourceLocation(unit.sourceLocation(setterContext));
-        this.setCompilingStage(CompilingStage.ParseFields);
+//        this.setCompilingStage(CompilingStage.ParseFields);
     }
 
     @Override
@@ -57,6 +55,14 @@ public class SetterFunction extends FunctionDef implements ManualCreatedFunction
             return true;
         }
         this.resolveSuperClass();
+
+        this.setResultType(root.VOID());
+
+        ClassDef parentClass = this.getParentClass();
+        if(parentClass.getCompilingStage().lte(CompilingStage.ParseFields)){
+            Compiler.processClassTillStage(parentClass, CompilingStage.ParseFields);
+        }
+        var field = Objects.requireNonNull(parentClass.getFields().get(fieldName));
 
         var parameter = new Parameter( "value", null);
         parameter.setType(field.getType());
@@ -81,6 +87,13 @@ public class SetterFunction extends FunctionDef implements ManualCreatedFunction
         }
 
         var blockCompiler = new BlockCompiler(this.unit, this, null);
+
+        ClassDef parentClass = this.getParentClass();
+        if(parentClass.getCompilingStage().lte(CompilingStage.ParseFields)){
+            Compiler.processClassTillStage(parentClass, CompilingStage.ParseFields);
+        }
+        var field = Objects.requireNonNull(parentClass.getFields().get(fieldName));
+
         Var.Field fld = this.field(new Scope(1, this.getParentClass()), field)
                     .setSourceLocation(this.getParentClass().unit.sourceLocation(field.getDeclaration()));
         Var.LocalVar value = localVar(this.getParameters().getFirst(), Var.LocalVar.VarMode.Existed);

@@ -24,22 +24,21 @@ import org.siphonlab.ago.compiler.statement.Return;
 import org.siphonlab.ago.compiler.parser.AgoParser;
 
 import java.util.List;
+import java.util.Objects;
 
 public class GetterFunction extends FunctionDef implements ManualCreatedFunction{
 
-    private Field field;
+    private final String fieldName;
     private final AgoParser.GetterContext getterContext;
 
-    public GetterFunction(Root root, Field field, AgoParser.GetterContext getterContext) throws SyntaxError {
-        super(root, field.getName() + "#get", null);
-        this.field = field;
+    public GetterFunction(Root root, String fieldName, AgoParser.GetterContext getterContext) throws SyntaxError {
+        super(root, fieldName + "#get", null);
+        this.fieldName = fieldName;
         this.getterContext = getterContext;
-        this.setUnit(field.getOwnerClass().unit);
         //this.setGenericSource(getter.getGenericSource());
         int visibility = Compiler.commonVisibility(unit, getterContext.commonVisiblility(), Compiler.ModifierTarget.Method);
         this.setModifiers(visibility | AgoClass.GETTER);
-        this.setSourceLocation(unit.sourceLocation(getterContext));
-        this.setCompilingStage(CompilingStage.ParseFields);
+//        this.setCompilingStage(CompilingStage.ParseFields);
     }
 
     @Override
@@ -57,6 +56,11 @@ public class GetterFunction extends FunctionDef implements ManualCreatedFunction
             return true;
         }
 
+        ClassDef parentClass = this.getParentClass();
+        if(parentClass.getCompilingStage().lte(CompilingStage.ParseFields)){
+            Compiler.processClassTillStage(parentClass, CompilingStage.ParseFields);
+        }
+        var field = Objects.requireNonNull(parentClass.getFields().get(fieldName));
         this.setResultType(field.getType());
         this.resolveSuperClass();
 
@@ -78,6 +82,13 @@ public class GetterFunction extends FunctionDef implements ManualCreatedFunction
         }
 
         var blockCompiler = new BlockCompiler(this.unit, this, null);
+
+        ClassDef parentClass = this.getParentClass();
+        if(parentClass.getCompilingStage().lte(CompilingStage.ParseFields)){
+            Compiler.processClassTillStage(parentClass, CompilingStage.ParseFields);
+        }
+        var field = Objects.requireNonNull(parentClass.getFields().get(fieldName));
+
         Var.Field fld = this.field(new Scope(1, this.getParentClass()), field)
                     .setSourceLocation(this.getParentClass().unit.sourceLocation(field.getDeclaration()));
 

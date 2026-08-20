@@ -590,6 +590,46 @@ public class Unit {
         }
     }
 
+    protected void parseGetterSetter(ClassDef ownerClass, AgoParser.FieldDeclarationContext fieldDeclaration) throws CompilationError {
+        for (AgoParser.FieldVariableDeclaratorContext variableDeclarator : fieldDeclaration.fieldVariableDeclarators().fieldVariableDeclarator()) {
+            if (variableDeclarator instanceof AgoParser.VarDeclExplicitTypeContext explicitType) {
+                if(explicitType.fieldGetterSetter() == null) continue;
+
+                var name = explicitType.identifier().getText();
+                var getter = explicitType.fieldGetterSetter().getter();
+                var setter = explicitType.fieldGetterSetter().setter();
+
+                if(getter == null){
+                    throw this.syntaxError(explicitType, format("no getter defined for '%s'", name));
+                }
+
+                FunctionDef fun = new GetterFunction(root, name, getter);
+                fun.setUnit(this);
+                fun.setSourceLocation(sourceLocation(getter));
+
+                ownerClass.addChild(fun);
+                functionDefs.add(fun);
+                fun.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);
+
+                if(setter != null) {
+                    fun = new SetterFunction(root, name, setter);
+                    fun.setUnit(this);
+                    fun.setSourceLocation(sourceLocation(getter));
+                    ownerClass.addChild(fun);
+                    functionDefs.add(fun);
+                    fun.setCompilingStage(CompilingStage.ResolveHierarchicalClasses);
+                }
+            } else if (variableDeclarator instanceof AgoParser.VarDeclImplicitTypeContext varDeclImplicit) {
+                throw new UnsupportedOperationException("implicit var type TODO"); // TODO
+//                            field = new Field(ownerClass,varDeclImplicit.identifier().getText(), variableDeclarator);
+//                            // varDeclImplicit.variableInitializer().expression()
+//                            ownerClass.addField(field);
+//                            fields.add(field);
+//                            // TODO setType
+            }
+        }
+    }
+
     private static String fullName(AgoParser.QualifiedNameAllowPostfixContext qualifiedNameContext) {
         StringBuffer sb = new StringBuffer();
         var identifier = qualifiedNameContext.identifierAllowPostfix();
@@ -633,6 +673,8 @@ public class Unit {
                     }
                 }
             }
+
+            parseGetterSetter(classDef, fieldDeclContext.fieldDeclaration());
         }
     }
 

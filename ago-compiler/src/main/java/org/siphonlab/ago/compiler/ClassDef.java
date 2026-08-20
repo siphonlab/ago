@@ -260,7 +260,6 @@ public class ClassDef extends ClassContainer {
                 constructorDef.parseFields();
             }
         }
-        createGetterAndSetter();
 
         // wrapper of interfaces
         for (var entry : this.wrapperInterfaces.entrySet()) {
@@ -285,19 +284,8 @@ public class ClassDef extends ClassContainer {
 
         createFieldsOfTrait();
 
-        instantiateWaitingChildren();
-
         this.nextCompilingStage(CompilingStage.ValidateHierarchy);
         return true;
-    }
-
-    void instantiateWaitingChildren() throws CompilationError {
-        if(waitInstantiateChildren != null && !waitInstantiateChildren.isEmpty()){
-            for (WaitInstantiateChildren waitInstantiateChild : waitInstantiateChildren) {
-                this.instantiateChildren(waitInstantiateChild.project, waitInstantiateChild.instantiateClass, waitInstantiateChild.instantiationArguments);
-            }
-            waitInstantiateChildren.clear();
-        }
     }
 
     protected void createFieldsOfTrait() {
@@ -500,28 +488,6 @@ public class ClassDef extends ClassContainer {
             mockConstructor.setUnit(this.unit);
             this.addChild(mockConstructor);
         }
-    }
-
-    private void createGetterAndSetter() throws SyntaxError {
-        for (Field field : this.fields.values()) {
-            if(field.ownerClass == this) {
-                AgoParser.FieldGetterSetterContext fieldGetterSetter = field.getGetterSetter();
-                if (fieldGetterSetter != null) {
-                    createGetter(field, fieldGetterSetter.getter());
-                    AgoParser.SetterContext setter = fieldGetterSetter.setter();
-                    if (setter != null) createSetter(field, setter);
-                }
-            }
-        }
-
-    }
-
-    private void createSetter(Field field, AgoParser.SetterContext setterContext) throws SyntaxError {
-        this.addChild(new SetterFunction(root, field, setterContext));
-    }
-
-    private void createGetter(Field field, AgoParser.GetterContext getterContext) throws SyntaxError {
-        this.addChild(new GetterFunction(getRoot(), field, getterContext));
     }
 
     public boolean hasFieldInitializerOrTrait() {
@@ -1453,12 +1419,7 @@ public class ClassDef extends ClassContainer {
 
         if(parent != null) parent.addChild(instantiateClass);
 
-        if(this.compilingStage.gt(CompilingStage.ParseFields)) {
-            instantiateChildren(project, instantiateClass, instantiationArguments);
-        } else {
-            if (waitInstantiateChildren == null) waitInstantiateChildren = new LinkedList<>();
-            waitInstantiateChildren.add(new WaitInstantiateChildren(project, instantiateClass, instantiationArguments));
-        }
+        instantiateChildren(project, instantiateClass, instantiationArguments);
     }
 
     public boolean isFromAgoClass() {
@@ -1466,8 +1427,6 @@ public class ClassDef extends ClassContainer {
     }
 
     private record WaitInstantiateChildren(Project project, ClassDef instantiateClass, InstantiationArguments instantiationArguments){}
-
-    private List<WaitInstantiateChildren> waitInstantiateChildren = null;
 
     public GenericTypeCodeAvatarClassDef findGenericType(String genericTypeName) {
         var t = this.typeParamsContext;
