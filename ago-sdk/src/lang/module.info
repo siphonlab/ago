@@ -38,6 +38,8 @@ units:
   - util.ago
   - entity.ago
   - workflow.ago
+  - json/Encoder.ago
+  - json/Decoder.ago
 
 description: |
     ago lang module
