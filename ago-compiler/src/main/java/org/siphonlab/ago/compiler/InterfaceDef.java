@@ -114,7 +114,7 @@ public class InterfaceDef extends ClassDef{
                     superInterface.inheritsChildClasses();
 
                 var classes = superInterface.getUniqueChildren();
-                inheritsChildClasses(classes);
+                inheritsChildClasses(classes, true);
             }
         }
         if(this.isFromAgoClass()){

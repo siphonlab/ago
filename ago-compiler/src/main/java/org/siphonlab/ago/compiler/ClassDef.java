@@ -418,7 +418,7 @@ public class ClassDef extends ClassContainer {
             }
 
             var classes = superClass.getUniqueChildren();
-            inheritsChildClasses(classes);
+            inheritsChildClasses(classes, true);
         }
 
         createConstructorForFieldsInitializers();
@@ -449,7 +449,7 @@ public class ClassDef extends ClassContainer {
                     wrapperFun.setCompilingStage(CompilingStage.ParseFields);
                 }
                 if (!others.isEmpty()) {
-                    inheritsChildClasses(others);
+                    inheritsChildClasses(others, this.isAbstract());
                 }
                 continue;
             }
@@ -475,12 +475,12 @@ public class ClassDef extends ClassContainer {
                     wrapperFun.setCompilingStage(CompilingStage.ParseFields);
                 }
                 if (!others.isEmpty()) {
-                    inheritsChildClasses(others);
+                    inheritsChildClasses(others, this.isAbstract());
                 }
                 continue;
             }
 
-            inheritsChildClasses(implementedInterface.getUniqueChildren());
+            inheritsChildClasses(implementedInterface.getUniqueChildren(), this.isAbstract());
         }
 
         if(this.isFromAgoClass()){
@@ -560,12 +560,16 @@ public class ClassDef extends ClassContainer {
         }
     }
 
-    protected void inheritsChildClasses(Collection<ClassDef> ancientChildren) throws CompilationError {
+    protected void inheritsChildClasses(Collection<ClassDef> ancientChildren, boolean includeConstructor) throws CompilationError {
         NamespaceCollection<ClassDef> children = this.getChildren();
         boolean hasConstructor = this.getConstructor() != null;
         for (ClassDef c : ancientChildren) {
             // auto inherits Constructor if not defined
-            if (hasConstructor &&  c instanceof ConstructorDef) continue;       //TODO may override constructor
+            if (c instanceof ConstructorDef) {
+                if (hasConstructor || !includeConstructor) {
+                    continue;       //TODO may override constructor
+                }
+            }
 
             if (c instanceof FunctionDef f) {
                 if(f instanceof ConstructorDef && f.getParent().equals(getRoot().getObjectClass())){
@@ -1769,7 +1773,7 @@ public class ClassDef extends ClassContainer {
                     }
                     if(!this.isAbstract()){
                         if(functionDef.getParent() != this){
-                            unit.appendError(unit.syntaxError(this.getDeclarationName(), "abstract method '%s' not implemented".formatted(functionDef)));
+                            unit.appendError(unit.syntaxError(this.getDeclarationName(), "abstract method '%s' not implemented".formatted(functionDef.getFullname())));
                             continue;
                         }
                         unit.appendError(unit.syntaxError(functionDef.getMethodDecl().methodStarter(), "abstract methods are only allowed in abstract classes, traits and interfaces"));

@@ -716,6 +716,9 @@ public class Unit {
         fun.setUnit(this);
         fun.setSourceLocation(sourceLocation(methodDecl));
         functionDefs.add(fun);
+        if(classDef.isInterface()){
+            fun.setModifiers(fun.modifiers | AgoClass.ABSTRACT);
+        }
         classDef.addChild(fun);
         fun.nextCompilingStage(CompilingStage.ParseGenericParams);
         if (fun.isStatic()) {
