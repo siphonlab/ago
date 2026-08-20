@@ -12,6 +12,15 @@ interface JsonSerializable{
 }
 
 // =============================================================================
+// JsonException — runtime exception for JSON errors
+// =============================================================================
+class JsonException from RuntimeException{
+    fun new#message(message as string){
+        super(message);
+    }
+}
+
+// =============================================================================
 // Encoder — writes JSON text using a StringBuilder
 // =============================================================================
 class Encoder{

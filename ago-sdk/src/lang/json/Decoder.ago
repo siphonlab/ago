@@ -442,11 +442,3 @@ class Decoder{
     }
 }
 
-// =============================================================================
-// JsonException — runtime exception for JSON errors
-// =============================================================================
-class JsonException from RuntimeException{
-    fun new#message(message as string){
-        super(message);
-    }
-}
