@@ -1,0 +1,13 @@
+fun main(){
+    var arr = [1, 2, 3];
+
+    if(arr instanceof Array<_> a){
+        Trace.print("it's an array, length is " + a.length)
+
+        if(a instanceof Array<int> ints){
+            for(var el in ints){
+                Trace.print(el)
+            }
+        }
+    }
+}

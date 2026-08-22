@@ -37,4 +37,12 @@ public class ArrayTests {
 
     }
 
+    @Test
+    public void instance_of() throws CompilationError, CompilationErrorsException, IOException {
+        run("array/instanceof.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("it's an array, length is 3", "1", "2", "3"));
+    }
+
+
 }
