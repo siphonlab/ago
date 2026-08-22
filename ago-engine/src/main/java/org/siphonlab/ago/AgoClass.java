@@ -682,4 +682,12 @@ public class AgoClass extends Instance<MetaClass>{
 
         this.propertyMap = r;
     }
+
+    public boolean isNullable(){
+        return this.concreteTypeInfo instanceof NullableTypeInfo;
+    }
+
+    public AgoClass getNullableBaseClass(){
+        return ((NullableTypeInfo)this.concreteTypeInfo).getBaseClass();
+    }
 }
