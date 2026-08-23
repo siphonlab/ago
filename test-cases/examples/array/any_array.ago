@@ -1,0 +1,15 @@
+fun main(){
+    var ints = [1, 2, 3];
+
+//    var arr as Array<_> = [1|Object, 2, 3];       // works fine too
+    var arr as Array<_> = ints;
+
+    for(var i=0; i<arr.length; i++){
+        Trace.print(arr.get(i))
+        arr.set(i, arr.get(i)|int * 2)
+    }
+
+    for(var i=0; i<arr.length; i++){
+        Trace.print(arr.get(i))
+    }
+}

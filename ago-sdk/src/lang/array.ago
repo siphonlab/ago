@@ -88,5 +88,49 @@ final class ArrayExt{
             }
             return arr;
         }
+
+        fun get(this as Array<_>, i as int) as any{
+            if(this instanceof Array<int> iarr){
+                return iarr[i];
+            } else if(this instanceof Array<long> larr){
+                return larr[i];
+            } else if(this instanceof Array<double> darr){
+                return darr[i];
+            } else if(this instanceof Array<float> farr){
+                return farr[i];
+            } else if(this instanceof Array<boolean> barr){
+                return barr[i];
+            } else if(this instanceof Array<byte> byarr){
+                return byarr[i];
+            } else if(this instanceof Array<string> sstrarr){
+                return sstrarr[i];
+            } else if(this instanceof Array<Object> aobj){
+                return aobj[i];
+            } else {
+                return this[i];
+            }
+        }
+
+        fun set(this as Array<_>, i as int, value as any){
+            if(this instanceof Array<int> iarr){
+                iarr[i] = value|int;
+            } else if(this instanceof Array<long> larr){
+                larr[i] = value|long;
+            } else if(this instanceof Array<double> darr){
+                darr[i] = value|double;
+            } else if(this instanceof Array<float> farr){
+                farr[i] = value|float;
+            } else if(this instanceof Array<boolean> barr){
+                barr[i] = value|boolean;
+            } else if(this instanceof Array<byte> byarr){
+                byarr[i] = value|byte;;
+            } else if(this instanceof Array<string> sstrarr){
+                sstrarr[i] = value|string;
+            } else if(this instanceof Array<Object> aobj){
+                aobj[i] = value|Object;
+            } else {
+                this[i] = value;
+            }
+        }
     }
 }
