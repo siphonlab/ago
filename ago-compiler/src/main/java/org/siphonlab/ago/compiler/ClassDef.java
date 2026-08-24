@@ -1645,8 +1645,11 @@ public class ClassDef extends ClassContainer {
         if(this.getCompilingStage() != CompilingStage.InheritsFields) return false;
 
         var templ = this.getTemplateClass();
-        if(templ.getCompilingStage() == CompilingStage.InheritsFields) {
-            templ.inheritsFields();
+        if(templ.getCompilingStage().lte(CompilingStage.InheritsFields)) {
+            Compiler.processClassTillStage(templ, CompilingStage.InheritsFields);
+        }
+        if(templ.getCompilingStage().lte(CompilingStage.InheritsFields)) {
+            return false;
         }
         var instantiationArguments = this.getGenericSource().instantiationArguments();
 
