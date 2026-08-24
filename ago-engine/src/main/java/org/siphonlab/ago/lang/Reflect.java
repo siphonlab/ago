@@ -17,6 +17,17 @@ package org.siphonlab.ago.lang;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.runtime.BooleanArrayInstance;
+import org.siphonlab.ago.runtime.ByteArrayInstance;
+import org.siphonlab.ago.runtime.CharArrayInstance;
+import org.siphonlab.ago.runtime.DecimalArrayInstance;
+import org.siphonlab.ago.runtime.DoubleArrayInstance;
+import org.siphonlab.ago.runtime.FloatArrayInstance;
+import org.siphonlab.ago.runtime.IntArrayInstance;
+import org.siphonlab.ago.runtime.LongArrayInstance;
+import org.siphonlab.ago.runtime.ObjectArrayInstance;
+import org.siphonlab.ago.runtime.ShortArrayInstance;
+import org.siphonlab.ago.runtime.StringArrayInstance;
 import org.siphonlab.ago.runtime.UnionArrayInstance;
 
 import java.util.Collection;
@@ -466,6 +477,27 @@ public class Reflect {
         } else {
             frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), result));
         }
+    }
+
+    public static void getObjectElementAt(NativeFrame frame, Instance<?> array, int index){
+        if(array instanceof ObjectArrayInstance objectArrayInstance){
+            frame.finishUnion(objectArrayInstance.value[index]);
+        }  else {
+            frame.raiseException(frame.self(), "lang.TypeMismatchException", "Object array expected");
+        }
+    }
+
+    public static void setObjectElementAt(NativeFrame frame, Instance<?> array, int index, Instance<?> object){
+        if(array instanceof ObjectArrayInstance objectArrayInstance){
+            objectArrayInstance.value[index] = object;
+            frame.finishVoid();
+        } else {
+            frame.raiseException(frame.self(), "lang.TypeMismatchException", "Object array expected");
+        }
+    }
+
+    public static void isObjectArray(NativeFrame frame, Instance<?> array){
+        frame.finishBoolean(array instanceof ObjectArrayInstance objectArrayInstance);
     }
 
 

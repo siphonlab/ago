@@ -690,4 +690,12 @@ public class AgoClass extends Instance<MetaClass>{
     public AgoClass getNullableBaseClass(){
         return ((NullableTypeInfo)this.concreteTypeInfo).getBaseClass();
     }
+
+    public boolean isArray(){
+        return this.concreteTypeInfo instanceof ArrayInfo;
+    }
+
+    public AgoClass getElementClassOfArray(){
+        return ((ArrayInfo)this.concreteTypeInfo).getElementType();
+    }
 }

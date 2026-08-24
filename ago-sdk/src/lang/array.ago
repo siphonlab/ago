@@ -89,6 +89,8 @@ final class ArrayExt{
             return arr;
         }
 
+        fun isObjectArray(this as Array<_>) as boolean native "org.siphonlab.ago.lang.Reflect.isObjectArray";
+
         fun get(this as Array<_>, i as int) as any{
             if(this instanceof Array<int> iarr){
                 return iarr[i];
@@ -102,17 +104,29 @@ final class ArrayExt{
                 return barr[i];
             } else if(this instanceof Array<byte> byarr){
                 return byarr[i];
+            } else if(this instanceof Array<short> sharr){
+                return sharr[i];
+            } else if(this instanceof Array<char> carr){
+                return carr[i];
+            } else if(this instanceof Array<decimal> decarr){
+                return decarr[i];
             } else if(this instanceof Array<string> sstrarr){
                 return sstrarr[i];
-            } else if(this instanceof Array<Object> aobj){
-                return aobj[i];
+//            } else if(this instanceof Array<classref> crarr){
+//                return crarr[i];
+            } else if(this.isObjectArray()){
+                return this.getObjectElement(i);
             } else {
                 return this[i];
             }
         }
 
+        fun getObjectElement(this as Array<_>, i as int) as Object native "org.siphonlab.ago.lang.Reflect.getObjectElementAt";
+
         fun set(this as Array<_>, i as int, value as any){
-            if(this instanceof Array<int> iarr){
+            if(this.isObjectArray()){
+                setObjectElement(this, i, value|Object);
+            } else if(this instanceof Array<int> iarr){
                 iarr[i] = value|int;
             } else if(this instanceof Array<long> larr){
                 larr[i] = value|long;
@@ -123,14 +137,22 @@ final class ArrayExt{
             } else if(this instanceof Array<boolean> barr){
                 barr[i] = value|boolean;
             } else if(this instanceof Array<byte> byarr){
-                byarr[i] = value|byte;;
+                byarr[i] = value|byte;
+            } else if(this instanceof Array<short> sharr){
+                sharr[i] = value|short;
+            } else if(this instanceof Array<char> carr){
+                carr[i] = value|char;
+            } else if(this instanceof Array<decimal> decarr){
+                decarr[i] = value|decimal;
             } else if(this instanceof Array<string> sstrarr){
                 sstrarr[i] = value|string;
-            } else if(this instanceof Array<Object> aobj){
-                aobj[i] = value|Object;
+            } else if(this instanceof Array<classref> crarr){
+                crarr[i] = value|classref;
             } else {
                 this[i] = value;
             }
         }
+
+        fun setObjectElement(this as Array<_>, i as int, value as Object) native "org.siphonlab.ago.lang.Reflect.setObjectElementAt";
     }
 }
