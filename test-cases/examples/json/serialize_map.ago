@@ -1,0 +1,68 @@
+import json.Encoder;
+
+class Item{
+    public name as string;
+    public value as int;
+}
+
+fun main(){
+    // Test 1: HashMap with string keys -> {"key": value} format
+    var strMap = new HashMap<string, int>();
+    strMap.put("a", 1);
+    strMap.put("b", 2);
+    strMap.put("c", 3);
+    var enc1 = new Encoder();
+    enc1.encode(strMap);
+    Trace.print(enc1.toString());
+
+    // Test 2: HashMap with string keys and object values
+    var objMap = new HashMap<string, Item>();
+    var item1 = new Item();
+    item1.name = "foo";
+    item1.value = 42;
+    objMap.put("first", item1);
+    var item2 = new Item();
+    item2.name = "bar";
+    item2.value = 99;
+    objMap.put("second", item2);
+    var enc2 = new Encoder();
+    enc2.encode(objMap);
+    Trace.print(enc2.toString());
+
+    // Test 3: HashMap with int keys -> [[key,value], ...] format
+    var intKeyMap = new HashMap<int, string>();
+    intKeyMap.put(1, "one");
+    intKeyMap.put(2, "two");
+    intKeyMap.put(3, "three");
+    var enc3 = new Encoder();
+    enc3.encode(intKeyMap);
+    Trace.print(enc3.toString());
+
+    // Test 4: empty HashMap with string keys
+    var emptyStrMap = new HashMap<string, string>();
+    var enc4 = new Encoder();
+    enc4.encode(emptyStrMap);
+    Trace.print(enc4.toString());
+
+    // Test 5: encode Map via Object path
+    var mapViaObj as Object = new HashMap<string, double>();
+    (mapViaObj | HashMap<string, double>).put("pi", 3.14);
+    (mapViaObj | HashMap<string, double>).put("e", 2.718);
+    var enc5 = new Encoder();
+    enc5.encode(mapViaObj);
+    Trace.print(enc5.toString());
+
+    // Test 6: nested Map — string keys with list values
+    var nestedMap = new HashMap<string, ArrayList<int>>();
+    var list1 = new ArrayList<int>();
+    list1.add(1);
+    list1.add(2);
+    nestedMap.put("first", list1);
+    var list2 = new ArrayList<int>();
+    list2.add(3);
+    list2.add(4);
+    nestedMap.put("second", list2);
+    var enc6 = new Encoder();
+    enc6.encode(nestedMap);
+    Trace.print(enc6.toString());
+}

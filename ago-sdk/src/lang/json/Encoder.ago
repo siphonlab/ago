@@ -185,6 +185,8 @@ class Encoder{
             } else if(value instanceof Boxer<classref> bclassref){
                 encode(bclassref.toString());       // Raw mode should encode the scope
             }
+        } else if(value instanceof Map<_,_> map){
+            encode#map(map);
         } else {
             beginObject();
             var props = value.class.getProperties(false);
@@ -289,6 +291,26 @@ class Encoder{
             encode#object(value[i]);
         }
         endArray();
+    }
+
+    fun encode#map(value as Map<_,_>){
+        if(value.keyIsString()){
+            beginObject();
+            for(var kv in value){
+                writeKey(kv.key|string);
+                encode#object(kv.value);
+            }
+            endObject();
+        } else {
+            beginArray();
+            for(var kv in value){
+                beginArray();
+                encode#any(kv.key);
+                encode#any(kv.value);
+                endArray();
+            }
+            endArray();
+        }
     }
 
     fun encode#any(v as any){

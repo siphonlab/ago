@@ -179,5 +179,14 @@ class KeyNotFoundException from RuntimeException{
     }
 }
 
+final class MapExt{
+    metaclass{
+        fun getKeyType(this as Map<_,_>) as ClassRef native "org.siphonlab.ago.lang.Reflect.Map_getKeyType";
+
+        fun getValueType(this as Map<_,_>) as ClassRef native "org.siphonlab.ago.lang.Reflect.Map_getValueType";
+
+        fun keyIsString(this as Map<_,_>) as boolean native "org.siphonlab.ago.lang.Reflect.Map_keyIsString";
+    }
+}
 
 

@@ -500,5 +500,27 @@ public class Reflect {
         frame.finishBoolean(array instanceof ObjectArrayInstance objectArrayInstance);
     }
 
+    // --- MapExt helpers ---
+
+    public static void Map_getKeyType(NativeFrame frame, Instance<?> mapInst){
+        AgoEngine engine = frame.getAgoEngine();
+        var genericArgsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
+        AgoClass keyType = genericArgsInfo.getArguments()[0];
+        frame.finishObject(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), keyType));
+    }
+
+    public static void Map_getValueType(NativeFrame frame, Instance<?> mapInst){
+        AgoEngine engine = frame.getAgoEngine();
+        var genericArgsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
+        AgoClass valueType = genericArgsInfo.getArguments()[1];
+        frame.finishObject(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), valueType));
+    }
+
+    public static void Map_keyIsString(NativeFrame frame, Instance<?> mapInst){
+        var genericArgsInfo = (GenericArgumentsInfo) mapInst.getAgoClass().getConcreteTypeInfo();
+        AgoClass keyType = genericArgsInfo.getArguments()[0];
+        frame.finishBoolean(keyType.getTypeCode() == TypeCode.STRING);
+    }
+
 
 }

@@ -104,4 +104,10 @@ public class JsonTest {
             "[\"a\",\"b\"]"
         ));
     }
+
+    @Test
+    public void serialize_map() throws CompilationError, CompilationErrorsException, IOException {
+        Util.run("json/serialize_map.ago");
+        Trace.printOutput();
+    }
 }
