@@ -522,5 +522,11 @@ public class Reflect {
         frame.finishBoolean(keyType.getTypeCode() == TypeCode.STRING);
     }
 
+    public static void List_getElementType(NativeFrame frame, Instance<?> listInst){
+        AgoEngine engine = frame.getAgoEngine();
+        var genericArgsInfo = (GenericArgumentsInfo) listInst.getAgoClass().getConcreteTypeInfo();
+        AgoClass elementType = genericArgsInfo.getArguments()[0];
+        frame.finishObject(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), elementType));
+    }
 
 }

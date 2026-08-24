@@ -190,3 +190,8 @@ final class MapExt{
 }
 
 
+final class ListExt{
+    metaclass{
+        fun getElementType(this as List<_>) as ClassRef native "org.siphonlab.ago.lang.Reflect.List_getElementType";
+    }
+}

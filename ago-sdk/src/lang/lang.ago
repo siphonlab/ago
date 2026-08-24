@@ -106,7 +106,7 @@ class ClassRef from Boxer<classref>{
 
     final fun isArray() as boolean native "org.siphonlab.ago.lang.Lang.ClassRef_isArray"
 
-    final fun elementClassOfArray#get() as ClassRef? native "org.siphonlab.ago.lang.Lang.ClassRef_getElementClassOfArray"
+    final fun elementTypeOfArray#get() as ClassRef? native "org.siphonlab.ago.lang.Lang.ClassRef_getElementClassOfArray"
 
     final fun elementTypeCode#get() as int native "org.siphonlab.ago.lang.Lang.ClassRef_elementTypeCode"
 
