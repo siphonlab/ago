@@ -80,11 +80,7 @@ public class Lang {
         AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
         AgoEngine engine = frame.getAgoEngine();
         var baseClass = agoClass.getNullableBaseClass();
-        if (baseClass == null) {
-            frame.finishUnion(null);
-        } else {
-            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), baseClass));
-        }
+        frame.finishObject(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), baseClass));
     }
 
     public static void ClassRef_isArray(NativeFrame frame){

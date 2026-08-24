@@ -102,7 +102,7 @@ class ClassRef from Boxer<classref>{
 
     final fun isNullable() as boolean native "org.siphonlab.ago.lang.Lang.ClassRef_isNullable"
 
-    final fun nullableBaseClass#get() as ClassRef? native "org.siphonlab.ago.lang.Lang.ClassRef_getNullableBaseClass"
+    final fun nullableBaseClass#get() as ClassRef native "org.siphonlab.ago.lang.Lang.ClassRef_getNullableBaseClass"
 
     final fun isArray() as boolean native "org.siphonlab.ago.lang.Lang.ClassRef_isArray"
 
