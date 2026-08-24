@@ -155,30 +155,34 @@ class Encoder{
     }
 
     fun encode#object(value as Object){
-        if(value instanceof JsonSerializable ser){
+        if(value instanceof Array<_> arr){
+            encode#array(arr);
+        } else if(value instanceof JsonSerializable ser){
             ser.encode(this);
-        } else if(value instanceof Boxer<int> bi){
-            encode(bi.value);
-        } else if(value instanceof Boxer<long> bl){
-            encode(bl.value);
-        } else if(value instanceof Boxer<float> bf){
-            encode(bf.value);
-        } else if(value instanceof Boxer<double> bd){
-            encode(bd.value);
-        } else if(value instanceof Boxer<decimal> bdec){
-            encode(bdec.value);
-        } else if(value instanceof Boxer<byte> bb){
-            encode(bb.value);
-        } else if(value instanceof Boxer<short> bs){
-            encode(bs.value);
-        } else if(value instanceof Boxer<char> bc){
-            encode(bc.value);
-        } else if(value instanceof Boxer<boolean> bbool){
-            encode(bbool.value);
-        } else if(value instanceof Boxer<string> bstr){
-            encode(bstr.value);
-        } else if(value instanceof Boxer<classref> bclassref){
-            encode(bclassref.toString());       // Raw mode should encode the scope
+        } else if(value instanceof Boxer<_> boxer){
+            if(value instanceof Boxer<int> bi){
+                encode(bi.value);
+            } else if(value instanceof Boxer<long> bl){
+                encode(bl.value);
+            } else if(value instanceof Boxer<float> bf){
+                encode(bf.value);
+            } else if(value instanceof Boxer<double> bd){
+                encode(bd.value);
+            } else if(value instanceof Boxer<decimal> bdec){
+                encode(bdec.value);
+            } else if(value instanceof Boxer<byte> bb){
+                encode(bb.value);
+            } else if(value instanceof Boxer<short> bs){
+                encode(bs.value);
+            } else if(value instanceof Boxer<char> bc){
+                encode(bc.value);
+            } else if(value instanceof Boxer<boolean> bbool){
+                encode(bbool.value);
+            } else if(value instanceof Boxer<string> bstr){
+                encode(bstr.value);
+            } else if(value instanceof Boxer<classref> bclassref){
+                encode(bclassref.toString());       // Raw mode should encode the scope
+            }
         } else {
             beginObject();
             var props = value.class.getProperties(false);
@@ -190,6 +194,89 @@ class Encoder{
                 encode(value[name]);
             }
             endObject();
+        }
+    }
+
+    fun encode#array(value as Array<_>){
+        var l = value.length;
+        if(value instanceof Array<int> iarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(iarr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<long> larr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(larr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<double> darr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(darr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<float> farr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(farr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<boolean> barr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(barr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<byte> byarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(byarr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<short> sharr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(sharr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<char> carr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(carr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<decimal> decarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(decarr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<classref> crarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode((crarr[i]|ClassRef).toString());
+            }
+            endArray();
+        } else if(value instanceof Array<string> sstrarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(sstrarr[i]);
+            }
+            endArray();
+        } else if(value.isObjectArray()){
+            beginArray();
+            for(var i=0; i< l; i++){
+                encode#object(value.getObjectElement(i));
+            }
+            endArray();
+        } else {
+            beginArray();
+            for(var i=0; i< l; i++){
+                encode(value[i]);
+            }
+            endArray();
         }
     }
 

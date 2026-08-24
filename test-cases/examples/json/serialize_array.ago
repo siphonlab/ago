@@ -1,0 +1,85 @@
+import json.Encoder;
+
+class Item{
+    public name as string;
+    public value as int;
+}
+
+fun main(){
+    // Test 1: int[] primitive array
+    var ints = [1, 2, 3];
+    var enc1 = new Encoder();
+    enc1.encode(ints);
+    Trace.print(enc1.toString());
+
+    // Test 2: double[] primitive array
+    var doubles = [1.1, 2.2, 3.3];
+    var enc2 = new Encoder();
+    enc2.encode(doubles);
+    Trace.print(enc2.toString());
+
+    // Test 3: string[] array (Array<string>)
+    var strs = ["hello", "world"];
+    var enc3 = new Encoder();
+    enc3.encode(strs);
+    Trace.print(enc3.toString());
+
+    // Test 4: boolean[] primitive array
+    var bools = [true, false, true];
+    var enc4 = new Encoder();
+    enc4.encode(bools);
+    Trace.print(enc4.toString());
+
+    // Test 5: long[] primitive array
+    var longs = [100L, 200L, 300L];
+    var enc5 = new Encoder();
+    enc5.encode(longs);
+    Trace.print(enc5.toString());
+
+    // Test 6: float[] primitive array
+    var floats = [1.1f, 2.2f];
+    var enc6 = new Encoder();
+    enc6.encode(floats);
+    Trace.print(enc6.toString());
+
+    // Test 7: byte[] primitive array (explicit type)
+    var bytes as byte[] = [10, 20, 30];
+    var enc7 = new Encoder();
+    enc7.encode(bytes);
+    Trace.print(enc7.toString());
+
+    // Test 8: short[] primitive array (explicit type)
+    var shorts as short[] = [100, 200, 300];
+    var enc8 = new Encoder();
+    enc8.encode(shorts);
+    Trace.print(enc8.toString());
+
+    // Test 9: char[] primitive array
+    var chars = ['a', 'b', 'c'];
+    var enc9 = new Encoder();
+    enc9.encode(chars);
+    Trace.print(enc9.toString());
+
+    // Test 10: Array of objects (Item[])
+    var items = new Item[2];
+    items[0] = new Item();
+    items[0].name = "foo";
+    items[0].value = 42;
+    items[1] = new Item();
+    items[1].name = "bar";
+    items[1].value = 99;
+    var enc10 = new Encoder();
+    enc10.encode(items);
+    Trace.print(enc10.toString());
+
+    // Test 11: Arrays.get helper — read element
+    var arrForHelper = [10, 20, 30];
+    var elem = arrForHelper.get(1);
+    Trace.print(elem|string);
+
+    // Test 12: empty array
+    var empty = new int[0];
+    var enc13 = new Encoder();
+    enc13.encode(empty);
+    Trace.print(enc13.toString());
+}

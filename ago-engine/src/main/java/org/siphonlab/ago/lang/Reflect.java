@@ -481,7 +481,7 @@ public class Reflect {
 
     public static void getObjectElementAt(NativeFrame frame, Instance<?> array, int index){
         if(array instanceof ObjectArrayInstance objectArrayInstance){
-            frame.finishUnion(objectArrayInstance.value[index]);
+            frame.finishObject(objectArrayInstance.value[index]);
         }  else {
             frame.raiseException(frame.self(), "lang.TypeMismatchException", "Object array expected");
         }

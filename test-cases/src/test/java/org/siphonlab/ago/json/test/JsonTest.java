@@ -68,4 +68,24 @@ public class JsonTest {
         Trace.printOutput();
         assertTrue(Trace.outputted("Alice", "30"));
     }
+
+    @Test
+    public void serialize_array() throws CompilationError, CompilationErrorsException, IOException {
+        Util.run("json/serialize_array.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+            "[1,2,3]",
+            "[1.1,2.2,3.3]",
+            "[\"hello\",\"world\"]",
+            "[true,false,true]",
+            "[100,200,300]",
+            "[1.1,2.2]",
+            "[10,20,30]",
+            "[100,200,300]",
+            "[\"a\",\"b\",\"c\"]",
+            "[{\"name\":\"foo\",\"value\":42},{\"name\":\"bar\",\"value\":99}]",
+            "20",
+            "[]"
+        ));
+    }
 }

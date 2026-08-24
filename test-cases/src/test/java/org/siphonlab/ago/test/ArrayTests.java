@@ -44,5 +44,13 @@ public class ArrayTests {
         assertTrue(Trace.outputted("it's an array, length is 3", "1", "2", "3"));
     }
 
+    @Test
+    public void any_array() throws CompilationError, CompilationErrorsException, IOException {
+        run("array/any_array.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted("1", "2", "3", "2", "4", "6"));
+    }
+
+
 
 }
