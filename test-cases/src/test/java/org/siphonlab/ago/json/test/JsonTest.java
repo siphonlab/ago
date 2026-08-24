@@ -88,4 +88,20 @@ public class JsonTest {
             "[]"
         ));
     }
+
+    @Test
+    public void serialize_list() throws CompilationError, CompilationErrorsException, IOException {
+        Util.run("json/serialize_list.ago");
+        Trace.printOutput();
+        assertTrue(Trace.outputted(
+            "[\"hello\",\"world\"]",
+            "[1,2,3]",
+            "[{\"name\":\"foo\",\"value\":42},{\"name\":\"bar\",\"value\":99}]",
+            "[]",
+            "[1.1,2.2,3.3]",
+            "[true,false,true]",
+            "[[1,2],[3,4]]",
+            "[\"a\",\"b\"]"
+        ));
+    }
 }

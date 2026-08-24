@@ -157,6 +157,8 @@ class Encoder{
     fun encode#object(value as Object){
         if(value instanceof Array<_> arr){
             encode#array(arr);
+        } else if(value instanceof List<_> list){
+            encode#list(list);
         } else if(value instanceof JsonSerializable ser){
             ser.encode(this);
         } else if(value instanceof Boxer<_> boxer){
@@ -278,6 +280,15 @@ class Encoder{
             }
             endArray();
         }
+    }
+
+    fun encode#list(value as List<_>){
+        beginArray();
+        var l = value.size;
+        for(var i = 0; i < l; i++){
+            encode#object(value[i]);
+        }
+        endArray();
     }
 
     fun encode#any(v as any){

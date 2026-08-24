@@ -1,0 +1,85 @@
+import json.Encoder;
+
+class Item{
+    public name as string;
+    public value as int;
+}
+
+fun main(){
+    // Test 1: ArrayList of strings
+    var strList = new ArrayList<string>();
+    strList.add("hello");
+    strList.add("world");
+    var enc1 = new Encoder();
+    enc1.encode(strList);
+    Trace.print(enc1.toString());
+
+    // Test 2: ArrayList of ints (boxed)
+    var intList = new ArrayList<int>();
+    intList.add(1);
+    intList.add(2);
+    intList.add(3);
+    var enc2 = new Encoder();
+    enc2.encode(intList);
+    Trace.print(enc2.toString());
+
+    // Test 3: ArrayList of objects
+    var objList = new ArrayList<Item>();
+    var item1 = new Item();
+    item1.name = "foo";
+    item1.value = 42;
+    objList.add(item1);
+    var item2 = new Item();
+    item2.name = "bar";
+    item2.value = 99;
+    objList.add(item2);
+    var enc3 = new Encoder();
+    enc3.encode(objList);
+    Trace.print(enc3.toString());
+
+    // Test 4: empty ArrayList
+    var emptyList = new ArrayList<string>();
+    var enc4 = new Encoder();
+    enc4.encode(emptyList);
+    Trace.print(enc4.toString());
+
+    // Test 5: ArrayList of doubles
+    var dblList = new ArrayList<double>();
+    dblList.add(1.1);
+    dblList.add(2.2);
+    dblList.add(3.3);
+    var enc5 = new Encoder();
+    enc5.encode(dblList);
+    Trace.print(enc5.toString());
+
+    // Test 6: ArrayList of booleans
+    var boolList = new ArrayList<boolean>();
+    boolList.add(true);
+    boolList.add(false);
+    boolList.add(true);
+    var enc6 = new Encoder();
+    enc6.encode(boolList);
+    Trace.print(enc6.toString());
+
+    // Test 7: nested ArrayList (list of lists)
+    var outerList = new ArrayList<ArrayList<int>>();
+    var inner1 = new ArrayList<int>();
+    inner1.add(1);
+    inner1.add(2);
+    outerList.add(inner1);
+    var inner2 = new ArrayList<int>();
+    inner2.add(3);
+    inner2.add(4);
+    outerList.add(inner2);
+    var enc7 = new Encoder();
+    enc7.encode(outerList);
+    Trace.print(enc7.toString());
+
+    // Test 8: encode via any (Object path)
+    var listViaObj as Object = new ArrayList<string>();
+    (listViaObj | ArrayList<string>).add("a");
+    (listViaObj | ArrayList<string>).add("b");
+    var enc8 = new Encoder();
+    enc8.encode(listViaObj);
+    Trace.print(enc8.toString());
+}
