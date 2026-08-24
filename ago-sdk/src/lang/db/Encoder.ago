@@ -1,0 +1,294 @@
+package json;
+
+// =============================================================================
+// DbEncoder — JSON encoder for full dump of ago objects with DbSlots
+// Inherits from json.Encoder, overrides encode#object to handle DB entities.
+// Entry point: encode#object(obj)
+// =============================================================================
+class SlotsEncoder from Encoder{
+
+    // Override encode#object to handle DbSlots-based objects specially.
+    override fun encode#object(value as Object){
+        if(isDbObject(value)){
+            beginObject();
+
+            // rowState
+            writeKey("rowState");
+            var rs = getRowStateString(value);
+            if(rs != "Saving"){
+                encode#string(rs);
+            } else {
+                encode#string("Unchanged");
+            }
+
+            // usingInstances
+            writeKey("usingInstances");
+            beginArray();
+            var instances = getUsingInstances(value);
+            if(instances != null){
+                for(var i = 0; i < instances.length; i++){
+                    encode#objectRef(instances[i]);
+                }
+            }
+            endArray();
+
+            // slots
+            writeKey("slots");
+            if(value instanceof Array<_> arr){
+                encode#arrayDump(arr);
+            } else if(value instanceof List<_> list){
+                encode#listDump(list);
+            } else if(value instanceof Map<_,_> map){
+                encode#mapDump(map);
+            } else {
+                encodeSlotsArray(value);
+            }
+
+            endObject();
+        } else {
+            super.encode#object(value);
+        }
+    }
+
+    // Encode object reference as a JSON string: "ClassName:id"
+    fun encode#objectRef(obj as Object){
+        var ref = getObjectRefString(obj);
+        writeRaw("\"" + ref.escapeJson() + "\"");
+    }
+
+    // Check if an object has DbSlots internally.
+    fun isDbObject(obj as Object) as boolean native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.isDbObject";
+
+    // Get row state name string from DbSlots.
+    fun getRowStateString(obj as Object) as string native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getRowStateString";
+
+    // Get using instances array from DbSlots.
+    fun getUsingInstances(obj as Object) as Object[]? native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getUsingInstances";
+
+    // Get slot value at given index (returns union/any type).
+    fun getSlotValue(obj as Object, index as int) as any native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getSlotValue";
+
+    // Get object reference string for an instance: "ClassName:id".
+    fun getObjectRefString(obj as Object) as string native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getObjectRefString";
+
+    // Check if a ClassRef represents a Boxer type.
+    fun isBoxerType(type as ClassRef) as boolean native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.isBoxerType";
+
+    // Get the base class for a nullable type, or null if not nullable.
+    fun getNullableBaseClass(type as ClassRef) as ClassRef? native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getNullableBaseClass";
+
+    // Encode all slots of an object as a JSON array.
+    fun encodeSlotsArray(obj as Object){
+        beginArray();
+        var slotDefs = obj.class.getSlots();
+        for(var i = 0; i < slotDefs.length; i++){
+            var slotDef = slotDefs[i];
+            var slotType = slotDef.type;
+            var value = getSlotValue(obj, slotDef.index);
+            encodeSlotValue(value, slotType);
+        }
+        endArray();
+    }
+
+    // Encode a single slot value according to its SlotDef type.
+    fun encodeSlotValue(value as any, slotType as ClassRef){
+        var baseType = slotType;
+        var isNullable = false;
+
+        // Handle nullable types: get the base type.
+        if(slotType.isNullable()){
+            if(value == null){
+                writeRaw("null");
+                return;
+            }
+
+            isNullable = true;
+            baseType = slotType.nullableBaseClass;
+        }
+
+        // Object type: check for Array/List/Map first, then object reference.
+        if(value instanceof Object obj){
+            // Boxer type check.
+            if(isBoxerType(baseType)){
+                // If value's runtime type matches SlotDef type, let parent encoder handle unboxing.
+                if(value.class == slotType or (isNullable and value.class == baseType)){
+                    super.encode#object(obj);       // boxer -> primitive
+                } else {
+                    // Type mismatch: embed as {type: "typename", value: primitive}.
+                    beginObject();
+                    writeKey("type");
+                    encode#string(value.class.getName());
+                    writeKey("value");
+                    encode#object(obj);
+                    endObject();
+                }
+                return;
+            } else {
+                encode#objectRef(value|Object);
+            }
+            return;
+        } else {
+            encode#any(value);
+        }
+    }
+
+    // Encode Array dump: elements directly, Object refs for instances.
+    fun encode#arrayDump(value as Array<_>){
+        var l = value.length;
+        if(value instanceof Array<int> iarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(iarr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<long> larr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(larr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<double> darr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(darr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<float> farr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(farr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<boolean> barr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(barr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<byte> byarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(byarr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<short> sharr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(sharr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<char> carr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(carr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<decimal> decarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(decarr[i]);
+            }
+            endArray();
+        } else if(value instanceof Array<classref> crarr){
+            beginArray();
+            for(var i=0; i< l; i++){
+                encode((crarr[i]|ClassRef).toString());
+            }
+            endArray();
+        } else if(value instanceof Array<string> sstrarr){
+            beginArray();
+            for(var i=0; i<l; i++){
+                encode(sstrarr[i]);
+            }
+            endArray();
+        } else if(value.isObjectArray()){
+            beginArray();
+            var elType = value.class.elementTypeOfArray();
+            for(var i=0; i< l; i++){
+                var elem = value.getObjectElement(i);
+                encodeSlotValue(elem, elType);
+            }
+            endArray();
+        } else {
+            beginArray();
+            for(var i=0; i< l; i++){
+                encode(value[i]);
+            }
+            endArray();
+        }
+    }
+
+    // Encode List dump: elements directly, Object refs for instances.
+    fun encode#listDump(value as List<_>){
+        beginArray();
+        var l = value.size;
+        var elType = value.getElementType();
+        for(var i = 0; i < l; i++){
+            var elem = value[i];
+            encodeSlotValue(elem, elType);
+        }
+        endArray();
+    }
+
+    // Encode Map dump: [[key, value], ...] form.
+    fun encode#mapDump(value as Map<_,_>){
+        beginArray();
+        var keyType = value.getKeyType();
+        var valueType = value.getValueType();
+        for(var kv in value){
+            beginArray();
+            encodeSlotValue(kv.key, keyType);
+            encodeDumpMapEntry(kv.value, valueType);
+            endArray();
+        }
+        endArray();
+    }
+
+//    // Encode a single element for dump arrays/lists.
+//    fun encodeDumpElement(elem as Object?){
+//        if(elem == null){
+//            writeRaw("null");
+//        } else if(elem instanceof Array<_> arr){
+//            encode#arrayDump(arr);
+//        } else if(elem instanceof List<_> list){
+//            encode#listDump(list);
+//        } else if(elem instanceof Map<_,_> map){
+//            encode#mapDump(map);
+//        } else {
+//            // Object instance: save reference.
+//            encode#objectRef(elem);
+//        }
+//    }
+//
+//    // Encode a single entry (key or value) for dump maps.
+//    fun encodeDumpEntry(entry as any){
+//        if(entry == null){
+//            writeRaw("null");
+//        } else if(entry instanceof Object obj){
+//            encode#objectRef(obj);
+//        } else if(entry instanceof string s){
+//            encode#string(s);
+//        } else if(entry instanceof boolean b){
+//            encode#boolean(b);
+//        } else if(entry instanceof int i){
+//            encode#int(i);
+//        } else if(entry instanceof double d){
+//            encode#double(d);
+//        } else if(entry instanceof long l){
+//            encode#long(l);
+//        } else if(entry instanceof decimal dec){
+//            encode#decimal(dec);
+//        } else if(entry instanceof float f){
+//            encode#float(f);
+//        } else if(entry instanceof char c){
+//            encode#char(c);
+//        } else if(entry instanceof byte b){
+//            encode#byte(b);
+//        } else if(entry instanceof short s){
+//            encode#short(s);
+//        } else {
+//            Trace.print($"unknown entry type: ${entry}"$);
+//        }
+//    }
+
+}
