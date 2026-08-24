@@ -1,0 +1,24 @@
+import json.Encoder;
+import lang.Entity;
+
+// Define a simple entity with primitive slots
+class Person from Entity<Person, long>{
+    public name as string;
+    public age as int;
+    public active as boolean;
+}
+
+fun main(){
+    // Create encoder instance
+    var enc = new Encoder();
+
+    // Create person entity
+    var p = new Person();
+    p.name = "Alice";
+    p.age = 30;
+    p.active = true;
+
+    // Dump the entity using encode#object
+    enc.encode(p|Object);
+    Trace.print(enc.toString());
+}

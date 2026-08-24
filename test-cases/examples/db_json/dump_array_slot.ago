@@ -1,0 +1,20 @@
+import json.Encoder;
+import lang.Entity;
+
+// Entity with array field
+class Team from Entity<Team, long>{
+    public name as string;
+    public scores as int[];
+}
+
+fun main(){
+    var enc = new Encoder();
+
+    var team = new Team();
+    team.name = "Alpha";
+    team.scores = [90, 85, 92]|int[];
+
+    // Dump — array slot should serialize elements directly
+    enc.encode(team|Object);
+    Trace.print(enc.toString());
+}

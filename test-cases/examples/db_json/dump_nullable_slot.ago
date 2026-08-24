@@ -1,0 +1,23 @@
+import json.Encoder;
+import lang.Entity;
+
+// Entity with nullable fields
+class Product from Entity<Product, long>{
+    public name as string?;
+    public price as int?;
+    public description as string?;
+}
+
+fun main(){
+    var enc = new Encoder();
+
+    // Create product with some null values
+    var prod = new Product();
+    prod.name = "Widget";
+    prod.price = 42;
+    prod.description = null;
+
+    // Dump — nullable slots should handle null correctly
+    enc.encode(prod|Object);
+    Trace.print(enc.toString());
+}
