@@ -1016,10 +1016,14 @@ public class BlockCompiler {
             }
             arrayType = n.getNullableBaseClass();
             eleType = ((ArrayClassDef)arrayType).getElementType();
-        } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)){
+        } else if(!root.getAnyArrayClass().isThatOrSuperOfThat(arrayType)) {
             throw new TypeMismatchError("assignee type '%s' is not an array".formatted(assigneeType.getFullname()), assignee.getSourceLocation());
+        } else if(arrayType instanceof ArrayClassDef a){
+            eleType = a.getElementType();
         } else {
-            eleType = ((ArrayClassDef)arrayType).getElementType();
+            var genericArrType = root.getAnyArrayClass().asThatOrSuperOfThat(arrayType);
+            eleType = genericArrType.getGenericSource().typeArguments()[0].getClassDefValue();
+            arrayType = functionDef.getOrCreateArrayType(eleType, null);
         }
         List<CollectionElementDef> elements = new ArrayList<>();
         boolean hasExpando = false;
