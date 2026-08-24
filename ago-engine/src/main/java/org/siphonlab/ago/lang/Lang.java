@@ -71,6 +71,48 @@ public class Lang {
         frame.finishString(agoClass.getFullname());
     }
 
+    public static void ClassRef_isNullable(NativeFrame frame){
+        AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
+        frame.finishBoolean(agoClass.isNullable());
+    }
+
+    public static void ClassRef_getNullableBaseClass(NativeFrame frame){
+        AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
+        AgoEngine engine = frame.getAgoEngine();
+        var baseClass = agoClass.getNullableBaseClass();
+        if (baseClass == null) {
+            frame.finishUnion(null);
+        } else {
+            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), baseClass));
+        }
+    }
+
+    public static void ClassRef_isArray(NativeFrame frame){
+        AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
+        frame.finishBoolean(agoClass.isArray());
+    }
+
+    public static void ClassRef_getElementClassOfArray(NativeFrame frame){
+        AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
+        AgoEngine engine = frame.getAgoEngine();
+        var elementClass = agoClass.getElementClassOfArray();
+        if (elementClass == null) {
+            frame.finishUnion(null);
+        } else {
+            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), elementClass));
+        }
+    }
+
+    public static void ClassRef_elementTypeCode(NativeFrame frame){
+        AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
+        var elementClass = agoClass.getElementClassOfArray();
+        if (elementClass == null) {
+            frame.finishInt(-1);
+        } else {
+            frame.finishInt(elementClass.getTypeCode().value);
+        }
+    }
+
     public static void Object_getClass( NativeFrame frame){
         Instance<?> object = frame.getParentScope();
         AgoEngine engine = frame.getAgoEngine();

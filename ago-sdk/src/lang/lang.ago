@@ -100,6 +100,16 @@ class ClassRef from Boxer<classref>{
 
     fun getName() as string native "org.siphonlab.ago.lang.Lang.ClassRef_getName";
 
+    final fun isNullable() as boolean native "org.siphonlab.ago.lang.Lang.ClassRef_isNullable"
+
+    final fun nullableBaseClass#get() as ClassRef? native "org.siphonlab.ago.lang.Lang.ClassRef_getNullableBaseClass"
+
+    final fun isArray() as boolean native "org.siphonlab.ago.lang.Lang.ClassRef_isArray"
+
+    final fun elementClassOfArray#get() as ClassRef? native "org.siphonlab.ago.lang.Lang.ClassRef_getElementClassOfArray"
+
+    final fun elementTypeCode#get() as int native "org.siphonlab.ago.lang.Lang.ClassRef_elementTypeCode"
+
     fun getProperties(includePrivate as boolean) as PropertyDesc[] native "org.siphonlab.ago.lang.Reflect.getProperties";
     fun getMethods(includePrivate as boolean) as ClassRef[] native "org.siphonlab.ago.lang.Reflect.getMethods";
     fun getChildren(includePrivate as boolean) as ClassRef[] native "org.siphonlab.ago.lang.Reflect.getChildren";
