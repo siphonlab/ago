@@ -595,7 +595,11 @@ public class CodeBuffer {
 
     public void loadClassOfInstanceAsBoxed(SlotDef target, int boxedClassName, SlotDef instance, int metaLevel) {
         SizeVerifier sizeVerifier = this.sizeVerifier();
-        ls.addInt(metaLevel == 1 ? Load.loadclsref_vCo : Load.loadclsref2_vCo);
+        if(instance.getTypeCode() == OBJECT) {
+            ls.addInt(metaLevel == 1 ? Load.loadclsref_vCo : Load.loadclsref2_vCo);
+        } else if(instance.getTypeCode() == UNION){
+            ls.addInt(metaLevel == 1 ? Load.loadclsref_vCu : Load.loadclsref2_vCu);
+        }
         slot(target);
         ls.addInt(boxedClassName);
         slot(instance);

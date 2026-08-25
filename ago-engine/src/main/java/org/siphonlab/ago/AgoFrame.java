@@ -1249,6 +1249,15 @@ public class AgoFrame extends CallFrame<AgoFunction>{
                 loadClassRefOfInstance(self, engine, slots, code[pc++], engine.getClass(code[pc++]), slots.getObject(code[pc++]).getAgoClass());
                 break;
 
+            case Load.loadclsref_vCu:
+                loadClassRefOfInstance(self, engine, slots, code[pc++], engine.getClass(code[pc++]), (Instance<?>) slots.getUnion(code[pc++]));
+                break;
+
+            case Load.loadclsref2_vCu:
+                loadClassRefOfInstance(self, engine, slots, code[pc++], engine.getClass(code[pc++]), ((Instance<?>)slots.getUnion(code[pc++])).getAgoClass());
+                break;
+
+
         }
         return pc;
     }

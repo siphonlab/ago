@@ -16,6 +16,7 @@
 package org.siphonlab.ago.compiler.expression;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.siphonlab.ago.TypeCode;
 import org.siphonlab.ago.compiler.*;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.compiler.exception.TypeMismatchError;
@@ -51,7 +52,12 @@ public class CastToScopedClassRef extends ExpressionInFunctionBody{
 
             blockCompiler.lockRegister(localVar);
             if(expression instanceof ClassOf.ClassOfInstance classOfInstance) {
-                Var.LocalVar cls = (Var.LocalVar) classOfInstance.getExpression().visit(blockCompiler);
+                Expression expr = classOfInstance.getExpression();
+                TypeCode typeCode = expr.inferType().getTypeCode();
+                if (typeCode != TypeCode.UNION && typeCode != TypeCode.OBJECT) {
+                    expr = ownerFunction.cast(expr, getRoot().getObjectClass()).transform();
+                }
+                Var.LocalVar cls = (Var.LocalVar) expr.visit(blockCompiler);
                 blockCompiler.getCode().loadClassOfInstanceAsBoxed(localVar.getVariableSlot(), ownerFunction.idOfClass(this.scopedClassIntervalClassDef), cls.getVariableSlot(), classOfInstance.getMetaLevel());
             } else {
                 ownerFunction.box(classDef.toClassRefLiteral(), this.scopedClassIntervalClassDef, Box.BoxMode.Box).outputToLocalVar(localVar, blockCompiler);

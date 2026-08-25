@@ -34,6 +34,10 @@ public class Load {
     public static final int loadclsref_vCo = 0x08_06_01_03;
     public static final int loadclsref2_vCo = 0x08_06_02_03;
 
+    // load class into a ClassRef instance
+    public static final int loadclsref_vCu = 0x08_07_01_03;
+    public static final int loadclsref2_vCu = 0x08_07_02_03;
+
     // loadcls_scope(target_slot, offset), load the class of the offseted scope
     // according ClassOf(Scope)
     public static final int loadcls_scope_vc = 0x08_03_01_02;
@@ -75,6 +79,9 @@ public class Load {
 
             case loadclsref_vCo -> "loadclsref_vCo";
             case loadclsref2_vCo -> "loadclsref2_vCo";
+
+            case loadclsref_vCu -> "loadclsref_vCu";
+            case loadclsref2_vCu -> "loadclsref2_vCu";
 
             default -> throw new IllegalArgumentException("illegal code " + Integer.toHexString(code));
         };
