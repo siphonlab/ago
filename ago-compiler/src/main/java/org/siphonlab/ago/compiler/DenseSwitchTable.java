@@ -45,7 +45,10 @@ public class DenseSwitchTable extends SwitchTable{
             buff.putInt(labels.get(key).getResolvedAddress());
             index++;
         }
-        assert buff.position() - pos == this.labels.size() * 4;
+        assert buff.position() - pos == index * 4;
+        if(index > labels.size()){
+            buff.putInt(pos - 4, index);        // update size
+        }
         this.composedBlob = buff.flip();
         this.labels.clear();
     }
