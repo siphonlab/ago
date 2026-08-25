@@ -92,11 +92,7 @@ public class Lang {
         AgoClass agoClass = (AgoClass) frame.getParentScope().getSlots().getObject(1);
         AgoEngine engine = frame.getAgoEngine();
         var elementClass = agoClass.getElementClassOfArray();
-        if (elementClass == null) {
-            frame.finishUnion(null);
-        } else {
-            frame.finishUnion(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), elementClass));
-        }
+        frame.finishObject(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), elementClass));
     }
 
     public static void ClassRef_elementTypeCode(NativeFrame frame){

@@ -120,11 +120,14 @@ public class Util {
 
     public static RunEngine parseEngine(){
         String s = System.getenv("engine");
-        if("vertx".equalsIgnoreCase(s) || StringUtils.isEmpty(s)){
+        if("vertx".equalsIgnoreCase(s)){
             return RunEngine.VertxEngine;
         } else if("netty".equalsIgnoreCase(s)){
             return RunEngine.NettyEngine;
         } else if ("workflow".equalsIgnoreCase(s)) {
+            return RunEngine.WorkflowEngine;
+        } else if(StringUtils.isEmpty(s)){
+//            return RunEngine.VertxEngine;
             return RunEngine.WorkflowEngine;
         }
         throw new IllegalArgumentException("unknown engine '%s'".formatted(s));

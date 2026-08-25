@@ -25,21 +25,19 @@ class SlotsEncoder from Encoder{
             writeKey("usingInstances");
             beginArray();
             var instances = getUsingInstances(value);
-            if(instances != null){
-                for(var i = 0; i < instances.length; i++){
-                    encode#objectRef(instances[i]);
-                }
+            for(var inst in instances){
+                encodeObjectRef(inst);
             }
             endArray();
 
             // slots
             writeKey("slots");
             if(value instanceof Array<_> arr){
-                encode#arrayDump(arr);
+                encodeArrayDump(arr);
             } else if(value instanceof List<_> list){
-                encode#listDump(list);
+                encodeListDump(list);
             } else if(value instanceof Map<_,_> map){
-                encode#mapDump(map);
+                encodeMapDump(map);
             } else {
                 encodeSlotsArray(value);
             }
@@ -51,7 +49,7 @@ class SlotsEncoder from Encoder{
     }
 
     // Encode object reference as a JSON string: "ClassName:id"
-    fun encode#objectRef(obj as Object){
+    fun encodeObjectRef(obj as Object){
         var ref = getObjectRefString(obj);
         writeRaw("\"" + ref.escapeJson() + "\"");
     }
@@ -63,10 +61,16 @@ class SlotsEncoder from Encoder{
     fun getRowStateString(obj as Object) as string native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getRowStateString";
 
     // Get using instances array from DbSlots.
-    fun getUsingInstances(obj as Object) as Object[]? native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getUsingInstances";
+    fun getUsingInstances(obj as Object) as Object[] native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getUsingInstances";
 
-    // Get slot value at given index (returns union/any type).
-    fun getSlotValue(obj as Object, index as int) as any native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getSlotValue";
+    // Get slot value at given index (returns typed value based on caller's expected type).
+    fun getSlotValue<T>(obj as Object, index as int) as T native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getSlotValue";
+
+    // Check if a union (nullable) slot at the given index is null.
+    fun isSlotNull(obj as Object, index as int) as boolean native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.isSlotNull";
+
+    // Get union slot value at given index for nullable/union slots.
+    fun getSlotUnionValue<T>(obj as Object, index as int) as T native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getSlotUnionValue";
 
     // Get object reference string for an instance: "ClassName:id".
     fun getObjectRefString(obj as Object) as string native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getObjectRefString";
@@ -84,56 +88,67 @@ class SlotsEncoder from Encoder{
         for(var i = 0; i < slotDefs.length; i++){
             var slotDef = slotDefs[i];
             var slotType = slotDef.type;
-            var value = getSlotValue(obj, slotDef.index);
-            encodeSlotValue(value, slotType);
+            var index = slotDef.index;
+            switch(slotType.typeCode){
+            case TypeCode.INT:       encode#int(getSlotValue<int>(obj, index)); break;
+            case TypeCode.LONG:      encode#long(getSlotValue<long>(obj, index)); break;
+            case TypeCode.FLOAT:     encode#float(getSlotValue<float>(obj, index)); break;
+            case TypeCode.DOUBLE:    encode#double(getSlotValue<double>(obj, index)); break;
+            case TypeCode.BOOLEAN:   encode#boolean(getSlotValue<boolean>(obj, index)); break;
+            case TypeCode.BYTE:      encode#byte(getSlotValue<byte>(obj, index)); break;
+            case TypeCode.SHORT:     encode#short(getSlotValue<short>(obj, index)); break;
+            case TypeCode.CHAR:      encode#char(getSlotValue<char>(obj, index)); break;
+            case TypeCode.DECIMAL:   encode#decimal(getSlotValue<decimal>(obj, index)); break;
+            case TypeCode.STRING:    encode#string(getSlotValue<string>(obj, index)); break;
+            case TypeCode.OBJECT:    encodeObjectSlotValue(getSlotValue<Object>(obj, index), slotType); break;
+            case TypeCode.CLASS_REF: encode#string((getSlotValue<ClassRef>(obj, index)|ClassRef).toString()); break;
+            case TypeCode.UNION:     // now union only nullable
+                if(isSlotNull(obj, index)){
+                    writeRaw("null");
+                } else {
+                    var baseType = slotType.nullableBaseClass
+                    switch(baseType.typeCode){
+                        case TypeCode.INT:       encode#int(getSlotUnionValue<int>(obj, index)); break;
+                        case TypeCode.LONG:      encode#long(getSlotUnionValue<long>(obj, index)); break;
+                        case TypeCode.FLOAT:     encode#float(getSlotUnionValue<float>(obj, index)); break;
+                        case TypeCode.DOUBLE:    encode#double(getSlotUnionValue<double>(obj, index)); break;
+                        case TypeCode.BOOLEAN:   encode#boolean(getSlotUnionValue<boolean>(obj, index)); break;
+                        case TypeCode.BYTE:      encode#byte(getSlotUnionValue<byte>(obj, index)); break;
+                        case TypeCode.SHORT:     encode#short(getSlotUnionValue<short>(obj, index)); break;
+                        case TypeCode.CHAR:      encode#char(getSlotUnionValue<char>(obj, index)); break;
+                        case TypeCode.DECIMAL:   encode#decimal(getSlotUnionValue<decimal>(obj, index)); break;
+                        case TypeCode.STRING:    encode#string(getSlotUnionValue<string>(obj, index)); break;
+                        case TypeCode.OBJECT:    encodeObjectSlotValue(getSlotUnionValue<Object>(obj, index), baseType); break;
+                    }
+                }
+                break;
+            }
         }
         endArray();
     }
 
-    // Encode a single slot value according to its SlotDef type.
-    fun encodeSlotValue(value as any, slotType as ClassRef){
-        var baseType = slotType;
-        var isNullable = false;
-
-        // Handle nullable types: get the base type.
-        if(slotType.isNullable()){
-            if(value == null){
-                writeRaw("null");
-                return;
-            }
-
-            isNullable = true;
-            baseType = slotType.nullableBaseClass;
-        }
-
-        // Object type: check for Array/List/Map first, then object reference.
-        if(value instanceof Object obj){
-            // Boxer type check.
-            if(isBoxerType(baseType)){
-                // If value's runtime type matches SlotDef type, let parent encoder handle unboxing.
-                if(value.class == slotType or (isNullable and value.class == baseType)){
-                    super.encode#object(obj);       // boxer -> primitive
-                } else {
-                    // Type mismatch: embed as {type: "typename", value: primitive}.
-                    beginObject();
-                    writeKey("type");
-                    encode#string(value.class.getName());
-                    writeKey("value");
-                    encode#object(obj);
-                    endObject();
-                }
-                return;
+    fun encodeObjectSlotValue(slotValue as Object, slotType as ClassRef){
+        // Boxer type check.
+        if(slotValue instanceof Boxer<_> boxer){
+            // If value's runtime type matches SlotDef type, let parent encoder handle unboxing.
+            if(slotValue.class.equals(slotType)){
+                super.encode#object(slotValue);       // boxer -> primitive
             } else {
-                encode#objectRef(value|Object);
+                // Type mismatch: embed as {type: "typename", value: primitive}.
+                beginObject();
+                writeKey("type");
+                encode#string(slotValue.class.getName());
+                writeKey("value");
+                encode#object(slotValue);
+                endObject();
             }
-            return;
         } else {
-            encode#any(value);
+            encodeObjectRef(slotValue|Object);
         }
     }
 
     // Encode Array dump: elements directly, Object refs for instances.
-    fun encode#arrayDump(value as Array<_>){
+    fun encodeArrayDump(value as Array<_>){
         var l = value.length;
         if(value instanceof Array<int> iarr){
             beginArray();
@@ -206,10 +221,11 @@ class SlotsEncoder from Encoder{
             var elType = value.class.elementTypeOfArray();
             for(var i=0; i< l; i++){
                 var elem = value.getObjectElement(i);
-                encodeSlotValue(elem, elType);
+                encodeObjectSlotValue(elem, elType);
             }
             endArray();
         } else {
+            // TODO union/nullable, should detect nullable base type at first
             beginArray();
             for(var i=0; i< l; i++){
                 encode(value[i]);
@@ -219,26 +235,27 @@ class SlotsEncoder from Encoder{
     }
 
     // Encode List dump: elements directly, Object refs for instances.
-    fun encode#listDump(value as List<_>){
+    fun encodeListDump(value as List<_>){
         beginArray();
         var l = value.size;
         var elType = value.getElementType();
         for(var i = 0; i < l; i++){
             var elem = value[i];
-            encodeSlotValue(elem, elType);
+            //TODO like array, for each in List<int>, List<long>, ...
+//            encodeSlotValue(elem, elType);
         }
         endArray();
     }
 
     // Encode Map dump: [[key, value], ...] form.
-    fun encode#mapDump(value as Map<_,_>){
+    fun encodeMapDump(value as Map<_,_>){
         beginArray();
         var keyType = value.getKeyType();
         var valueType = value.getValueType();
         for(var kv in value){
             beginArray();
-            encodeSlotValue(kv.key, keyType);
-            encodeDumpMapEntry(kv.value, valueType);
+//            encodeSlotValue(kv.key, keyType);
+//            encodeSlotValue(kv.value, valueType);
             endArray();
         }
         endArray();
@@ -249,14 +266,14 @@ class SlotsEncoder from Encoder{
 //        if(elem == null){
 //            writeRaw("null");
 //        } else if(elem instanceof Array<_> arr){
-//            encode#arrayDump(arr);
+//            encodeArrayDump(arr);
 //        } else if(elem instanceof List<_> list){
-//            encode#listDump(list);
+//            encodeListDump(list);
 //        } else if(elem instanceof Map<_,_> map){
-//            encode#mapDump(map);
+//            encodeMapDump(map);
 //        } else {
 //            // Object instance: save reference.
-//            encode#objectRef(elem);
+//            encodeObjectRef(elem);
 //        }
 //    }
 //
@@ -265,7 +282,7 @@ class SlotsEncoder from Encoder{
 //        if(entry == null){
 //            writeRaw("null");
 //        } else if(entry instanceof Object obj){
-//            encode#objectRef(obj);
+//            encodeObjectRef(obj);
 //        } else if(entry instanceof string s){
 //            encode#string(s);
 //        } else if(entry instanceof boolean b){

@@ -15,10 +15,15 @@
  */
 package org.siphonlab.ago.runtime.db.sdk;
 
+import org.apache.commons.collections4.SetUtils;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
+
+import java.math.BigDecimal;
+
+import static org.siphonlab.ago.TypeCode.*;
 
 public class DbJsonEncoder {
 
@@ -42,43 +47,77 @@ public class DbJsonEncoder {
     // Get using instances array from DbSlots.
     public static void getUsingInstances(NativeFrame frame, Instance<?> obj) {
         Slots slots = obj.getSlots();
-        if (slots instanceof DbSlots<?>) {
-            var dbSlots = (DbSlots<?>) slots;
-            var usingSet = dbSlots.getUsingInstances();
-            if (usingSet == null || usingSet.isEmpty()) {
-                frame.finishObject(null);
-                return;
-            }
-            AgoEngine engine = frame.getAgoEngine();
-            AgoClass resultClass = frame.getAgoClass().getResultClass();
-            var arr = engine.createObjectArray(resultClass, usingSet.size());
-            int i = 0;
-            for (Instance<?> inst : usingSet) {
-                arr.value[i++] = inst;
-            }
-            frame.finishObject(arr);
-        } else {
-            frame.finishObject(null);
+        var dbSlots = (DbSlots<?>) slots;
+        var usingSet = dbSlots.getUsingInstances();
+        if (usingSet == null) {
+            usingSet = SetUtils.emptySet();
+        }
+        AgoEngine engine = frame.getAgoEngine();
+        AgoClass resultClass = frame.getAgoClass().getResultClass();
+        var arr = engine.createObjectArray(resultClass, usingSet.size());
+        int i = 0;
+        for (Instance<?> inst : usingSet) {
+            arr.value[i++] = inst;
+        }
+        frame.finishObject(arr);
+    }
+
+    // Get slot value at given index. Returns typed value based on the caller's expected result type.
+    public static void getSlotValue(NativeFrame frame, Instance<?> obj, int index) {
+        Slots slots = obj.getSlots();
+        int resultTypeCode = frame.getAgoClass().getResultTypeCode().value;
+        switch (resultTypeCode) {
+            case INT_VALUE:       frame.finishInt(slots.getInt(index)); break;
+            case LONG_VALUE:      frame.finishLong(slots.getLong(index)); break;
+            case FLOAT_VALUE:     frame.finishFloat(slots.getFloat(index)); break;
+            case DOUBLE_VALUE:    frame.finishDouble(slots.getDouble(index)); break;
+            case BOOLEAN_VALUE:   frame.finishBoolean(slots.getBoolean(index)); break;
+            case BYTE_VALUE:      frame.finishByte(slots.getByte(index)); break;
+            case SHORT_VALUE:     frame.finishShort(slots.getShort(index)); break;
+            case CHAR_VALUE:      frame.finishChar(slots.getChar(index)); break;
+            case DECIMAL_VALUE:   frame.finishDecimal(slots.getDecimal(index)); break;
+            case STRING_VALUE:    frame.finishString(slots.getString(index)); break;
+            case OBJECT_VALUE:    frame.finishObject(slots.getObject(index)); break;
+            case CLASS_REF_VALUE: frame.finishClassRef(frame.getAgoEngine().getClass(slots.getClassRef(index))); break;
+            case UNION_VALUE:     frame.finishUnion(slots.getUnion(index)); break;
+            default:              frame.finishVoid(); break;
         }
     }
 
-    // Get slot value at given index.
-    public static void getSlotValue(NativeFrame frame, Instance<?> obj, int index) {
-        AgoEngine engine = frame.getAgoEngine();
+    // Check if a union (nullable) slot at the given index is null.
+    public static void isSlotNull(NativeFrame frame, Instance<?> obj, int index) {
         Slots slots = obj.getSlots();
-        AgoClass agoClass = obj.getAgoClass();
-        AgoSlotDef[] slotDefs = agoClass.getSlotDefs();
+        Object value = slots.getUnion(index);
+        frame.finishBoolean(value == null);
+    }
 
-        if (slotDefs == null || index >= slotDefs.length) {
-            frame.raiseException(frame.self(), "IndexOutOfBoundsException",
-                    "slot index %d out of bounds for object with %d slots".formatted(index,
-                            slotDefs == null ? 0 : slotDefs.length));
+    // Get union slot value at given index for nullable/union slots.
+    // Returns typed value based on the caller's expected result type.
+    public static void getSlotUnionValue(NativeFrame frame, Instance<?> obj, int index) {
+        Slots slots = obj.getSlots();
+        Object unionValue = slots.getUnion(index);
+        int resultTypeCode = frame.getAgoClass().getResultTypeCode().value;
+
+        if (unionValue == null) {
+            frame.raiseException(frame.self(), "lang.NullPointerException",
+                    "slot index %d is null, cannot extract typed value".formatted(index));
             return;
         }
 
-        AgoSlotDef slotDef = slotDefs[index];
-        int typeCode = slotDef.getTypeCode().value;
-        frame.finishUnion(Union.toUnionValue(engine, slots, index, typeCode));
+        switch (resultTypeCode) {
+            case INT_VALUE:       frame.finishInt(((Number) unionValue).intValue()); break;
+            case LONG_VALUE:      frame.finishLong(((Number) unionValue).longValue()); break;
+            case FLOAT_VALUE:     frame.finishFloat(((Number) unionValue).floatValue()); break;
+            case DOUBLE_VALUE:    frame.finishDouble(((Number) unionValue).doubleValue()); break;
+            case BOOLEAN_VALUE:   frame.finishBoolean((Boolean) unionValue); break;
+            case BYTE_VALUE:      frame.finishByte(((Number) unionValue).byteValue()); break;
+            case SHORT_VALUE:     frame.finishShort(((Number) unionValue).shortValue()); break;
+            case CHAR_VALUE:      frame.finishChar((Character) unionValue); break;
+            case DECIMAL_VALUE:   frame.finishDecimal((BigDecimal) unionValue); break;
+            case STRING_VALUE:    frame.finishString((String) unionValue); break;
+            case OBJECT_VALUE:    frame.finishObject((Instance<?>) unionValue); break;
+            default:              frame.finishUnion(unionValue); break;
+        }
     }
 
     // Get object reference string for an instance: "ClassName:id".
