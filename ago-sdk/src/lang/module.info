@@ -40,6 +40,7 @@ units:
   - workflow.ago
   - json/Encoder.ago
   - json/Decoder.ago
+  - db/Encoder.ago
 
 description: |
     ago lang module
