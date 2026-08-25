@@ -150,73 +150,7 @@ class SlotsEncoder from Encoder{
     // Encode Array dump: elements directly, Object refs for instances.
     fun encodeArrayDump(value as Array<_>){
         var l = value.length;
-        if(value instanceof Array<int> iarr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(iarr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<long> larr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(larr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<double> darr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(darr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<float> farr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(farr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<boolean> barr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(barr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<byte> byarr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(byarr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<short> sharr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(sharr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<char> carr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(carr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<decimal> decarr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(decarr[i]);
-            }
-            endArray();
-        } else if(value instanceof Array<classref> crarr){
-            beginArray();
-            for(var i=0; i< l; i++){
-                encode((crarr[i]|ClassRef).toString());
-            }
-            endArray();
-        } else if(value instanceof Array<string> sstrarr){
-            beginArray();
-            for(var i=0; i<l; i++){
-                encode(sstrarr[i]);
-            }
-            endArray();
-        } else if(value.isObjectArray()){
+        if(value.isObjectArray()){
             beginArray();
             var elType = value.class.elementTypeOfArray();
             for(var i=0; i< l; i++){
@@ -224,25 +158,105 @@ class SlotsEncoder from Encoder{
                 encodeObjectSlotValue(elem, elType);
             }
             endArray();
-        } else {
-            // TODO union/nullable, should detect nullable base type at first
+        } else if(value.isUnionArray()){
+            var elType = value.class.elementTypeOfArray();
+            var baseType = elType.nullableBaseClass;
             beginArray();
             for(var i=0; i< l; i++){
-                encode(value[i]);
+                encodeNullableValue(value[i], baseType);
             }
             endArray();
+        } else {
+            encode#array(value);
+        }
+    }
+
+    fun encodeNullableValue(value as any, baseType as ClassRef){
+        if(value == null){
+            writeRaw('null');
+            return;
+        }
+        switch(baseType.typeCode){
+            case TypeCode.INT:       encode#int(value|int); break;
+            case TypeCode.LONG:      encode#long(value|long); break;
+            case TypeCode.FLOAT:     encode#float(value|float); break;
+            case TypeCode.DOUBLE:    encode#double(value|double); break;
+            case TypeCode.BOOLEAN:   encode#boolean(value|boolean); break;
+            case TypeCode.BYTE:      encode#byte(value|byte); break;
+            case TypeCode.SHORT:     encode#short(value|short); break;
+            case TypeCode.CHAR:      encode#char(value|char); break;
+            case TypeCode.DECIMAL:   encode#decimal(value|decimal); break;
+            case TypeCode.STRING:    encode#string(value|string); break;
+            case TypeCode.OBJECT:    encodeObjectSlotValue(value|Object, baseType); break;
         }
     }
 
     // Encode List dump: elements directly, Object refs for instances.
     fun encodeListDump(value as List<_>){
         beginArray();
-        var l = value.size;
         var elType = value.getElementType();
-        for(var i = 0; i < l; i++){
-            var elem = value[i];
-            //TODO like array, for each in List<int>, List<long>, ...
-//            encodeSlotValue(elem, elType);
+        switch(elType.typeCode){
+            case TypeCode.OBJECT:
+                for(var obj in value){
+                    encodeObjectSlotValue(obj|Object, elType);
+                }
+                break;
+            case TypeCode.UNION:
+                var baseType = elType.nullableBaseClass;
+                for(var u in value){
+                    encodeNullableValue(u, baseType);
+                }
+                break;
+            case TypeCode.INT:
+                for(var i in value | List<int>){
+                    encode#int(i);
+                }
+                break;
+            case TypeCode.LONG:
+                for(var l in value | List<long>){
+                    encode#long(l);
+                }
+                break;
+            case TypeCode.FLOAT:
+                for(var f in value | List<float>){
+                    encode#float(f);
+                }
+                break;
+            case TypeCode.DOUBLE:
+                for(var d in value | List<double>){
+                    encode#double(d);
+                }
+                break;
+            case TypeCode.BOOLEAN:
+                for(var b in value | List<boolean>){
+                    encode#boolean(b);
+                }
+                break;
+            case TypeCode.BYTE:
+                for(by in value | List<byte>){
+                    encode#byte(by);
+                }
+                break;
+            case TypeCode.SHORT:
+                for(var s in value | List<short>){
+                    encode#short(s);
+                }
+                break;
+            case TypeCode.CHAR:
+                for(var c in value | List<char>){
+                    encode#char(c);
+                }
+                break;
+            case TypeCode.DECIMAL:
+                for(var dec in value | List<decimal>){
+                    encode#decimal(dec);
+                }
+                break;
+            case TypeCode.STRING:
+                for(var str in value | List<string>){
+                    encode#string(str);
+                }
+                break;
         }
         endArray();
     }
@@ -254,8 +268,9 @@ class SlotsEncoder from Encoder{
         var valueType = value.getValueType();
         for(var kv in value){
             beginArray();
-//            encodeSlotValue(kv.key, keyType);
-//            encodeSlotValue(kv.value, valueType);
+
+            //TODO
+
             endArray();
         }
         endArray();

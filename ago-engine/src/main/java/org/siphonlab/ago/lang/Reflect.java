@@ -500,6 +500,10 @@ public class Reflect {
         frame.finishBoolean(array instanceof ObjectArrayInstance objectArrayInstance);
     }
 
+    public static void isUnionArray(NativeFrame frame, Instance<?> array){
+        frame.finishBoolean(array instanceof UnionArrayInstance);
+    }
+
     // --- MapExt helpers ---
 
     public static void Map_getKeyType(NativeFrame frame, Instance<?> mapInst){

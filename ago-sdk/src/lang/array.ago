@@ -91,6 +91,8 @@ final class ArrayExt{
 
         fun isObjectArray(this as Array<_>) as boolean native "org.siphonlab.ago.lang.Reflect.isObjectArray";
 
+        fun isUnionArray(this as Array<_>) as boolean native "org.siphonlab.ago.lang.Reflect.isUnionArray";
+
         fun get(this as Array<_>, i as int) as any{
             if(this instanceof Array<int> iarr){
                 return iarr[i];
