@@ -263,16 +263,25 @@ class SlotsEncoder from Encoder{
 
     // Encode Map dump: [[key, value], ...] form.
     fun encodeMapDump(value as Map<_,_>){
-        beginArray();
         var keyType = value.getKeyType();
         var valueType = value.getValueType();
-        for(var kv in value){
+        if(keyType.typeCode == TypeCode.STRING){
+            beginObject();
+            for(var kv in value){
+                writeKey(kv.key|string);
+                encodeMapEntry(kv.value, valueType);
+            }
+            endObject();
+        } else {
             beginArray();
-            encodeMapEntry(kv.key, keyType);
-            encodeMapEntry(kv.value, valueType);
+            for(var kv in value){
+                beginArray();
+                encodeMapEntry(kv.key, keyType);
+                encodeMapEntry(kv.value, valueType);
+                endArray();
+            }
             endArray();
         }
-        endArray();
     }
 
     fun encodeMapEntry(entry as any, entryType as ClassRef){
