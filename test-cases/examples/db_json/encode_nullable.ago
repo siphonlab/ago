@@ -1,0 +1,23 @@
+import json.SlotsEncoder;
+import lang.Entity;
+
+class Product from Entity<Product, long>{
+    public name as string?;
+    public price as int?;
+    public description as string?;
+}
+
+fun encodeIt(){
+    var p = new Product();
+    p.name = "Widget";
+    p.price = 42;
+    p.description = null;
+
+    var enc = new SlotsEncoder();
+    enc.encode(p);
+    Trace.print(enc.toString());
+}
+
+fun main(){
+    await encodeIt() via EntitySpace.new#();
+}

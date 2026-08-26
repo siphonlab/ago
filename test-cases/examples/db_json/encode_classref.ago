@@ -1,0 +1,21 @@
+import json.SlotsEncoder;
+import lang.Entity;
+
+class Meta from Entity<Meta, long>{
+    public name as string;
+    public cls as ClassRef;
+}
+
+fun encodeIt(){
+    var m = new Meta();
+    m.name = "test";
+    m.cls = int.class;
+
+    var enc = new SlotsEncoder();
+    enc.encode(m);
+    Trace.print(enc.toString());
+}
+
+fun main(){
+    await encodeIt() via EntitySpace.new#();
+}

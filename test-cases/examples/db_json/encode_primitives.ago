@@ -1,24 +1,24 @@
 import json.SlotsEncoder;
 import lang.Entity;
 
-// Define a simple entity with primitive slots
-class Person {
+class Person from Entity<Person, long>{
     public name as string;
     public age as int;
     public active as boolean;
+    public score as double;
 }
 
-fun main(){
-    // Create encoder instance
-    var enc = new SlotsEncoder();
-
-    // Create person entity
+fun encodeIt(){
     var p = new Person();
     p.name = "Alice";
     p.age = 30;
     p.active = true;
-
-    // Dump the entity using encode#object
+    p.score = 2.718;
+    var enc = new SlotsEncoder();
     enc.encode(p);
     Trace.print(enc.toString());
+}
+
+fun main(){
+    await encodeIt() via EntitySpace.new#();
 }

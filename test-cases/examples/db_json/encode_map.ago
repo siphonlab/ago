@@ -1,0 +1,25 @@
+import json.SlotsEncoder;
+import lang.Entity;
+
+class Config from Entity<Config, long>{
+    public strMap as Map<string, int>;
+}
+
+fun encodeIt(){
+    var c = new Config();
+    c.strMap = new HashMap<string, int>();
+    c.strMap.put("a", 1);
+    c.strMap.put("b", 2);
+
+    var enc = new SlotsEncoder();
+    enc.encode(c);
+    Trace.print(enc.toString());
+
+    var enc = new SlotsEncoder();
+    enc.encode#object(c.strMap);           // to avoid super.encode#map
+    Trace.print(enc.toString());
+}
+
+fun main(){
+    await encodeIt() via EntitySpace.new#();
+}

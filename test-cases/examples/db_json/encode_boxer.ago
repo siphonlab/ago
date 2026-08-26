@@ -1,0 +1,21 @@
+import json.SlotsEncoder;
+import lang.Entity;
+
+class Item from Entity<Item, long>{
+    public val1 as Integer;
+    public val2 as Object;
+}
+
+fun encodeIt(){
+    var item = new Item();
+    item.val1 = new Integer(42);
+    item.val2 = new Integer(99);
+
+    var enc = new SlotsEncoder();
+    enc.encode(item);
+    Trace.print(enc.toString());
+}
+
+fun main(){
+    await encodeIt() via EntitySpace.new#();
+}

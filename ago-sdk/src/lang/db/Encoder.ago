@@ -1,37 +1,41 @@
 package json;
 
-// =============================================================================
-// DbEncoder — JSON encoder for full dump of ago objects with DbSlots
-// Inherits from json.Encoder, overrides encode#object to handle DB entities.
-// Entry point: encode#object(obj)
-// =============================================================================
+/* ===========================================================================
+ * SlotsEncoder — Full JSON serializer for ago objects backed by DbSlots.
+ *
+ * Extends json.Encoder and overrides encode#object to serialize DB entity
+ * instances. Entry point: encode#object(obj).
+ *
+ * Output format per object (direct slot values, no wrapper):
+ *   <slot values>
+ *
+ * Slot value collection shape depends on the object type:
+ *     * Regular entity  -> [value1, value2, ...] ordered by SlotDef index
+ *     * Array           -> [element1, element2, ...] flattened elements
+ *     * List            -> [element1, element2, ...] flattened elements
+ *     * Map (str key)   -> {"k1": v1, "k2": v2} JSON object
+ *     * Map (other key) -> [[k1,v1],[k2,v2],...] key-value pair array
+ *
+ * Slot value encoding rules:
+ *   1. Primitive types (int/long/float/double/boolean/byte/short/char/
+ *      decimal/string) are emitted as the corresponding JSON literal.
+ *   2. ClassRef is emitted as a string class name.
+ *   3. Object type slots:
+ *      - Boxer whose runtime type matches SlotDef -> unboxed primitive value
+ *      - Boxer with mismatched type                -> {type, value} wrapper
+ *      - Non-Boxer object                          -> "ClassName:id" ref string
+ *        (no recursive serialization)
+ *   4. Union (nullable) slots: null is written as JSON null; non-null values
+ *      are encoded by recursively applying the above rules on the base type.
+ *
+ * Implementation: ago-layer logic drives JSON structure while native helpers
+ * in DbJsonEncoder extract internal data from DbSlots instances.
+ * =========================================================================== */
 class SlotsEncoder from Encoder{
 
     // Override encode#object to handle DbSlots-based objects specially.
     override fun encode#object(value as Object){
         if(isDbObject(value)){
-            beginObject();
-
-            // rowState
-            writeKey("rowState");
-            var rs = getRowStateString(value);
-            if(rs != "Saving"){
-                encode#string(rs);
-            } else {
-                encode#string("Unchanged");
-            }
-
-            // usingInstances
-            writeKey("usingInstances");
-            beginArray();
-            var instances = getUsingInstances(value);
-            for(var inst in instances){
-                encodeObjectRef(inst);
-            }
-            endArray();
-
-            // slots
-            writeKey("slots");
             if(value instanceof Array<_> arr){
                 encodeArrayDump(arr);
             } else if(value instanceof List<_> list){
@@ -41,8 +45,6 @@ class SlotsEncoder from Encoder{
             } else {
                 encodeSlotsArray(value);
             }
-
-            endObject();
         } else {
             super.encode#object(value);
         }
@@ -56,12 +58,6 @@ class SlotsEncoder from Encoder{
 
     // Check if an object has DbSlots internally.
     fun isDbObject(obj as Object) as boolean native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.isDbObject";
-
-    // Get row state name string from DbSlots.
-    fun getRowStateString(obj as Object) as string native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getRowStateString";
-
-    // Get using instances array from DbSlots.
-    fun getUsingInstances(obj as Object) as Object[] native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getUsingInstances";
 
     // Get slot value at given index (returns typed value based on caller's expected type).
     fun getSlotValue<T>(obj as Object, index as int) as T native "org.siphonlab.ago.runtime.db.sdk.DbJsonEncoder.getSlotValue";

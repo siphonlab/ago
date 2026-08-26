@@ -1,0 +1,25 @@
+import json.SlotsEncoder;
+import lang.Entity;
+
+class Report from Entity<Report, long>{
+    public title as string;
+    public values as List<int>;
+}
+
+fun encodeIt(){
+    var r = new Report();
+    r.title = "Q1";
+    r.values = new ArrayList<int>([10, 20, 30]);
+
+    var enc = new SlotsEncoder();
+    enc.encode(r);
+    Trace.print(enc.toString());
+
+    enc = new SlotsEncoder();
+    enc.encode#object(r.values);        // to avoid super.encode#list
+    Trace.print(enc.toString());
+}
+
+fun main(){
+    await encodeIt() via EntitySpace.new#();
+}

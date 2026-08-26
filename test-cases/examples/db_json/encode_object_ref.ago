@@ -1,7 +1,6 @@
-import json.Encoder;
+import json.SlotsEncoder;
 import lang.Entity;
 
-// Define two entity classes with object reference between them
 class Address from Entity<Address, long>{
     public city as string;
     public zipCode as int;
@@ -13,21 +12,25 @@ class Employee from Entity<Employee, long>{
     public addr as Address;
 }
 
-fun main(){
-    var enc = new Encoder();
-
-    // Create address entity
+fun encodeIt(){
     var addr = new Address();
     addr.city = "Beijing";
     addr.zipCode = 100000;
 
-    // Create employee entity with reference to address
     var emp = new Employee();
     emp.name = "Bob";
     emp.age = 25;
     emp.addr = addr;
 
-    // Dump the employee — addr slot should be an object ref string
-    enc.encode(emp|Object);
+    var enc = new SlotsEncoder();
+    enc.encode(addr);
     Trace.print(enc.toString());
+
+    var enc2 = new SlotsEncoder();
+    enc2.encode(emp);
+    Trace.print(enc2.toString());
+}
+
+fun main(){
+    await encodeIt() via EntitySpace.new#();
 }
