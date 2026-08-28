@@ -9,4 +9,6 @@ public interface CreateInstanceRunSpace<Id> {
 
     CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer);
 
+    Instance<?> createArrayInstance(AgoClass arrayType, int length, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer);
+
 }

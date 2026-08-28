@@ -1051,8 +1051,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
 
     protected int evaluateArray(Slots slots, int pc, int instruction) {
         switch (instruction){
-            case Array.array_create_i_vCc:   slots.setObject(code[pc++], engine.createIntArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_i_vCv:   slots.setObject(code[pc++], engine.createIntArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_i_vCc:   slots.setObject(code[pc++], engine.createIntArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_i_vCv:   slots.setObject(code[pc++], engine.createIntArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_i_acL:     ((IntArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_i_vac:     slots.setInt(code[pc++], ((IntArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_i_vav:     slots.setInt(code[pc++], ((IntArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1061,8 +1061,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_i_avc:     ((IntArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = code[pc++]; break;
             case Array.array_put_i_avv:     ((IntArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getInt(code[pc++]); break;
 
-            case Array.array_create_B_vCc:   slots.setObject(code[pc++], engine.createBooleanArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_B_vCv:   slots.setObject(code[pc++], engine.createBooleanArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_B_vCc:   slots.setObject(code[pc++], engine.createBooleanArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_B_vCv:   slots.setObject(code[pc++], engine.createBooleanArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_B_acL:     ((BooleanArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_B_vac:     slots.setBoolean(code[pc++], ((BooleanArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_B_vav:     slots.setBoolean(code[pc++], ((BooleanArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1071,8 +1071,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_B_avc:     ((BooleanArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = code[pc++] == 1; break;
             case Array.array_put_B_avv:     ((BooleanArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getBoolean(code[pc++]); break;
 
-            case Array.array_create_b_vCc:   slots.setObject(code[pc++], engine.createByteArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_b_vCv:   slots.setObject(code[pc++], engine.createByteArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_b_vCc:   slots.setObject(code[pc++], engine.createByteArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_b_vCv:   slots.setObject(code[pc++], engine.createByteArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_b_acL:     ((ByteArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_b_vac:     slots.setByte(code[pc++], ((ByteArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_b_vav:     slots.setByte(code[pc++], ((ByteArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1081,8 +1081,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_b_avc:     ((ByteArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = (byte)code[pc++]; break;
             case Array.array_put_b_avv:     ((ByteArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getByte(code[pc++]); break;
 
-            case Array.array_create_s_vCc:   slots.setObject(code[pc++], engine.createShortArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_s_vCv:   slots.setObject(code[pc++], engine.createShortArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_s_vCc:   slots.setObject(code[pc++], engine.createShortArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_s_vCv:   slots.setObject(code[pc++], engine.createShortArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_s_acL:     ((ShortArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_s_vac:     slots.setShort(code[pc++], ((ShortArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_s_vav:     slots.setShort(code[pc++], ((ShortArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1091,8 +1091,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_s_avc:     ((ShortArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = (short)code[pc++]; break;
             case Array.array_put_s_avv:     ((ShortArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getShort(code[pc++]); break;
 
-            case Array.array_create_c_vCc:   slots.setObject(code[pc++], engine.createCharArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_c_vCv:   slots.setObject(code[pc++], engine.createCharArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_c_vCc:   slots.setObject(code[pc++], engine.createCharArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_c_vCv:   slots.setObject(code[pc++], engine.createCharArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_c_acL:     ((CharArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_c_vac:     slots.setChar(code[pc++], ((CharArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_c_vav:     slots.setChar(code[pc++], ((CharArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1101,8 +1101,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_c_avc:     ((CharArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = (char)code[pc++]; break;
             case Array.array_put_c_avv:     ((CharArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getChar(code[pc++]); break;
 
-            case Array.array_create_f_vCc:   slots.setObject(code[pc++], engine.createFloatArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_f_vCv:   slots.setObject(code[pc++], engine.createFloatArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_f_vCc:   slots.setObject(code[pc++], engine.createFloatArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_f_vCv:   slots.setObject(code[pc++], engine.createFloatArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_f_acL:     ((FloatArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_f_vac:     slots.setFloat(code[pc++], ((FloatArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_f_vav:     slots.setFloat(code[pc++], ((FloatArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1111,8 +1111,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_f_avc:     ((FloatArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = Float.intBitsToFloat(code[pc++]); break;
             case Array.array_put_f_avv:     ((FloatArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getFloat(code[pc++]); break;
 
-            case Array.array_create_d_vCc:   slots.setObject(code[pc++], engine.createDoubleArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_d_vCv:   slots.setObject(code[pc++], engine.createDoubleArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_d_vCc:   slots.setObject(code[pc++], engine.createDoubleArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_d_vCv:   slots.setObject(code[pc++], engine.createDoubleArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_d_acL:     ((DoubleArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_d_vac:     slots.setDouble(code[pc++], ((DoubleArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_d_vav:     slots.setDouble(code[pc++], ((DoubleArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1121,8 +1121,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_d_avc:     ((DoubleArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = toDouble(code[pc++], code[pc++]); break;
             case Array.array_put_d_avv:     ((DoubleArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getDouble(code[pc++]); break;
 
-            case Array.array_create_D_vCc:   slots.setObject(code[pc++], engine.createDecimalArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_D_vCv:   slots.setObject(code[pc++], engine.createDecimalArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_D_vCc:   slots.setObject(code[pc++], engine.createDecimalArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_D_vCv:   slots.setObject(code[pc++], engine.createDecimalArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_D_acL:     ((DecimalArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++]), engine); break;
             case Array.array_get_D_vac:     slots.setDecimal(code[pc++], ((DecimalArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_D_vav:     slots.setDecimal(code[pc++], ((DecimalArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1131,8 +1131,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_D_avc:     ((DecimalArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = engine.toDecimal(code[pc++]); break;
             case Array.array_put_D_avv:     ((DecimalArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getDecimal(code[pc++]); break;
 
-            case Array.array_create_l_vCc:   slots.setObject(code[pc++], engine.createLongArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_l_vCv:   slots.setObject(code[pc++], engine.createLongArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_l_vCc:   slots.setObject(code[pc++], engine.createLongArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_l_vCv:   slots.setObject(code[pc++], engine.createLongArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_l_acL:     ((LongArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_l_vac:     slots.setLong(code[pc++], ((LongArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_l_vav:     slots.setLong(code[pc++], ((LongArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1141,8 +1141,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_l_avc:     ((LongArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = (long) code[pc++] << 32 | code[pc++]; break;
             case Array.array_put_l_avv:     ((LongArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getLong(code[pc++]); break;
 
-            case Array.array_create_S_vCc:   slots.setObject(code[pc++], engine.createStringArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_S_vCv:   slots.setObject(code[pc++], engine.createStringArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_S_vCc:   slots.setObject(code[pc++], engine.createStringArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_S_vCv:   slots.setObject(code[pc++], engine.createStringArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_fill_S_acL:     ((StringArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++]), engine); break;
             case Array.array_get_S_vac:     slots.setString(code[pc++], ((StringArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_S_vav:     slots.setString(code[pc++], ((StringArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
@@ -1151,15 +1151,15 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_S_avc:     ((StringArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = engine.toString(code[pc++]); break;
             case Array.array_put_S_avv:     ((StringArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getString(code[pc++]); break;
 
-            case Array.array_create_o_vCc:   slots.setObject(code[pc++], engine.createObjectArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_o_vCv:   slots.setObject(code[pc++], engine.createObjectArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_o_vCc:   slots.setObject(code[pc++], engine.createObjectArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_o_vCv:   slots.setObject(code[pc++], engine.createObjectArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_get_o_vac:     slots.setObject(code[pc++], ((ObjectArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_o_vav:     slots.setObject(code[pc++], ((ObjectArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
             case Array.array_put_o_aco:     ((ObjectArrayInstance)slots.getObject(code[pc++])).value[code[pc++]] = slots.getObject(code[pc++]); break;
             case Array.array_put_o_avo:     ((ObjectArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getObject(code[pc++]); break;
 
-            case Array.array_create_u_vCc:   slots.setObject(code[pc++], engine.createUnionArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_u_vCv:   slots.setObject(code[pc++], engine.createUnionArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_u_vCc:   slots.setObject(code[pc++], engine.createUnionArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_u_vCv:   slots.setObject(code[pc++], engine.createUnionArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
             case Array.array_get_u_vac:     slots.setUnion(code[pc++], ((UnionArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_u_vav:     slots.setUnion(code[pc++], ((UnionArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;
             case Array.array_put_u_acn:     ((UnionArrayInstance)slots.getObject(code[pc++])).value[code[pc++]] = null; break;
@@ -1167,8 +1167,8 @@ public class AgoFrame extends CallFrame<AgoFunction>{
             case Array.array_put_u_avn:     ((UnionArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = null; break;
             case Array.array_put_u_avo:     ((UnionArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])] = slots.getUnion(code[pc++]); break;
 
-            case Array.array_create_C_vCc:   slots.setObject(code[pc++], engine.createIntArray(engine.getClass(code[pc++]), code[pc++])); break;
-            case Array.array_create_C_vCv:   slots.setObject(code[pc++], engine.createIntArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]))); break;
+            case Array.array_create_C_vCc:   slots.setObject(code[pc++], engine.createIntArray(engine.getClass(code[pc++]), code[pc++], this.getRunSpace())); break;
+            case Array.array_create_C_vCv:   slots.setObject(code[pc++], engine.createIntArray(engine.getClass(code[pc++]), slots.getInt(code[pc++]), this.getRunSpace())); break;
 //            case Array.array_fill_C_acL:     ((IntArrayInstance)slots.getObject(code[pc++])).fillBytes(code[pc++], engine.getBlob(code[pc++])); break;
             case Array.array_get_C_vac:     slots.setClassRef(code[pc++], ((IntArrayInstance)slots.getObject(code[pc++])).value[code[pc++]]); break;
             case Array.array_get_C_vav:     slots.setClassRef(code[pc++], ((IntArrayInstance)slots.getObject(code[pc++])).value[slots.getInt(code[pc++])]); break;

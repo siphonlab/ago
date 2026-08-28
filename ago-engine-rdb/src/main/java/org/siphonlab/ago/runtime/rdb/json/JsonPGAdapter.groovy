@@ -892,6 +892,8 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
             transactionAdapter.commitTransaction();
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        } finally {
+            transactionAdapter.close();
         }
     }
 
@@ -911,6 +913,8 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
             transactionAdapter.commitTransaction();
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        } finally {
+            transactionAdapter.close();
         }
     }
 

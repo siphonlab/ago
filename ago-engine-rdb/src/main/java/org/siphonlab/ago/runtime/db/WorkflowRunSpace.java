@@ -17,6 +17,7 @@ package org.siphonlab.ago.runtime.db;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.runtime.*;
 import org.siphonlab.ago.runtime.db.lazy.*;
 import org.siphonlab.ago.runtime.db.sdk.ForkWorkflowRunSpace;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
@@ -28,6 +29,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
+
+import static org.siphonlab.ago.TypeCode.*;
 
 public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunSpace<Id>{
     private final static Logger LOGGER = LoggerFactory.getLogger(WorkflowRunSpace.class);
@@ -163,7 +166,7 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
             LOGGER.info("{} fork {} via {}, got {}", this, nextRunSpace, forkContext, forkedSpaces.size());
         }
 
-        var transactionAdapter = this.workflowAdapter.beginTransaction();
+        var transactionAdapter = this.workflowAdapter.beginTransaction();       // a transit adapter
         transactionAdapter.updateRunSpace(curRunSpace, curRunSpace.getCurrentCallFrame());
         transactionAdapter.updateRunSpace(nextRunSpace, frame);
         transactionAdapter.saveInstance(frame);
@@ -172,6 +175,8 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
             transactionAdapter.commitTransaction();
         } catch (Exception e) {
             throw new CommitFailedException(e);
+        } finally {
+            transactionAdapter.close();
         }
 
         nextRunSpace.start(new EntranceCallFrame<>(frame));
@@ -282,5 +287,86 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         DeferenceObject deferenceObject = (DeferenceObject) inst;
         ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
         return inst;
+    }
+
+    @Override
+    public Instance<?> createArrayInstance(AgoClass arrayType, int length, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
+        var slots = DbSlotsCreator.create(arrayType, objectRef);
+        if(slotsInitializer != null) slotsInitializer.accept(slots);
+
+        if(!(slots instanceof DbSlots<?>)) {
+            return createArrayInstanceDefault(arrayType, length);
+        }
+
+        AgoClass elementType = arrayType.getElementClassOfArray();
+        int typeCodeValue = elementType.getTypeCode().value;
+
+        Instance<?> inst;
+        switch (typeCodeValue) {
+            case INT_VALUE, CLASS_REF_VALUE:
+                inst = new IntArrayInstance(slots, arrayType, length);
+                break;
+            case BYTE_VALUE:
+                inst = new ByteArrayInstance(slots, arrayType, length);
+                break;
+            case BOOLEAN_VALUE:
+                inst = new BooleanArrayInstance( slots, arrayType, length);
+                break;
+            case CHAR_VALUE:
+                inst = new CharArrayInstance( slots, arrayType, length);
+                break;
+            case DOUBLE_VALUE:
+                inst = new DoubleArrayInstance( slots, arrayType, length);
+                break;
+            case FLOAT_VALUE:
+                inst = new FloatArrayInstance( slots, arrayType, length);
+                break;
+            case LONG_VALUE:
+                inst = new LongArrayInstance( slots, arrayType, length);
+                break;
+            case OBJECT_VALUE:
+                inst = new ObjectArrayInstance( slots, arrayType, length);
+                break;
+            case UNION_VALUE:
+                inst = new UnionArrayInstance( slots, arrayType, length);
+                break;
+            case DECIMAL_VALUE:
+                inst = new DecimalArrayInstance( slots, arrayType, length);
+                break;
+            case SHORT_VALUE:
+                inst = new ShortArrayInstance( slots, arrayType, length);
+                break;
+            case STRING_VALUE:
+                inst = new StringArrayInstance( slots, arrayType, length);
+                break;
+            default:
+                return createArrayInstanceDefault(arrayType, length);
+        }
+
+        if (inst instanceof DeferenceObject) {
+            ((DeferenceObject) inst).markSaved();
+        }
+        return inst;
+    }
+
+    private Instance<?> createArrayInstanceDefault(AgoClass arrayType, int length) {
+        AgoClass elementType = arrayType.getElementClassOfArray();
+        int typeCodeValue = elementType.getTypeCode().value;
+        switch (typeCodeValue) {
+            case INT_VALUE: return new IntArrayInstance(arrayType.createSlots(), arrayType, length);
+            case BYTE_VALUE: return new ByteArrayInstance(arrayType.createSlots(), arrayType, length);
+            case BOOLEAN_VALUE: return new BooleanArrayInstance(arrayType.createSlots(), arrayType, length);
+            case CHAR_VALUE: return new CharArrayInstance(arrayType.createSlots(), arrayType, length);
+            case DOUBLE_VALUE: return new DoubleArrayInstance(arrayType.createSlots(), arrayType, length);
+            case FLOAT_VALUE: return new FloatArrayInstance(arrayType.createSlots(), arrayType, length);
+            case LONG_VALUE: return new LongArrayInstance(arrayType.createSlots(), arrayType, length);
+            case OBJECT_VALUE: return new ObjectArrayInstance(arrayType.createSlots(), arrayType, length);
+            case UNION_VALUE: return new UnionArrayInstance(arrayType.createSlots(), arrayType, length);
+            case DECIMAL_VALUE: return new DecimalArrayInstance(arrayType.createSlots(), arrayType, length);
+            case SHORT_VALUE: return new ShortArrayInstance(arrayType.createSlots(), arrayType, length);
+            case STRING_VALUE: return new StringArrayInstance(arrayType.createSlots(), arrayType, length);
+            case CLASS_REF_VALUE: return new IntArrayInstance(arrayType.createSlots(), arrayType, length);
+            default: throw new IllegalArgumentException("Unknown element type: " + elementType.getTypeCode());
+        }
     }
 }

@@ -255,7 +255,7 @@ public class RunSpace implements Runnable{
     }
 
     public Object awaitTillComplete(CallFrame<?> frame){
-        var space = agoEngine.createRunSpace(runSpaceHost, null);
+        var space = createChildRunSpace(null);
         try {
             frame.setRunSpace(space);
             space.startAsync(frame).get();

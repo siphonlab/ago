@@ -56,7 +56,7 @@ public class Reflect {
         if(slotDefs == null) {
             slotDefs = new AgoSlotDef[0];
         }
-        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), slotDefs.length);
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), slotDefs.length, frame.getRunSpace());
         for (int i = 0; i < slotDefs.length; i++) {
             AgoSlotDef slotDef = slotDefs[i];
             var inst = engine.createNativeInstance(null, engine.getClass("lang.SlotDef"), frame.getRunSpace());
@@ -71,7 +71,7 @@ public class Reflect {
         AgoClass agoClass = getClassFromClassRef(frame);
 
         if(!(agoClass instanceof AgoFunction agoFunction)) {
-            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), 0);
+            var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), 0, frame.getRunSpace());
             frame.finishObject(arr);
             return;
         }
@@ -80,7 +80,7 @@ public class Reflect {
         if(parameters == null) {
             parameters = new AgoParameter[0];
         }
-        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), parameters.length);
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), parameters.length, frame.getRunSpace());
         for (int i = 0; i < parameters.length; i++) {
             AgoParameter parameter = parameters[i];
             var inst = engine.createNativeInstance(null, engine.getClass("lang.ParameterDesc"), frame.getRunSpace());
@@ -149,7 +149,7 @@ public class Reflect {
         if(!includePrivate) {
             properties = properties.stream().filter(p -> (p.isReadable() && p.getVisibilityForRead() == Visibility.Public) || p.getVisibilityForWrite() == Visibility.Public).toList();
         }
-        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), properties.size());
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), properties.size(), frame.getRunSpace());
         int i = 0;
         for (Property property : properties) {
             var inst = engine.createNativeInstance(null, engine.getClass("lang.PropertyDesc"), frame.getRunSpace());
@@ -170,7 +170,7 @@ public class Reflect {
                 ls.add(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), method));
             }
         }
-        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size());
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size(), frame.getRunSpace());
         ls.toArray(arr.value);
         frame.finishObject(arr);
     }
@@ -186,7 +186,7 @@ public class Reflect {
                 ls.add(engine.getBoxer().boxClassRef(frame, engine.getLangClasses().getClassRefClass(), child));
             }
         }
-        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size());
+        var arr = engine.createObjectArray(frame.getAgoClass().getResultClass(), ls.size(), frame.getRunSpace());
         ls.toArray(arr.value);
         frame.finishObject(arr);
     }

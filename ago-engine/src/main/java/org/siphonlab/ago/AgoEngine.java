@@ -370,41 +370,41 @@ public class AgoEngine implements ClassManager{
         return createRunSpaceInner(runSpaceHost, null);
     }
 
-    public IntArrayInstance createIntArray(AgoClass arrayType, int length) {
+    public IntArrayInstance createIntArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new IntArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public ByteArrayInstance createByteArray(AgoClass arrayType, int length) {
+    public ByteArrayInstance createByteArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new ByteArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public BooleanArrayInstance createBooleanArray(AgoClass arrayType, int length) {
+    public BooleanArrayInstance createBooleanArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new BooleanArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public CharArrayInstance createCharArray(AgoClass arrayType, int length) {
+    public CharArrayInstance createCharArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new CharArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public DoubleArrayInstance createDoubleArray(AgoClass arrayType, int length) {
+    public DoubleArrayInstance createDoubleArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new DoubleArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public FloatArrayInstance createFloatArray(AgoClass arrayType, int length) {
+    public FloatArrayInstance createFloatArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new FloatArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public LongArrayInstance createLongArray(AgoClass arrayType, int length) {
+    public LongArrayInstance createLongArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new LongArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public ObjectArrayInstance createObjectArray(AgoClass arrayType, int length) {
+    public ObjectArrayInstance createObjectArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new ObjectArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public UnionArrayInstance createUnionArray(AgoClass arrayType, int length) {
+    public UnionArrayInstance createUnionArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new UnionArrayInstance(arrayType.createSlots(), arrayType, length);
     }
 
-    public DecimalArrayInstance createDecimalArray(AgoClass arrayType, int length) {
+    public DecimalArrayInstance createDecimalArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new DecimalArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public ShortArrayInstance createShortArray(AgoClass arrayType, int length) {
+    public ShortArrayInstance createShortArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new ShortArrayInstance(arrayType.createSlots(), arrayType, length);
     }
-    public StringArrayInstance createStringArray(AgoClass arrayType, int length) {
+    public StringArrayInstance createStringArray(AgoClass arrayType, int length, RunSpace runSpace) {
         return new StringArrayInstance(arrayType.createSlots(), arrayType, length);
     }
 

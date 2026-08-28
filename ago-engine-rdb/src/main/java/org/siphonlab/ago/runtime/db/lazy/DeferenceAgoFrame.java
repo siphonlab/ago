@@ -88,12 +88,6 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
             case Load.loadcls_scope_v:
                 slots.setObject(code[pc++], getScope(1).getAgoClass());
                 break;
-            case Load.loadcls_vo:
-                slots.setObject(code[pc++], slots.getObject(code[pc++]).getAgoClass());
-                break;
-            case Load.loadcls_vC:
-                slots.setObject(code[pc++], engine.getClass(code[pc++]));
-                break;
 
             case Load.loadcls2_scope_vc: {
                 int target = code[pc++];
@@ -111,18 +105,6 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
             case Load.loadcls2_scope_v:
                 slots.setObject(code[pc++], getScope(1).getAgoClass().getAgoClass());
                 break;
-            case Load.loadcls2_vo:
-                slots.setObject(code[pc++], slots.getObject(code[pc++]).getAgoClass().getAgoClass());
-                break;
-
-            case Load.bindcls_vCo:          {
-                int dest = code[pc++];
-                AgoClass scopedClass = createScopedClass(self, code[pc++], slots.getObject(code[pc++]), pc);
-                slots.setObject(dest, scopedClass);
-                if(scopedClass.getAgoClass().getEmptyArgsConstructor() != null){        // will invoke constructor soon
-                    return -1;
-                }
-            } break;
             case Load.bindcls_scope_vCc:    {
                 int dest = code[pc++];
                 AgoClass scopedClass = createScopedClass(self, code[pc++], getScope(code[pc++]), pc);
@@ -131,6 +113,9 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
                     return -1;
                 }
             } break;
+
+            default:
+                return super.evaluateLoad(self, slots, pc, instruction);
 
         }
         return pc;

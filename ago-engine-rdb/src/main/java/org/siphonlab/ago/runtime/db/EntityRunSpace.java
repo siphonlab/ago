@@ -4,12 +4,15 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
+import org.siphonlab.ago.runtime.*;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
+
+import static org.siphonlab.ago.TypeCode.*;
 
 /**
  * a runspace collecting changed, and flush when complete
@@ -102,6 +105,32 @@ public class EntityRunSpace<Id> extends RunSpace implements CreateInstanceRunSpa
         }
         if(parentScope != null) inst.setParentScope(parentScope);
         return inst;
+    }
+
+    @Override
+    public Instance<?> createArrayInstance(AgoClass arrayType, int length, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
+        Slots slots = arrayType.createSlots();
+        if(slotsInitializer != null) slotsInitializer.accept(slots);
+
+        AgoClass elementType = arrayType.getElementClassOfArray();
+        int typeCodeValue = elementType.getTypeCode().value;
+
+        switch (typeCodeValue) {
+            case INT_VALUE: return new IntArrayInstance(slots, arrayType, length);
+            case BYTE_VALUE: return new ByteArrayInstance(slots, arrayType, length);
+            case BOOLEAN_VALUE: return new BooleanArrayInstance(slots, arrayType, length);
+            case CHAR_VALUE: return new CharArrayInstance(slots, arrayType, length);
+            case DOUBLE_VALUE: return new DoubleArrayInstance(slots, arrayType, length);
+            case FLOAT_VALUE: return new FloatArrayInstance(slots, arrayType, length);
+            case LONG_VALUE: return new LongArrayInstance(slots, arrayType, length);
+            case OBJECT_VALUE: return new ObjectArrayInstance(slots, arrayType, length);
+            case UNION_VALUE: return new UnionArrayInstance(slots, arrayType, length);
+            case DECIMAL_VALUE: return new DecimalArrayInstance(slots, arrayType, length);
+            case SHORT_VALUE: return new ShortArrayInstance(slots, arrayType, length);
+            case STRING_VALUE: return new StringArrayInstance(slots, arrayType, length);
+            case CLASS_REF_VALUE: return new IntArrayInstance(slots, arrayType, 0);
+            default: throw new IllegalArgumentException("Unknown element type: " + elementType.getTypeCode());
+        }
     }
 
     public static <Id> EntityAdapter<Id> retrieveEntityAdapter(RunSpace runSpace) {

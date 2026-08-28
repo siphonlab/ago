@@ -20,12 +20,17 @@ import org.siphonlab.ago.compiler.CompilationErrorsException;
 import org.siphonlab.ago.compiler.exception.CompilationError;
 import org.siphonlab.ago.lang.Trace;
 import org.siphonlab.ago.test.Util;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DbJsonTest {
+
+    {
+        SLF4JBridgeHandler.install();
+    }
 
     @Test
     public void encodePrimitives() throws CompilationError, CompilationErrorsException, IOException {

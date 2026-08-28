@@ -322,7 +322,7 @@ public class Lang {
         String s = frame.getParentScope().getSlots().getString(0);
         var parts = s.split(separator, -1);
         AgoEngine engine = frame.getAgoEngine();
-        var arrayInst = engine.createStringArray(frame.getAgoClass().getResultClass(), parts.length);
+        var arrayInst = engine.createStringArray(frame.getAgoClass().getResultClass(), parts.length, frame.getRunSpace());
         for (int i = 0; i < parts.length; i++) {
             arrayInst.value[i] = parts[i];
         }
@@ -413,7 +413,7 @@ public class Lang {
     public static void String_split_ext(NativeFrame frame, String s, String separator){
         var parts = s.split(separator, -1);
         AgoEngine engine = frame.getAgoEngine();
-        var arrayInst = engine.createStringArray(frame.getAgoClass().getResultClass(), parts.length);
+        var arrayInst = engine.createStringArray(frame.getAgoClass().getResultClass(), parts.length, frame.getRunSpace());
         for (int i = 0; i < parts.length; i++) {
             arrayInst.value[i] = parts[i];
         }

@@ -381,6 +381,10 @@ public class AgoClass extends Instance<MetaClass>{
         this.slots = dbSlots;
     }
 
+    public void initSlots(){
+        if(agoClass != null && this.slots == null) this.slots = agoClass.createSlots();
+    }
+
     public boolean belongsTo(AgoClass maybeParent) {
         var prev = this;
         for(var p = this.parent; ; prev = p, p = p.parent){
@@ -437,10 +441,6 @@ public class AgoClass extends Instance<MetaClass>{
 
     public void setConcreteTypeInfo(ConcreteTypeInfo concreteTypeInfo) {
         this.concreteTypeInfo = concreteTypeInfo;
-    }
-
-    public void initSlots(){
-        if(agoClass != null && this.slots == null) this.slots = agoClass.createSlots();
     }
 
     public void setSlotsCreator(SlotsCreator slotsCreator) {

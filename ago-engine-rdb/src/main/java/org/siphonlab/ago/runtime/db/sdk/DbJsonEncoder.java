@@ -54,7 +54,7 @@ public class DbJsonEncoder {
         }
         AgoEngine engine = frame.getAgoEngine();
         AgoClass resultClass = frame.getAgoClass().getResultClass();
-        var arr = engine.createObjectArray(resultClass, usingSet.size());
+        var arr = engine.createObjectArray(resultClass, usingSet.size(), frame.getRunSpace());
         int i = 0;
         for (Instance<?> inst : usingSet) {
             arr.value[i++] = inst;

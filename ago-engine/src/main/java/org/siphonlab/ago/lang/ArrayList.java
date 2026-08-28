@@ -763,35 +763,35 @@ public class ArrayList {
         switch (typeInfo.getTypeCode().value) {
             case INT_VALUE:
                 IntArrayList intArrayList = (IntArrayList) payload;
-                var arrInt = agoEngine.createIntArray(callFrame.getAgoClass().getResultClass(), intArrayList.size());
+                var arrInt = agoEngine.createIntArray(callFrame.getAgoClass().getResultClass(), intArrayList.size(), callFrame.getRunSpace());
                 intArrayList.toArray(arrInt.value);
                 callFrame.finishObject(arrInt);
                 break;
 
             case LONG_VALUE:
                 LongArrayList longArrayList = (LongArrayList) payload;
-                var arrLong = agoEngine.createLongArray(callFrame.getAgoClass().getResultClass(), longArrayList.size());
+                var arrLong = agoEngine.createLongArray(callFrame.getAgoClass().getResultClass(), longArrayList.size(), callFrame.getRunSpace());
                 longArrayList.toArray(arrLong.value);
                 callFrame.finishObject(arrLong);
                 break;
 
             case FLOAT_VALUE:
                 FloatArrayList floatArrayList = (FloatArrayList) payload;
-                var arrFloat = agoEngine.createFloatArray(callFrame.getAgoClass().getResultClass(), floatArrayList.size());
+                var arrFloat = agoEngine.createFloatArray(callFrame.getAgoClass().getResultClass(), floatArrayList.size(), callFrame.getRunSpace());
                 floatArrayList.toArray(arrFloat.value);
                 callFrame.finishObject(arrFloat);
                 break;
 
             case DOUBLE_VALUE:
                 DoubleArrayList doubleArrayList = (DoubleArrayList) payload;
-                var arrDouble = agoEngine.createDoubleArray(callFrame.getAgoClass().getResultClass(), doubleArrayList.size());
+                var arrDouble = agoEngine.createDoubleArray(callFrame.getAgoClass().getResultClass(), doubleArrayList.size(), callFrame.getRunSpace());
                 doubleArrayList.toArray(arrDouble.value);
                 callFrame.finishObject(arrDouble);
                 break;
 
             case BOOLEAN_VALUE:
                 BooleanArrayList booleanArrayList = (BooleanArrayList) payload;
-                var arrBool = agoEngine.createBooleanArray(callFrame.getAgoClass().getResultClass(), booleanArrayList.size());
+                var arrBool = agoEngine.createBooleanArray(callFrame.getAgoClass().getResultClass(), booleanArrayList.size(), callFrame.getRunSpace());
                 booleanArrayList.toArray(arrBool.value);
                 callFrame.finishObject(arrBool);
                 break;
@@ -799,28 +799,28 @@ public class ArrayList {
             case STRING_VALUE:
                 @SuppressWarnings("unchecked")
                 java.util.ArrayList<String> stringList = (java.util.ArrayList<String>) payload;
-                var arrString = agoEngine.createStringArray(callFrame.getAgoClass().getResultClass(), stringList.size());
+                var arrString = agoEngine.createStringArray(callFrame.getAgoClass().getResultClass(), stringList.size(), callFrame.getRunSpace());
                 stringList.toArray(arrString.value);
                 callFrame.finishObject(arrString);
                 break;
 
             case SHORT_VALUE:
                 ShortArrayList shortArrayList = (ShortArrayList) payload;
-                var arrShort = agoEngine.createShortArray(callFrame.getAgoClass().getResultClass(), shortArrayList.size());
+                var arrShort = agoEngine.createShortArray(callFrame.getAgoClass().getResultClass(), shortArrayList.size(), callFrame.getRunSpace());
                 shortArrayList.toArray(arrShort.value);
                 callFrame.finishObject(arrShort);
                 break;
 
             case BYTE_VALUE:
                 ByteArrayList byteArrayList = (ByteArrayList) payload;
-                var arrByte = agoEngine.createByteArray(callFrame.getAgoClass().getResultClass(), byteArrayList.size());
+                var arrByte = agoEngine.createByteArray(callFrame.getAgoClass().getResultClass(), byteArrayList.size(), callFrame.getRunSpace());
                 byteArrayList.toArray(arrByte.value);
                 callFrame.finishObject(arrByte);
                 break;
 
             case CHAR_VALUE:
                 CharArrayList charArrayList = (CharArrayList) payload;
-                var arrChar = agoEngine.createCharArray(callFrame.getAgoClass().getResultClass(), charArrayList.size());
+                var arrChar = agoEngine.createCharArray(callFrame.getAgoClass().getResultClass(), charArrayList.size(), callFrame.getRunSpace());
                 charArrayList.toArray(arrChar.value);
                 callFrame.finishObject(arrChar);
                 break;
@@ -828,7 +828,7 @@ public class ArrayList {
             case DECIMAL_VALUE: {
                 @SuppressWarnings("unchecked")
                 java.util.ArrayList<BigDecimal> objList = (java.util.ArrayList<BigDecimal>) payload;
-                var arrObj = agoEngine.createDecimalArray(callFrame.getAgoClass().getResultClass(), objList.size());
+                var arrObj = agoEngine.createDecimalArray(callFrame.getAgoClass().getResultClass(), objList.size(), callFrame.getRunSpace());
                 objList.toArray(arrObj.value);
                 callFrame.finishObject(arrObj);
                 break;
@@ -837,7 +837,7 @@ public class ArrayList {
             case OBJECT_VALUE: {
                 @SuppressWarnings("unchecked")
                 java.util.ArrayList<Instance<?>> objList = (java.util.ArrayList<Instance<?>>) payload;
-                var arrObj = agoEngine.createObjectArray(callFrame.getAgoClass().getResultClass(), objList.size());
+                var arrObj = agoEngine.createObjectArray(callFrame.getAgoClass().getResultClass(), objList.size(), callFrame.getRunSpace());
                 objList.toArray(arrObj.value);
                 callFrame.finishObject(arrObj);
                 break;
@@ -846,7 +846,7 @@ public class ArrayList {
             case UNION_VALUE: {
                 @SuppressWarnings("unchecked")
                 java.util.ArrayList<Object> objList = (java.util.ArrayList<Object>) payload;
-                var arrObj = agoEngine.createUnionArray(callFrame.getAgoClass().getResultClass(), objList.size());
+                var arrObj = agoEngine.createUnionArray(callFrame.getAgoClass().getResultClass(), objList.size(), callFrame.getRunSpace());
                 objList.toArray(arrObj.value);
                 callFrame.finishObject(arrObj);
                 break;
@@ -854,7 +854,7 @@ public class ArrayList {
 
             case CLASS_REF_VALUE:
                 IntArrayList classRefList = (IntArrayList) payload;
-                var arrCls = agoEngine.createIntArray(callFrame.getAgoClass().getResultClass(), classRefList.size());
+                var arrCls = agoEngine.createIntArray(callFrame.getAgoClass().getResultClass(), classRefList.size(), callFrame.getRunSpace());
                 classRefList.toArray(arrCls.value);
                 callFrame.finishObject(arrCls);
                 break;

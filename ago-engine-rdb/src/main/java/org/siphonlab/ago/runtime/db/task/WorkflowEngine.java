@@ -27,6 +27,7 @@ import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
+import org.siphonlab.ago.runtime.*;
 import org.siphonlab.ago.runtime.db.*;
 import org.siphonlab.ago.runtime.db.lazy.*;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
@@ -95,7 +96,10 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
                     metaClass.setSlotsCreator(classLoader.getSlotsCreatorFactory().generateSlotsCreator(classLoader.getTheMeta()));
                 }
             }
-            if(!loadFromDb) agoClass.initSlots();
+            if(!loadFromDb) {
+                var slots = DbSlotsCreator.create(agoClass.getAgoClass(), null);
+                agoClass.initSlots(slots);
+            }
         }
 
         // here is parentScope, creator, slots of class
@@ -200,10 +204,12 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
         } else if(forkContext instanceof ForkWorkflowRunSpace){
             WorkflowRunSpace<Id> workflowRunSpace = new WorkflowRunSpace<Id>(this, workflowAdapter, host);
             this.runspaces.put(workflowRunSpace.getId(), workflowRunSpace);
+            workflowAdapter.insertRunSpace(workflowRunSpace);
             r = workflowRunSpace;
         } else if(forkContext instanceof ForkEntityWorkflowRunSpace) {
             EntityWorkflowRunSpace<Id> workflowRunSpace = new EntityWorkflowRunSpace<>(this, workflowAdapter, entityAdapter, host);
             this.runspaces.put(workflowRunSpace.getId(), workflowRunSpace);
+            workflowAdapter.insertRunSpace(workflowRunSpace);
             r = workflowRunSpace;
         } else {
             throw new IllegalArgumentException("unsupport fork context " + forkContext);
@@ -241,7 +247,7 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
             return ((CreateInstanceRunSpace<Id>) runSpace).createInstance(parentScope, agoClass, objectRef, slotsInitializer);
         } else {
             Instance<?> instance;
-            var slots = DbSlotsCreator.create(agoClass, objectRef);
+            var slots = agoClass.createSlots();
             if(slotsInitializer != null) slotsInitializer.accept(slots);
             if(agoClass.isNative()){
                 instance = new NativeInstance(slots, agoClass);
@@ -271,7 +277,7 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
             return createInstanceRunSpace.createFunctionInstance(agoFunction, parentScope, objectRef, slotsInitializer);
         }
         CallFrame<?> instance;
-        var slots = DbSlotsCreator.create(agoFunction, objectRef);
+        var slots = agoFunction.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);
         if(agoFunction instanceof AgoNativeFunction agoNativeFunction){
             instance = new NativeFrame(this, slots, agoNativeFunction);
@@ -287,6 +293,102 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
         var inst = createInstance(parentScope, agoClass, runSpace, null, (Consumer<Slots>) null);
         this.saveCreatedInstance(inst, agoClass, runSpace);
         return inst;
+    }
+
+    @Override
+    public IntArrayInstance createIntArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (IntArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createIntArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public ByteArrayInstance createByteArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (ByteArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createByteArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public BooleanArrayInstance createBooleanArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (BooleanArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createBooleanArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public CharArrayInstance createCharArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (CharArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createCharArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public DoubleArrayInstance createDoubleArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (DoubleArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createDoubleArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public FloatArrayInstance createFloatArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (FloatArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createFloatArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public LongArrayInstance createLongArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (LongArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createLongArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public ObjectArrayInstance createObjectArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (ObjectArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createObjectArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public UnionArrayInstance createUnionArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (UnionArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createUnionArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public DecimalArrayInstance createDecimalArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (DecimalArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createDecimalArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public ShortArrayInstance createShortArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (ShortArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createShortArray(arrayType, length, runSpace);
+    }
+
+    @Override
+    public StringArrayInstance createStringArray(AgoClass arrayType, int length, RunSpace runSpace) {
+        if(runSpace instanceof CreateInstanceRunSpace<?>) {
+            return (StringArrayInstance) ((CreateInstanceRunSpace<Id>)runSpace).createArrayInstance(arrayType, length, null, null);
+        }
+        return super.createStringArray(arrayType, length, runSpace);
     }
 
     private void saveCreatedInstance(Instance<?> inst, AgoClass agoClass, RunSpace runSpace) {

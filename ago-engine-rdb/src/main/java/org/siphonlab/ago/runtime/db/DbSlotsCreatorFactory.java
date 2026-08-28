@@ -33,44 +33,39 @@ public class DbSlotsCreatorFactory<Id> implements SlotsCreatorFactory {
 
     @Override
     public SlotsCreator generateSlotsCreator(AgoClass agoClass) {
-        var creator = baseSlotFactory.generateSlotsCreator(agoClass);
+        var baseCreator = baseSlotFactory.generateSlotsCreator(agoClass);
+        boolean isEntity =  agoClass.getClassLoader().getLangClasses().getEntityClass().isThatOrSuperOfThat(agoClass);
         return new DbSlotsCreator<Id>(){
             @Override
             public Slots create() {
-                /*
-                TODO handle value type
-                    if(engine.getBoxTypes() != null && engine.getBoxTypes().isBoxType(agoClass)){
-                        return creator.create();
-                    } else {
-                        LangClasses langClasses = engine.getLangClasses();
-                        if(langClasses != null && langClasses.getArrayClass() != null && agoClass.isThatOrDerivedFrom(engine.getLangClasses().getArrayClass())){
-                            return creator.create();
-                        }
-                    }
-                 */
-                var baseSlots = (creator == null)? new AgoClass.TraceOwnerSlots(agoClass) : creator.create();
-                var objectRef = ObjectRef.create(agoClass.getFullname(), idGenerator.nextId());
-                var slots = new DbSlots<Id>(baseSlots, objectRef);
-                if (agoClass.getSlotDefs() != null) {
-                    slots.allocateObjectSlots(agoClass.getSlotDefs().length);
+                if(isEntity) {
+                    return create(null);
                 }
-                return slots;
+                return createDefaultSlots();
             }
 
             @Override
             public Class<?> getSlotType(int slotIndex) {
-                return creator.getSlotType(slotIndex);
+                return baseCreator.getSlotType(slotIndex);
             }
 
             // for restore with existed objectRef
             @Override
             public DbSlots<Id> create(ObjectRef<Id> objectRef) {
-                var baseSlots = (creator == null)? new AgoClass.TraceOwnerSlots(agoClass) : creator.create();
+                var baseSlots = createDefaultSlots();
+
+                if(objectRef == null) objectRef = ObjectRef.create(agoClass.getFullname(), idGenerator.nextId());
+
                 var slots = new DbSlots<Id>(baseSlots, objectRef);
                 if (agoClass.getSlotDefs() != null) {
                     slots.allocateObjectSlots(agoClass.getSlotDefs().length);
                 }
                 return slots;
+            }
+
+            // for default runspace
+            public Slots createDefaultSlots() {
+                return  (baseCreator == null)? new AgoClass.TraceOwnerSlots(agoClass) : baseCreator.create();
             }
         };
     }

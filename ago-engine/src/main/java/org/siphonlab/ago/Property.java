@@ -97,7 +97,7 @@ public abstract class Property {
 
         @Override
         public String getName() {
-            return ObjectUtils.getIfNull(getter.getCommonName(), setter.getCommonName());
+            return getter.getCommonName();
         }
 
         @Override
