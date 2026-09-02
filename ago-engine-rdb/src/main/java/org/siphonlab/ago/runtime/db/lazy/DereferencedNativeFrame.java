@@ -25,21 +25,21 @@ import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeferenceNativeFrame<F extends AgoFunction, Id> extends NativeFrame implements DeferenceCallFrame<F, Id>, ObjectRefOwner {
+public class DereferencedNativeFrame<F extends AgoFunction, Id> extends NativeFrame implements DereferencedCallFrame<F, Id>, ObjectRefOwner<Id> {
 
-    private static final Logger logger = LoggerFactory.getLogger(DeferenceNativeFrame.class);
+    private static final Logger logger = LoggerFactory.getLogger(DereferencedNativeFrame.class);
 
     private final DbAdapter<Id> adapter;
 
     private final DeferenceFrameState state;
 
-    public DeferenceNativeFrame(DbSlots<Id> slots, AgoNativeFunction agoFunction, DbEngine<Id> engine, RunSpace runSpace) {
-        super(engine, slots, agoFunction);
+    public DereferencedNativeFrame(DbSlots<Id> slots, AgoNativeFunction agoFunction, DbEngine<Id> engine, RunSpace runSpace) {
+        super(engine, new DereferenceContextSlots<>(slots.getObjectRef(), slots), agoFunction);
         this.adapter = engine.getDbAdapter();
 
         var inst = (ObjectRefCallFrame<F, Id>) engine.createObjectRefInstance(this.getObjectRef(), runSpace);
         this.state = new DeferenceFrameState(inst);
-        inst.setDeferencedInstance(this);
+        inst.setDereferencedInstance(this);
     }
 
     @Override
@@ -64,8 +64,8 @@ public class DeferenceNativeFrame<F extends AgoFunction, Id> extends NativeFrame
 
     @Override
     public void setCaller(CallFrame<?> caller) {
-        if(caller instanceof DeferenceCallFrame deferenceCallFrame){
-            caller = deferenceCallFrame.toObjectRefInstance();
+        if(caller instanceof DereferencedCallFrame dereferencedCallFrame){
+            caller = dereferencedCallFrame.toObjectRefInstance();
         }
         if (ObjectRefOwner.equals(caller, this.getCaller())) return;
 
@@ -91,8 +91,8 @@ public class DeferenceNativeFrame<F extends AgoFunction, Id> extends NativeFrame
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof DeferenceAgoFrame deferenceAgoFrame) {
-            return this.getObjectRef().equals(deferenceAgoFrame.getObjectRef());
+        if (obj instanceof DereferencedAgoFrame dereferencedAgoFrame) {
+            return this.getObjectRef().equals(dereferencedAgoFrame.getObjectRef());
         } else if (obj instanceof ObjectRefObject objectRefObject) {
             return this.getObjectRef().equals(objectRefObject.getObjectRef());
         } else {

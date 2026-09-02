@@ -26,7 +26,7 @@ import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeferenceNativeInstance<T extends AgoClass, Id> extends NativeInstance implements DeferenceObject<Id>, ObjectRefOwner {
+public class DeferenceNativeInstance<T extends AgoClass, Id> extends NativeInstance implements DeferenceObject<Id>, ObjectRefOwner<Id> {
     private static final Logger logger = LoggerFactory.getLogger(DeferenceNativeInstance.class);
 
     private final DbAdapter<Id> adapter;
@@ -40,7 +40,7 @@ public class DeferenceNativeInstance<T extends AgoClass, Id> extends NativeInsta
         this.adapter = adapter;
 
         ObjectRefInstance<T, Id> inst = (ObjectRefInstance<T, Id>) engine.createObjectRefInstance(this.getObjectRef(), runSpace);
-        inst.setDeferencedInstance(this);
+        inst.setDereferencedInstance(this);
         this.state = new DeferenceObjectState(inst);
     }
 

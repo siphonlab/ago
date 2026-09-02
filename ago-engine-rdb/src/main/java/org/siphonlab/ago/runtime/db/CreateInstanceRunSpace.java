@@ -1,6 +1,7 @@
 package org.siphonlab.ago.runtime.db;
 
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.db.lazy.DereferenceContextSlots;
 
 import java.util.function.Consumer;
 
@@ -11,4 +12,5 @@ public interface CreateInstanceRunSpace<Id> {
 
     Instance<?> createArrayInstance(AgoClass arrayType, int length, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer);
 
+    void updateDeferenceContext(Instance<?> instance, DereferenceContextSlots<Id> slots);
 }

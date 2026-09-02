@@ -19,32 +19,35 @@ import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.RunSpace;
 import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.ObjectRef;
+import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * lazy instance
  */
-public interface ObjectRefObject<Id> {
+public interface ObjectRefObject<Id> extends ObjectRefOwner<Id> {
     static final Logger logger = LoggerFactory.getLogger(ObjectRefObject.class);
 
     ObjectRef<Id> getObjectRef();
 
     Instance<?> getDeferencedInstance();
 
-    Instance<?> deference();
+    Instance<?> dereference();
 
-    default Instance<?> deference(Instance<?> deferencedInstance,
-                                  DbAdapter<Id> dereferenceAdapter,
-                                  ObjectRef<Id> objectRef, RunSpace runSpace) {
+    void bindDereferenceContext(RunSpace runSpace, DbAdapter<Id> dereferenceAdapter);
+
+    default Instance<?> dereference(Instance<?> deferencedInstance,
+                                    DbAdapter<Id> dereferenceAdapter,
+                                    ObjectRef<Id> objectRef, RunSpace runSpace) {
         if (deferencedInstance != null)
             return deferencedInstance;
 
         if (logger.isDebugEnabled()) logger.debug(getObjectRef() + " expand deference");
         Instance<?> r = dereferenceAdapter.getById(objectRef, runSpace);
-        setDeferencedInstance(r);
+        setDereferencedInstance(r);
         return r;
     }
 
-    void setDeferencedInstance(Instance<?> inst);
+    void setDereferencedInstance(Instance<?> inst);
 }

@@ -40,14 +40,6 @@ import java.math.BigDecimal;
  */
 public interface Slots {
 
-    default Object get(int slot, Class<?> type, AgoEngine agoEngine) {
-        throw new IllegalArgumentException("Unsupported slot access: " + slot);
-    }
-
-    default <T> void set(int slot, T value, Class<T> type) {
-        throw new IllegalArgumentException("Unsupported slot access: " + slot);
-    }
-
     default int getInt(int slot) {
         throw new IllegalArgumentException("Unsupported slot access: " + slot);
     }

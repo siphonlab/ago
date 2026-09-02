@@ -23,11 +23,11 @@ import org.siphonlab.ago.runtime.db.ObjectRef;
 import java.util.Objects;
 
 // for ObjectRefInstance, ObjectRefCallFrame
-public interface ObjectRefOwner {
+public interface ObjectRefOwner<Id> {
 
-    ObjectRef<?> getObjectRef();
+    ObjectRef<Id> getObjectRef();
 
-    static ObjectRef<?> extractObjectRef(Instance<?> instance) {
+    static <Id> ObjectRef<Id> extractObjectRef(Instance<?> instance) {
         if (instance == null) return null;
         if (instance instanceof CallFrame<?> callFrame) {
             return extractObjectRef(callFrame);
@@ -40,7 +40,7 @@ public interface ObjectRefOwner {
         return null;
     }
 
-    static ObjectRef<?> extractObjectRef(CallFrame<?> instance) {
+    static <Id> ObjectRef<Id> extractObjectRef(CallFrame<?> instance) {
         if(instance instanceof EntranceCallFrame<?> entranceCallFrame){
             instance = entranceCallFrame.getInner();
         }

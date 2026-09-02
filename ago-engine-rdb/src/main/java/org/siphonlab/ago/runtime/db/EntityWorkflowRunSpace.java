@@ -19,7 +19,9 @@ import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
-import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
+import org.siphonlab.ago.runtime.db.lazy.DereferenceContextAgoFrame;
+import org.siphonlab.ago.runtime.db.lazy.DereferenceContextNativeFrame;
+import org.siphonlab.ago.runtime.db.lazy.DereferenceContextSlots;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityWorkflowRunSpace;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 
@@ -80,6 +82,15 @@ public class EntityWorkflowRunSpace<Id> extends WorkflowRunSpace<Id>{
     }
 
     @Override
+    public void updateDeferenceContext(Instance<?> instance, DereferenceContextSlots<Id> slots) {
+        if(entityAdapter.isEntityClass(instance.getAgoClass())) {
+            slots.bindContext(this, entityAdapter);
+        } else {
+            slots.bindContext(this, workflowAdapter);
+        }
+    }
+
+    @Override
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
         if(!entityAdapter.isEntityClass(agoFunction)) {
             return super.createFunctionInstance(agoFunction, parentScope, objectRef, slotsInitializer);
@@ -87,11 +98,30 @@ public class EntityWorkflowRunSpace<Id> extends WorkflowRunSpace<Id>{
 
         var slots = DbSlotsCreator.create(agoFunction, objectRef);
         if(slotsInitializer != null) slotsInitializer.accept(slots);
-        CallFrame<?> inst;
-        if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
-            inst = new NativeFrame(getAgoEngine(), slots, agoNativeFunction);
+
+        DereferenceContextSlots<Id> dereferenceContextSlots;
+        if(slots instanceof DbSlots<?> dbSlots) {
+            dereferenceContextSlots = new DereferenceContextSlots<>((ObjectRef<Id>) dbSlots.getObjectRef(), dbSlots);
+        } else if(objectRef != null){
+            dereferenceContextSlots = new DereferenceContextSlots<>(objectRef, slots);
         } else {
-            inst = new AgoFrame(slots, agoFunction, this.getAgoEngine());
+            dereferenceContextSlots = null;
+        }
+
+        CallFrame<?> inst;
+
+        if(dereferenceContextSlots == null){
+            if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
+                inst = new NativeFrame(getAgoEngine(), slots, agoNativeFunction);
+            } else {
+                inst = new AgoFrame(slots, agoFunction, this.getAgoEngine());
+            }
+        } else {
+            if (agoFunction instanceof AgoNativeFunction agoNativeFunction) {
+                inst = new DereferenceContextNativeFrame(dereferenceContextSlots, agoNativeFunction, getAgoEngine());
+            } else {
+                inst = new DereferenceContextAgoFrame<>(dereferenceContextSlots, agoFunction, this.getAgoEngine());
+            }
         }
         if(parentScope != null) inst.setParentScope(parentScope);
         return inst;

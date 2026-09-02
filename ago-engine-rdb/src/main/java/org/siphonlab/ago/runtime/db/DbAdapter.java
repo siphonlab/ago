@@ -24,7 +24,8 @@ public interface DbAdapter<IdType> {
 
     void saveInstance(Instance<?> instance);
 
-    // for EntityAdapter, it returns whole instance, but, for the scope and other linked Object,
+    // always return dereferenced instance, that means, slots fill with values, but for Object slots and scope, they are often ObjectRefInstance
+    // adapter may make cache for ObjectRef
     Instance<?> getById(ObjectRef<IdType> objectRef, RunSpace runSpace);
 
     DbAdapter<IdType> beginTransaction();

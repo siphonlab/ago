@@ -23,32 +23,37 @@ import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> implements ObjectRefObject<Id>, ObjectRefOwner {
+public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> implements ObjectRefObject<Id> {
 
     private static final Logger logger = LoggerFactory.getLogger(ObjectRefInstance.class);
 
     final ObjectRef<Id> objectRef;
-    final DbAdapter<Id> dereferenceAdapter;
-    private final RunSpace runSpace;
+
+    DbAdapter<Id> dereferenceAdapter;
+    RunSpace runSpace;
 
     CallFrame<?> deferencedCallFrame;
 
-    public ObjectRefCallFrame(F agoClass, final ObjectRef<Id> objectRef, DbAdapter<Id> dereferenceAdapter, RunSpace runSpace, final RowState rowState) {
+    public ObjectRefCallFrame(F agoClass, final ObjectRef<Id> objectRef) {
         super(DbSlotsCreator.create(agoClass, objectRef), agoClass);
         this.objectRef = objectRef;
+    }
+
+    @Override
+    public CallFrame<?> dereference() {
+        dereference(deferencedCallFrame, this.dereferenceAdapter, this.objectRef, runSpace);
+        return deferencedCallFrame;
+    }
+
+    @Override
+    public void bindDereferenceContext(RunSpace runSpace, DbAdapter<Id> dereferenceAdapter) {
         this.dereferenceAdapter = dereferenceAdapter;
         this.runSpace = runSpace;
     }
 
     @Override
-    public CallFrame<?> deference() {
-        deference(deferencedCallFrame, this.dereferenceAdapter, this.objectRef, runSpace);
-        return deferencedCallFrame;
-    }
-
-    @Override
-    public void setDeferencedInstance(Instance<?> inst) {
-        setDeferencedInstance((CallFrame<?>) inst);
+    public void setDereferencedInstance(Instance<?> inst) {
+        setDereferencedInstance((CallFrame<?>) inst);
     }
 
     public ObjectRef<Id> getObjectRef() {
@@ -59,18 +64,14 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
         return deferencedCallFrame;
     }
 
-    public Instance<?> getDeferencedCallFrame() {
-        return deferencedCallFrame;
-    }
-
-    public void setDeferencedInstance(CallFrame<?> inst) {
+    public void setDereferencedInstance(CallFrame<?> inst) {
         if(inst == null){
             this.deferencedCallFrame = null;
             return;
         }
 
         this.deferencedCallFrame = inst;
-        if (inst instanceof DeferenceCallFrame r) {
+        if (inst instanceof DereferencedCallFrame r) {
             DeferenceFrameState state = r.getDeferenceFrameState();
             if (state.isEntrance()) {
                 inst = new EntranceCallFrame<>(this);
@@ -100,29 +101,29 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
 
     @Override
     public void setCaller(CallFrame<?> caller) {
-        deference().setCaller(caller);
+        dereference().setCaller(caller);
     }
 
     @Override
     public SourceLocation resolveSourceLocation() {
-        return deference().resolveSourceLocation();
+        return dereference().resolveSourceLocation();
     }
 
     @Override
     public boolean handleException(Instance<?> exception) {
-        return deference().handleException(exception);
+        return dereference().handleException(exception);
     }
 
     @Override
     public void setRunSpace(RunSpace runSpace) {
-        deference().setRunSpace(runSpace);
+        dereference().setRunSpace(runSpace);
     }
 
     @Override
     public RunSpace getRunSpace() {
         RunSpace r = super.getRunSpace();
         if (r != null) return ((RunSpace) (r));
-        return deference().getRunSpace();
+        return dereference().getRunSpace();
     }
 
     @Override
@@ -132,12 +133,12 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
 
     @Override
     public void run() {
-        deference().run();
+        dereference().run();
     }
 
     @Override
     public void run(CallFrame<?> self) {
-        CallFrame<?> r = deference();
+        CallFrame<?> r = dereference();
         if (self.equals(this)) {
             r.run(r);
         } else {
@@ -147,7 +148,7 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
 
     @Override
     public CallFrame<?> getCaller() {
-        return deference().getCaller();
+        return dereference().getCaller();
     }
 
     @Override

@@ -5,6 +5,9 @@ import org.siphonlab.ago.native_.AgoNativeFunction;
 import org.siphonlab.ago.native_.NativeFrame;
 import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.*;
+import org.siphonlab.ago.runtime.db.lazy.DereferenceContextAgoFrame;
+import org.siphonlab.ago.runtime.db.lazy.DereferenceContextNativeFrame;
+import org.siphonlab.ago.runtime.db.lazy.DereferenceContextSlots;
 import org.siphonlab.ago.runtime.db.sdk.ForkEntityRunSpace;
 import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.slf4j.Logger;
@@ -97,11 +100,30 @@ public class EntityRunSpace<Id> extends RunSpace implements CreateInstanceRunSpa
         } else {
             slots = agoFunction.createSlots();
         }
-        CallFrame<?> inst;
-        if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
-            inst = new NativeFrame(getAgoEngine(), slots, agoNativeFunction);
+
+        DereferenceContextSlots<Id> dereferenceContextSlots;
+        if(slots instanceof DbSlots<?> dbSlots) {
+            dereferenceContextSlots = new DereferenceContextSlots<>((ObjectRef<Id>) dbSlots.getObjectRef(), dbSlots);
+        } else if(objectRef != null){
+            dereferenceContextSlots = new DereferenceContextSlots<>(objectRef, slots);
         } else {
-            inst = new AgoFrame(slots, agoFunction, this.getAgoEngine());
+            dereferenceContextSlots = null;
+        }
+
+        CallFrame<?> inst;
+
+        if(dereferenceContextSlots == null){
+            if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
+                inst = new NativeFrame(getAgoEngine(), slots, agoNativeFunction);
+            } else {
+                inst = new AgoFrame(slots, agoFunction, this.getAgoEngine());
+            }
+        } else {
+            if (agoFunction instanceof AgoNativeFunction agoNativeFunction) {
+                inst = new DereferenceContextNativeFrame(dereferenceContextSlots, agoNativeFunction, getAgoEngine());
+            } else {
+                inst = new DereferenceContextAgoFrame<>(dereferenceContextSlots, agoFunction, this.getAgoEngine());
+            }
         }
         if(parentScope != null) inst.setParentScope(parentScope);
         return inst;
@@ -133,14 +155,11 @@ public class EntityRunSpace<Id> extends RunSpace implements CreateInstanceRunSpa
         }
     }
 
-    public static <Id> EntityAdapter<Id> retrieveEntityAdapter(RunSpace runSpace) {
-        if(runSpace instanceof EntityRunSpace<?> entityRunSpace){
-            return (EntityAdapter<Id>) entityRunSpace.getEntityAdapter();
+    @Override
+    public void updateDeferenceContext(Instance<?> instance, DereferenceContextSlots<Id> slots) {
+        if(entityAdapter.isEntityClass(instance.getAgoClass())){
+            slots.bindContext(this, entityAdapter);
         }
-        if(runSpace instanceof EntityWorkflowRunSpace<?> entityWorkflowRunSpace){
-            return (EntityAdapter<Id>) entityWorkflowRunSpace.getEntityAdapter();
-        }
-        return null;
     }
 
 }

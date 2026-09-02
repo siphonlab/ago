@@ -22,41 +22,45 @@ import org.siphonlab.ago.runtime.rdb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ObjectRefInstance<T extends AgoClass, Id> extends Instance<T> implements ObjectRefObject<Id>, ObjectRefOwner {
+public class ObjectRefInstance<T extends AgoClass, Id> extends Instance<T> implements ObjectRefObject<Id> {
     private static final Logger logger = LoggerFactory.getLogger(ObjectRefInstance.class);
 
-    private final DbAdapter<Id> dereferenceAdapter;
+    DbAdapter<Id> dereferenceAdapter;
 
-    final ObjectRef<Id> objectRef;
-    private final RunSpace runSpace;
+    ObjectRef<Id> objectRef;
+    RunSpace runSpace;
 
     private Instance<?> deferencedInstance;
 
-    public ObjectRefInstance(T agoClass, ObjectRef<Id> objectRef, DbAdapter<Id> dereferenceAdapter, RunSpace runSpace) {
+    public ObjectRefInstance(T agoClass, ObjectRef<Id> objectRef) {
         super(agoClass);
-        this.dereferenceAdapter = dereferenceAdapter;
         this.objectRef = objectRef;
-        this.runSpace = runSpace;
     }
 
     @Override
-    public Instance<?> deference() {
-        return deference(deferencedInstance, this.dereferenceAdapter, this.objectRef, runSpace);
+    public void bindDereferenceContext(RunSpace runSpace, DbAdapter<Id> dereferenceAdapter) {
+        this.runSpace = runSpace;
+        this.dereferenceAdapter = dereferenceAdapter;
+    }
+
+    @Override
+    public Instance<?> dereference() {
+        return dereference(deferencedInstance, this.dereferenceAdapter, this.objectRef, runSpace);
     }
 
     @Override
     public Slots getSlots() {
-        return deference().getSlots();
+        return dereference().getSlots();
     }
 
     @Override
     public Instance<?> getParentScope() {
-        return deference().getParentScope();
+        return dereference().getParentScope();
     }
 
     @Override
     public void setParentScope(Instance<?> parentScope) {
-        deference().setParentScope(parentScope);
+        dereference().setParentScope(parentScope);
     }
 
     public int hashCode() {
@@ -77,7 +81,7 @@ public class ObjectRefInstance<T extends AgoClass, Id> extends Instance<T> imple
     }
 
 
-    public void setDeferencedInstance(Instance<?> inst) {
+    public void setDereferencedInstance(Instance<?> inst) {
         this.deferencedInstance = inst;
     }
 

@@ -48,7 +48,7 @@ public class ResultSetToEntityMapper<Id> {
     private final RunSpace runSpace;
     private final TypeCode idType;
 
-    private AgoEngine agoEngine;
+    private DbEngine<Id> agoEngine;
     private boolean closed = false;
 
     public ResultSetToEntityMapper(ResultSet resultSet, AgoClass agoClass, RdbTable rdbTable, BoxTypes boxTypes, RunSpace runSpace, TypeCode idType){
@@ -58,6 +58,7 @@ public class ResultSetToEntityMapper<Id> {
         this.boxTypes = boxTypes;
         this.runSpace = runSpace;
         this.idType = idType;
+        this.agoEngine = (DbEngine<Id>) runSpace.getAgoEngine();
     }
 
     public void close(){
@@ -82,13 +83,9 @@ public class ResultSetToEntityMapper<Id> {
 
     public Instance<?> next() throws SQLException {
         ObjectRef<Id> objectRef = ObjectRef.create(agoClass.getFullname(), readId(resultSet));
-        Instance<?> instance;
-        if(runSpace instanceof CreateInstanceRunSpace createInstanceRunSpace){
-            instance = createInstanceRunSpace.createInstance(null, agoClass, objectRef, null);
-        } else {
-            instance = agoEngine.createInstance(agoClass, runSpace);
-        }
-        DbSlots slots = (DbSlots) instance.getSlots();
+        Instance<?> instance = agoEngine.createInstance(agoClass, runSpace);
+        DbSlots<Id> slots = (DbSlots<Id>) instance.getSlots();
+        slots.setObjectRef(objectRef);
         for (ColumnDesc column : rdbTable.columns()) {
             AgoSlotDef slotDef = column.getSlotDef();
             int slotIndex = slotDef.getIndex();
@@ -217,11 +214,11 @@ public class ResultSetToEntityMapper<Id> {
         throw new UnsupportedOperationException("unknown type code " + typeCode);
     }
 
-    public AgoEngine getAgoEngine() {
+    public DbEngine<Id> getAgoEngine() {
         return agoEngine;
     }
 
-    public void setAgoEngine(AgoEngine agoEngine) {
+    public void setAgoEngine(DbEngine<Id> agoEngine) {
         this.agoEngine = agoEngine;
     }
 

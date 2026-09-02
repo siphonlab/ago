@@ -26,7 +26,7 @@ import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeferenceInstance<T extends AgoClass, Id> extends Instance<T> implements DeferenceObject<Id>, ObjectRefOwner {
+public class DeferenceInstance<T extends AgoClass, Id> extends Instance<T> implements DeferenceObject<Id>, ObjectRefOwner<Id> {
     private static final Logger logger = LoggerFactory.getLogger(DeferenceInstance.class);
 
     private final DeferenceObjectState state;
@@ -37,7 +37,7 @@ public class DeferenceInstance<T extends AgoClass, Id> extends Instance<T> imple
         slots.setOwner(this);
 
         ObjectRefInstance<T, Id> inst = (ObjectRefInstance<T, Id>) engine.createObjectRefInstance(this.getObjectRef(), runSpace);
-        inst.setDeferencedInstance(this);
+        inst.setDereferencedInstance(this);
         this.state = new DeferenceObjectState(inst);
     }
 

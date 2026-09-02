@@ -191,9 +191,9 @@ public class DbEngine<Id> extends AgoEngine {
     public Instance<?> createObjectRefInstance(ObjectRef<Id> objectRef, RunSpace runSpace) {
         AgoClass agoClass = getClass(objectRef.className());
         if (agoClass instanceof AgoFunction agoFunction) {
-            return new ObjectRefCallFrame(agoFunction, objectRef, getDbAdapter(), runSpace, RowState.Unchanged);
+            return new ObjectRefCallFrame<>(agoFunction, objectRef);
         } else if(agoClass instanceof AgoClass){
-            return new ObjectRefInstance(agoClass, objectRef, getDbAdapter(), runSpace);
+            return new ObjectRefInstance<>(agoClass, objectRef);
         } else {
             if (Objects.equals(objectRef.className(), "<Meta>")){
                 return getTheMeta();

@@ -17,12 +17,13 @@ package org.siphonlab.ago.runtime.db;
 
 import org.agrona.collections.IntHashSet;
 import org.siphonlab.ago.*;
+import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.siphonlab.ago.runtime.rdb.RowState;
 
 import java.math.BigDecimal;
 import java.util.*;
 
-public class DbSlots<Id> implements Slots {
+public class DbSlots<Id> implements Slots, ObjectRefOwner<Id> {
 
     protected final Slots baseSlots;
 
@@ -295,47 +296,6 @@ public class DbSlots<Id> implements Slots {
     }
 
     @Override
-    public Object get(int slotIndex, Class<?> clazz, AgoEngine agoEngine) {
-        if (clazz == int.class) {
-            return getInt(slotIndex);
-        }
-        if (clazz == double.class) {
-            return getDouble(slotIndex);
-        }
-        if (clazz == BigDecimal.class) {
-            return getDecimal(slotIndex);
-        }
-        if (clazz == String.class) {
-            return getString(slotIndex);
-        }
-        if (clazz == long.class) {
-            return getLong(slotIndex);
-        }
-        if (clazz == boolean.class) {
-            return getBoolean(slotIndex);
-        }
-        if (clazz == short.class) {
-            return getShort(slotIndex);
-        }
-        if (clazz == byte.class) {
-            return getByte(slotIndex);
-        }
-        if (clazz == float.class) {
-            return getFloat(slotIndex);
-        }
-        if (clazz == char.class) {
-            return getChar(slotIndex);
-        }
-        if (AgoClass.class.isAssignableFrom(clazz)) {
-            return agoEngine.getClass(getClassRef(slotIndex));       // class id
-        }
-        if (Instance.class.isAssignableFrom(clazz)) {
-            return (Instance<?>) getObject(slotIndex);
-        }
-        throw new UnsupportedOperationException("unknown class " + clazz);
-    }
-
-    @Override
     public int getInt(int slot) {
         return baseSlots.getInt(slot);
     }
@@ -414,4 +374,5 @@ public class DbSlots<Id> implements Slots {
     public String toString() {
         return "(DbSlots %d)".formatted(objectRef);
     }
+
 }

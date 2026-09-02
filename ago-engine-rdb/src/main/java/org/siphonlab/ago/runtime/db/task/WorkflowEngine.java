@@ -279,6 +279,9 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
         CallFrame<?> instance;
         var slots = agoFunction.createSlots();
         if(slotsInitializer != null) slotsInitializer.accept(slots);
+        if(slots instanceof DbSlots<?> dbSlots) {
+            slots = new DereferenceContextSlots<Id>((ObjectRef<Id>) dbSlots.getObjectRef(), dbSlots);
+        }
         if(agoFunction instanceof AgoNativeFunction agoNativeFunction){
             instance = new NativeFrame(this, slots, agoNativeFunction);
         } else {
@@ -423,7 +426,7 @@ public class WorkflowEngine<Id> extends DbEngine<Id> {
             var runSpace = runspaces.get(runSpaceDesc.getId());
             CallFrame<?> currCallFrame = (CallFrame<?>) createObjectRefInstance(runSpaceDesc.getCurrFrame(), runSpace);
             if(currCallFrame instanceof ObjectRefCallFrame objectRefCallFrame){
-                currCallFrame = objectRefCallFrame.deference();
+                currCallFrame = objectRefCallFrame.dereference();
             }
             List<RunSpace> forkedRunspaces = runSpaceDesc.getForkedRunSpaces() == null ? null : runSpaceDesc.getForkedRunSpaces().stream().map(d -> (RunSpace) runspaces.get(d.getId())).toList();
             RunSpace parent = runSpaceDesc.getParentRunSpace() == null ? null : runspaces.get(runSpaceDesc.getParentRunSpace().getId());

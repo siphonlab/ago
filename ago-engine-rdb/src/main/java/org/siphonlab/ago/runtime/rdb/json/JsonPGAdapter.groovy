@@ -38,12 +38,11 @@ import org.siphonlab.ago.runtime.db.ObjectRef
 import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
-import org.siphonlab.ago.runtime.db.lazy.DeferenceAgoFrame
+import org.siphonlab.ago.runtime.db.lazy.DereferencedAgoFrame
 import org.siphonlab.ago.runtime.db.lazy.DeferenceInstance
-import org.siphonlab.ago.runtime.db.lazy.DeferenceNativeFrame
+import org.siphonlab.ago.runtime.db.lazy.DereferencedNativeFrame
 import org.siphonlab.ago.runtime.db.lazy.DeferenceNativeInstance
 import org.siphonlab.ago.runtime.db.lazy.DeferenceObject
-import org.siphonlab.ago.runtime.db.lazy.DereferenceAdapter
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefObject
 import org.siphonlab.ago.runtime.rdb.TransactionBoundDataSource
@@ -57,7 +56,7 @@ import java.sql.SQLException
 import java.util.concurrent.ConcurrentHashMap
 
 @CompileStatic
-public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdapter<Id>, WorkflowAdapter<Id>{
+public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter<Id>{
 
     private  final Logger logger = LoggerFactory.getLogger(JsonPGAdapter)
 
@@ -819,11 +818,11 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
             var frame = engine.createFunctionInstance(agoClass as AgoFunction, parentScope, null, objectRef, slots -> {
                 getAgoEngine().jsonDeserializeSlots((DbSlots<Id>)slots, agoClass, (String) ((row['slots'] as PGobject).value), boxInstanceScope);
             })
-            if (frame instanceof DeferenceAgoFrame) {
+            if (frame instanceof DereferencedAgoFrame) {
                 frame.pc = row['pc'] as int
                 frame.getDeferenceFrameState().entrance = row['is_entrance']
                 frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
-            } else if(frame instanceof DeferenceNativeFrame){        //DeferenceNativeFrame
+            } else if(frame instanceof DereferencedNativeFrame){
                 if(row['payload']) frame.setNativePayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
                 frame.getDeferenceFrameState().entrance = row['is_entrance']
                 frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
@@ -848,7 +847,9 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
             DbSlots<Id> slots = DbSlotsCreator<Id>.create(agoClass, ObjectRef.create(agoClass.fullname, objectRef.id())) as DbSlots<Id>
             getAgoEngine().jsonDeserializeSlots(slots, agoClass, (String) ((row['slots'] as PGobject).value), null);
 
-            var inst = agoClass.isNative() ? new DeferenceNativeInstance(slots,agoClass, (DbEngine<Id>) this.agoEngine, this, runSpace) : new DeferenceInstance(slots, agoClass, this, (DbEngine<Id>) this.agoEngine, runSpace);
+            var inst = agoClass.isNative() ?
+                                new DeferenceNativeInstance(slots,agoClass, (DbEngine<Id>) this.agoEngine, this, runSpace) :
+                                new DeferenceInstance(slots, agoClass, this, (DbEngine<Id>) this.agoEngine, runSpace);
             inst.parentScope = parentScope
             if(inst instanceof DeferenceNativeInstance){
                 var payload = row['payload'];
@@ -903,7 +904,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements DereferenceAdap
         }
 
         if (frame instanceof ObjectRefCallFrame<?,?> objectRefCallFrame) {
-            frame = objectRefCallFrame.deference();
+            frame = objectRefCallFrame.dereference();
         }
 
         var transactionAdapter = this.beginTransaction();

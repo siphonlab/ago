@@ -15,12 +15,11 @@
  */
 package org.siphonlab.ago.runtime.db.lazy;
 
-import org.siphonlab.ago.Instance;
-import org.siphonlab.ago.RunSpace;
-import org.siphonlab.ago.runtime.db.ObjectRef;
+import org.siphonlab.ago.AgoFunction;
 
-public interface DereferenceAdapter<Id> {
+public interface DereferencedCallFrame<F extends AgoFunction, Id> extends DeferenceObject<Id>{
 
-    Instance<?> dereference(ObjectRef<Id> objectRef, RunSpace runSpace);
+    ObjectRefCallFrame<F, Id> toObjectRefInstance();
 
+    DeferenceFrameState getDeferenceFrameState();
 }

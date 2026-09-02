@@ -42,4 +42,15 @@ public interface EntityAdapter<Id> extends DbAdapter<Id>{
     ColumnDesc idColumnDesc();
 
     ResultSetToQueryResultMapper<Id> executeQuery(String sql, Map<String, Object> arguments, AgoClass entityClass, RunSpace runSpace) throws Exception;
+
+    public static <Id> EntityAdapter<Id> retrieveEntityAdapter(RunSpace runSpace) {
+        if(runSpace instanceof EntityRunSpace<?> entityRunSpace){
+            return (EntityAdapter<Id>) entityRunSpace.getEntityAdapter();
+        }
+        if(runSpace instanceof EntityWorkflowRunSpace<?> entityWorkflowRunSpace){
+            return (EntityAdapter<Id>) entityWorkflowRunSpace.getEntityAdapter();
+        }
+        return null;
+    }
+
 }

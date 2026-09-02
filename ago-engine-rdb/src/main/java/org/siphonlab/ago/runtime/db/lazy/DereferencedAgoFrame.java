@@ -28,23 +28,23 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedList;
 import java.util.List;
 
-public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame implements DeferenceCallFrame<F,Id>, ObjectRefOwner {
+public class DereferencedAgoFrame<F extends AgoFunction, Id> extends AgoFrame implements DereferencedCallFrame<F,Id> {
 
-    private static final Logger logger = LoggerFactory.getLogger(DeferenceAgoFrame.class);
+    private static final Logger logger = LoggerFactory.getLogger(DereferencedAgoFrame.class);
 
     private final DbAdapter<Id> adapter;
     private final DeferenceFrameState state;
     private List<Instance<?>> loadedScopes = new LinkedList<>();
 
-    public DeferenceAgoFrame(DbSlots<Id> slots, AgoFunction agoFunction, DbEngine<Id> engine, RunSpace runSpace) {
-        super(slots, agoFunction, engine);
+    public DereferencedAgoFrame(DbSlots<Id> slots, AgoFunction agoFunction, DbEngine<Id> engine, RunSpace runSpace) {
+        super(new DereferenceContextSlots<>(slots.getObjectRef(), slots), agoFunction, engine);
 
         slots.setOwner(this);
         this.adapter = engine.getDbAdapter();
 
         ObjectRefCallFrame<F, Id> inst = (ObjectRefCallFrame<F, Id>) engine.createObjectRefInstance(this.getObjectRef(), runSpace);
         this.state = new DeferenceFrameState(inst);
-        inst.setDeferencedInstance(this);
+        inst.setDereferencedInstance(this);
     }
 
     @Override
@@ -61,8 +61,8 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
 
     @Override
     public void setCaller(CallFrame<?> caller) {
-        if(caller instanceof DeferenceCallFrame deferenceCallFrame){
-            caller = deferenceCallFrame.toObjectRefInstance();
+        if(caller instanceof DereferencedCallFrame dereferencedCallFrame){
+            caller = dereferencedCallFrame.toObjectRefInstance();
         }
         if (ObjectRefOwner.equals(caller, this.getCaller())) return;
 
@@ -152,8 +152,8 @@ public class DeferenceAgoFrame<F extends AgoFunction, Id> extends AgoFrame imple
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof DeferenceAgoFrame) {
-            return this.getObjectRef().equals(((DeferenceAgoFrame) obj).getObjectRef());
+        if (obj instanceof DereferencedAgoFrame) {
+            return this.getObjectRef().equals(((DereferencedAgoFrame) obj).getObjectRef());
         } else if (obj instanceof ObjectRefObject) {
             return this.getObjectRef().equals(((ObjectRefObject) obj).getObjectRef());
         } else {

@@ -60,7 +60,7 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
             return true;
         }
         if(frame instanceof ObjectRefCallFrame<?,?> objectRefCallFrame){
-            frame = objectRefCallFrame.deference();
+            frame = objectRefCallFrame.dereference();
         }
         return frame.getAgoClass().isThatOrDerivedFrom(agoEngine.getLangClasses().getTaskInterface());
     }
@@ -152,7 +152,7 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
     @Override
     public void fork(CallFrame<?> frame, ForkContext forkContext) {
         if(frame instanceof ObjectRefCallFrame objectRefCallFrame) {
-            frame = objectRefCallFrame.deference();
+            frame = objectRefCallFrame.dereference();
         }
 
         var curRunSpace = (WorkflowRunSpace<?>) frame.getRunSpace();
@@ -185,7 +185,7 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
     @Override
     public Future<?> startAsync(CallFrame<?> frame) {
         if(frame instanceof ObjectRefCallFrame<?,?> objectRefCallFrame) {
-            frame = objectRefCallFrame.deference();
+            frame = objectRefCallFrame.dereference();
         }
         workflowAdapter.saveFrameAndRunspace(frame);
         return super.startAsync(frame);
@@ -276,16 +276,17 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         if(slotsInitializer != null) slotsInitializer.accept(slots);    // may change slots rowstate -> none
         CallFrame<?> inst;
         if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
-            inst = new DeferenceNativeFrame<>(slots, agoNativeFunction, (DbEngine<Id>) getAgoEngine(), this);
+            inst = new DereferencedNativeFrame<>(slots, agoNativeFunction, (DbEngine<Id>) getAgoEngine(), this);
         } else {
-            inst = new DeferenceAgoFrame<>(slots, agoFunction, (DbEngine<Id>) getAgoEngine(), this);
+            inst = new DereferencedAgoFrame<>(slots, agoFunction, (DbEngine<Id>) getAgoEngine(), this);
         }
         if (parentScope != null)
             inst.setParentScope(parentScope);  // not sure parentScope need restore to ObjectRefInstance too
+
         // restore DeferenceInstance to ObjectRefInstance
         // it cut off caller chain so that only running CallFrame living in the memory
-        DeferenceObject deferenceObject = (DeferenceObject) inst;
-        ((DeferenceObject) inst).markSaved();       // avoid instance marked as saveRequired
+        DeferenceObject<Id> deferenceObject = (DeferenceObject<Id>) inst;
+        deferenceObject.markSaved();       // avoid instance marked as saveRequired
         return inst;
     }
 
@@ -347,6 +348,11 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
             ((DeferenceObject) inst).markSaved();
         }
         return inst;
+    }
+
+    @Override
+    public void updateDeferenceContext(Instance<?> instance, DereferenceContextSlots<Id> slots) {
+        slots.bindContext(this, workflowAdapter);
     }
 
     private Instance<?> createArrayInstanceDefault(AgoClass arrayType, int length) {
