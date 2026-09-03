@@ -19,6 +19,7 @@ import org.siphonlab.ago.Instance;
 import org.siphonlab.ago.RunSpace;
 import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.ObjectRef;
+import org.siphonlab.ago.runtime.rdb.DbEngine;
 import org.siphonlab.ago.runtime.rdb.ObjectRefOwner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,4 +51,14 @@ public interface ObjectRefObject<Id> extends ObjectRefOwner<Id> {
     }
 
     void setDereferencedInstance(Instance<?> inst);
+
+    static Instance<?> toObjectRefInstance(DbEngine<?> engine, Instance<?> instance){
+        if(instance instanceof ObjectRefObject<?>) return instance;
+
+        var objRef = ObjectRefOwner.extractObjectRef(instance);
+        if(objRef == null) return null;
+        var r = engine.createObjectRefInstance(objRef);
+        ((ObjectRefObject<?>)r).setDereferencedInstance(instance);
+        return r;
+    }
 }

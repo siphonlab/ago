@@ -53,7 +53,7 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
 
     @Override
     public void setDereferencedInstance(Instance<?> inst) {
-        setDereferencedInstance((CallFrame<?>) inst);
+        this.deferencedCallFrame = (CallFrame<?>) inst;
     }
 
     public ObjectRef<Id> getObjectRef() {
@@ -64,25 +64,25 @@ public class ObjectRefCallFrame<F extends AgoFunction, Id> extends CallFrame<F> 
         return deferencedCallFrame;
     }
 
-    public void setDereferencedInstance(CallFrame<?> inst) {
-        if(inst == null){
-            this.deferencedCallFrame = null;
-            return;
-        }
-
-        this.deferencedCallFrame = inst;
-        if (inst instanceof DereferencedCallFrame r) {
-            DeferenceFrameState state = r.getDeferenceFrameState();
-            if (state.isEntrance()) {
-                inst = new EntranceCallFrame<>(this);
-            } else if (state.isAsyncEntrance()) {
-                inst = new AsyncEntranceCallFrame<>(this);
-            }
-            this.deferencedCallFrame = inst;
-        } else {
-            this.deferencedCallFrame = inst;
-        }
-    }
+//    public void setDereferencedInstance(CallFrame<?> inst) {
+//        if(inst == null){
+//            this.deferencedCallFrame = null;
+//            return;
+//        }
+//
+//        this.deferencedCallFrame = inst;
+//        if (inst instanceof DereferencedCallFrame r) {
+//            DeferenceFrameState state = r.getDeferenceFrameState();
+//            if (state.isEntrance()) {
+//                inst = new EntranceCallFrame<>(this);
+//            } else if (state.isAsyncEntrance()) {
+//                inst = new AsyncEntranceCallFrame<>(this);
+//            }
+//            this.deferencedCallFrame = inst;
+//        } else {
+//            this.deferencedCallFrame = inst;
+//        }
+//    }
 
     @Override
     public Slots getSlots() {

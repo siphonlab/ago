@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.classloader.ClassRefValue;
 import org.siphonlab.ago.runtime.db.DbAdapter;
@@ -188,7 +189,7 @@ public class DbEngine<Id> extends AgoEngine {
         return inst;
     }
 
-    public Instance<?> createObjectRefInstance(ObjectRef<Id> objectRef, RunSpace runSpace) {
+    public Instance<?> createObjectRefInstance(@MonotonicNonNull ObjectRef<?> objectRef) {
         AgoClass agoClass = getClass(objectRef.className());
         if (agoClass instanceof AgoFunction agoFunction) {
             return new ObjectRefCallFrame<>(agoFunction, objectRef);

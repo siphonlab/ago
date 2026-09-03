@@ -17,6 +17,8 @@ package org.siphonlab.ago.runtime.db;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.native_.AgoNativeFunction;
+import org.siphonlab.ago.native_.NativeFrame;
+import org.siphonlab.ago.native_.NativeInstance;
 import org.siphonlab.ago.runtime.*;
 import org.siphonlab.ago.runtime.db.lazy.*;
 import org.siphonlab.ago.runtime.db.sdk.ForkWorkflowRunSpace;
@@ -250,43 +252,32 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         var slots = DbSlotsCreator.create(agoClass, objectRef);
         if(slotsInitializer != null) slotsInitializer.accept(slots);
 
-        if(!(slots instanceof DbSlots<?>)){   // box types use default slots
-            return new Instance<>(slots, agoClass);
-        }
+        return createInstance(parentScope, agoClass, objectRef, slotsInitializer);
+    }
 
-        DbAdapter<Id> adapter = this.workflowAdapter;
-
-        Instance<?> inst;
-        if(agoClass.isNative()){
-            inst = new DeferenceNativeInstance((DbSlots) slots, agoClass, (DbEngine<Id>) this.agoEngine, adapter, this);
-        } else {
-            inst = new DeferenceInstance((DbSlots) slots, agoClass, adapter, (DbEngine<Id>) this.agoEngine, this);
-        }
-        if (parentScope != null) inst.setParentScope(parentScope);
-
-        DeferenceObject deferenceObject = (DeferenceObject) inst;
-        deferenceObject.markSaved();
-
-        return inst;
+    @Override
+    public DbEngine<Id> getAgoEngine() {
+        return (DbEngine<Id>) super.getAgoEngine();
     }
 
     @Override
     public CallFrame<?> createFunctionInstance(AgoFunction agoFunction, Instance<?> parentScope, ObjectRef<Id> objectRef, Consumer<Slots> slotsInitializer) {
         DbSlots<Id> slots = (DbSlots<Id>) DbSlotsCreator.create(agoFunction, objectRef);
+        slots.beginRestore();
         if(slotsInitializer != null) slotsInitializer.accept(slots);    // may change slots rowstate -> none
         CallFrame<?> inst;
         if(agoFunction instanceof AgoNativeFunction agoNativeFunction) {
-            inst = new DereferencedNativeFrame<>(slots, agoNativeFunction, (DbEngine<Id>) getAgoEngine(), this);
+            inst = new NativeFrame(getAgoEngine(), slots, agoNativeFunction);
         } else {
-            inst = new DereferencedAgoFrame<>(slots, agoFunction, (DbEngine<Id>) getAgoEngine(), this);
+            inst = new DereferencedAgoFrame<>(slots, agoFunction, getAgoEngine());
         }
         if (parentScope != null)
             inst.setParentScope(parentScope);  // not sure parentScope need restore to ObjectRefInstance too
+        slots.endRestore();
 
         // restore DeferenceInstance to ObjectRefInstance
         // it cut off caller chain so that only running CallFrame living in the memory
-        DeferenceObject<Id> deferenceObject = (DeferenceObject<Id>) inst;
-        deferenceObject.markSaved();       // avoid instance marked as saveRequired
+        slots.cleanDirty();
         return inst;
     }
 
@@ -298,6 +289,8 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
         if(!(slots instanceof DbSlots<?>)) {
             return createArrayInstanceDefault(arrayType, length);
         }
+
+        ((DbSlots<?>) slots).beginRestore();
 
         AgoClass elementType = arrayType.getElementClassOfArray();
         int typeCodeValue = elementType.getTypeCode().value;
@@ -344,9 +337,9 @@ public class WorkflowRunSpace<Id> extends RunSpace implements CreateInstanceRunS
                 return createArrayInstanceDefault(arrayType, length);
         }
 
-        if (inst instanceof DeferenceObject) {
-            ((DeferenceObject) inst).markSaved();
-        }
+        ((DbSlots<?>) slots).endRestore();
+        ((DbSlots<?>) slots).cleanDirty();
+
         return inst;
     }
 

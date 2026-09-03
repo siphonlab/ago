@@ -17,7 +17,6 @@ package org.siphonlab.ago.runtime.db.lazy;
 
 import org.siphonlab.ago.*;
 import org.siphonlab.ago.opcode.Load;
-import org.siphonlab.ago.runtime.db.DbAdapter;
 import org.siphonlab.ago.runtime.db.DbSlots;
 import org.siphonlab.ago.runtime.db.ObjectRef;
 import org.siphonlab.ago.runtime.db.WorkflowRunSpace;
@@ -28,46 +27,42 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedList;
 import java.util.List;
 
-public class DereferencedAgoFrame<F extends AgoFunction, Id> extends AgoFrame implements DereferencedCallFrame<F,Id> {
+public class DereferencedAgoFrame<F extends AgoFunction, Id> extends DereferenceContextAgoFrame<Id> {
 
     private static final Logger logger = LoggerFactory.getLogger(DereferencedAgoFrame.class);
 
-    private final DbAdapter<Id> adapter;
-    private final DeferenceFrameState state;
+    private final DbSlots<Id> dbSlots;
+
     private List<Instance<?>> loadedScopes = new LinkedList<>();
 
-    public DereferencedAgoFrame(DbSlots<Id> slots, AgoFunction agoFunction, DbEngine<Id> engine, RunSpace runSpace) {
+    public DereferencedAgoFrame(DbSlots<Id> slots, AgoFunction agoFunction, DbEngine<Id> engine) {
         super(new DereferenceContextSlots<>(slots.getObjectRef(), slots), agoFunction, engine);
+        this.dbSlots = slots;
 
         slots.setOwner(this);
-        this.adapter = engine.getDbAdapter();
-
-        ObjectRefCallFrame<F, Id> inst = (ObjectRefCallFrame<F, Id>) engine.createObjectRefInstance(this.getObjectRef(), runSpace);
-        this.state = new DeferenceFrameState(inst);
-        inst.setDereferencedInstance(this);
     }
 
     @Override
     public void setRunSpace(RunSpace runSpace) {
         super.setRunSpace(runSpace);
-        this.state.setSaveRequired();
+        this.dbSlots.logChangeBesideSlots(DbSlots.BesideSlotsChange.RunSpace);
     }
 
     @Override
     public void setParentScope(Instance<?> parentScope) {
         super.setParentScope(parentScope);
-        this.state.setSaveRequired();
+        this.dbSlots.logChangeBesideSlots(DbSlots.BesideSlotsChange.ParentScope);
     }
 
     @Override
     public void setCaller(CallFrame<?> caller) {
-        if(caller instanceof DereferencedCallFrame dereferencedCallFrame){
-            caller = dereferencedCallFrame.toObjectRefInstance();
-        }
-        if (ObjectRefOwner.equals(caller, this.getCaller())) return;
+        var ref = (CallFrame<?>) ObjectRefObject.toObjectRefInstance((DbEngine<?>) engine, caller);
+        if(ref == null) ref = caller;
+
+        if (ObjectRefOwner.equals(ref, this.getCaller())) return;
 
         super.setCaller(caller);
-        this.state.setSaveRequired();
+        this.dbSlots.logChangeBesideSlots(DbSlots.BesideSlotsChange.Caller);
     }
 
     protected int evaluateLoad(CallFrame<?> self, Slots slots, int pc, int instruction) {
@@ -133,21 +128,8 @@ public class DereferencedAgoFrame<F extends AgoFunction, Id> extends AgoFrame im
         return r;
     }
 
-    public boolean isSaveRequired() {
-        return state.isSaveRequired();
-    }
-
-    public void markSaved() {
-        state.markSaved();
-    }
-
     public ObjectRef<Id> getObjectRef() {
-        return ((DbSlots<Id>)slots).getObjectRef();
-    }
-
-    @Override
-    public ObjectRefCallFrame<F, Id> toObjectRefInstance() {
-        return (ObjectRefCallFrame<F, Id>) this.state.getObjectRefObject();
+        return dbSlots.getObjectRef();
     }
 
     @Override
@@ -164,16 +146,6 @@ public class DereferencedAgoFrame<F extends AgoFunction, Id> extends AgoFrame im
     @Override
     public String toString() {
         return "(DeferenceAgoFrame %s)".formatted(this.getObjectRef());
-    }
-
-    @Override
-    public DeferenceObjectState getDeferenceObjectState() {
-        return state;
-    }
-
-    @Override
-    public DeferenceFrameState getDeferenceFrameState() {
-        return state;
     }
 
     @Override

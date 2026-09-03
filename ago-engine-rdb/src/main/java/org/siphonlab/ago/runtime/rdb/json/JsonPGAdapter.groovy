@@ -39,10 +39,6 @@ import org.siphonlab.ago.runtime.rdb.RdbAdapter
 import org.siphonlab.ago.runtime.rdb.RowState
 import org.siphonlab.ago.runtime.rdb.RunSpaceDesc
 import org.siphonlab.ago.runtime.db.lazy.DereferencedAgoFrame
-import org.siphonlab.ago.runtime.db.lazy.DeferenceInstance
-import org.siphonlab.ago.runtime.db.lazy.DereferencedNativeFrame
-import org.siphonlab.ago.runtime.db.lazy.DeferenceNativeInstance
-import org.siphonlab.ago.runtime.db.lazy.DeferenceObject
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefCallFrame
 import org.siphonlab.ago.runtime.db.lazy.ObjectRefObject
 import org.siphonlab.ago.runtime.rdb.TransactionBoundDataSource
@@ -210,8 +206,8 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
             throw new UnsupportedOperationException("unsupported frame type " + callFrame)
         }
         updateRow("ago_frame", map, "id")
-        if(callFrame instanceof DeferenceObject){
-            callFrame.markSaved()
+        if(callFrame.getSlots() instanceof DbSlots dbSlots){
+            dbSlots.cleanDirty();
         }
     }
 
@@ -681,15 +677,15 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
         }
         if(logger.isDebugEnabled()) logger.debug("save instance " + instance)
         super.saveInstance(instance, saved)
-        if(instance instanceof DeferenceObject){
-            if(instance.isSaveRequired()){
-                if(instance instanceof CallFrame) {
-                    updateCallFrameRunningState(instance, (byte) -1)
-                } else {
-                    this.update((Instance)instance, (DbSlots)null, instance.getAgoClass() as AgoClass);
-                }
-            }
-        }
+//        if(instance instanceof DereferencedObject){
+//            if(instance.isSaveRequired()){
+//                if(instance instanceof CallFrame) {
+//                    updateCallFrameRunningState(instance, (byte) -1)
+//                } else {
+//                    this.update((Instance)instance, (DbSlots)null, instance.getAgoClass() as AgoClass);
+//                }
+//            }
+//        }
     }
 
     @Override
@@ -710,9 +706,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
             saveAgoInstance(instance)
         }
 
-        if (instance instanceof DeferenceObject) {
-            instance.markSaved()
-        }
+        dbSlots.cleanDirty()
     }
 
     @Override
@@ -773,9 +767,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
             sql = "UPDATE " + tableName(instance.getAgoClass() as AgoClass) + " SET slots = :slots ${hasPayload ? ',payload = :payload' : ''}  WHERE id = :id"
         }
 
-        if(instance instanceof DeferenceObject){
-            instance.markSaved()
-        }
+        dbSlots.cleanDirty();
 
         this.sql.executeUpdate(arguments, sql)
 
@@ -800,7 +792,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
         Instance parentScope = null;
         if (parentScopeTable != null) {
             var parent_scope_id = row["parent_scope_id"] as Id
-            parentScope = agoEngine.createObjectRefInstance(ObjectRef.create(parentScopeTable, parent_scope_id), runSpace)
+            parentScope = agoEngine.createObjectRefInstance(ObjectRef.create(parentScopeTable, parent_scope_id))
         }
 
         AgoClass agoClass = this.classManager.getClass(className);
@@ -809,7 +801,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
         } else if (agoClass instanceof AgoFunction) {
             CallFrame caller;
             if (row["caller_id"] != null) {
-                caller = (CallFrame) agoEngine.createObjectRefInstance(ObjectRef.create(row["caller_class"] as String, row["caller_id"] as Id),runSpace)
+                caller = (CallFrame) agoEngine.createObjectRefInstance(ObjectRef.create(row["caller_class"] as String, row["caller_id"] as Id))
             } else {
                 caller = null
             }
@@ -820,14 +812,15 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
             })
             if (frame instanceof DereferencedAgoFrame) {
                 frame.pc = row['pc'] as int
-                frame.getDeferenceFrameState().entrance = row['is_entrance']
-                frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
-            } else if(frame instanceof DereferencedNativeFrame){
+            } else if(frame instanceof NativeFrame){
                 if(row['payload']) frame.setNativePayload(new JsonSlurper().parseText(((PGobject)row['payload']).value))
-                frame.getDeferenceFrameState().entrance = row['is_entrance']
-                frame.getDeferenceFrameState().asyncEntrance = row['is_async_entrance']
             } else {
                 throw new RuntimeException("not deference type");
+            }
+            if(row['is_async_entrance'] as boolean) {
+                frame = new EntranceCallFrame<>(frame);
+            } else if(row['is_entrance'] as boolean){
+                frame = new AsyncEntranceCallFrame<>(frame);
             }
             if(boxInstanceScope.get() != null){
                 frame.setParentScope(boxInstanceScope.get())
@@ -839,25 +832,22 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
             }
             frame.setCaller(caller)
 
-            if (frame instanceof DeferenceObject) frame.markSaved()
+            ((DbSlots)frame.getSlots()).cleanDirty();
 
             return frame
         } else {
             var engine = this.getAgoEngine();
             DbSlots<Id> slots = DbSlotsCreator<Id>.create(agoClass, ObjectRef.create(agoClass.fullname, objectRef.id())) as DbSlots<Id>
-            getAgoEngine().jsonDeserializeSlots(slots, agoClass, (String) ((row['slots'] as PGobject).value), null);
-
-            var inst = agoClass.isNative() ?
-                                new DeferenceNativeInstance(slots,agoClass, (DbEngine<Id>) this.agoEngine, this, runSpace) :
-                                new DeferenceInstance(slots, agoClass, this, (DbEngine<Id>) this.agoEngine, runSpace);
-            inst.parentScope = parentScope
-            if(inst instanceof DeferenceNativeInstance){
+            var inst = engine.createInstance(parentScope, agoClass, runSpace, ObjectRef.create(agoClass.fullname, objectRef.id()), it -> {
+                engine.jsonDeserializeSlots(slots, agoClass, (String) ((row['slots'] as PGobject).value), null);
+            });
+            if(inst instanceof NativeInstance) {
                 var payload = row['payload'];
-                if(payload){
-                    inst.setNativePayload(new JsonSlurper().parseText(((PGobject)payload).value))
+                if (payload) {
+                    inst.setNativePayload(new JsonSlurper().parseText(((PGobject) payload).value))
                 }
             }
-            inst.markSaved()
+            slots.cleanDirty();
 
             if (logger.isDebugEnabled()) logger.debug("%s deference to %s".formatted(objectRef, inst))
             return inst
@@ -868,7 +858,7 @@ public class JsonPGAdapter<Id> extends RdbAdapter<Id> implements WorkflowAdapter
         var row = sql.firstRow("SELECT parent_scope_class, parent_scope_id, creator_class, creator_id, slots FROM ${baseClass instanceof AgoFunction ? "ago_function" : "ago_class"} WHERE id =?", [id])
         var parentScopeId = row["parent_scope_id"]
         if(parentScopeId != null) {
-            Instance scope = agoEngine.createObjectRefInstance(ObjectRef.create((String) row["parent_scope_class"], (Id) parentScopeId), runSpace);
+            Instance scope = agoEngine.createObjectRefInstance(ObjectRef.create((String) row["parent_scope_class"], (Id) parentScopeId));
             var scoped = baseClass.cloneWithScope(scope)
             var slots = scoped.getSlots() as DbSlots<Id>;
             slots.setObjectRef(ObjectRef.create(slots.getObjectRef().className(), id));

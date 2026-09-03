@@ -38,6 +38,29 @@ public class DbSlots<Id> implements Slots, ObjectRefOwner<Id> {
     private ObjectRef<Id> objectRef;
     private ObjectSlot[] objectSlots;
 
+    private Set<BesideSlotsChange> besideSlotsChanges;
+
+    public synchronized void logChangeBesideSlots(BesideSlotsChange besideSlotsChange) {
+        if(this.besideSlotsChanges == null) { this.besideSlotsChanges = new HashSet<BesideSlotsChange>(); }
+        if(!restoring){
+            this.besideSlotsChanges.add(besideSlotsChange);
+        }
+    }
+
+    public void cleanDirty() {
+        if(this.besideSlotsChanges != null) this.besideSlotsChanges.clear();
+        this.rowState = RowState.Unchanged;
+    }
+
+    public enum BesideSlotsChange {
+        ParentScope,
+        RunSpace,
+        Caller,
+        NativePayload,
+        PC,
+        ArrayElement
+    }
+
     protected boolean restoring = false;    // when restoring, don't change state and don't collect change log
 
     public DbSlots(Slots baseSlots, ObjectRef<Id> objectRef){
